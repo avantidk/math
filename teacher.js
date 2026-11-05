@@ -1654,7 +1654,7 @@ function buildShell() {
   root.append(
     h('div', { class: 'shell' },
       h('header', { class: 'topbar' },
-        h('div', { class: 'tb-head' }, h('h1', { class: 'tb-title', text: 'Avanti Fellows Math Teacher Dashboard' }), h('span', { class: 'tb-sub', text: 'JEE Mathematics \u00b7 Question Bank, DPPs, Tests and Handouts' })),
+        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/avanti-logo.png', alt: 'Avanti Fellows', width: 150, height: 51 }), h('h1', { class: 'tb-title', text: 'Math Teacher Dashboard' }), h('span', { class: 'tb-sub', text: 'JEE Mathematics \u00b7 Question Bank, DPPs, Tests and Handouts' })),
         h('button', { type: 'button', class: 'tb-theme', id: 'themeBtn', 'data-act': 'theme', 'aria-pressed': 'false' }),
         h('nav', { class: 'tb-menu' }, tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), miscMenu())),
       h('main', { class: 'main' },
@@ -1673,7 +1673,7 @@ function buildShell() {
         h('span', { class: 'af-brand', text: 'Avanti Fellows \u00b7 Math Teacher Dashboard' }),
         h('span', { class: 'af-ver', id: 'appFootVer' }),
         h('span', { class: 'af-link', id: 'appFootLink' }))));
-  if (!document.getElementById('app-fit-css')) { const fs2 = document.createElement('style'); fs2.id = 'app-fit-css'; fs2.textContent = 'html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}.topbar{overflow-x:clip}.tb-menu{margin-inline:0!important;padding-inline:0!important;max-width:100%}.katex-mathml{max-width:1px!important;overflow:hidden!important}'; document.head.appendChild(fs2); }
+  if (!document.getElementById('app-fit-css')) { const fs2 = document.createElement('style'); fs2.id = 'app-fit-css'; fs2.textContent = 'html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}.tb-menu{max-width:100%}.katex-mathml{max-width:1px!important;overflow:hidden!important}'; document.head.appendChild(fs2); }
   if (!document.getElementById('app-foot-css')) { const st = document.createElement('style'); st.id = 'app-foot-css'; st.textContent = '.app-foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 14px;margin:28px auto 0;padding:14px 16px 20px;border-top:1px solid var(--color-border-line,rgba(128,128,128,.28));font-size:12px;line-height:1.4;letter-spacing:.02em;color:var(--color-fg-muted,#6b7280)}.app-foot .af-brand{font-weight:600}.app-foot .af-ver:not(:empty)::before,.app-foot .af-link:not(:empty)::before{content:"|";margin-right:14px;opacity:.45}.app-foot .qb-sstat-link{font:inherit;color:inherit;text-decoration:none;cursor:pointer;border-bottom:1px dotted currentColor;padding:0}.app-foot .qb-sstat-link:hover{color:var(--color-fg,#111);border-bottom-style:solid}'; document.head.append(st); }
 }
 function buildLib() {
