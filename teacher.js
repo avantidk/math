@@ -38,7 +38,7 @@ function applyOos() {
 }
 let KATEX_P = null;
 let IS_OWNER = null; /* null until known; Misc is for the account owner only */
-let BANK = null, BYID = new Map(), CHMAP = new Map(), downloads = null;
+let BANK = null, BYID = new Map(), CHMAP = new Map(), downloads = { save: o => new Promise(res => { const blob = o.data instanceof Blob ? o.data : new Blob([o.data]); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = o.filename || 'download'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); res(true); }, 1500); }) }; /* plain browser download until (and unless) the Claude runtime offers its own */
 const S = {
   mode: 'test', pyq: false, pubs: new Set(), exam: { Main: true, Adv: false, KCET: false }, cls: { 11: true, 12: false },
   ch: new Set(), tp: new Set(), diff: new Set(['L1']), types: new Set(['MCQ']), count: 25, sides: 2, cols: 2, order: true, tag: true,
@@ -1819,7 +1819,7 @@ function boot() {
   buildShell(); themeInit();
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMax(); }); document.addEventListener('click', onAct); document.addEventListener('change', onAct);
   window.addEventListener('resize', rescale);
-  try { if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { downloads = d; }).catch(() => {}); } catch (e) { /* no runtime */ }
+  try { if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { if (d && d.save) downloads = d; }).catch(() => {}); } catch (e) { /* no runtime */ }
   try { const up = (window.claude && window.claude.use) ? Promise.resolve(window.claude.use('user')) : Promise.resolve(null); up.then(u => { IS_OWNER = !!(u && u.isOwner && u.isOwner()); const m = $('.tb-misc'); if (m) m.hidden = !IS_OWNER; if (!IS_OWNER && ['make', 'res', 'god', 'syl'].some(k => { const v = $('#view' + k[0].toUpperCase() + k.slice(1)); return v && !v.hidden; })) setTab('qb'); }).catch(() => { IS_OWNER = false; }); } catch (e) { IS_OWNER = false; }
   qbInit();
   try { if (sessionStorage.getItem('avanti_tab') === 'make') { sessionStorage.removeItem('avanti_tab'); setTab('make'); } } catch (e) { /* ignore */ }

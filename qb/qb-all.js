@@ -10,7 +10,7 @@
   };
   window.d3 = window.d3 || { format: function () { return function (n) { return Number(n).toLocaleString('en-US'); }; } };
   window.__qbStart = async function () {
-    try { var bl = document.querySelector('.qb-build'), fv = document.getElementById('appFootVer'); if (bl) { var vt = bl.textContent.replace(/^\s*Version/i, 'Question Bank v').replace(/v\s+/, 'v').trim() + ' \u00b7 Code 507'; if (fv) { fv.textContent = vt; bl.style.display = 'none'; } else bl.textContent += ' \u00b7 code 507'; } } catch (e) { /* label only */ }
+    try { var bl = document.querySelector('.qb-build'), fv = document.getElementById('appFootVer'); if (bl) { var vt = bl.textContent.replace(/^\s*Version/i, 'Question Bank v').replace(/v\s+/, 'v').trim() + ' \u00b7 Code 508'; if (fv) { fv.textContent = vt; bl.style.display = 'none'; } else bl.textContent += ' \u00b7 code 508'; } } catch (e) { /* label only */ }
     var pre = window.__qbPre || {}, pd = pre.data || {};
     var get = function (n) { return pd[n] || fetch('qb/data/' + n + '.json').then(function (r) { if (!r.ok) throw new Error(n); return r.json(); }); };
     /* "Solutions status" link under the version label: popup with, for every exam and year, how many questions have a solution added, which are still missing one, and which carry a flag to check */
@@ -1859,8 +1859,8 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   }
 
   /* ---------- export ---------- */
-  var dl = null;
-  try { if (window.claude && typeof window.claude.use === 'function') window.claude.use('downloads').then(function (d) { dl = d; }, function () { dl = null; }); } catch (e) { dl = null; }
+  var dl = { save: function (o) { return new Promise(function (res) { var blob = o.data instanceof Blob ? o.data : new Blob([o.data]); var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = o.filename || 'download'; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); res(true); }, 1500); }); } }; /* plain browser download unless the Claude runtime offers its own */
+  try { if (window.claude && typeof window.claude.use === 'function') window.claude.use('downloads').then(function (d) { if (d && d.save) dl = d; }, function () { /* keep the browser download */ }); } catch (e) { /* keep the browser download */ }
   function msg(t, bad) { var m = $('.qb-msg'); m.textContent = t || ''; m.classList.toggle('bad', !!bad); }
   function opts() {
     var ans = $('.qb-o-ans').checked;
