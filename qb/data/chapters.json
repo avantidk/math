@@ -1,0 +1,177 @@
+[
+ {
+  "chapter_code": "11M1",
+  "chapter": "Fundamental of Mathematics",
+  "class": 11,
+  "order": 1,
+  "folder": "c11M1 Fundamental of Mathematics"
+ },
+ {
+  "chapter_code": "11M2",
+  "chapter": "Sets, Relations and Functions",
+  "class": 11,
+  "order": 2,
+  "folder": "c11M2 Sets, Relations and Functions"
+ },
+ {
+  "chapter_code": "11M3",
+  "chapter": "Trigonometry",
+  "class": 11,
+  "order": 3,
+  "folder": "c11M3 Trigonometry"
+ },
+ {
+  "chapter_code": "11M4",
+  "chapter": "Quadratic Equations",
+  "class": 11,
+  "order": 4,
+  "folder": "c11M4 Quadratic Equations"
+ },
+ {
+  "chapter_code": "11M5",
+  "chapter": "Complex Numbers",
+  "class": 11,
+  "order": 5,
+  "folder": "c11M5 Complex Numbers"
+ },
+ {
+  "chapter_code": "11M6",
+  "chapter": "Sequences and Series",
+  "class": 11,
+  "order": 6,
+  "folder": "c11M6 Sequences and Series"
+ },
+ {
+  "chapter_code": "11M7",
+  "chapter": "Permutations and Combinations",
+  "class": 11,
+  "order": 7,
+  "folder": "c11M7 Permutations and Combinations"
+ },
+ {
+  "chapter_code": "11M8",
+  "chapter": "Binomial Theorem",
+  "class": 11,
+  "order": 8,
+  "folder": "c11M8 Binomial Theorem"
+ },
+ {
+  "chapter_code": "11M9",
+  "chapter": "Straight Lines",
+  "class": 11,
+  "order": 9,
+  "folder": "c11M9 Straight Lines"
+ },
+ {
+  "chapter_code": "11M10",
+  "chapter": "Circle",
+  "class": 11,
+  "order": 10,
+  "folder": "c11M10 Circle"
+ },
+ {
+  "chapter_code": "11M11",
+  "chapter": "Conic Sections",
+  "class": 11,
+  "order": 11,
+  "folder": "c11M11 Conic Sections"
+ },
+ {
+  "chapter_code": "11M12",
+  "chapter": "Statistics",
+  "class": 11,
+  "order": 12,
+  "folder": "c11M12 Statistics"
+ },
+ {
+  "chapter_code": "12M13",
+  "chapter": "Functions",
+  "class": 12,
+  "order": 13,
+  "folder": "c12M13 Functions"
+ },
+ {
+  "chapter_code": "12M14",
+  "chapter": "Inverse Trigonometric Functions",
+  "class": 12,
+  "order": 14,
+  "folder": "c12M14 Inverse Trigonometric Functions"
+ },
+ {
+  "chapter_code": "12M15",
+  "chapter": "Matrices and Determinants",
+  "class": 12,
+  "order": 15,
+  "folder": "c12M15 Matrices and Determinants"
+ },
+ {
+  "chapter_code": "12M16",
+  "chapter": "Limits",
+  "class": 12,
+  "order": 16,
+  "folder": "c12M16 Limits"
+ },
+ {
+  "chapter_code": "12M17",
+  "chapter": "Continuity and Differentiability",
+  "class": 12,
+  "order": 17,
+  "folder": "c12M17 Continuity and Differentiability"
+ },
+ {
+  "chapter_code": "12M18",
+  "chapter": "Application of Derivative",
+  "class": 12,
+  "order": 18,
+  "folder": "c12M18 Application of Derivative"
+ },
+ {
+  "chapter_code": "12M19",
+  "chapter": "Indefinite Integration",
+  "class": 12,
+  "order": 19,
+  "folder": "c12M19 Indefinite Integration"
+ },
+ {
+  "chapter_code": "12M20",
+  "chapter": "Definite Integration and Area Under the Curve",
+  "class": 12,
+  "order": 20,
+  "folder": "c12M20 Definite Integration and Area Under the Curve"
+ },
+ {
+  "chapter_code": "12M21",
+  "chapter": "Differential Equations",
+  "class": 12,
+  "order": 21,
+  "folder": "c12M21 Differential Equations"
+ },
+ {
+  "chapter_code": "12M22",
+  "chapter": "Vectors",
+  "class": 12,
+  "order": 22,
+  "folder": "c12M22 Vectors"
+ },
+ {
+  "chapter_code": "12M23",
+  "chapter": "Three Dimensional Geometry",
+  "class": 12,
+  "order": 23,
+  "folder": "c12M23 Three Dimensional Geometry"
+ },
+ {
+  "chapter_code": "12M24",
+  "chapter": "Probability",
+  "class": 12,
+  "order": 24,
+  "folder": "c12M24 Probability"
+ },
+ {
+  "chapter_code": "12M27",
+  "chapter": "Solution of Triangle",
+  "class": 12,
+  "order": 27,
+  "folder": "c12M27 Solution of Triangle"
+ }
+]
