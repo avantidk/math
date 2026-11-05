@@ -10,7 +10,7 @@
   };
   window.d3 = window.d3 || { format: function () { return function (n) { return Number(n).toLocaleString('en-US'); }; } };
   window.__qbStart = async function () {
-    try { var bl = document.querySelector('.qb-build'), fv = document.getElementById('appFootVer'); if (bl) { var vt = bl.textContent.replace(/^\s*Version/i, 'Question Bank v').replace(/v\s+/, 'v').trim() + ' \u00b7 Code 508'; if (fv) { fv.textContent = vt; bl.style.display = 'none'; } else bl.textContent += ' \u00b7 code 508'; } } catch (e) { /* label only */ }
+    try { var bl = document.querySelector('.qb-build'), fv = document.getElementById('appFootVer'); if (bl) { var vt = bl.textContent.replace(/^\s*Version/i, 'Question Bank v').replace(/v\s+/, 'v').trim() + ' \u00b7 Code 509'; if (fv) { fv.textContent = vt; bl.style.display = 'none'; } else bl.textContent += ' \u00b7 code 509'; } } catch (e) { /* label only */ }
     var pre = window.__qbPre || {}, pd = pre.data || {};
     var get = function (n) { return pd[n] || fetch('qb/data/' + n + '.json').then(function (r) { if (!r.ok) throw new Error(n); return r.json(); }); };
     /* "Solutions status" link under the version label: popup with, for every exam and year, how many questions have a solution added, which are still missing one, and which carry a flag to check */
@@ -696,7 +696,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     return '<div class="key">' + qs.slice(from, to).map(function (q, k) { return '<div><b>' + (from + k + 1) + '.</b> ' + esc(q.answer || '—') + '</div>'; }).join('') + '</div>';
   }
   /* CSS scoped to .qbp (PDF pages) — also used, unscoped, by the print-file fallback */
-  var PCSS = '.qbp{font-family:Arial,Helvetica,"Segoe UI",sans-serif;font-size:14px;line-height:1.55;color:#000;background:#fff}' +
+  var PCSS = '.qbp .katex-html{display:none!important}.qbp{font-family:Arial,Helvetica,"Segoe UI",sans-serif;font-size:14px;line-height:1.55;color:#000;background:#fff}' +
     '.qbp .h1{font-size:20px;font-weight:700;margin:0}.qbp .meta{font-size:10.5px;color:#777;margin-bottom:2px}' +
     '.qbp .qt{margin-bottom:4px}.qbp .ops{display:grid;gap:2px 14px;margin-left:16px}.qbp .ops.c4{grid-template-columns:repeat(4,1fr)}.qbp .ops.c2{grid-template-columns:repeat(2,1fr)}.qbp .ops.c1{grid-template-columns:1fr}' +
     '.qbp .op{min-width:0}.qbp .ans{margin-top:3px}.qbp .keyh{font-size:17px;font-weight:700}.qbp .key{display:grid;grid-template-columns:repeat(6,1fr);gap:4px 12px}' +

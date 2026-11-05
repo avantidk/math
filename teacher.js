@@ -1330,7 +1330,7 @@ async function copyText(txt) {
 function exportHost() { const hst = h('div', { 'data-exphost': '', style: 'position:absolute;left:-10000px;top:0;width:794px;background:#fff' }); document.body.append(hst); return hst; }
 async function shot(node, scale) {
   await document.fonts.ready;
-  return window.html2canvas(node, { scale, backgroundColor: '#ffffff', logging: false, useCORS: true, onclone: d => { const x = d.querySelector('[data-exphost]'); if (x) { x.style.left = '0px'; x.style.top = '0px'; x.style.zIndex = '-1'; } } });
+  return window.html2canvas(node, { scale, backgroundColor: '#ffffff', logging: false, useCORS: true, onclone: d => { try { const ks = d.createElement('style'); ks.textContent = '.katex-mathml{display:none!important}'; d.head.appendChild(ks); } catch (e) { /* ignore */ } const x = d.querySelector('[data-exphost]'); if (x) { x.style.left = '0px'; x.style.top = '0px'; x.style.zIndex = '-1'; } } });
 }
 const ansText = q => (q.a || '\u2014').replace(/\\[()\[\]]/g, '');
 const fname = (p, ext) => (p.file || p.title || 'sheet').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') + ext;

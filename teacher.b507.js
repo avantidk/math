@@ -37,7 +37,8 @@ function applyOos() {
   window.__oosInfo = () => ({ n: BANK.qs.length, all: BANK.all.length, oo: BANK.qs.filter(q => q.oo).length, subs: SUBS.length });
 }
 let KATEX_P = null;
-let BANK = null, BYID = new Map(), CHMAP = new Map(), downloads = null;
+let IS_OWNER = null; /* null until known; Misc is for the account owner only */
+let BANK = null, BYID = new Map(), CHMAP = new Map(), downloads = { save: o => new Promise(res => { const blob = o.data instanceof Blob ? o.data : new Blob([o.data]); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = o.filename || 'download'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); res(true); }, 1500); }) }; /* plain browser download until (and unless) the Claude runtime offers its own */
 const S = {
   mode: 'test', pyq: false, pubs: new Set(), exam: { Main: true, Adv: false, KCET: false }, cls: { 11: true, 12: false },
   ch: new Set(), tp: new Set(), diff: new Set(['L1']), types: new Set(['MCQ']), count: 25, sides: 2, cols: 2, order: true, tag: true,
@@ -241,18 +242,24 @@ function matchTable(m) {
   for (let i = 0; i < n; i++) rows.push(h('tr', {}, h('td', { text: m.left[i] || '' }), h('td', { text: m.right[i] || '' })));
   return h('table', { class: 'mtab' }, h('thead', {}, h('tr', {}, h('th', { text: m.head[0] }), h('th', { text: m.head[1] }))), h('tbody', {}, rows));
 }
+/* tall formulas (matrices, cases, chains of fractions) sitting inside a line of text overlap their neighbours in the PDF picture: give them a line of their own */
+const spaceCases = t => String(t).replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, (m, b) => { const tl = /\\(d|t)?frac|\\sqrt|\\sum|\\int|\\prod|\\lim|\\binom/.test(b); return '\\begin{cases}' + b.replace(/\\\\(?!\[)(?=[\s\S]*\S)/g, '\\\\[' + (tl ? '1.3em' : '0.55em') + ']') + '\\end{cases}'; });
+const boldHtml = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>');
+function tallToDisplay(s) {
+  return spaceCases(s).replace(/\\\(([\s\S]+?)\\\)/g, (m, x0) => { const x = x0.replace(/\\begin\{([bp])matrix\}([\s\S]*?)\\end\{\1matrix\}/g, (mm, k, body) => { const r = body.split('\\\\').length, big = r >= 3 ? '\\Bigg' : r === 2 ? '\\Big' : ''; return big ? big + 'l' + (k === 'b' ? '[' : '(') + '\\begin{matrix}' + body + '\\end{matrix}' + big + 'r' + (k === 'b' ? ']' : ')') : mm; }); return ((/\\begin\{/.test(x) || ((x.match(/\\d?frac/g) || []).length >= 2 && x.length > 24)) ? '\\[' + x + '\\]' : (x !== x0 ? '\\(' + x + '\\)' : m)); });
+}
 function buildQ(q, n, p) {
   const maxOpt = Math.max(0, ...q.o.map(o => plain(o).length));
   const cls = !q.o.length ? '' : (maxOpt <= 10 && p.cols === 1) ? 'c4' : maxOpt <= 26 ? 'c2' : 'c1';
   const hint = q.t === 'MSQ' ? '(one or more options correct)' : '';
   const t = p.tag ? tagText(q) : '';
   const mt = matchParts(q.q);
-  const stem = h('div', { class: 'stem' }, mt ? mt.pre : q.q, hint ? h('span', { class: 'tag', text: hint }) : null, t ? h('span', { class: 'tag', text: t }) : null);
+  const stem = h('div', { class: 'stem' }, hint ? h('span', { class: 'tag', text: hint }) : null, t ? h('span', { class: 'tag', text: t }) : null);
+  stem.insertAdjacentHTML('afterbegin', boldHtml(tallToDisplay(mt ? mt.pre : q.q)));
   const kids = [stem];
   if (mt) kids.push(matchTable(mt));
   if (q.f) kids.push(h('img', { class: 'fig', alt: 'Figure', src: 'data:image/svg+xml;utf8,' + encodeURIComponent(q.f.svg), width: q.f.w, height: q.f.h }));
-  if (q.o.length) kids.push(h('div', { class: 'opts ' + cls }, q.o.map((o, i) => h('div', { class: 'opt' }, h('b', { text: '(' + 'ABCD'[i] + ')' }), h('span', { text: o })))));
-  else if (q.t === 'Numerical') kids.push(h('div', { class: 'ans', text: 'Ans. ____________' }));
+  if (q.o.length) kids.push(h('div', { class: 'opts ' + cls, style: q.o.some(o => /\\d?frac/.test(o)) ? 'row-gap:.8em' : '' }, q.o.map((o, i) => h('div', { class: 'opt' }, h('b', { text: '(' + 'ABCD'[i] + ')' }), h('span', { text: o })))));
   const node = h('div', { class: 'sq' }, q.head ? h('div', { class: 'qhead', text: q.head }) : null, h('div', { class: 'qn', text: n + '.' }), h('div', { class: 'qb' }, kids));
   math(node);
   return node;
@@ -560,7 +567,7 @@ function paginate(qs, base) {
 }
 function packPages(qs, mk) {
   const pg = paginate(qs, BASE), out = []; let start = 0;
-  pg.forEach((g, i) => { out.push(Object.assign({}, BASE, mk(g, i, pg.length), { qs: g, start, cols: g.length <= 4 ? 1 : 2 })); start += g.length; });
+  pg.forEach((g, i) => { out.push(Object.assign({}, BASE, mk(g, i, pg.length), { qs: g, start, cols: 2 })); start += g.length; });
   return out;
 }
 function bookletPages(cc, part) {
@@ -790,7 +797,7 @@ async function exportCwPptx(r) {
   toast('Preparing PowerPoint…');
   try {
     const d = await cwPptxData(r);
-    await Promise.all([loadScript('mathdoc.js'), loadScript('office.js'), loadScript(CDN.zip), loadScript(CDN.pptx)]);
+    await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b4.js'), loadScript(CDN.zip), loadScript(CDN.pptx)]);
     const blob = await window.OfficeDoc.buildCwPptx(window.PptxGenJS, window.JSZip, Object.assign(d, { bucket: d.bucketLabel }), { CHMAP, figs: d.figs });
     const file = r.file + '.pptx';
     await downloads.save({ filename: file, data: blob }); toast('Saved ' + file);
@@ -856,7 +863,7 @@ window.__qbCwPptx = async function (ids) {
   const yl = Object.keys(years).map(Number).sort((a, b) => a - b);
   const d = { logo, chapter: one ? c0.n : 'Selected Questions', cl: cls[0], cc: one ? ccs[0] : '', clLabel: 'CLASS ' + cls.join(' & '), chLabel: one ? 'CHAPTER ' + ccs[0].split('M')[1] : ccs.length + ' CHAPTERS',
     bucket: ex.length === 1 ? ex[0] : 'Main', bucketName: kindLabel, kindLabel, perQ: true, noFront: true, noTopic: true, year: yl.length ? (yl.length === 1 ? String(yl[0]) : 'all') : '\u2014', count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
-  await Promise.all([loadScript('mathdoc.js'), loadScript('office.js'), loadScript(CDN.zip), loadScript(CDN.pptx)]);
+  await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b4.js'), loadScript(CDN.zip), loadScript(CDN.pptx)]);
   return window.OfficeDoc.buildCwPptx(window.PptxGenJS, window.JSZip, d, { CHMAP, figs });
 };
 function markPdfRows(T) { document.querySelectorAll('#' + T + 'List .pdfrow').forEach(e => e.setAttribute('aria-current', String(e.dataset.k === PDFT[T].sel))); }
@@ -916,27 +923,54 @@ function showPdfPrev(T) {
   const step = () => { if (P.tok !== tok) return; const end = Math.min(i + 3, pages.length); for (; i < end; i++) { const L = layoutSheet(pages[i], scalers[i]); if (L.overflow) warn = true; } rescale(); say(i >= pages.length); if (i < pages.length) setTimeout(step, 0); else addKeyPages(wrap, pages); };
   step();
 }
-/* ---------- Handouts tab: download-only list (PDF, PPTX, DOCX; colour and black and white) ---------- */
+/* ---------- Handouts tab: compact PDF list ---------- */
 let HO = null;
 async function renderHandouts() {
   const view = $('#viewHo'); if (!view) return;
   if (!HO) { try { HO = await (await fetch('handouts/index.json')).json(); } catch (e) { HO = []; } }
   view.textContent = '';
-  if (!HO.length) { view.append(h('p', { class: 'hint', text: 'No handouts yet.' })); return; }
+  if (!document.getElementById('hp-css')) {
+    const st = document.createElement('style'); st.id = 'hp-css';
+    st.textContent = '#viewHo.hoview{max-width:1080px;gap:16px;padding-block:4px 20px}'
+      + '.hp-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding-bottom:10px;border-bottom:1px solid var(--rule)}'
+      + '.hp-head h1{margin:0;font-size:22px;line-height:1.2;letter-spacing:-.01em;color:var(--ink)}'
+      + '.hp-head p{margin:0;font-size:13px;color:var(--muted)}'
+      + '.hp-sec{display:flex;flex-direction:column;gap:8px;min-width:0}'
+      + '.hp-sech{margin:6px 0 0;font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}'
+      + '.hp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px}'
+      + '.hp-card{--ac:#0a86c2;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px 14px;min-width:0;background:var(--panel);border:1px solid var(--rule);border-left:4px solid var(--ac);border-radius:10px;padding:11px 14px;transition:box-shadow .12s,border-color .12s}'
+      + '.hp-card:hover{box-shadow:0 3px 12px color-mix(in srgb,var(--ac) 18%,transparent)}'
+      + '.hp-code{font:700 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;color:var(--ac);background:color-mix(in srgb,var(--ac) 12%,transparent);border-radius:6px;padding:6px 8px;white-space:nowrap}'
+      + '.hp-main{min-width:0}'
+      + '.hp-title{margin:0;font-size:15px;line-height:1.3;font-weight:650;color:var(--ink);overflow-wrap:anywhere}'
+      + '.hp-meta{margin:2px 0 0;font-size:12px;color:var(--muted)}'
+      + '.hp-act{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}'
+      + '.hp-btn{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:5px 11px;border-radius:8px;border:1px solid var(--ac);background:var(--ac);color:#fff;font:600 12.5px Figtree,system-ui,sans-serif;cursor:pointer;white-space:nowrap}'
+      + '.hp-btn:hover{filter:brightness(1.08)}.hp-btn:focus-visible{outline:3px solid color-mix(in srgb,var(--ac) 40%,transparent);outline-offset:2px}'
+      + '.hp-btn.bw{background:transparent;color:var(--ink);border-color:var(--rule)}.hp-btn.bw:hover{background:var(--ink);color:var(--bg);filter:none}'
+      + '.hp-btn svg{width:14px;height:14px;flex:none}'
+      + '@media(max-width:480px){.hp-list{grid-template-columns:1fr}.hp-card{grid-template-columns:auto 1fr}.hp-act{grid-column:1 / -1;justify-content:flex-start}}';
+    document.head.append(st);
+  }
+  const list = (HO || []).filter(Boolean);
+  if (!list.length) { view.append(h('p', { class: 'hint', text: 'No handouts yet.' })); return; }
   const base = x => x.file.replace(/\.pdf$/, '');
-  const path = (x, ext, bw) => ext === 'pdf' ? 'handouts/' + (bw ? x.dir + '/bw/' + base(x) + '_BW.pdf' : x.file) : 'handouts/office/' + base(x) + (bw ? '_BW' : '') + '.' + ext;
-  const dl = async (x, ext, bw) => { const name = base(x) + (bw ? '_BW' : '') + '.' + ext; if (!downloads) { toast('Downloads are not available in this view'); return; } try { toast('Preparing ' + name + '\u2026'); const r = await fetch(path(x, ext, bw) + (ext === 'pdf' ? '' : '.txt')); let data; if (ext === 'pdf') data = await r.blob(); else { const bin = atob((await r.text()).trim()), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); data = new Blob([u8], { type: ext === 'pptx' ? 'application/vnd.openxmlformats-officedocument.presentationml.presentation' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }); } await downloads.save({ filename: name, data }); toast('Saved ' + name); } catch (er) { if (er && er.code === 'declined') toast('Download cancelled'); else toast('Could not download'); } };
-  const btn = (x, ext, bw, label) => h('button', { type: 'button', class: 'hobtn' + (bw ? ' bw' : ''), title: 'Download ' + label + (bw ? ' (black and white, for printing)' : ' (colour)'), 'aria-label': 'Download ' + x.code + ' ' + label + (bw ? ' black and white' : ' colour'), html: '<img src="img/' + ({ pdf: 'pdf', pptx: 'ppt', docx: 'word' })[ext] + '.png" width="24" height="24" alt="" style="display:block;object-fit:contain"><span>' + label + '</span>', onclick: () => dl(x, ext, bw) });
+  const path = (x, bw) => 'handouts/' + (bw ? x.dir + '/bw/' + base(x) + '_BW.pdf' : x.file);
+  const dl = async (x, bw) => {
+    const name = base(x) + (bw ? '_BW' : '') + '.pdf';
+    if (!downloads) { toast('Downloads are not available in this view'); return; }
+    try { toast('Preparing ' + name + '…'); const r = await fetch(path(x, bw)); await downloads.save({ filename: name, data: await r.blob() }); toast('Saved ' + name); }
+    catch (er) { if (er && er.code === 'declined') toast('Download cancelled'); else toast('Could not download'); }
+  };
+  const ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8m0 0L4.8 6.8M8 10l3.2-3.2M3 13h10"/></svg>';
+  const btn = (x, bw) => h('button', { type: 'button', class: 'hp-btn' + (bw ? ' bw' : ''), title: bw ? 'Download PDF (black and white, for printing)' : 'Download PDF', 'aria-label': 'Download ' + x.title + (bw ? ' PDF, black and white' : ' PDF'), html: ICON + (bw ? 'PDF · B&W' : 'PDF'), onclick: () => dl(x, bw) });
   const ACC = ['#e0197a', '#0a86c2', '#16a06a', '#d98200', '#7a3fd1', '#e8590c', '#5a9a00'];
-  const card = (x, k) => h('article', { class: 'hocard2', style: '--ac:' + ACC[k % ACC.length] },
-    h('div', { class: 'hotop' }, h('span', { class: 'hocode', text: x.code }), h('span', { class: 'hocls', text: 'Class ' + x.code.slice(0, 2) })),
-    h('h3', { class: 'hotitle', text: x.title }),
-    h('div', { class: 'hometa' }, h('span', { text: x.pages + ' pages' }), h('span', { text: x.orient || 'Landscape A4' }), h('span', { text: x.kind || 'Short notes' })),
-    h('div', { class: 'hosec' }, h('div', { class: 'holab' }, h('i', { class: 'dot col' }), 'Colour'), h('div', { class: 'hobtns' }, btn(x, 'pdf', false, 'PDF'), x.pdfonly ? null : btn(x, 'pptx', false, 'PPTX'), x.pdfonly ? null : btn(x, 'docx', false, 'DOCX'))),
-    x.nobw ? null : h('div', { class: 'hosec' }, h('div', { class: 'holab' }, h('i', { class: 'dot bw' }), 'Black and white (print)'), h('div', { class: 'hobtns' }, btn(x, 'pdf', true, 'PDF'), btn(x, 'pptx', true, 'PPTX'), btn(x, 'docx', true, 'DOCX'))));
-  const secs = [['11', 'Class 11'], ['12', 'Class 12']].map(([c, t]) => { const L = HO.filter(x => x.code.startsWith(c)); return L.length ? h('section', { class: 'hosect' }, h('h2', { class: 'hoh2', text: t + ' \u00b7 ' + L.length + (L.length === 1 ? ' chapter' : ' chapters') }), h('div', { class: 'hogrid' }, ...L.map((x, k) => card(x, k)))) : null; });
-  view.append(h('div', { class: 'hohero' }, h('div', { class: 'hohd' }, h('h1', { text: 'Handouts' }), h('p', { text: 'Quick revision notes for every JEE Maths chapter: formulas, worked examples, tricky PYQs and a method chooser on each. Pick colour for screens, black and white for printing.' })),
-    h('div', { class: 'hokey' }, h('div', null, h('b', { text: 'PDF' }), ' print-ready'), h('div', null, h('b', { text: 'PPTX' }), ' one page per slide'), h('div', null, h('b', { text: 'DOCX' }), ' one page per Word page'), h('small', { text: 'PPTX and DOCX hold pictures of the pages, so the text is not editable.' }))), ...secs);
+  const card = (x, k) => h('article', { class: 'hp-card', style: '--ac:' + ACC[k % ACC.length] },
+    h('span', { class: 'hp-code', text: x.code }),
+    h('div', { class: 'hp-main' }, h('h3', { class: 'hp-title', text: x.title }), h('p', { class: 'hp-meta', text: [x.pages ? x.pages + ' pages' : '', x.orient || 'A4'].filter(Boolean).join(' · ') })),
+    h('div', { class: 'hp-act' }, btn(x, false), x.nobw ? null : btn(x, true)));
+  const secs = [['11', 'Class 11'], ['12', 'Class 12']].map(([c, t]) => { const L = list.filter(x => x.code.startsWith(c)); return L.length ? h('section', { class: 'hp-sec' }, h('h2', { class: 'hp-sech', text: t }), h('div', { class: 'hp-list' }, L.map((x, k) => card(x, k)))) : null; }).filter(Boolean);
+  view.append(h('div', { class: 'hp-head' }, h('h1', { text: 'Handouts' }), h('p', { text: 'Handwritten revision notes · PDF' })), ...secs);
 }
 
 /* ---------- Must Solve tab: questions that repeat in JEE (exact or very similar) and sure-shot picks, by chapter and topic ---------- */
@@ -1111,6 +1145,7 @@ function pyqShow() {
   setTimeout(rescale, 0);
 }
 function setTab(t) {
+  if (IS_OWNER === false && ['make', 'res', 'god', 'syl'].includes(t)) t = 'qb';
   if (t === 'pyq') { pyqShow(); return; }
   const pv = $('#viewPyq'); if (pv) pv.hidden = true;
   setTabInner(t);
@@ -1118,7 +1153,7 @@ function setTab(t) {
 function setTabInner(t) {
   $('#viewQb').hidden = t !== 'qb'; $('#viewLib').hidden = t !== 'lib'; $('#viewMake').hidden = t !== 'make'; $('#viewCw').hidden = t !== 'cw'; $('#viewSw').hidden = t !== 'sw'; $('#viewHo').hidden = t !== 'ho'; $('#viewMust').hidden = t !== 'must'; $('#viewGod').hidden = t !== 'god'; $('#viewSyl').hidden = t !== 'syl'; $('#viewRes').hidden = t !== 'res';
   document.querySelectorAll('[data-act="tab"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === t)));
-  { const mb = $('#miscBtn'), md = $('#miscDrop'); if (mb) { const inMisc = ['make', 'res', 'ho', 'god', 'syl'].includes(t); mb.setAttribute('aria-pressed', String(inMisc)); mb.firstChild.textContent = inMisc ? 'Misc: ' + ({ make: 'Tests', res: 'Results', ho: 'Handouts', god: 'God Mode', syl: 'Syllabus Priority' })[t] + ' ' : 'Misc '; mb.setAttribute('aria-expanded', 'false'); if (md) md.hidden = true; } }
+  { const mb = $('#miscBtn'), md = $('#miscDrop'); if (mb) { const inMisc = ['make', 'res', 'god', 'syl'].includes(t); mb.setAttribute('aria-pressed', String(inMisc)); mb.firstChild.textContent = inMisc ? 'Misc: ' + ({ make: 'Tests', res: 'Results', god: 'God Mode', syl: 'Syllabus Priority' })[t] + ' ' : 'Misc '; mb.setAttribute('aria-expanded', 'false'); if (md) md.hidden = true; } }
   if (t === 'qb') qbInit(); else if (t === 'syl') renderSyl(); else if (t === 'god') renderGod(); else if (t === 'res') renderResults(); else if (t === 'ho') renderHandouts(); else if (t === 'must') ensureDpp().then(renderMust); else if (t === 'cw' || t === 'sw') ensureDpp().then(() => { renderPdfTab(t); setTimeout(rescale, 0); }); else ensureDpp().then(() => { if (t === 'make') { if (!makeReady) { makeReady = true; refreshRail(); } renderPreview(); } else renderLib(); setTimeout(rescale, 0); });
   setTimeout(rescale, 0);
 }
@@ -1295,7 +1330,7 @@ async function copyText(txt) {
 function exportHost() { const hst = h('div', { 'data-exphost': '', style: 'position:absolute;left:-10000px;top:0;width:794px;background:#fff' }); document.body.append(hst); return hst; }
 async function shot(node, scale) {
   await document.fonts.ready;
-  return window.html2canvas(node, { scale, backgroundColor: '#ffffff', logging: false, useCORS: true, onclone: d => { const x = d.querySelector('[data-exphost]'); if (x) { x.style.left = '0px'; x.style.top = '0px'; x.style.zIndex = '-1'; } } });
+  return window.html2canvas(node, { scale, backgroundColor: '#ffffff', logging: false, useCORS: true, onclone: d => { try { const ks = d.createElement('style'); ks.textContent = '.katex-mathml{display:none!important}'; d.head.appendChild(ks); } catch (e) { /* ignore */ } const x = d.querySelector('[data-exphost]'); if (x) { x.style.left = '0px'; x.style.top = '0px'; x.style.zIndex = '-1'; } } });
 }
 const ansText = q => (q.a || '\u2014').replace(/\\[()\[\]]/g, '');
 const fname = (p, ext) => (p.file || p.title || 'sheet').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') + ext;
@@ -1352,7 +1387,7 @@ async function doExport(kind, p0) {
   toast('Preparing ' + kind.toUpperCase() + '\u2026');
   if (kind !== 'pdf') {
     try {
-      const blob = await buildEditable(kind, pages.map(p => Object.assign({}, p, { key: p.key })));
+      const blob = await buildEditable(kind, pages.map(p => Object.assign({}, p, { key: p.key }, kind === 'docx' ? { cols: 2 } : {})));
       await downloads.save({ filename: file, data: blob });
       toast('Saved ' + file);
     } catch (e) {
@@ -1396,7 +1431,7 @@ async function figPng(f) {
 }
 async function buildEditable(kind, pages) {
   if (pages.length > 1 && pages[0].kind === 'test') pages = [Object.assign({}, pages[0], { qs: [].concat(...pages.map(p => p.qs)), start: 0, pageOf: '' })];
-  await Promise.all([loadScript('mathdoc.js'), loadScript('office.js'), loadScript(CDN.zip), kind === 'docx' ? loadScript(CDN.docx) : loadScript(CDN.pptx)]);
+  await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b4.js'), loadScript(CDN.zip), kind === 'docx' ? loadScript(CDN.docx) : loadScript(CDN.pptx)]);
   const figs = {};
   for (const p of pages) for (const q of p.qs) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
   const H = { CHMAP, DIFF, tagText, keyLine, figs, matchParts };
@@ -1613,15 +1648,15 @@ function buildShell() {
   const root = $('#app');
   root.innerHTML = '';
   const tb = (k, text, on) => h('button', { type: 'button', class: 'tb', 'data-act': 'tab', 'data-k': k, 'aria-pressed': String(!!on), text });
-  const miscMenu = () => h('div', { class: 'tb-misc' },
+  const miscMenu = () => h('div', { class: 'tb-misc', hidden: true },
     h('button', { type: 'button', class: 'tb tb-miscbtn', id: 'miscBtn', 'data-act': 'misc', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-pressed': 'false' }, 'Misc ', h('span', { class: 'tb-caret', text: '\u25be' })),
-    h('div', { class: 'tb-drop', id: 'miscDrop', hidden: true, role: 'menu' }, [['make', 'Tests'], ['res', 'Results'], ['ho', 'Handouts'], ['god', 'God Mode'], ['syl', 'Syllabus Priority']].map(([k, t]) => h('button', { type: 'button', class: 'tb-item', role: 'menuitem', 'data-act': 'tab', 'data-k': k, 'aria-pressed': 'false', text: t }))));
+    h('div', { class: 'tb-drop', id: 'miscDrop', hidden: true, role: 'menu' }, [['make', 'Tests'], ['res', 'Results'], ['god', 'God Mode'], ['syl', 'Syllabus Priority']].map(([k, t]) => h('button', { type: 'button', class: 'tb-item', role: 'menuitem', 'data-act': 'tab', 'data-k': k, 'aria-pressed': 'false', text: t }))));
   root.append(
     h('div', { class: 'shell' },
       h('header', { class: 'topbar' },
         h('div', { class: 'tb-head' }, h('h1', { class: 'tb-title', text: 'Avanti Fellows Math Teacher Dashboard' }), h('span', { class: 'tb-sub', text: 'JEE Mathematics \u00b7 Question Bank, DPPs, Tests and Handouts' })),
         h('button', { type: 'button', class: 'tb-theme', id: 'themeBtn', 'data-act': 'theme', 'aria-pressed': 'false' }),
-        h('nav', { class: 'tb-menu' }, tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), miscMenu())),
+        h('nav', { class: 'tb-menu' }, tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), miscMenu())),
       h('main', { class: 'main' },
         h('div', { id: 'viewQb', class: 'qbhost' }),
         h('div', { id: 'viewLib', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
@@ -1633,7 +1668,13 @@ function buildShell() {
         h('div', { id: 'viewMust', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewGod', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewRes', class: 'resview', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
-        h('div', { id: 'viewSyl', class: 'sy-wrap', hidden: true }))));
+        h('div', { id: 'viewSyl', class: 'sy-wrap', hidden: true })),
+      h('footer', { class: 'app-foot', id: 'appFoot' },
+        h('span', { class: 'af-brand', text: 'Avanti Fellows \u00b7 Math Teacher Dashboard' }),
+        h('span', { class: 'af-ver', id: 'appFootVer' }),
+        h('span', { class: 'af-link', id: 'appFootLink' }))));
+  if (!document.getElementById('app-fit-css')) { const fs2 = document.createElement('style'); fs2.id = 'app-fit-css'; fs2.textContent = 'html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}.topbar{overflow-x:clip}.tb-menu{margin-inline:0!important;padding-inline:0!important;max-width:100%}.katex-mathml{max-width:1px!important;overflow:hidden!important}'; document.head.appendChild(fs2); }
+  if (!document.getElementById('app-foot-css')) { const st = document.createElement('style'); st.id = 'app-foot-css'; st.textContent = '.app-foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 14px;margin:28px auto 0;padding:14px 16px 20px;border-top:1px solid var(--color-border-line,rgba(128,128,128,.28));font-size:12px;line-height:1.4;letter-spacing:.02em;color:var(--color-fg-muted,#6b7280)}.app-foot .af-brand{font-weight:600}.app-foot .af-ver:not(:empty)::before,.app-foot .af-link:not(:empty)::before{content:"|";margin-right:14px;opacity:.45}.app-foot .qb-sstat-link{font:inherit;color:inherit;text-decoration:none;cursor:pointer;border-bottom:1px dotted currentColor;padding:0}.app-foot .qb-sstat-link:hover{color:var(--color-fg,#111);border-bottom-style:solid}'; document.head.append(st); }
 }
 function buildLib() {
   return h('div', { id: 'viewLib', class: 'make' },
@@ -1778,7 +1819,8 @@ function boot() {
   buildShell(); themeInit();
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMax(); }); document.addEventListener('click', onAct); document.addEventListener('change', onAct);
   window.addEventListener('resize', rescale);
-  try { if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { downloads = d; }).catch(() => {}); } catch (e) { /* no runtime */ }
+  try { if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { if (d && d.save) downloads = d; }).catch(() => {}); } catch (e) { /* no runtime */ }
+  try { const up = (window.claude && window.claude.use) ? Promise.resolve(window.claude.use('user')) : Promise.resolve(null); up.then(u => { IS_OWNER = !!(u && u.isOwner && u.isOwner()); const m = $('.tb-misc'); if (m) m.hidden = !IS_OWNER; if (!IS_OWNER && ['make', 'res', 'god', 'syl'].some(k => { const v = $('#view' + k[0].toUpperCase() + k.slice(1)); return v && !v.hidden; })) setTab('qb'); }).catch(() => { IS_OWNER = false; }); } catch (e) { IS_OWNER = false; }
   qbInit();
   try { if (sessionStorage.getItem('avanti_tab') === 'make') { sessionStorage.removeItem('avanti_tab'); setTab('make'); } } catch (e) { /* ignore */ }
   try { if (sessionStorage.getItem('avanti_sync') === '1') syncStudents().then(r => { toast(syncNote(r)); }); } catch (e) { /* ignore */ }

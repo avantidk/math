@@ -1,0 +1,4 @@
+# Older build copies kept by the artifact (teacher.b485.js, qb/qb-all.b490.js, ...).
+# Only the builds the page currently loads are committed, with `git add -f`.
+*.b[0-9]*.js
+*.b[0-9]*.html
