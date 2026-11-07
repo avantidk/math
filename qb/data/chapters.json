@@ -168,10 +168,31 @@
   "folder": "c12M24 Probability"
  },
  {
+  "chapter_code": "12M25",
+  "chapter": "Linear Programming Problem",
+  "class": 12,
+  "order": 25,
+  "folder": "c12M25 Linear Programming Problem"
+ },
+ {
+  "chapter_code": "12M26",
+  "chapter": "Mathematical Reasoning",
+  "class": 12,
+  "order": 26,
+  "folder": "c12M26 Mathematical Reasoning"
+ },
+ {
   "chapter_code": "12M27",
   "chapter": "Solution of Triangle",
   "class": 12,
   "order": 27,
   "folder": "c12M27 Solution of Triangle"
+ },
+ {
+  "chapter_code": "12M28",
+  "chapter": "Height and Distance",
+  "class": 12,
+  "order": 28,
+  "folder": "c12M28 Height and Distance"
  }
 ]

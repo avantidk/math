@@ -832,8 +832,6 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
         { group: 'exam_kcet', n: g(ex, 'KCET') },
         { group: 'src_VMC', n: g(pb, 'VMC') },
         { group: 'src_Cengage', n: g(pb, 'Cengage') },
-        { group: 'src_PPTs', n: g(pb, 'PPTs') },
-        { group: 'src_Avanti', n: g(pb, 'Avanti') },
         { group: 'src_BlackBook', n: g(pb, 'Black Book') }
       ];
     }
@@ -858,7 +856,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
         var n = function (exam, year) { return p.y[exam + '|' + year] || 0; };
         var ex = function (exam) { return p.e[exam] || 0; };
         var sc = function (pb) { return nn.p[pb] || 0; };
-        return { chapter_code: c.chapter_code, chapter: c.chapter, main_2025: n('JEE Main', 2025), main_2026: n('JEE Main', 2026), adv_2025: n('JEE Advanced', 2025), adv_2026: n('JEE Advanced', 2026), main_all: ex('JEE Main') + ex('AIEEE'), adv_all: ex('JEE Advanced') + ex('IIT'), kcet_all: ex('KCET'), src_VMC: sc('VMC'), src_Cengage: sc('Cengage'), src_PPTs: sc('PPTs'), src_BlackBook: sc('Black Book'), nonpyq: nn.t, total: p.t + nn.t };
+        return { chapter_code: c.chapter_code, chapter: c.chapter, main_2025: n('JEE Main', 2025), main_2026: n('JEE Main', 2026), adv_2025: n('JEE Advanced', 2025), adv_2026: n('JEE Advanced', 2026), main_all: ex('JEE Main') + ex('AIEEE'), adv_all: ex('JEE Advanced') + ex('IIT'), kcet_all: ex('KCET'), src_VMC: sc('VMC'), src_Cengage: sc('Cengage'), src_BlackBook: sc('Black Book'), nonpyq: nn.t, total: p.t + nn.t };
       });
     }
   });
@@ -1020,8 +1018,8 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     });
   }
 
-  /* chapter order; PYQs first: JEE Main (with AIEEE), JEE Advanced (with IIT), KCET, each newest first (year, month, day, shift); then practice questions by source: Cengage, Black Book, VMC, Avanti, PPTs (then any other), each in sheet order */
-  var PUB_ORDER = ['Cengage', 'Black Book', 'VMC', 'Avanti', 'PPTs'];
+  /* chapter order; PYQs first: JEE Main (with AIEEE), JEE Advanced (with IIT), KCET, each newest first (year, month, day, shift); then practice questions by source: Cengage, Black Book, VMC (then any other), each in sheet order */
+  var PUB_ORDER = ['Cengage', 'Black Book', 'VMC'];
   function pubRank(q) { var i = PUB_ORDER.indexOf(q.publisher); return i < 0 ? PUB_ORDER.length : i; }
   function examRank(q) { var e = q.exam; return e === 'JEE Main' || e === 'AIEEE' ? 0 : e === 'JEE Advanced' || e === 'IIT' ? 1 : e === 'KCET' ? 2 : 3; }
   function cmp(a, b) {
@@ -1471,7 +1469,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
       });
     });
   }
-  var SRC_VALS = ['PYQs', 'VMC', 'Cengage', 'Avanti', 'PPTs', 'Black Book'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET'];
+  var SRC_VALS = ['PYQs', 'VMC', 'Cengage', 'Black Book'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET'];
   function srcOf(q) { return q.source === 'PYQ' ? 'PYQs' : (q.publisher || 'VMC'); }
   /* "PYQs" ticked together with a source that has PYQ-tagged questions (Black Book) = the PYQs of that source only */
   var PYQ_PUBS = {};
@@ -1848,7 +1846,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     rows.forEach(function (r) {
       r.flagged = chFl[r.chapter_code] || 0; r.attn = chAt[r.chapter_code] || 0; r.oos = chOos[r.chapter_code] || 0;
       var tr = el('tr'); tr.dataset.key = r.chapter_code;
-      ['chapter_code', 'chapter', 'main_all', 'adv_all', 'kcet_all', 'src_VMC', 'src_Cengage', 'src_PPTs', 'src_BlackBook', 'total', 'oos', 'attn', 'flagged'].forEach(function (k) {
+      ['chapter_code', 'chapter', 'main_all', 'adv_all', 'kcet_all', 'src_VMC', 'src_Cengage', 'src_BlackBook', 'total', 'oos', 'attn', 'flagged'].forEach(function (k) {
         var td = el('td', typeof r[k] === 'number' && r[k] === 0 ? 'z' : null, String(r[k]));
         tr.appendChild(td);
       });

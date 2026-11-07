@@ -12,7 +12,7 @@
 (function(){
   var origFetch=window.fetch.bind(window);
   var CACHEABLE=/^(qb\/data\/|qb\/qb[.\-]|bank(-meta)?\.json|must\.json|syllabus\.json|handouts\/index\.json|katex\.css|teacher[.\-]|app\.js)/;
-  var BUILD='563'; /* bump on every publish: a new build starts a fresh page cache so new code shows on the first reload */
+  var BUILD='581'; /* bump on every publish: a new build starts a fresh page cache so new code shows on the first reload */
   var cachep=null; try{ if(window.caches){ cachep=window.caches.open('avanti-teacher-b'+BUILD).catch(function(){return null;}); window.caches.keys().then(function(ks){ ks.forEach(function(k){ if(/^avanti-teacher-/.test(k)&&k!=='avanti-teacher-b'+BUILD) window.caches.delete(k); }); }).catch(function(){}); } }catch(e){ cachep=null; }
   var inflight={}, refreshed={};
   function net(url){
@@ -41,14 +41,14 @@
 "  try { const el = $('#tests-data'); TESTS = el ? JSON.parse(el.textContent) : []; } catch (e) { TESTS = []; }",
 "  const opts = { tests: TESTS, artifact: null, pageHtml, user: null };",
 "  try {",
-"    const code = await fetch('teacher.b511.js').then(r => { if (!r.ok) throw new Error('teacher.js'); return r.text(); });",
+"    const code = await fetch('teacher.b512.js').then(r => { if (!r.ok) throw new Error('teacher.js'); return r.text(); });",
 "    const s = document.createElement('script'); s.textContent = code; document.head.append(s);",
 "    if (!window.AvantiTeacher) throw new Error('teacher');",
 "  } catch (e) { const app = $('#app'); app.textContent = ''; app.append(h('div', { style: 'padding:48px 16px;text-align:center;font-family:system-ui,sans-serif' }, h('p', { text: 'The dashboard could not load. Please refresh the page.' }))); return; }",
 "  const get = (u, t) => fetch(u).then(r => { if (!r.ok) throw new Error(u); return t === 'text' ? r.text() : r.json(); });",
 "  const data = {}; ['topics', 'chapters'].forEach(n => { data[n] = get('qb/data/' + n + '.json'); });",
 "  const first = get('qb/data/first.json'); first.catch(() => {});",
-"  const html = get('qb/qb.b510.html', 'text'), js = get('qb/qb-all.b509.js', 'text');",
+"  const html = get('qb/qb.b511.html', 'text'), js = get('qb/qb-all.b510.js', 'text');",
 "  const kcss = fetch('katex.css').then(r => r.text()).catch(() => null), kjs = Promise.resolve().then(() => loadScript(CDN.katex)).catch(() => null);",
 "  /* first screen first: the big question files start only after the page code, the style sheet and the small first.json are in, so they never slow the first screen down */",
 "  const gate = Promise.all([first, html, js, kcss, kjs].map(p => Promise.resolve(p).catch(() => null)));",
@@ -77,4 +77,5 @@
   }).catch(fail);
 })();
 </script>
+
 </body></html>

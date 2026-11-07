@@ -210,6 +210,16 @@ async function buildDocx(D, JSZip, pages, H) {
   if (keys.length) sections.push({ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 720, bottom: 720, left: 720, right: 720 } } },
     children: [new D.Paragraph({ children: [new D.TextRun({ text: 'Answer key', bold: true, size: 30, font: 'Cambria', color: NAVY })] })].concat(keyBlocks(keys).flatMap(g => (g.lab ? [new D.Paragraph({ keepNext: true, spacing: { before: 160 }, children: [new D.TextRun({ text: g.lab, bold: true, size: 22 })] })] : []).concat([
       new D.Paragraph({ spacing: { before: 60 }, children: [new D.TextRun({ text: g.line, size: 22 })] })]))) });
+  if (H.expl && H.expl.length) {
+    const kids = [new D.Paragraph({ children: [new D.TextRun({ text: 'Explanations', bold: true, size: 30, font: 'Cambria', color: NAVY })] })];
+    H.expl.forEach((e, k) => {
+      if (e.lab && (k === 0 || H.expl[k - 1].lab !== e.lab)) kids.push(new D.Paragraph({ keepNext: true, spacing: { before: 160 }, children: [new D.TextRun({ text: e.lab, bold: true, size: 22 })] }));
+      const t = tall(String(e.text).replace(/\s*\{\{figure\}\}\s*/g, '\n').replace(/^\n+|\n+$/g, ''));
+      blocks(t, [new D.TextRun({ text: e.n + '.', bold: true, size: FS, color: NAVY, font: 'Calibri' }), new D.TextRun({ text: '\t', size: FS })], { spacing: { before: 100, after: 60, line: 264, lineRule: D.LineRuleType.AUTO }, indent: { left: 340, hanging: 340 } }, null).forEach(x => kids.push(x));
+      if (e.fig) { const f = e.fig, w = Math.min(f.w, 260), fh = Math.round(f.h * w / f.w); kids.push(new D.Paragraph({ indent: { left: 340 }, spacing: { after: 80 }, children: [new D.ImageRun({ data: f.data, transformation: { width: w, height: fh } })] })); }
+    });
+    sections.push({ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 720, bottom: 720, left: 720, right: 720 } } }, children: kids });
+  }
   const doc = new D.Document({ sections });
   const raw = D.Packer.toBlob ? await (await D.Packer.toBlob(doc)).arrayBuffer() : await D.Packer.toBuffer(doc);
   const zip = await JSZip.loadAsync(raw), f = zip.file('word/document.xml');
@@ -274,6 +284,17 @@ async function buildPptx(PptxGenJS, JSZip, pages, H) {
     const sk = pptx.addSlide(); sk.background = { color: 'FDFAF1' };
     sk.addText('Answer key', { x: 0.7, y: 0.4, w: 12, h: 0.8, fontFace: 'Cambria', bold: true, fontSize: 32, color: NAVY });
     sk.addText(keyBlocks(keys).flatMap(g => (g.lab ? [{ text: g.lab + '\n', options: { bold: true, fontSize: 14, color: NAVY } }] : []).concat([{ text: g.line + '\n', options: { fontSize: 14, color: '141413' } }])), { x: 0.7, y: 1.3, w: 12, h: 5.8, fontFace: 'Calibri', valign: 'top' });
+  }
+  if (H.expl && H.expl.length) {
+    const sh = pptx.addSlide(); sh.background = { color: 'FDFAF1' };
+    sh.addText('Explanations', { x: 0.7, y: 2.9, w: 12, h: 1.2, fontFace: 'Cambria', bold: true, fontSize: 40, color: NAVY });
+    for (const e of H.expl) {
+      const s = pptx.addSlide(); s.background = { color: 'FFFFFF' };
+      s.addText('Q' + e.n + ' \u00b7 Explanation', { x: 0.5, y: 0.3, w: 8, h: 0.6, fontFace: 'Calibri', bold: true, fontSize: 24, color: NAVY });
+      const txt = String(e.text).replace(/\s*\{\{figure\}\}\s*/g, '\n').replace(/^\n+|\n+$/g, ''), L = M().plainText(txt).length, fs = L > 1100 ? 12 : L > 800 ? 14 : L > 500 ? 16 : 18;
+      s.addText(runs(txt, { fontFace: 'Calibri', fontSize: fs, color: '141413' }), { x: 0.6, y: 1.1, w: e.fig ? 7.6 : 12.1, h: 5.9, valign: 'top', margin: 4, fit: 'shrink' });
+      if (e.fig) { const f = e.fig, w = 4.4, hh = w * f.h / f.w; s.addImage({ data: f.dataUrl, x: 8.5, y: 1.4, w, h: hh }); }
+    }
   }
   const buf = await pptx.write({ outputType: 'arraybuffer' });
   if (!eqs.length) return new Blob([buf]);
@@ -490,6 +511,16 @@ async function buildCwPptx(PptxGenJS, JSZip, d, H) {
     s.addText([{ text: 'Ans: ', options: { bold: true, fontFace: FB, fontSize: 16, color: GRAYC } }].concat(runs(ansText(q), { fontFace: FB, fontSize: 16, color: GRAYC }, GRAYC)), { x: 0.5, y: 6.6, w: 6, h: 0.5, valign: 'middle', margin: 0 });
     blank();
   });
+  if (d.expl && d.expl.length) {
+    { const s = pptx.addSlide(); s.background = { color: BLACK }; s.addText('Explanations', { x: 0.5, y: 2.6, w: 12.33, h: 1.6, fontFace: FH, bold: true, fontSize: 60, color: CORAL, align: 'center', valign: 'middle' }); }
+    for (const e of d.expl) {
+      const s = pptx.addSlide(); s.background = { color: BLACK };
+      s.addText('Q' + e.n + '  \u00b7  Explanation', { x: 0.5, y: 0.3, w: 9, h: 0.6, fontFace: FB, bold: true, fontSize: 20, color: CORAL });
+      const txt = String(e.text).replace(/\s*\{\{figure\}\}\s*/g, '\n').replace(/^\n+|\n+$/g, ''), L = M().plainText(txt).length, fs = L > 1100 ? 12 : L > 800 ? 14 : L > 500 ? 16 : 18;
+      s.addText(runs(txt, { fontFace: FQ, fontSize: fs, color: WHITE }, LIME), { x: 0.6, y: 1.1, w: e.fig ? 7.6 : 12.1, h: 5.9, valign: 'top', margin: 4, fit: 'shrink' });
+      if (e.fig) { const f = e.fig, w = 4.4, hh = w * f.h / f.w; s.addImage({ data: f.dataUrl, x: 8.5, y: 1.4, w, h: hh }); }
+    }
+  }
   /* last: closing slide */
   { const s = pptx.addSlide(); s.background = { color: BLACK };
     s.addShape(pptx.ShapeType.roundRect, { x: 4.17, y: 0.9, w: 5.0, h: 0.42, fill: { type: 'none' }, line: { color: CORAL, width: 1.5 }, rectRadius: 0.2 });

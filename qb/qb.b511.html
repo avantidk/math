@@ -154,6 +154,7 @@
 .qb-bar label input{accent-color:var(--qb-accent)}
 .qb-exp{display:flex;gap:6px;flex-wrap:wrap}
 .qb-bar label.qb-tgl{position:relative;gap:8px;padding:5px 10px;border-radius:999px;background:var(--accent-soft,#dbeef3);border:1px solid var(--accent,#0e6b84);color:var(--head,inherit);font-weight:600}
+.qb-tglrow{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 22px}.qb-bar .qb-tglrow label.qb-tgl{background:transparent;border:0;padding:0;border-radius:0}.qb-tglrow .qb-tgl input{left:0}
 .qb-tgl input{position:absolute;opacity:0;width:36px;height:20px;margin:0;left:10px;cursor:pointer}
 .qb-tgl-track{flex:none;width:36px;height:20px;border-radius:999px;background:var(--rule,#d7dfe3);border:1px solid var(--muted,#5d6b74);position:relative;transition:background .18s}
 .qb-tgl-track::after{content:"";position:absolute;top:1px;left:1px;width:16px;height:16px;border-radius:50%;background:var(--panel,#fff);box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .18s}
@@ -413,7 +414,7 @@
   <header class="qb-head">
     <div class="qb-eyebrow">Previous year questions · Mathematics</div>
     <h1>JEE Maths PYQ bank</h1>
-    <p>Previous year questions from JEE Main (including AIEEE) and JEE Advanced (including IIT-JEE), plus practice questions from VMC, Cengage, PPTs, Black Book and other sheets, all tagged by chapter, topic and difficulty. Pick chapters and topics, tick questions, then export them to Word, PDF or PowerPoint.</p>
+    <p>Previous year questions from JEE Main (including AIEEE) and JEE Advanced (including IIT-JEE), plus practice questions from VMC, Cengage, Black Book and other sheets, all tagged by chapter, topic and difficulty. Pick chapters and topics, tick questions, then export them to Word, PDF or PowerPoint.</p>
   </header>
   <div class="qb-tiles" id="tiles" aria-label="Question counts"></div>
   </section>
@@ -430,7 +431,6 @@
           <th data-field="kcet_all" title="KCET (Karnataka CET) PYQs. A separate exam, not linked with JEE Main, JEE Advanced, AIEEE or IIT-JEE">KCET</th>
           <th data-field="src_VMC">VMC</th>
           <th data-field="src_Cengage">Cengage</th>
-          <th data-field="src_PPTs">PPTs</th>
           <th data-field="src_BlackBook">Black Book</th>
           <th data-field="total">Total</th>
           <th data-field="oos" title="Previous-year questions that the source lists as out of the current syllabus">Out of syllabus</th>
@@ -456,7 +456,8 @@
   <section class="qb-bar" id="selection" aria-label="Selection and export">
     <span class="count"><b class="qb-nsel">0</b> selected <span style="color:var(--color-fg-muted)">of <span class="qb-nshow">0</span> filtered</span></span>
     <label hidden style="display:none"><input type="checkbox" class="qb-o-ans"></label>
-    <label class="qb-tgl" title="Adds the answer key on a new page at the end (PDF and Word)"><input type="checkbox" class="qb-o-key" role="switch"><span class="qb-tgl-track" aria-hidden="true"></span><span>Answer key on new page</span></label>
+    <span class="qb-tglrow"><label class="qb-tgl" title="Adds the answer key on a new page at the end (PDF, Word and PowerPoint)"><input type="checkbox" class="qb-o-key" role="switch"><span class="qb-tgl-track" aria-hidden="true"></span><span>Answer Key</span></label>
+    <label class="qb-tgl" title="Adds the full explanation of each question on new pages at the end (PDF, Word and PowerPoint)"><input type="checkbox" class="qb-o-exp" role="switch"><span class="qb-tgl-track" aria-hidden="true"></span><span>Explanation</span></label></span>
     <label hidden style="display:none"><input type="checkbox" class="qb-o-ppt"></label>
     <span class="qb-exp">
     <button class="qb-btn primary qb-ibtn qb-docx" type="button" disabled title="Export Word (editable)" aria-label="Export Word (editable)"><img src="img/word.png" width="32" height="28" alt="" style="display:block;object-fit:contain"></button>

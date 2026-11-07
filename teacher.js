@@ -510,9 +510,9 @@ function buildPyqTopics() {
 let SUBS = [];
 const BK = {};
 const LS = { kind: 'sub', chs: [], ids: [], idk: '', part: 'all', page: 0, key: false, shown: false, year: 'all', yrs: [], ex: [], lv: ['L1', 'L2', 'L3'], pubs: [] };
-const PUBS = [];   /* every source tag found in the bank: VMC, Cengage, PPTs, Avanti and any new one */
+const PUBS = [];   /* every source tag found in the bank: VMC, Cengage and any new one */
 function initPubs() {
-  const found = [...new Set(BANK.qs.filter(q => q.s === 'N').map(q => q.pb || 'VMC'))], first = ['VMC', 'Cengage', 'PPTs', 'Avanti', 'Black Book'];
+  const found = [...new Set(BANK.qs.filter(q => q.s === 'N').map(q => q.pb || 'VMC'))], first = ['VMC', 'Cengage', 'Black Book'];
   PUBS.length = 0; first.concat(found.filter(x => !first.includes(x)).sort()).forEach(x => PUBS.push(x));
   LS.pubs = PUBS.slice();
   S.pubs = new Set(PUBS);
@@ -1245,6 +1245,7 @@ function update(rail) { if (rail !== false) refreshRail(); renderPreview(); }
 /* ---------- actions ---------- */
 function onAct(e) {
   if (e.type === 'click' && e.target.isConnected && !e.target.closest('.msel')) document.querySelectorAll('.msel.open').forEach(x => { x.classList.remove('open'); x.querySelector('.mbtn').setAttribute('aria-expanded', 'false'); });
+  if (e.type === 'click' && !e.target.closest('#qbInfoBtn')) { const pp = $('#qbPop'); if (pp && !pp.hidden) { if (e.target.closest('#qbPop')) { const vq = $('#viewQb'); if (vq && vq.hidden) setTab('qb'); } pp.hidden = true; const ib = $('#qbInfoBtn'); if (ib) ib.setAttribute('aria-expanded', 'false'); } }
   if (e.type === 'click' && !e.target.closest('.tb-misc')) { const md = $('#miscDrop'); if (md && !md.hidden) { md.hidden = true; $('#miscBtn').setAttribute('aria-expanded', 'false'); } }
   const t = e.target.closest('[data-act]'); if (!t) return;
   const a = t.dataset.act, k = t.dataset.k;
@@ -1268,6 +1269,10 @@ function onAct(e) {
     case 'exp': doExport(k); break;
     case 'lexp': exportLib(k); break;
     case 'theme': themeToggle(); break;
+    case 'guide': guideOpen(); break;
+    case 'guideclose': guideClose(); break;
+    case 'guideback': if (e.target === t) guideClose(); break;
+    case 'qbinfo': { const pp = $('#qbPop'), op = pp.hidden; pp.hidden = !op; t.setAttribute('aria-expanded', String(op)); break; }
     case 'tab': setTab(k); break;
     case 'pyqsub': PYQSUB = k; pyqShow(); break;
     case 'misc': { const md = $('#miscDrop'), open = md.hidden; md.hidden = !open; t.setAttribute('aria-expanded', String(open)); break; }
@@ -1644,6 +1649,68 @@ const THEME_ICONS = {
 };
 function themeInit() { let m = null; try { m = localStorage.getItem(THEME_KEY); } catch (e) { m = null; } if (m === 'dark' || m === 'light') document.documentElement.setAttribute('data-theme', m); themeApply(themeNow()); }
 function themeToggle() { const m = themeNow() === 'dark' ? 'light' : 'dark'; themeApply(m); try { localStorage.setItem(THEME_KEY, m); } catch (e) { /* optional */ } }
+const GUIDE_HTML = (owner) => `
+<p class="gd-lead">The Math Teacher Dashboard is Avanti Fellows' one place for JEE Maths teaching material: a searchable question bank, ready-made DPPs, past-year papers, must-solve lists and revision handouts. Everything can be downloaded as Word, PDF or PowerPoint.</p>
+<nav class="gd-toc" aria-label="Guide sections"><a href="#gd-qb">Question Bank</a><a href="#gd-dpp">DPPs</a><a href="#gd-pyq">PYQs</a><a href="#gd-must">Must Solve</a><a href="#gd-ho">Handouts</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a>${owner ? '<a href="#gd-misc">Owner tools</a>' : ''}</nav>
+<h3 id="gd-qb">1. Question Bank</h3>
+<p>Every question in one list: JEE Main, JEE Advanced, AIEEE and IIT-JEE previous-year questions (PYQs) plus practice questions from different sources.</p>
+<ul>
+<li><b>Find questions:</b> search by words or question id; filter by chapter, source, exam, year, class, level (L1 easy, L2 medium, L3 hard), type (single, multiple, numerical) and topic.</li>
+<li><b>Each question card</b> shows exam, date and shift, level and tags. Use the eye icon to show the answer, the book icon to open the solution, and the ≡ menu for the topic, type, question id and <b>Flag</b> (to report a wrong question).</li>
+<li><b>Show all answers / Hide options / Show selected only</b> change how the whole page looks. <b>Attention</b> lists questions flagged for checking; <b>Out of syllabus</b> marks questions on topics no longer in JEE.</li>
+<li><b>Tick questions</b> (or Select all filtered) and export just those as Word, PDF or PowerPoint. "Answer key on new page" adds the key at the end.</li>
+<li><b>Overview icon</b> (bar-chart circle at the top right) opens the question counts, the chapter-wise count and the chapter weightage charts.</li>
+</ul>
+<h3 id="gd-dpp">2. DPPs</h3>
+<p>Ready-made practice sheets. Choose what you need:</p>
+<ul>
+<li><b>Subtopic DPPs</b> – practice questions grouped by subtopic of a chapter.</li>
+<li><b>Level 1, 2, 3 booklet</b> – a chapter booklet by difficulty and source.</li>
+<li><b>PYQs topic-wise</b> – past-year questions of a chapter by topic, filtered by exam, year and level.</li>
+</ul>
+<p>Pick one or many chapters, see the live preview page by page, and download. Turn on "Include answer key" to add answers on a separate page.</p>
+<h3 id="gd-pyq">3. PYQs</h3>
+<p>Past-year papers in two forms: <b>Question Paper</b> (a full shift paper by date and shift, in paper order) and <b>Chapterwise</b> (all PYQs of a chapter). Pick JEE Main, JEE Advanced or KCET, preview, then download.</p>
+<h3 id="gd-must">4. Must Solve</h3>
+<p>Questions that came again and again in JEE, in the same or a very similar form, plus questions that are sure to come. Choose chapters with the tick-box list. Inside a chapter, questions are grouped by topic; each group shows a note on why it matters (<i>Sure-shot</i>, <i>Must know</i>) and in which years the question came. Tick and download like the Question Bank.</p>
+<h3 id="gd-ho">5. Handouts</h3>
+<p>Short revision notes chapter by chapter (PDF). Preview each page, switch to the black-and-white print version with the half-filled circle icon, maximise to read, or download.</p>
+<h3 id="gd-exp">Downloads</h3>
+<ul>
+<li><b>Word</b> is fully editable, with real equations. <b>PowerPoint</b> is editable too. <b>PDF</b> is ready to print.</li>
+<li>Question papers use two columns. Papers exported from chapters do not repeat chapter headings.</li>
+<li>If your browser blocks a download, allow downloads for this page and try again.</li>
+</ul>
+<h3 id="gd-tips">Tips</h3>
+<ul>
+<li>The <b>moon/sun icon</b> switches light and dark mode.</li>
+<li>On a phone the menu wraps into two rows; every feature works there too.</li>
+<li>Seen a wrong question, answer or figure? Open the ≡ menu and press <b>Flag</b>.</li>
+<li>Maths is written in proper notation; if a formula looks broken, refresh the page once.</li>
+</ul>
+${owner ? `<h3 id="gd-misc">Owner tools (Misc menu – beta, visible only to the owner)</h3>
+<p>These are still being refined and are not shown to other teachers.</p>
+<ul>
+<li><b>Tests</b> – build a timed test from chapters, topics or a whole past shift paper (180 minutes, +4 / −1), save it, and it appears on the student page.</li>
+<li><b>Results</b> – student scores read live from the Google Sheet that collects test submissions.</li>
+<li><b>God Mode</b> – type or upload a question, solve it and draw its graph, then save the answer as an explanation.</li>
+<li><b>Syllabus Priority</b> – each subtopic tiered by how many PYQs it has had, with a year-wise trend from 2020 to 2026.</li>
+</ul>` : ''}
+<p class="gd-foot">Built by Ankit for the Avanti Fellows teaching team.</p>`;
+
+function guideOpen() {
+  let m = document.getElementById('guideModal');
+  if (m) m.remove();
+  m = h('div', { class: 'gd-back', id: 'guideModal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Site guide', 'data-act': 'guideback' },
+    h('div', { class: 'gd-card' },
+      h('div', { class: 'gd-top' }, h('h2', { text: 'How to use this dashboard' }), h('button', { type: 'button', class: 'gd-x', 'data-act': 'guideclose', 'aria-label': 'Close guide', html: '&times;' })),
+      h('div', { class: 'gd-body', html: GUIDE_HTML(IS_OWNER === true) })));
+  document.body.append(m);
+  m.querySelectorAll('.gd-toc a').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); const t = m.querySelector(a.getAttribute('href')); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }));
+  const x = m.querySelector('.gd-x'); if (x) x.focus();
+}
+function guideClose() { const m = document.getElementById('guideModal'); if (m) m.remove(); const b = document.getElementById('guideBtn'); if (b) b.focus(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('guideModal')) guideClose(); });
 function buildShell() {
   const root = $('#app');
   root.innerHTML = '';
@@ -1656,6 +1723,9 @@ function buildShell() {
       h('header', { class: 'topbar' },
         h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/avanti-logo.png', alt: 'Avanti Fellows', width: 150, height: 51 }), h('h1', { class: 'tb-title', text: 'Math Teacher Dashboard' }), h('span', { class: 'tb-sub', text: 'JEE Mathematics \u00b7 Question Bank, DPPs, Tests and Handouts' })),
         h('button', { type: 'button', class: 'tb-theme', id: 'themeBtn', 'data-act': 'theme', 'aria-pressed': 'false' }),
+        h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
+        h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),
+        h('div', { class: 'tb-pop', id: 'qbPop', hidden: true, role: 'menu' }, [['heroov', 'JEE Maths PYQ bank: question counts'], ['overview', 'Chapter-wise count'], ['wchart', 'Chapter weightage']].map(([k, t]) => h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-qbpanel': k, text: t }))),
         h('nav', { class: 'tb-menu' }, tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), miscMenu())),
       h('main', { class: 'main' },
         h('div', { id: 'viewQb', class: 'qbhost' }),

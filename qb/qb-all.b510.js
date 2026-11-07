@@ -451,6 +451,14 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     });
     FIG = null;
     if (o.answers && o.answerKey) b += pageBreak() + answerKeyWord(qs);
+    if (o.expl && o.expl.length) {
+      b += pageBreak() + para(wRun('Explanations', { b: true, sz: 26 }), { after: 100 });
+      o.expl.forEach(function (e) {
+        FIG = (o._figs || {})[e.q.id] || null;
+        b += richParas(figLines(e.q.question), wRun('Q' + e.n + '. ', { b: true }), { after: 40 }) + para('', { after: 100 });
+      });
+      FIG = null;
+    }
     return b;
   }
   var DOC_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
@@ -463,7 +471,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   function rels(list) { return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="' + REL_NS + '">' + list.map(function (r) { return '<Relationship Id="' + r[0] + '" Type="' + OD + r[1] + '" Target="' + r[2] + '"/>'; }).join('') + '</Relationships>'; }
   async function buildDocx(qs, o) {
     o = o || {};
-    var figs = o._figs = await figuresFor(qs), media = [], drel = [['rId1', 'styles', 'styles.xml']];
+    var figs = o._figs = await figuresFor(qs.concat((o.expl || []).map(function (e) { return e.q; }))), media = [], drel = [['rId1', 'styles', 'styles.xml']];
     Object.keys(figs).forEach(function (id) { var f = figs[id]; media.push({ name: 'word/media/fig' + f.n + '.png', data: f.png }); drel.push(['rIdF' + f.n, 'image', 'media/fig' + f.n + '.png']); });
     return zip([
       { name: '[Content_Types].xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>' },
@@ -608,11 +616,15 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   }
   async function buildPptx(qs, o) {
     o = o || {};
-    o._figs = await figuresFor(qs);
+    o._figs = await figuresFor(qs.concat((o.expl || []).map(function (e) { return e.q; })));
     var T = window.QB_PPT_TPL, slides = [];
     if (o.title) slides.push(slideXml(spXml(2, 'Title', MX, 2400000, BODY_W, 1400000, aPara(aRun(o.title, 3600, { b: true }), 3600) + aPara(aRun(qs.length + ' questions', 2000, { color: 'BFBFBF' }), 2000), false)));
     qs.forEach(function (q, i) { slides.push(questionSlide(q, i, o)); slides.push(slideXml('')); });
     if (o.answers && o.answerKey) slides = slides.concat(keySlides(qs));
+    if (o.expl && o.expl.length) {
+      slides.push(slideXml(spXml(2, 'Explanations', MX, 2400000, BODY_W, 1400000, aPara(aRun('Explanations', 3600, { b: true }), 3600), false)));
+      o.expl.forEach(function (e) { slides.push(questionSlide(e.q, e.n - 1, Object.assign({}, o, { answers: false }))); slides.push(slideXml('')); });
+    }
     var files = [], ct = '', sldIds = '', presRels = [['rId1', 'slideMaster', 'slideMasters/slideMaster1.xml'], ['rId2', 'presProps', 'presProps.xml'], ['rId3', 'viewProps', 'viewProps.xml'], ['rId4', 'theme', 'theme/theme1.xml'], ['rId5', 'tableStyles', 'tableStyles.xml']];
     slides.forEach(function (x, i) {
       var n = i + 1, sr = [['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml']];
@@ -710,6 +722,10 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     if (o.answers && o.answerKey) {
       b.push({ html: '<div class="keyh">Answer key</div>', breakBefore: !o.pptLayout });
       for (var s = 0; s < qs.length; s += 60) b.push({ html: keyHtml(qs, s, Math.min(qs.length, s + 60)) });
+    }
+    if (o.expl && o.expl.length) {
+      b.push({ html: '<div class="keyh">Explanations</div>', breakBefore: !o.pptLayout });
+      o.expl.forEach(function (e) { b.push({ html: '<div class="qt"><b>Q' + e.n + '.</b> ' + richHtml(e.q.question, e.q.figure) + '</div>' }); });
     }
     return b;
   }
@@ -832,8 +848,6 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
         { group: 'exam_kcet', n: g(ex, 'KCET') },
         { group: 'src_VMC', n: g(pb, 'VMC') },
         { group: 'src_Cengage', n: g(pb, 'Cengage') },
-        { group: 'src_PPTs', n: g(pb, 'PPTs') },
-        { group: 'src_Avanti', n: g(pb, 'Avanti') },
         { group: 'src_BlackBook', n: g(pb, 'Black Book') }
       ];
     }
@@ -858,7 +872,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
         var n = function (exam, year) { return p.y[exam + '|' + year] || 0; };
         var ex = function (exam) { return p.e[exam] || 0; };
         var sc = function (pb) { return nn.p[pb] || 0; };
-        return { chapter_code: c.chapter_code, chapter: c.chapter, main_2025: n('JEE Main', 2025), main_2026: n('JEE Main', 2026), adv_2025: n('JEE Advanced', 2025), adv_2026: n('JEE Advanced', 2026), main_all: ex('JEE Main') + ex('AIEEE'), adv_all: ex('JEE Advanced') + ex('IIT'), kcet_all: ex('KCET'), src_VMC: sc('VMC'), src_Cengage: sc('Cengage'), src_PPTs: sc('PPTs'), src_BlackBook: sc('Black Book'), nonpyq: nn.t, total: p.t + nn.t };
+        return { chapter_code: c.chapter_code, chapter: c.chapter, main_2025: n('JEE Main', 2025), main_2026: n('JEE Main', 2026), adv_2025: n('JEE Advanced', 2025), adv_2026: n('JEE Advanced', 2026), main_all: ex('JEE Main') + ex('AIEEE'), adv_all: ex('JEE Advanced') + ex('IIT'), kcet_all: ex('KCET'), src_VMC: sc('VMC'), src_Cengage: sc('Cengage'), src_BlackBook: sc('Black Book'), nonpyq: nn.t, total: p.t + nn.t };
       });
     }
   });
@@ -872,7 +886,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   }
   var PER_PAGE = 20, page = 0, lastKey = null;
   var S = { exam: new Set(), year: new Set(), cls: new Set(), diff: new Set(), type: new Set(), ch: new Set(), tp: new Set(), src: new Set(), q: '', onlySel: false, flag: false, attn: false, oos: false, oosx: false, sel: new Set() };
-  S.oosx = true; /* out of syllabus questions are excluded by default */
+  S.oosx = false; /* out of syllabus questions are included by default */
   /* Question Bank opens first from qb/data/first.json (first cards + counts) while the full data downloads: PARTIAL holds the stub rows used for the header numbers and filter lists */
   var PARTIAL = null;
   function toRows(pyqArr, npArr) {
@@ -1020,8 +1034,8 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     });
   }
 
-  /* chapter order; PYQs first: JEE Main (with AIEEE), JEE Advanced (with IIT), KCET, each newest first (year, month, day, shift); then practice questions by source: Cengage, Black Book, VMC, Avanti, PPTs (then any other), each in sheet order */
-  var PUB_ORDER = ['Cengage', 'Black Book', 'VMC', 'Avanti', 'PPTs'];
+  /* chapter order; PYQs first: JEE Main (with AIEEE), JEE Advanced (with IIT), KCET, each newest first (year, month, day, shift); then practice questions by source: Cengage, Black Book, VMC (then any other), each in sheet order */
+  var PUB_ORDER = ['Cengage', 'Black Book', 'VMC'];
   function pubRank(q) { var i = PUB_ORDER.indexOf(q.publisher); return i < 0 ? PUB_ORDER.length : i; }
   function examRank(q) { var e = q.exam; return e === 'JEE Main' || e === 'AIEEE' ? 0 : e === 'JEE Advanced' || e === 'IIT' ? 1 : e === 'KCET' ? 2 : 3; }
   function cmp(a, b) {
@@ -1349,14 +1363,14 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   }
   function goYear(y, ch, ex, oos, pp) {
     S.exam.clear(); S.ch.clear(); S.tp.clear(); S.year.clear(); S.src.clear(); if (y != null) S.year.add(String(y)); if (ch) S.ch.add(ch); if (ex) S.exam.add(ex);
-    S.flag = false; S.attn = false; S.oos = !!oos; if (oos) { S.oosx = false; try { localStorage.setItem('oosEx', '0'); } catch (e) { /* ignore */ } buildChips(); } S.q = pp ? String(pp).toLowerCase() : ''; var se = $('.qb-search'); if (se) se.value = pp || '';
+    S.flag = false; S.attn = false; S.oos = !!oos; if (oos) { S.oosx = false; try { localStorage.setItem('oosEx2', '0'); } catch (e) { /* ignore */ } buildChips(); } S.q = pp ? String(pp).toLowerCase() : ''; var se = $('.qb-search'); if (se) se.value = pp || '';
     closeYear(); apply();
     var r = $('.qb-results'); if (r && r.scrollIntoView) r.scrollIntoView({ block: 'start' });
   }
   function goOos(exam) {
     S.exam.clear(); S.ch.clear(); S.tp.clear(); S.year.clear(); S.src.clear(); S.diff.clear(); S.type.clear(); S.cls.clear();
     if (exam) S.exam.add(exam);
-    S.flag = false; S.attn = false; S.oos = true; S.oosx = false; try { localStorage.setItem('oosEx', '0'); } catch (e) { /* ignore */ } buildChips(); S.q = ''; var se = $('.qb-search'); if (se) se.value = '';
+    S.flag = false; S.attn = false; S.oos = true; S.oosx = false; try { localStorage.setItem('oosEx2', '0'); } catch (e) { /* ignore */ } buildChips(); S.q = ''; var se = $('.qb-search'); if (se) se.value = '';
     apply();
     var r = $('.qb-results'); if (r && r.scrollIntoView) r.scrollIntoView({ block: 'start' });
   }
@@ -1471,7 +1485,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
       });
     });
   }
-  var SRC_VALS = ['PYQs', 'VMC', 'Cengage', 'Avanti', 'PPTs', 'Black Book'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET'];
+  var SRC_VALS = ['PYQs', 'VMC', 'Cengage', 'Black Book'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET'];
   function srcOf(q) { return q.source === 'PYQ' ? 'PYQs' : (q.publisher || 'VMC'); }
   /* "PYQs" ticked together with a source that has PYQ-tagged questions (Black Book) = the PYQs of that source only */
   var PYQ_PUBS = {};
@@ -1589,7 +1603,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   $('.qb-oosonly').addEventListener('click', function () { var on = !S.oos; S.oos = on; if (on && S.oosx) { setOosx(false); } apply(); });
   function setOosx(on) {
     S.oosx = on; if (on) S.oos = false;
-    try { localStorage.setItem('oosEx', on ? '1' : '0'); } catch (e) { /* ignore */ }
+    try { localStorage.setItem('oosEx2', on ? '1' : '0'); } catch (e) { /* ignore */ }
     buildChips(); drawWeight();
   }
   Array.prototype.forEach.call(document.querySelectorAll('.qb-oosx button'), function (b) { b.addEventListener('click', function () { var ex = b.dataset.v === 'ex'; if (ex !== S.oosx) { setOosx(ex); apply(); } }); });
@@ -1848,7 +1862,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     rows.forEach(function (r) {
       r.flagged = chFl[r.chapter_code] || 0; r.attn = chAt[r.chapter_code] || 0; r.oos = chOos[r.chapter_code] || 0;
       var tr = el('tr'); tr.dataset.key = r.chapter_code;
-      ['chapter_code', 'chapter', 'main_all', 'adv_all', 'kcet_all', 'src_VMC', 'src_Cengage', 'src_PPTs', 'src_BlackBook', 'total', 'oos', 'attn', 'flagged'].forEach(function (k) {
+      ['chapter_code', 'chapter', 'main_all', 'adv_all', 'kcet_all', 'src_VMC', 'src_Cengage', 'src_BlackBook', 'total', 'oos', 'attn', 'flagged'].forEach(function (k) {
         var td = el('td', typeof r[k] === 'number' && r[k] === 0 ? 'z' : null, String(r[k]));
         tr.appendChild(td);
       });
@@ -1864,7 +1878,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   function msg(t, bad) { var m = $('.qb-msg'); m.textContent = t || ''; m.classList.toggle('bad', !!bad); }
   function opts() {
     var ans = $('.qb-o-ans').checked;
-    return { answers: ans || $('.qb-o-key').checked, answerKey: $('.qb-o-key').checked, pptLayout: $('.qb-o-ppt').checked };
+    return { answers: ans || $('.qb-o-key').checked, answerKey: $('.qb-o-key').checked, explain: !!($('.qb-o-exp') && $('.qb-o-exp').checked), pptLayout: $('.qb-o-ppt').checked };
   }
   function save(filename, data) {
     if (!dl) { msg('Downloads are not available in this view. Open the dashboard on claude.ai to export.', true); return Promise.resolve(false); }
@@ -1876,6 +1890,20 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
       return false;
     });
   }
+  /* Explanation toggle: solutions are fetched once from qb/data/sol.json; each becomes a pseudo-question (text + its own figure) printed after the questions */
+  function attachExplain(qs, o) {
+    o.expl = [];
+    if (!o.explain) return Promise.resolve();
+    return loadSol().then(function (m) {
+      qs.forEach(function (q, i) {
+        var sv = m && m[q.id], t = q.solution || (sv && (typeof sv === 'string' ? sv : sv.t));
+        if (!t || !String(t).trim()) return;
+        var f = sv && typeof sv !== 'string' ? sv.f : null;
+        o.expl.push({ n: i + 1, q: Object.assign({}, q, { id: q.id + '#sol', question: String(t), options: [], figure: f || null, answer: '' }) });
+      });
+      if (!o.expl.length) msg('None of the selected questions has an explanation yet.');
+    });
+  }
   var busy = false;
   function setBusy(on) { busy = on; ['.qb-docx', '.qb-pdf', '.qb-ppt'].forEach(function (k) { $(k).disabled = on || !S.sel.size; }); }
   function exportWith(ext, build) {
@@ -1883,19 +1911,19 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     var name = exportName(qs), o = opts(); o.title = name;
     setBusy(true); msg('Building ' + ext.toUpperCase() + ' (' + qs.length + ' questions)…');
     setTimeout(function () {
-      Promise.resolve(figReady).then(function () { return build(qs, o); })
+      Promise.resolve(figReady).then(function () { return attachExplain(qs, o); }).then(function () { return build(qs, o); })
         .then(function (bytes) { return save(name + '.' + ext, new Blob([bytes])); })
         .catch(function (e) { msg('Could not build the ' + ext.toUpperCase() + ' file: ' + (e && e.message || e), true); })
         .then(function () { setBusy(false); });
     }, 30);
   }
   $('.qb-docx').addEventListener('click', function () { exportWith('docx', function (qs, o) { return QBX.buildDocx(qs, o); }); });
-  $('.qb-ppt').addEventListener('click', function () { exportWith('pptx', function (qs, o) { return window.__qbCwPptx ? window.__qbCwPptx(qs.map(function (x) { return x.id; })) : QBX.buildPptx(qs, o); }); });
+  $('.qb-ppt').addEventListener('click', function () { exportWith('pptx', function (qs, o) { return window.__qbCwPptx ? window.__qbCwPptx(qs.map(function (x) { return x.id; }), o.explain) : QBX.buildPptx(qs, o); }); });
   $('.qb-pdf').addEventListener('click', function () {
     var qs = selected(); if (!qs.length || busy) return;
     var name = exportName(qs), o = opts(); o.title = name;
     setBusy(true); msg('Building PDF…');
-    Promise.resolve(figReady).then(function () { return QBX.buildPdf(qs, o, function (i, n) { msg('Building PDF: page ' + i + ' of ' + n + '…'); }); })
+    Promise.resolve(figReady).then(function () { return attachExplain(qs, o); }).then(function () { return QBX.buildPdf(qs, o, function (i, n) { msg('Building PDF: page ' + i + ' of ' + n + '…'); }); })
       .then(function (bytes) { return save(name + '.pdf', new Blob([bytes])); })
       .catch(function (e) {
         msg('This browser would not draw the PDF pages (' + (e && e.message || 'blocked') + '), so a print-ready page is being saved instead: open it and choose "Save as PDF".', true);

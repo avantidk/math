@@ -21,12 +21,12 @@ const TYPES = ['MCQ', 'MSQ', 'Numerical', 'Subjective', 'Comprehension', 'Matchi
 
 /* Out-of-syllabus questions (bank field oo): include or exclude them from the test maker and the DPP library */
 const OOS = { ex: false };
-try { OOS.ex = localStorage.getItem('oosEx') === '1'; } catch (e) {}
+try { OOS.ex = localStorage.getItem('oosEx2') === '1'; } catch (e) {}
 function oosBox() {
   const n = BANK && BANK.all ? BANK.all.filter(q => q.oo).length : 0;
   return h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Out-of-syllabus questions' }),
     h('div', { class: 'seg oosSeg' }, h('button', { type: 'button', 'data-act': 'oos', 'data-k': 'in', text: 'Include' }), h('button', { type: 'button', 'data-act': 'oos', 'data-k': 'ex', text: 'Exclude' })),
-    h('p', { class: 'hint', text: n + ' PYQs are marked out of syllabus (topics removed from the current JEE syllabus). Exclude keeps them out of every test, DPP and booklet.' }));
+    h('p', { class: 'hint', text: n + ' PYQs are marked out of syllabus (topics removed from the current JEE syllabus). Exclude keeps them out of every test and DPP.' }));
 }
 function syncOos() { document.querySelectorAll('.oosSeg button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.k === 'ex') === OOS.ex))); }
 function applyOos() {
@@ -223,7 +223,7 @@ function sheetParams() {
   return { mode: 'test', kind: 'test', title: S.title.trim() || defaultTitle(), sub: n.length ? (n.length > 2 ? n.length + ' chapters' : n.join(' \u00b7 ')) : 'Maths', batch: S.batch.trim(), date: S.date, mins: S.mins, pos: S.pos, neg: S.neg,
     cols: S.cols, tag: S.tag, key: S.key, qs: S.picked.map(id => BYID.get(id)).filter(Boolean) };
 }
-function tagText(q) { return q.s === 'P' ? '[' + (q.e === 'KCET' ? 'KCET' : 'JEE ' + (q.e === 'Adv' ? 'Advanced' : 'Main')) + ' ' + q.y + ']' : ''; }
+function tagText(q) { const lv = q.lvTag ? 'L' + practiceLevel(q) : ''; const ex = q.s === 'P' ? (q.lvTag ? exOf(q) : (q.e === 'KCET' ? 'KCET' : 'JEE ' + (q.e === 'Adv' ? 'Advanced' : 'Main'))) + ' ' + q.y : ''; return lv || ex ? '[' + [lv, ex].filter(Boolean).join(' \u00b7 ') + ']' : ''; }
 /* "match the lists" questions: split into intro + two lists so they can be drawn as a table */
 function matchParts(text) {
   const ls = String(text).split('\n'), HA = /^\s*(List|Column)[\s\-]*(I|1)\s*(\([^)]*\))?\s*:\s*(.*)$/i, HB = /^\s*(List|Column)[\s\-]*(II|2)\s*(\([^)]*\))?\s*:\s*(.*)$/i;
@@ -254,18 +254,23 @@ function buildQ(q, n, p) {
   const hint = q.t === 'MSQ' ? '(one or more options correct)' : '';
   const t = p.tag ? tagText(q) : '';
   const mt = matchParts(q.q);
-  const stem = h('div', { class: 'stem' }, hint ? h('span', { class: 'tag', text: hint }) : null, t ? h('span', { class: 'tag', text: t }) : null);
-  stem.insertAdjacentHTML('afterbegin', boldHtml(tallToDisplay(mt ? mt.pre : q.q)));
+  let txt = String(mt ? mt.pre : q.q), after = '';
+  const fx = txt.indexOf('{{figure}}');
+  if (fx > -1) { after = txt.slice(fx + 10).trim(); txt = txt.slice(0, fx).trim(); }
+  const tags = [hint ? h('span', { class: 'tag', text: hint }) : null, t ? h('span', { class: 'tag', text: t }) : null];
+  const stem = h('div', { class: 'stem' }, ...(after ? [] : tags));
+  stem.insertAdjacentHTML('afterbegin', boldHtml(tallToDisplay(txt)));
   const kids = [stem];
   if (mt) kids.push(matchTable(mt));
   if (q.f) kids.push(h('img', { class: 'fig', alt: 'Figure', src: 'data:image/svg+xml;utf8,' + encodeURIComponent(q.f.svg), width: q.f.w, height: q.f.h }));
+  if (after) { const st2 = h('div', { class: 'stem' }, ...tags); st2.insertAdjacentHTML('afterbegin', boldHtml(tallToDisplay(after))); kids.push(st2); }
   if (q.o.length) kids.push(h('div', { class: 'opts ' + cls, style: q.o.some(o => /\\d?frac/.test(o)) ? 'row-gap:.8em' : '' }, q.o.map((o, i) => h('div', { class: 'opt' }, h('b', { text: '(' + 'ABCD'[i] + ')' }), h('span', { text: o })))));
   const node = h('div', { class: 'sq' }, q.head ? h('div', { class: 'qhead', text: q.head }) : null, h('div', { class: 'qn', text: n + '.' }), h('div', { class: 'qb' }, kids));
   math(node);
   return node;
 }
 function skeleton(p, keyMode) {
-  const test = p.mode === 'test', sub = keyMode ? 'Answer key' : (p.sub || 'Maths');
+  const test = p.mode === 'test', sub = keyMode ? (keyMode === 'exp' ? 'Explanations' : 'Answer key') : (p.sub || 'Maths');
   const info = h('div', { class: 'sh-info' },
     h('span', { text: 'Name: ______________________' }), h('span', { text: 'Avanti ID: __________' }),
     h('span', { text: (p.total || p.qs.length) + ' questions' }),
@@ -325,6 +330,8 @@ function layoutSheet(p, host, minFs) {
   const groups = cols === 1 ? [nodes] : [nodes.slice(0, best.split), nodes.slice(best.split)];
   groups.forEach((g, i) => g.forEach(nd => { nd.style.flex = ''; nCols[i].append(nd); }));
   meas.remove();
+  /* DPP pages: do not stretch a few tall questions apart; cap the gap and leave the rest blank at the bottom of the column */
+  if (p.capGap) nCols.forEach((c, i) => { const ns = groups[i] || []; if (ns.length < 2) return; const used = sum(ns.map(n => n.offsetHeight)), free = c.clientHeight - used; c.style.justifyContent = 'flex-start'; c.style.gap = Math.max(0, Math.min(free / (ns.length - 1), best.fs * 2.2)) + 'px'; });
   const slack = overflow ? 0 : (avail - best.m) / avail;
   return { sheet, nodes, groups, fs: best.fs, overflow, slack, avail, gap: best.fs * 0.7, n: nodes.length };
 }
@@ -353,6 +360,30 @@ function keySheets(pp, host) {
         fresh(); open(g); flow.append(el);
       }
     }
+  }
+  return sheets;
+}
+/* explanations: a flowing list of full solutions (text, maths and the solution's own figure) over as many pages as needed */
+function explSheets(items, base, host) {
+  const labelled = new Set(items.map(x => x.lab)).size > 1, sheets = []; let body = null, last = null;
+  const fresh = () => { const sh = skeleton(Object.assign({}, base, { qs: [], badge: '' }), 'exp'); sh.style.boxShadow = 'none'; body = $('.sh-body', sh); body.style.display = 'block'; host.append(sh); sheets.push(sh); };
+  const over = () => body.scrollHeight > body.clientHeight + 1;
+  const build = it => {
+    const el = h('div', { class: 'explitem', style: 'margin:0 0 9px;font-size:12px;line-height:1.45' }), parts = it.text.split(/\s*\{\{figure\}\}\s*/);
+    el.append(h('b', { text: it.n + '. ', style: 'color:var(--sheet-accent)' }));
+    parts.forEach((t, k) => {
+      if (k) { if (it.f && it.f.svg) { const fg = h('div', { style: 'margin:4px 0' }); fg.innerHTML = String(it.f.svg).replace(/<svg /, '<svg style="width:' + Math.min(it.f.w || 240, 240) + 'px;height:auto" '); el.append(fg); } }
+      if (t.trim()) el.append(h('span', { text: t.replace(/^\n+|\n+$/g, ''), style: 'white-space:pre-wrap' }));
+    });
+    if (parts.length === 1 && it.f && it.f.svg) { const fg = h('div', { style: 'margin:4px 0' }); fg.innerHTML = String(it.f.svg).replace(/<svg /, '<svg style="width:' + Math.min(it.f.w || 240, 240) + 'px;height:auto" '); el.append(fg); }
+    return el;
+  };
+  fresh();
+  for (const it of items) {
+    const mk = () => { const nodes = []; if (labelled && it.lab !== last) nodes.push(h('div', { class: 'keyhead', text: it.lab })); nodes.push(build(it)); return nodes; };
+    let nodes = mk(); nodes.forEach(nd => { body.append(nd); math(nd); });
+    if (over() && body.children.length > nodes.length) { nodes.forEach(nd => nd.remove()); fresh(); nodes = mk(); nodes.forEach(nd => { body.append(nd); math(nd); }); }
+    last = it.lab;
   }
   return sheets;
 }
@@ -509,12 +540,12 @@ function buildPyqTopics() {
 /* ---------- DPP library UI ---------- */
 let SUBS = [];
 const BK = {};
-const LS = { kind: 'sub', chs: [], ids: [], idk: '', part: 'all', page: 0, key: false, shown: false, year: 'all', yrs: [], ex: [], lv: ['L1', 'L2', 'L3'], pubs: [] };
-const PUBS = [];   /* every source tag found in the bank: VMC, Cengage, PPTs, Avanti and any new one */
+const LS = { kind: 'sub', chs: [], ids: [], idk: '', part: 'all', page: 0, key: false, shown: false, year: 'all', yrs: [], ex: [], lv: ['L1', 'L2', 'L3'], pubs: [], srcs: [], tough: 2, mixv: 2, stat: '', seed: 0 };
+const PUBS = [];   /* every source tag found in the bank: VMC, Cengage and any new one */
 function initPubs() {
-  const found = [...new Set(BANK.qs.filter(q => q.s === 'N').map(q => q.pb || 'VMC'))], first = ['VMC', 'Cengage', 'PPTs', 'Avanti', 'Black Book'];
+  const found = [...new Set(BANK.qs.filter(q => q.s === 'N').map(q => q.pb || 'VMC'))], first = ['VMC', 'Cengage', 'Black Book'];
   PUBS.length = 0; first.concat(found.filter(x => !first.includes(x)).sort()).forEach(x => PUBS.push(x));
-  LS.pubs = PUBS.slice();
+  LS.pubs = PUBS.slice(); LS.srcs = EXAMS.concat(PUBS);
   S.pubs = new Set(PUBS);
 }
 const shortList = (a, n) => a.slice(0, n).join(', ') + (a.length > n ? ' +' + (a.length - n) : '');
@@ -619,12 +650,121 @@ function pyqSel() {
   });
   return out;
 }
+/* ---------- Topicwise DPP: 2 A4 pages, text 11 to 12 pt ---------- */
+const DPP_MINPX = 14.67, DPP_MAXPX = 16, DPP_CAP = 60;   /* 11 pt and 12 pt in px (1 pt = 4/3 px) */
+const TKM = {};
+function topicKeyOf(q) {
+  const m = TKM[q.cc] || (TKM[q.cc] = new Map(((BANK.syl || {})[q.cc] || []).map(t => [norm(t[1]), String(t[0])])));
+  return q.cc + '|' + (m.get(norm(q.tp)) || 'other');
+}
+const srcOf = q => q.s === 'P' ? exOf(q) : (q.pb || 'VMC');
+function dppPool(forCount) {
+  const yrs = LS.yrs, chs = new Set(LS.chs), ids = new Set(LS.ids), src = new Set(LS.srcs);
+  return BANK.qs.filter(q => chs.has(q.cc) && (forCount || ids.has(topicKeyOf(q))) && src.has(srcOf(q)) && (q.s !== 'P' || !yrs.length || yrs.includes(String(q.y))) && LS.lv.includes('L' + practiceLevel(q))).map(q => Object.assign({}, q, { lvTag: true }));
+}
+function rrTopics(qs) {
+  const g = new Map(); qs.forEach(q => { const k = topicKeyOf(q); if (!g.has(k)) g.set(k, []); g.get(k).push(q); });
+  const lists = [...g.values()];
+  if (LS.seed) { const rnd = (() => { let a = LS.seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; })(); const shuf = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }; lists.forEach(shuf); shuf(lists); }
+  else lists.forEach(l => { if (l[0].s === 'P') l.sort(pyqNewest); });
+  const out = []; for (let i = 0; lists.some(l => i < l.length); i++) lists.forEach(l => { if (i < l.length) out.push(l[i]); });
+  return out;
+}
+const chOrd2 = cc => { const c = CHMAP.get(cc); return c ? c.cl * 100 + c.o : 0; };
+const dppOrder = qs => qs.map((q, i) => ({ q, i })).sort((a, b) => chOrd2(a.q.cc) - chOrd2(b.q.cc) || tcNum(a.q.tc) - tcNum(b.q.tc) || a.q.tp.localeCompare(b.q.tp) || practiceLevel(a.q) - practiceLevel(b.q) || a.i - b.i).map(x => x.q);
+/* pick the order in which questions are taken so that every prefix keeps the chosen level mix and PYQ / practice mix */
+function dppSeq(pool, cap) {
+  const cats = {}; pool.forEach(q => { const k = (q.s === 'P' ? 'P' : 'N') + practiceLevel(q); (cats[k] = cats[k] || []).push(q); });
+  Object.keys(cats).forEach(k => { cats[k] = rrTopics(cats[k]); });
+  const hasP = pool.some(q => q.s === 'P'), hasN = pool.some(q => q.s !== 'P');
+  let ws = { P: LS.mixv === 3 ? 1 : LS.mixv === 2 ? 0.5 : 0, N: LS.mixv === 1 ? 1 : LS.mixv === 2 ? 0.5 : 0 };
+  if (!hasP) ws = { P: 0, N: 1 }; else if (!hasN) ws = { P: 1, N: 0 };
+  const wl0 = LS.tough === 1 ? [1, 0, 0] : LS.tough === 3 ? [0, 0, 1] : [1, 1, 1].map(x => x / 3);
+  let wl = wl0.map((w, i) => LS.lv.includes('L' + (i + 1)) ? w : 0); const sw = sum(wl);
+  wl = sw ? wl.map(w => w / sw) : [1, 2, 3].map(l => LS.lv.includes('L' + l) ? 1 / LS.lv.length : 0);
+  const pos = {}, taken = {}, seq = [], fbAt = [];
+  Object.keys(cats).forEach(k => { pos[k] = 0; taken[k] = 0; });
+  const left = k => pos[k] < cats[k].length;
+  while (seq.length < cap) {
+    const live = Object.keys(cats).filter(left); if (!live.length) break;
+    const want = live.filter(k => ws[k[0]] * wl[+k[1] - 1] > 0);
+    let k;
+    if (want.length) k = want.reduce((a, b) => (ws[b[0]] * wl[+b[1] - 1] * (seq.length + 1) - taken[b]) > (ws[a[0]] * wl[+a[1] - 1] * (seq.length + 1) - taken[a]) ? b : a);
+    else { fbAt.push(seq.length); k = live.slice().sort((a, b) => Math.abs(+a[1] - LS.tough) - Math.abs(+b[1] - LS.tough) || ws[b[0]] - ws[a[0]])[0]; }
+    seq.push(cats[k][pos[k]++]); taken[k]++;
+  }
+  return { seq, fbAt };
+}
+function dppHeights(qs, fs) {
+  const host = h('div', { style: 'position:absolute;left:-10000px;top:0;width:794px' }); document.body.append(host);
+  const sk = skeleton(Object.assign({}, BASE, { qs: [] })); host.append(sk);
+  const c = h('div', { class: 'sh-col' }); $('.sh-body', sk).append(c); const avail = c.clientHeight;
+  const meas = h('div', { class: 'measure' }); meas.style.width = colWidth(2) + 'px'; meas.style.setProperty('--fs', fs + 'px'); document.body.append(meas);
+  const hs = new Map(); qs.forEach((q, i) => { const nd = buildQ(q, i + 1, BASE); nd.style.flex = 'none'; meas.append(nd); fitMath(nd); hs.set(q.i, nd.offsetHeight); });
+  meas.remove(); host.remove(); return { hs, avail };
+}
+function dppBuild() {
+  const pool = dppPool(); if (!pool.length) return { pages: [], stat: '' };
+  const { seq, fbAt } = dppSeq(pool, DPP_CAP), H = dppHeights(seq, DPP_MINPX), gap = DPP_MINPX * 0.7;
+  const fits = qs => !!pickSplit(qs.map(q => H.hs.get(q.i)), gap, H.avail - 8, 2);
+  const split = n => {   /* ordered list for n questions, and the split point closest to half where both pages fit */
+    const qs = dppOrder(seq.slice(0, n)); if (fits(qs)) return { qs, k: n }; if (n < 2) return null;
+    let best = null; for (let k = 1; k < n; k++) if (fits(qs.slice(0, k)) && fits(qs.slice(k)) && (!best || Math.abs(k - n / 2) < Math.abs(best - n / 2))) best = k;
+    return best ? { qs, k: best } : null;
+  };
+  let lo = 1, hi = seq.length, ok = split(hi) ? hi : 0;
+  if (!ok) { while (lo <= hi) { const m = (lo + hi) >> 1; if (split(m)) { ok = m; lo = m + 1; } else hi = m - 1; } }
+  for (let t = 0; t < 3 && ok < seq.length && split(ok + 1); t++) ok++;
+  const nm = chs => chs.length <= 2 ? chs.map(cc => CHMAP.get(cc).n).join(' + ') : chs.length + ' chapters';
+  const used = LS.chs.filter(cc => pool.some(q => q.cc === cc)).sort((a, b) => chOrd2(a) - chOrd2(b));
+  const title = nm(used), file = title + ' DPP';
+  for (let n = ok; n >= 1; n--) {
+    const sp = split(n); if (!sp) continue;
+    const r = dppPlace(sp.qs, sp.k, title, file); if (!r) continue;
+    return Object.assign(r, { pool, title, file, out: new Set() }, dppFin(r, pool, fbAt.some(i => i < n)));
+  }
+  return { pages: [], stat: '' };
+}
+/* lay the chosen questions out for real: one page (k = n) or two pages split after k; both pages get the same text size */
+function dppPlace(qs, k, title, file) {
+  const n = qs.length, tps = [...new Set(qs.map(q => q.tp === 'Unmapped' ? 'Mixed problems' : q.tp))], sub = shortList(tps, 3);
+  const mk = (g, start, i, tot) => Object.assign({}, BASE, { title, sub, badge: tot > 1 ? 'DPP · Page ' + (i + 1) + ' of ' + tot : 'DPP', qs: g, start, total: n, maxFs: DPP_MAXPX, file, capGap: true });
+  const parts = k >= n ? [qs] : [qs.slice(0, k), qs.slice(k)];
+  let pages = parts.map((g, i) => mk(g, i ? parts[0].length : 0, i, parts.length));
+  const host = h('div', { style: 'position:absolute;left:-10000px;top:0;width:794px' }); document.body.append(host);
+  let bad = false, fs = DPP_MAXPX;
+  try { pages.forEach(pg => { const L = layoutSheet(pg, host, DPP_MINPX); L.sheet.remove(); if (L.overflow) bad = true; fs = Math.min(fs, L.fs); }); } finally { host.remove(); }
+  if (bad) return null;
+  pages = pages.map(pg => Object.assign(pg, { maxFs: fs }));
+  return { pages, qs, k: Math.min(k, n), fs };
+}
+function dppFin(r, pool, fb) {
+  const qs = r.qs, n = qs.length, lv = [1, 2, 3].map(l => 'L' + l + ' ' + qs.filter(q => practiceLevel(q) === l).length).join(' · '), np = qs.filter(q => q.s === 'P').length;
+  LS.fs = r.fs;
+  return { stat: '<b>' + qWord(n) + '</b> of ' + pool.length + ' matching, on ' + r.pages.length + ' A4 ' + (r.pages.length > 1 ? 'pages' : 'page') + ' at ' + (r.fs * 0.75).toFixed(1).replace('.0', '') + ' pt. ' + lv + ' · PYQ ' + np + ' · Practice ' + (n - np) + '.' + (fb ? ' Not enough questions for this exact pick, so some come from the nearest level or source.' : '') };
+}
+/* swap one question for another from the same pool: same level first, then same kind (PYQ / practice), then same topic */
+function dppSwap(r, id) {
+  const cur = r.qs.findIndex(q => q.i === id); if (cur < 0) return false;
+  const q0 = r.qs[cur], inSel = new Set(r.qs.map(q => q.i)); r.out.add(id);
+  const lvl = practiceLevel(q0), isP = q0.s === 'P', tk = topicKeyOf(q0);
+  const score = q => (practiceLevel(q) === lvl ? 4 : 0) + ((q.s === 'P') === isP ? 2 : 0) + (topicKeyOf(q) === tk ? 1 : 0);
+  const cands = r.pool.filter(q => !inSel.has(q.i) && !r.out.has(q.i)).map(q => ({ q, sc: score(q) + Math.random() * 0.9 })).sort((a, b) => b.sc - a.sc).slice(0, 30);
+  for (const { q } of cands) {
+    const qs = dppOrder(r.qs.map((x, i) => i === cur ? q : x));
+    const k0 = r.k >= qs.length ? qs.length : r.k;
+    for (const k of [k0, ...[1, -1, 2, -2].map(d => k0 + d).filter(k => k >= 1 && k < qs.length)]) {
+      const pl = dppPlace(qs, k, r.title, r.file); if (!pl) continue;
+      Object.assign(r, pl, dppFin(pl, r.pool, false)); return true;
+    }
+  }
+  return false;
+}
+const dppKey = () => 'dpp|' + LS.chs.join(',') + '|' + LS.ids.join(',') + '|' + LS.lv.join('') + '|' + LS.srcs.join(',') + '|' + LS.yrs.join(',') + '|' + LS.tough + LS.mixv + '|' + LS.seed + '|' + (OOS.ex ? 1 : 0) + (window.katex ? 'k' : '');
+const dppCur = () => { const key = dppKey(); return BK[key] || (BK[key] = dppBuild()); };
 function currentPages() {
-  let pages = [];
-  if (LS.kind === 'book') LS.chs.forEach(cc => bookletPages(cc, LS.part).forEach(x => pages.push(x)));
-  else if (LS.kind === 'pyq') pages = pyqSel();
-  else SUBS.filter(d => LS.ids.includes(d.id)).forEach(d => { fitDpp(d); dppPages(d).forEach(p => pages.push(p)); });
-  return pages.map(p => Object.assign({}, p, { key: LS.key }));
+  const r = dppCur(); LS.stat = r.stat;
+  return r.pages.map(p => Object.assign({}, p, { key: LS.key, exp: !!LS.exp }));
 }
 /* tick-box list: a summary button that opens a list of checkboxes. Redraws keep it open. */
 function mfill(id, items, sel, set, noun, o) {
@@ -649,62 +789,87 @@ const msel = (id, noun) => h('div', { class: 'msel', id },
       h('button', { type: 'button', class: 'mlink', 'data-act': 'mall', 'data-k': id, text: 'Select all' }),
       h('button', { type: 'button', class: 'mlink', 'data-act': 'mnone', 'data-k': id, text: 'Clear' })),
     h('div', { class: 'ml' })));
+/* one-choice dropdown: same look as msel, but picking an item selects it and closes the list */
+const ssel = (id, noun) => {
+  if (!document.getElementById('ssel-css')) { const st = document.createElement('style'); st.id = 'ssel-css'; st.textContent = '.pdflist{overflow:visible!important;max-height:none!important;height:auto!important}.msel.sgl .mp{position:static!important;width:auto!important;max-height:none!important;overflow:visible!important;margin-top:6px;box-shadow:none}.msel.sgl .ml{max-height:min(52vh,420px)!important;overflow-y:auto}.msel.sgl .mi{align-items:flex-start;padding-block:8px}.msel.sgl .mi span{white-space:normal;overflow-wrap:anywhere;line-height:1.3}'; document.head.append(st); }
+  const b = msel(id, noun); b.classList.add('sgl'); const q = b.querySelector('.mq'); if (q) q.remove(); return b;
+};
+function sfill(id, items, sel, set, noun, o) {
+  o = o || {};
+  const box = $('#' + id), list = $('.ml', box), st = list.scrollTop;
+  list.textContent = '';
+  items.forEach(([v, t]) => {
+    const rb = h('input', { type: 'radio', name: id, value: v, onchange: () => { box.classList.remove('open'); $('.mbtn', box).setAttribute('aria-expanded', 'false'); set(v); } });
+    rb.checked = v === sel;
+    list.append(h('label', { class: 'mi' }, rb, h('span', { text: t })));
+  });
+  list.scrollTop = st;
+  const hit = items.find(i => i[0] === sel);
+  $('.mt', box).textContent = !items.length ? (o.empty || 'Nothing to pick') : hit ? hit[1].replace(/\s*\(\d+ questions?\)$/, '') : 'Pick ' + noun;
+}
 const chLabel = () => LS.chs.length === 1 ? CHMAP.get(LS.chs[0]).n : LS.chs.length + ' chapters';
 const lvSuffix = () => LS.lv.length === 3 ? '' : ' ' + LS.lv.join('+');
 const yrSuffix = () => (LS.ex.length ? ' ' + LS.ex.join('+') : '') + (LS.yrs.length ? ' ' + (LS.yrs.length > 3 ? LS.yrs.length + ' years' : LS.yrs.join('+')) : '');
 function renderLib() {
   if (!$('#libCh')) return;
   syncOos();
-  $('#libKind').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === LS.kind)));
-  const chs = libChapters();
-  LS.chs = mfill('libCh', chs.map(c => [c.cc, c.n]), LS.chs, v => { LS.chs = v; LS.chTouched = true; renderLib(); }, 'chapters');
-  const book = LS.kind === 'book', pyq = LS.kind === 'pyq', multiCh = LS.chs.length > 1;
-  $('#fldDpp').hidden = book; $('#fldPart').hidden = !book; $('#fldYear').hidden = !pyq; $('#fldEx').hidden = !pyq; $('#fldLv').hidden = !pyq; $('#fldPub').hidden = !book; $('#boxAll').hidden = !pyq;
-  $('#lblDpp').textContent = pyq ? 'Topics' : 'Subtopics';
-  $('#libPub').querySelectorAll('button').forEach(b => { const n = BANK.qs.filter(q => q.s === 'N' && (q.pb || 'VMC') === b.dataset.k && practiceLevel(q)).length; b.setAttribute('aria-pressed', String(LS.pubs.includes(b.dataset.k))); b.textContent = b.dataset.k + ' (' + n + ')'; });
-  $('#libLv').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(LS.lv.includes(b.dataset.k))));
-  let info = '', itemsNow = [];
-  const pre = cc => multiCh ? CHMAP.get(cc).n + ' \u00b7 ' : '';
-  if (book) {
-    const pls = LS.chs.map(cc => levelPools(cc)), cnt = l => sum(pls.map(p => p[l].length)), tot = sum([1, 2, 3].map(cnt));
-    LS.part = opt($('#libPart'), [['all', 'Levels 1, 2 and 3 together (' + tot + ' questions)']].concat([1, 2, 3].map(l => [String(l), 'Level ' + l + ' only (' + cnt(l) + ' questions)'])), LS.part);
-    info = '<b>' + qWord(LS.part === 'all' ? tot : cnt(+LS.part)) + '.</b> One file with every page.';
-  } else {
-    if (pyq) {
-      const ys = [...new Set([].concat(...LS.chs.map(cc => pyqYears(cc))))].sort((x, y) => y - x);
-      const allQ = [].concat(...LS.chs.map(cc => { const c = PYQT[cc]; return c.other.concat(...c.topics.map(t => t.qs)); }));
-      const ys2 = [...new Set(allQ.map(q => String(q.y)))].sort((x, y) => y - x);
-      const cy = {}, ce = {}; allQ.forEach(q => { if (LS.lv.includes(q.d)) { if (!LS.ex.length || LS.ex.includes(exOf(q))) cy[q.y] = (cy[q.y] || 0) + 1; if (!LS.yrs.length || LS.yrs.includes(String(q.y))) ce[exOf(q)] = (ce[exOf(q)] || 0) + 1; } });
-      LS.ex = mfill('libEx', EXAMS.map(x => [x, x + ' (' + (ce[x] || 0) + ')']), LS.ex, v => { LS.ex = v; renderLib(); }, 'exams', { none: 'All exams' });
-      LS.yrs = mfill('libYr', ys2.map(y => [y, y + ' (' + (cy[y] || 0) + ')']), LS.yrs, v => { LS.yrs = v; renderLib(); }, 'years', { none: 'All years' });
-      LS.chs.forEach(cc => { const c = PYQT[cc];
-        c.topics.forEach(t => itemsNow.push([cc + '|' + t.no, pre(cc) + 'Topic ' + t.no + ' \u00b7 ' + t.name + ' (' + yf(t.qs).length + ')']));
-        if (c.other.length) itemsNow.push([cc + '|other', pre(cc) + 'Other topics, not in the CMS list (' + yf(c.other).length + ')']); });
-    } else {
-      SUBS.filter(d => LS.chs.includes(d.cc)).forEach(d => itemsNow.push([d.id, pre(d.cc) + 'DPP ' + d.num + ' \u00b7 ' + shortList(d.tps, 2).replace(/^(.{70}).*(\+\d+)?$/, '$1\u2026') + ' (' + d.qs.length + ')']));
-    }
-    const k = LS.kind + '|' + LS.chs.join(',');
-    if (LS.idk !== k) { LS.idk = k; LS.ids = itemsNow.map(i => i[0]); }
-    LS.ids = mfill('libDpp', itemsNow, LS.ids, v => { LS.ids = v; renderLib(); }, pyq ? 'topics' : 'subtopics', { empty: 'Pick a chapter first' });
-    if (pyq) {
-      const n = sum(LS.ids.map(v => { const [cc, id] = v.split('|'); return pyqCount(cc, id); }));
-      info = !LS.chs.length ? 'Pick one or more chapters first.' : n ? '<b>' + qWord(n) + '.</b> Every page downloads in one file.' : '<b>0 questions</b> for this pick so far.';
-    } else { const n = sum(SUBS.filter(d => LS.ids.includes(d.id)).map(d => d.qs.length)); info = !LS.chs.length ? 'Pick one or more chapters first.' : n ? '<b>' + qWord(n) + '</b> in ' + LS.ids.length + (LS.ids.length === 1 ? ' DPP' : ' DPPs') + ', one A4 side each.' : 'Tick at least one DPP.'; }
+  const was = LS.shown;
+  const chOf = [...new Set(BANK.qs.map(q => q.cc))].filter(cc => CHMAP.get(cc)).sort((a, b) => chOrd2(a) - chOrd2(b));
+  LS.chs = mfill('libCh', chOf.map(cc => [cc, CHMAP.get(cc).n]), LS.chs, v => { LS.chs = v; renderLib(); }, 'chapters');
+  const multiCh = LS.chs.length > 1;
+  /* sources: PYQ plus every practice source, all listed */
+  const cnt = {}; BANK.qs.forEach(q => { if (LS.chs.includes(q.cc)) cnt[srcOf(q)] = (cnt[srcOf(q)] || 0) + 1; });
+  const srcItems = EXAMS.concat(PUBS).map(x => [x, x + ' (' + (cnt[x] || 0) + ')']);
+  LS.srcs = mfill('libSrc', srcItems, LS.srcs, v => { LS.srcs = v; renderLib(); }, 'sources', { none: 'No source picked' });
+  const hasP = LS.srcs.some(x => EXAMS.includes(x)), hasN = LS.srcs.some(x => !EXAMS.includes(x));
+  $('#fldYear').hidden = !hasP;
+  if (hasP) {
+    const cy = {}; BANK.qs.forEach(q => { if (q.s === 'P' && LS.chs.includes(q.cc) && q.y && LS.lv.includes('L' + practiceLevel(q))) cy[q.y] = (cy[q.y] || 0) + 1; });
+    const ys = Object.keys(cy).sort((a, b) => b - a);
+    LS.yrs = mfill('libYr', ys.map(y => [y, y + ' (' + cy[y] + ')']), LS.yrs, v => { LS.yrs = v; renderLib(); }, 'years', { none: 'All years' });
   }
-  $('#libNote').textContent = LS.kind === 'sub' ? 'Practice questions only, no PYQs. Each chapter has about one DPP per lecture, in topic order: 15 to 20 questions on one A4 side (at least 5 easy, 5 medium, 5 tough), text 10.5 to 11.5 pt. You can pick many chapters and subtopics.'
-    : pyq ? 'Real JEE Main, JEE Advanced and KCET past-year questions, easy to hard. Pick chapters, topics, levels, exam and year. Topics with no PYQs show 0.'
-    : 'Practice questions only, no PYQs. Every question of Level 1, 2 and 3, topic by topic, page after page.';
-  $('#libDl').textContent = book || pyq || LS.ids.length > 1 ? 'All selected pages' : 'All selected pages';
+  /* subtopics of the picked chapters */
+  const pool0 = dppPool(true), per = {}; pool0.forEach(q => { const k = topicKeyOf(q); per[k] = (per[k] || 0) + 1; });
+  const items = []; LS.chs.slice().sort((a, b) => chOrd2(a) - chOrd2(b)).forEach(cc => {
+    const pre = multiCh ? CHMAP.get(cc).n + ' · ' : '';
+    ((BANK.syl || {})[cc] || []).forEach(t => items.push([cc + '|' + t[0], pre + 'Topic ' + t[0] + ' · ' + t[1] + ' (' + (per[cc + '|' + t[0]] || 0) + ')']));
+    if (per[cc + '|other']) items.push([cc + '|other', pre + 'Other topics (' + per[cc + '|other'] + ')']);
+  });
+  const k = LS.chs.join(',');
+  if (LS.idk !== k) { LS.idk = k; LS.ids = items.map(i => i[0]); }
+  LS.ids = mfill('libDpp', items, LS.ids, v => { LS.ids = v; renderLib(); }, 'subtopics', { empty: 'Pick a chapter first' });
+  /* sliders */
+  const tl = ['', 'All easy: L1 questions only.', 'Mixed: about one third from each level.', 'All tough: L3 questions only.'][LS.tough];
+  $('#toughHint').textContent = tl + '';
+  const mx = $('#mixSl'), canMix = hasP && hasN; mx.disabled = !canMix;
+  $('#mixHint').textContent = !canMix ? (hasP ? 'Only exams are picked, so every question is a PYQ.' : hasN ? 'No exam is picked, so every question is a practice question.' : 'Pick at least one source.') : ['', 'N: all practice questions, no PYQs.', 'O: half practice questions, half PYQs.', 'P: all PYQs, no practice questions.'][LS.mixv];
+  const n = pool0.filter(q => LS.ids.includes(topicKeyOf(q)) && LS.lv.includes('L' + practiceLevel(q)) && (q.s !== 'P' || !LS.yrs.length || LS.yrs.includes(String(q.y)))).length;
+  const np = pool0.filter(q => q.s === 'P' && LS.ids.includes(topicKeyOf(q)) && (!LS.yrs.length || LS.yrs.includes(String(q.y)))).length;
+  const info = !LS.chs.length ? 'Pick one or more chapters first.' : n ? '<b>' + qWord(n) + ' available</b> (' + np + ' PYQ, ' + (n - np) + ' practice). The DPP uses 1 A4 page if they are few, otherwise 2, at 11 to 12 pt.' : '<b>0 questions</b> for this pick so far.';
+  $('#libNote').textContent = 'Pick chapters and subtopics. The DPP takes as many questions as fit on 2 A4 pages (text 11 to 12 pt), in topic order. A short list stays on 1 page. Every question shows its level (L1, L2 or L3).';
   LS.shown = false; LS.page = 0;
   const wrap = $('#libPrev'); wrap.textContent = '';
   const ip = h('p', { class: 'msg' }); ip.innerHTML = info;
   wrap.append(h('div', { class: 'ph' }, ip, h('button', { type: 'button', class: 'btn', 'data-act': 'libshow', text: 'Show preview' })));
   $('#libMsg').textContent = ''; $('#libPages').hidden = true;
+  if (was && n) showLibPrev();
 }
 function addKeyPages(wrap, pages) {
-  const kp = pages.filter(p => p.key); if (!kp.length) return;
+  const kp = pages.filter(p => p.key);
+  if (kp.length) {
+    const hst = exportHost();
+    try { keySheets(kp, hst).forEach(sh => { const sc = h('div', { class: 'pgscale' }); wrap.append(h('div', { class: 'pgbox keypg' }, sc)); sc.append(sh); }); }
+    finally { hst.remove(); }
+    rescale();
+  }
+  const ep = pages.filter(p => p.exp); if (ep.length) addExplPages(wrap, ep);
+}
+async function addExplPages(wrap, pages) {
+  const tok = wrap._et = (wrap._et || 0) + 1, items = await explItems(pages);
+  if (wrap._et !== tok || !wrap.isConnected) return;
+  if (!items.length) { wrap.append(h('div', { class: 'empty', text: 'None of these questions has an explanation yet.' })); return; }
   const hst = exportHost();
-  try { keySheets(kp, hst).forEach(sh => { const sc = h('div', { class: 'pgscale' }); wrap.append(h('div', { class: 'pgbox keypg' }, sc)); sc.append(sh); }); }
+  try { explSheets(items, pages[0], hst).forEach(sh => { const sc = h('div', { class: 'pgscale' }); wrap.append(h('div', { class: 'pgbox keypg' }, sc)); sc.append(sh); }); }
   finally { hst.remove(); }
   rescale();
 }
@@ -716,25 +881,50 @@ function showLibPrev() {
   const tot = sum(pages.map(x => x.qs.length)), tok = LS.tok = (LS.tok || 0) + 1, scalers = []; let warn = false;
   pages.forEach(() => { const sc = h('div', { class: 'pgscale' }); wrap.append(h('div', { class: 'pgbox' }, sc)); scalers.push(sc); });
   rescale();
-  const say = done => { msg.className = 'msg' + (warn ? ' warn' : ''); msg.innerHTML = pages.length > 1 ? '<b>' + pages.length + ' pages, ' + qWord(tot) + '.</b>' + (done ? ' Scroll to see all pages.' : ' Loading\u2026') + ' Download includes all ' + pages.length + ' pages.' : '<b>' + qWord(pages[0].qs.length) + '</b> on one A4 side' + (warn ? ', printed small.' : '.'); };
+  const say = done => { msg.className = 'msg' + (warn ? ' warn' : ''); msg.innerHTML = (LS.stat || '') + (done ? '' : ' Loading\u2026') + (pages.length > 1 && done ? ' Scroll to see both pages. Download includes both.' : ''); };
   say(false);
   let i = 0;
-  const step = () => { if (LS.tok !== tok) return; const end = Math.min(i + 3, pages.length); for (; i < end; i++) { const L = layoutSheet(pages[i], scalers[i]); if (L.overflow) warn = true; } rescale(); say(i >= pages.length); if (i < pages.length) setTimeout(step, 0); else addKeyPages(wrap, pages); };
+  const step = () => { if (LS.tok !== tok) return; const end = Math.min(i + 3, pages.length); for (; i < end; i++) { const L = layoutSheet(pages[i], scalers[i]); if (L.overflow) warn = true; L.nodes.forEach((nd, j) => { nd.style.position = 'relative'; nd.append(h('button', { type: 'button', class: 'dswap', 'data-act': 'libswap', 'data-k': pages[i].qs[j].i, title: 'Swap this question for another one', 'aria-label': 'Swap this question for another one', text: '\u21c4' })); }); } rescale(); say(i >= pages.length); if (i < pages.length) setTimeout(step, 0); else addKeyPages(wrap, pages); };
   step();
+}
+function libPdf(onBlob) {
+  const pages = currentPages(); if (!pages.length) { toast('No questions here yet'); return; }
+  doExport('pdf', { pages, file: pages[0].file, onBlob });
+}
+async function sendPdf(app, blob, file, title) {
+  const f = new File([blob], file, { type: 'application/pdf' });
+  try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title, text: title }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  await downloads.save({ filename: file, data: blob });
+  const text = title + ' (Avanti Fellows)', nm = { wa: 'WhatsApp', dc: 'Discord', ml: 'your email' }[app];
+  const url = app === 'wa' ? 'https://wa.me/?text=' + encodeURIComponent(text) : app === 'ml' ? 'https://mail.google.com/mail/?view=cm&fs=1&su=' + encodeURIComponent(text) + '&body=' + encodeURIComponent('PDF attached: ' + file) : 'https://discord.com/channels/@me';
+  try { window.open(url, '_blank', 'noopener'); } catch (e) { /* the file is saved anyway */ }
+  toast('PDF saved. Attach "' + file + '" in ' + nm + '.');
+}
+function shareFileMenu(btn) {
+  closeShare();
+  const pages = currentPages(); if (!pages.length) { toast('No questions here yet'); return; }
+  const title = pages[0].title + ' DPP';
+  const item = (ico, label, app) => h('button', { class: 'smi', type: 'button', onclick: () => { closeShare(); libPdf((blob, file) => sendPdf(app, blob, file, title)); } }, h('span', { class: 'smic', html: ico }), h('span', { text: label }));
+  const m = h('div', { id: 'shareMenu', class: 'smenu', role: 'menu' }, h('div', { class: 'smh', text: 'Send the PDF' }),
+    item(ICO.chat, 'WhatsApp', 'wa'), item(ICO.share, 'Discord', 'dc'), item(ICO.mail, 'Email', 'ml'),
+    h('div', { class: 'smn', text: 'On a phone this opens the share sheet with the PDF attached. On a computer the PDF is saved, then the app opens so you can attach it.' }));
+  document.body.append(m);
+  const r = btn.getBoundingClientRect(), mw = m.offsetWidth;
+  m.style.top = Math.min(window.innerHeight - m.offsetHeight - 8, r.bottom + 6) + 'px';
+  m.style.left = Math.max(8, Math.min(window.innerWidth - mw - 8, r.right - mw)) + 'px';
+  setTimeout(() => { document.addEventListener('click', closeShareOut, true); document.addEventListener('keydown', closeShareKey, true); }, 0);
+}
+function printLib() {
+  if (!currentPages().length) { toast('No questions here yet'); return; }
+  const w = window.open('', '_blank');
+  if (!w) { toast('This view does not allow a print window. Use Download PDF, then print the file.'); return; }
+  try { w.document.write('<!doctype html><title>Preparing\u2026</title><body style="font-family:sans-serif;padding:24px">Preparing the PDF for printing\u2026</body>'); } catch (e) { /* ignore */ }
+  libPdf(async blob => { try { w.location.href = URL.createObjectURL(blob); setTimeout(() => { try { w.focus(); w.print(); } catch (e) { /* the PDF is open: print from there */ } }, 1000); } catch (e) { try { w.close(); } catch (x) { /* ignore */ } toast('Could not open the print view. Use Download PDF, then print the file.'); } });
 }
 function exportLib(kind) {
   const pages = currentPages(); if (!pages.length) { toast('No questions here yet'); return; }
-  const c = chLabel();
-  if (pages.length === 1 && LS.kind !== 'book') { doExport(kind, Object.assign({}, pages[0], { file: LS.kind === 'pyq' ? CHMAP.get(LS.chs[0]).n + ' ' + pages[0].badge + ' PYQs' + lvSuffix() + yrSuffix() : pages[0].file })); return; }
-  const file = LS.kind === 'book' ? c + ' ' + (LS.part === 'all' ? 'Levels 1-3 DPPs' : 'Level ' + LS.part + ' DPPs') + (LS.pubs.length < PUBS.length ? ' ' + LS.pubs.join('+') : '')
-    : LS.kind === 'sub' ? c + ' subtopic DPPs'
-    : c + ' PYQs ' + (LS.chs.length === 1 && LS.ids.length === 1 ? pages[0].badge.split(' \u00b7 ')[0] : 'topic wise') + lvSuffix() + yrSuffix();
-  doExport(kind, { pages, file });
-}
-function exportAllPyq(kind) {
-  const pages = [].concat(...LS.chs.map(cc => pyqPages(cc, 'all'))).map(p => Object.assign({}, p, { key: LS.key }));
-  if (!pages.length) { toast('No PYQs for this selection'); return; }
-  doExport(kind, { pages, file: chLabel() + ' PYQs all topics' + lvSuffix() + yrSuffix() });
+  if (pages.length === 1) { doExport(kind, Object.assign({}, pages[0], { file: pages[0].file })); return; }
+  doExport(kind, { pages, file: pages[0].file });
 }
 /* ---------- "PYQ ChapterWise PDF" and "Shift Wise PDF" tabs ---------- */
 const PDFT = { cw: { bucket: 'Main', sel: null, page: 0, v: 0, years: [], key: false }, sw: { bucket: 'Main', sel: null, page: 0, v: 0, year: 'all', key: false } };
@@ -796,8 +986,8 @@ async function exportCwPptx(r) {
   const btns = document.querySelectorAll('[data-act="pdfdl"]'); btns.forEach(b => { b.disabled = true; });
   toast('Preparing PowerPoint…');
   try {
-    const d = await cwPptxData(r);
-    await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b4.js'), loadScript(CDN.zip), loadScript(CDN.pptx)]);
+    const d = await cwPptxData(r); if (PDFT.cw.exp) d.expl = await explForQs(d.qs);
+    await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b5.js'), loadScript(CDN.zip), loadScript(CDN.pptx)]);
     const blob = await window.OfficeDoc.buildCwPptx(window.PptxGenJS, window.JSZip, Object.assign(d, { bucket: d.bucketLabel }), { CHMAP, figs: d.figs });
     const file = r.file + '.pptx';
     await downloads.save({ filename: file, data: blob }); toast('Saved ' + file);
@@ -843,7 +1033,7 @@ function loadBank() {
   return bankP;
 }
 /* ---------- Question Bank tab "Export PPT": same black Avanti slides as the PYQ ChapterWise PPT, for any selection ---------- */
-window.__qbCwPptx = async function (ids) {
+window.__qbCwPptx = async function (ids, explain) {
   if (!BANK) { const bank = await loadBank(); BANK = bank; BANK.all = bank.qs.slice(); bank.qs.forEach(q => BYID.set(q.i, q)); bank.chapters.forEach(c => CHMAP.set(c.c, c)); }
   /* KCET questions are kept out of the main bank (a separate exam), so look any id that is not there up in the raw PYQ file */
   let xtra = null; if (ids.some(i => !BYID.has(i))) { xtra = new Map(); (await qbJson('pyq')).forEach(r => { if (r.exam === 'KCET') { const q = qbCompact(r, true); if (q) xtra.set(q.i, q); } }); }
@@ -863,11 +1053,13 @@ window.__qbCwPptx = async function (ids) {
   const yl = Object.keys(years).map(Number).sort((a, b) => a - b);
   const d = { logo, chapter: one ? c0.n : 'Selected Questions', cl: cls[0], cc: one ? ccs[0] : '', clLabel: 'CLASS ' + cls.join(' & '), chLabel: one ? 'CHAPTER ' + ccs[0].split('M')[1] : ccs.length + ' CHAPTERS',
     bucket: ex.length === 1 ? ex[0] : 'Main', bucketName: kindLabel, kindLabel, perQ: true, noFront: true, noTopic: true, year: yl.length ? (yl.length === 1 ? String(yl[0]) : 'all') : '\u2014', count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
-  await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b4.js'), loadScript(CDN.zip), loadScript(CDN.pptx)]);
+  await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b5.js'), loadScript(CDN.zip), loadScript(CDN.pptx)]);
+  if (explain) d.expl = await explForQs(qs);
   return window.OfficeDoc.buildCwPptx(window.PptxGenJS, window.JSZip, d, { CHMAP, figs });
 };
 function markPdfRows(T) { document.querySelectorAll('#' + T + 'List .pdfrow').forEach(e => e.setAttribute('aria-current', String(e.dataset.k === PDFT[T].sel))); }
-const keySwitch = (id, act, extra) => h('label', { class: 'pick1 tgl tgl-hl' }, h('input', Object.assign({ type: 'checkbox', role: 'switch', id, 'data-act': act }, extra || {})), h('span', { class: 'tgl-track', 'aria-hidden': 'true' }), h('span', { text: 'Include answer key (on a new page)' }));
+const keySwitch = (id, act, extra) => h('label', { class: 'pick1 tgl tgl-hl' }, h('input', Object.assign({ type: 'checkbox', role: 'switch', id, 'data-act': act }, extra || {})), h('span', { class: 'tgl-track', 'aria-hidden': 'true' }), h('span', { text: 'Answer Key' }));
+const expSwitch = (id, act, extra) => h('label', { class: 'pick1 tgl tgl-hl' }, h('input', Object.assign({ type: 'checkbox', role: 'switch', id, 'data-act': act }, extra || {})), h('span', { class: 'tgl-track', 'aria-hidden': 'true' }), h('span', { text: 'Explanation' }));
 function renderPdfTab(T) {
   const view = $('#view' + (T === 'cw' ? 'Cw' : 'Sw')), P = PDFT[T]; if (!view || !BANK) return;
   if (!$('#' + T + 'List')) {
@@ -877,13 +1069,13 @@ function renderPdfTab(T) {
         h('h3', { text: T === 'cw' ? 'Chapterwise PYQ PDF' : 'Question Paper PDF' }),
         h('div', { class: 'seg', id: T + 'Ex' }, ['Main', 'Adv', 'KCET'].map(k => h('button', { type: 'button', 'data-act': 'pdfex', 'data-t': T, 'data-k': k, text: BUCKET_NAME[k] }))),
         T === 'cw' ? h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Years (tick one or many)' }), msel('cwYr', 'years')) : h('div', { class: 'fld' }, h('label', { class: 'lbl', for: T + 'Year', text: 'Year' }), h('select', { id: T + 'Year', onchange: e => { PDFT[T].year = e.target.value; PDFT[T].sel = null; PDFT[T].page = 0; renderPdfTab(T); } })),
-        keySwitch(T + 'Key', 'pdfkey', { 'data-t': T }),
-        h('div', { class: 'pdflist', id: T + 'List' }))),
+        h('div', { class: 'tglrow' }, keySwitch(T + 'Key', 'pdfkey', { 'data-t': T }), expSwitch(T + 'Expl', 'pdfexp', { 'data-t': T })),
+        h('div', { class: 'pdflist', id: T + 'List' }, h('div', { class: 'fld' }, h('span', { class: 'lbl', text: T === 'cw' ? 'Chapter' : 'Question paper (date and shift)' }), ssel(T + 'Pick', T === 'cw' ? 'a chapter' : 'a shift'))))),
       h('div', { class: 'stage' }, h('div', { class: 'statbar' }, h('div', { class: 'msg', id: T + 'Msg', 'aria-live': 'polite' }), h('div', { class: 'pgbtns', id: T + 'Pages', hidden: true }), h('div', { class: 'rowbtns', id: T + 'Exp', hidden: true }, ...[['docx', 'Word (editable)'], ['pdf', 'PDF'], ['pptx', 'PowerPoint (editable)']].map(([f, nm]) => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'pdfdl', 'data-t': T, 'data-k': '', 'data-f': f, title: 'Download ' + nm, 'aria-label': 'Download ' + nm, html: FIMG[f] }))), h('button', { type: 'button', class: 'btn ibtn maxbtn', 'data-act': 'max', 'aria-pressed': 'false', title: 'Maximize', 'aria-label': 'Maximize', html: ICO.max })), h('div', { class: 'pgwrap', id: T + 'Prev' })));
     if (window.ResizeObserver) new ResizeObserver(rescale).observe($('#' + T + 'Prev'));
   }
   $('#' + T + 'Ex').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === P.bucket)));
-  const list = $('#' + T + 'List'); list.textContent = '';
+  const list = $('#' + T + 'List'); list.querySelectorAll('.hint').forEach(e => e.remove());
   let rows = pdfRows(T); const my = ++P.v;
   if (T === 'cw') {
     const all = pyqOf(P.bucket), cnt = {}; all.forEach(q => { if (q.y) cnt[q.y] = (cnt[q.y] || 0) + 1; });
@@ -899,14 +1091,9 @@ function renderPdfTab(T) {
     sel.value = P.year;
     if (P.year !== 'all') rows = rows.filter(r => String(r.qs[0].y) === P.year);
   }
-  if (!rows.length) { list.append(h('p', { class: 'hint', text: 'No questions here yet.' })); showPdfPrev(T); return; }
-  const cells = new Map();
-  rows.forEach(r => {
-    const info = h('span', { class: 'pdfinfo', text: qWord(r.qs.length) });
-    cells.set(r.k, info);
-    list.append(h('div', { class: 'pdfrow', 'data-act': 'pdfrow', 'data-t': T, 'data-k': r.k, tabindex: '0' },
-      h('div', { class: 'pdfname' }, h('strong', { text: r.name }), info)));
-  });
+  if (P.sel && !rows.some(r => r.k === P.sel)) P.sel = null;
+  if (!rows.length) { list.append(h('p', { class: 'hint', text: 'No questions here yet.' })); }
+  sfill(T + 'Pick', rows.map(r => [r.k, r.name + ' (' + qWord(r.qs.length) + ')']), P.sel, k => { P.sel = k; P.page = 0; const r0 = rows.find(r => r.k === k); if (r0) $('.mt', $('#' + T + 'Pick')).textContent = r0.name; showPdfPrev(T); }, T === 'cw' ? 'a chapter' : 'a shift', { empty: 'No questions here yet' });
   markPdfRows(T);
   showPdfPrev(T);
 }
@@ -915,7 +1102,7 @@ function showPdfPrev(T) {
   wrap.textContent = ''; pb.hidden = true; pb.textContent = '';
   const r = P.sel && pdfRows(T).find(x => x.k === P.sel), ex = $('#' + T + 'Exp'); if (ex) { ex.hidden = !r; ex.querySelectorAll('button').forEach(b => { b.dataset.k = r ? r.k : ''; }); }
   if (!r) { msg.className = 'msg'; msg.textContent = 'Click a row to preview it. The PDF, Word and PowerPoint buttons above the preview save it.'; return; }
-  const pages = pdfPages(T, r).map(p => Object.assign({}, p, { key: !!P.key })), tok = P.tok = (P.tok || 0) + 1; let warn = false;
+  const pages = pdfPages(T, r).map(p => Object.assign({}, p, { key: !!P.key, exp: !!P.exp })), tok = P.tok = (P.tok || 0) + 1; let warn = false;
   const scalers = pages.map(() => { const sc = h('div', { class: 'pgscale' }); wrap.append(h('div', { class: 'pgbox' }, sc)); return sc; }); rescale();
   const say = (done) => { msg.className = 'msg' + (warn ? ' warn' : ''); msg.innerHTML = '<b>' + r.name + ':</b> ' + qWord(r.qs.length) + ', ' + pages.length + (pages.length === 1 ? ' page.' : ' pages' + (done ? ' (scroll to see all).' : ', loading\u2026')); };
   say(pages.length === 1);
@@ -1090,7 +1277,7 @@ async function renderMust() {
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Choose questions' }),
       h('div', { class: 'mselbar' }, h('button', { type: 'button', class: 'btn', text: 'Select all shown', onclick: () => tick(true) }), h('button', { type: 'button', class: 'btn', text: 'Clear', onclick: () => tick(false) })),
       selCnt),
-    keySwitch('mustKey', 'mkey'),
+    h('div', { class: 'tglrow' }, keySwitch('mustKey', 'mkey'), expSwitch('mustExpl', 'mexp')),
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Download' }),
       h('div', { class: 'mexp' }, ['docx', 'pdf', 'pptx'].map(k => h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-mexp': k, title: 'Download ' + ({ pdf: 'PDF', docx: 'Word (editable)', pptx: 'PowerPoint (editable)' })[k], 'aria-label': 'Download ' + ({ pdf: 'PDF', docx: 'Word', pptx: 'PowerPoint' })[k], html: FIMG[k] || ICO.dl, onclick: () => exportMust(k) })))),
     h('div', { class: 'mlegend' }, h('p', { class: 'hint', html: '<b>Exact repeat:</b> the same question came again. <b>Similar type:</b> the same idea and method, different numbers or wording. <b>Sure-shot:</b> a standard JEE must-know picked by us.' })))),
@@ -1110,7 +1297,7 @@ async function exportMust(kind) {
   try {
     if (kind === 'pptx') {
       toast('Preparing PPT\u2026');
-      const blob = await window.__qbCwPptx(flat.map(f => f.it.r));
+      const blob = await window.__qbCwPptx(flat.map(f => f.it.r), MS.exp);
       await downloads.save({ filename: file.replace(/[\\/:*?"<>|]+/g, ' ') + '.pptx', data: blob }); toast('Saved the PPT');
     } else {
       const groups = [], gi = new Map();
@@ -1118,7 +1305,7 @@ async function exportMust(kind) {
       const lf = levelFlat(groups);
       const pages = packPages(lf, (g, i, n) => ({ title, sub: 'Must Solve \u00b7 questions to solve first', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : 'Must Solve' }));
       pages.forEach(pg => { if (pg.qs.length && !pg.qs[0].head) pg.qs = [Object.assign({}, pg.qs[0], { head: contHead(pg.qs[0]) })].concat(pg.qs.slice(1)); });
-      pages.forEach(pg => { pg.key = !!MS.key; });
+      pages.forEach(pg => { pg.key = !!MS.key; pg.exp = !!MS.exp; });
       btns.forEach(b => { b.disabled = false; });
       await doExport(kind, { pages, file });
       return;
@@ -1277,21 +1464,28 @@ function onAct(e) {
     case 'pyqsub': PYQSUB = k; pyqShow(); break;
     case 'misc': { const md = $('#miscDrop'), open = md.hidden; md.hidden = !open; t.setAttribute('aria-expanded', String(open)); break; }
     case 'libkind': LS.kind = k; LS.idk = ''; LS.chTouched = false; renderLib(); break;
-    case 'oos': { OOS.ex = k === 'ex'; try { localStorage.setItem('oosEx', OOS.ex ? '1' : '0'); } catch (e) {} applyOos(); S.picked = []; LS.idk = ''; syncOos(); renderLib(); if (typeof refreshRail === 'function') { refreshRail(); renderPreview(); } toast(OOS.ex ? 'Out-of-syllabus questions excluded' : 'Out-of-syllabus questions included'); break; }
+    case 'oos': { OOS.ex = k === 'ex'; try { localStorage.setItem('oosEx2', OOS.ex ? '1' : '0'); } catch (e) {} applyOos(); S.picked = []; LS.idk = ''; syncOos(); renderLib(); if (typeof refreshRail === 'function') { refreshRail(); renderPreview(); } toast(OOS.ex ? 'Out-of-syllabus questions excluded' : 'Out-of-syllabus questions included'); break; }
     case 'pdfex': { const T = t.dataset.t; PDFT[T].bucket = k; PDFT[T].sel = null; PDFT[T].page = 0; renderPdfTab(T); break; }
     case 'pdfrow': { const T = t.dataset.t; PDFT[T].sel = k; PDFT[T].page = 0; markPdfRows(T); showPdfPrev(T); break; }
     case 'max': toggleMax(t); break;
-    case 'pdfshare': { const T = t.dataset.t, r = pdfRows(T).find(x => x.k === k); if (r) { const mk = extra => () => { const pages = pdfPages(T, r).map(p => Object.assign({}, p, { key: !!PDFT[T].key })); doExport('pdf', Object.assign({ pages, file: r.file }, extra)); }; shareMenu(t, { title: r.name, drive: mk({ drive: true }), download: mk({}) }); } break; }
+    case 'pdfshare': { const T = t.dataset.t, r = pdfRows(T).find(x => x.k === k); if (r) { const mk = extra => () => { const pages = pdfPages(T, r).map(p => Object.assign({}, p, { key: !!PDFT[T].key, exp: !!PDFT[T].exp })); doExport('pdf', Object.assign({ pages, file: r.file }, extra)); }; shareMenu(t, { title: r.name, drive: mk({ drive: true }), download: mk({}) }); } break; }
     case 'pdfpage': { const T = t.dataset.t; PDFT[T].page = +k; showPdfPrev(T); break; }
-    case 'pdfdl': { const T = t.dataset.t, r = pdfRows(T).find(x => x.k === k); if (r && T === 'cw' && t.dataset.f === 'pptx') { exportCwPptx(r); break; } if (r) { const pages = pdfPages(T, r).map(p => Object.assign({}, p, { key: !!PDFT[T].key })); doExport(t.dataset.f || 'pdf', { pages, file: r.file }); } break; }
+    case 'pdfdl': { const T = t.dataset.t, r = pdfRows(T).find(x => x.k === k); if (r && T === 'cw' && t.dataset.f === 'pptx') { exportCwPptx(r); break; } if (r) { const pages = pdfPages(T, r).map(p => Object.assign({}, p, { key: !!PDFT[T].key, exp: !!PDFT[T].exp })); doExport(t.dataset.f || 'pdf', { pages, file: r.file }); } break; }
     case 'libpub': { const n = LS.pubs.includes(k) ? LS.pubs.filter(x => x !== k) : LS.pubs.concat(k); if (!n.length) { toast('Keep at least one source'); break; } LS.pubs = PUBS.filter(x => n.includes(x)); LS.idk = ''; renderLib(); break; }
     case 'liblv': { const n = LS.lv.includes(k) ? LS.lv.filter(x => x !== k) : LS.lv.concat(k); if (!n.length) { toast('Keep at least one level'); break; } LS.lv = ['L1', 'L2', 'L3'].filter(x => n.includes(x)); renderLib(); break; }
     case 'mall': case 'mnone': { const boxe = $('#' + k); boxe.querySelectorAll('.ml input').forEach(x => { x.checked = a === 'mall'; }); boxe.querySelector('.ml input') ? boxe.querySelector('.ml input').dispatchEvent(new Event('change')) : 0; break; }
     case 'libshow': showLibPrev(); break;
+    case 'libprint': printLib(); break;
+    case 'libshare': shareFileMenu(t); break;
+    case 'libshuffle': { LS.seed = 1 + Math.floor(Math.random() * 2147483000); showLibPrev(); toast('New set of questions'); break; }
+    case 'libswap': { const r = dppCur(); if (dppSwap(r, k)) showLibPrev(); else toast('No other question can replace this one'); break; }
     case 'libpage': LS.page = +k; showLibPrev(); break;
     case 'lexpall': exportAllPyq(k); break;
     case 'pdfkey': PDFT[t.dataset.t].key = t.checked; if (PDFT[t.dataset.t].sel) showPdfPrev(t.dataset.t); break;
     case 'mkey': MS.key = t.checked; if (MS.redraw) MS.redraw(); break;
+    case 'mexp': MS.exp = t.checked; break;
+    case 'pdfexp': PDFT[t.dataset.t].exp = t.checked; if (PDFT[t.dataset.t].sel) showPdfPrev(t.dataset.t); break;
+    case 'libexp': LS.exp = $('#libExpl').checked; if (LS.shown) showLibPrev(); break;
     case 'libkey': LS.key = $('#libKey').checked; if (LS.shown) showLibPrev(); break;
     case 'mklink': makeLink(); break;
     case 'distest': { const on = TESTS.find(x => x.code === t.dataset.code); publishTests(TESTS.map(x => x.code === t.dataset.code ? (x.off ? Object.assign({}, x, { off: undefined }) : Object.assign({}, x, { off: true })) : x), on && on.off ? 'Test enabled again: students can see it.' : 'Test disabled: hidden from students and from your results.'); break; }
@@ -1387,7 +1581,7 @@ async function doExport(kind, p0) {
   const pages = p0 && p0.pages ? p0.pages : p0 ? [p0] : testPages(), pk = p0 && p0.pages ? p0 : pages[0];
   if (!pages.length || !pages[0].qs.length) { toast('Add some questions first'); return; }
   if (!downloads) { toast('Downloads are not available in this view'); return; }
-  const btns = document.querySelectorAll('[data-act="exp"],[data-act="lexp"],[data-act="lexpall"],[data-act="pdfdl"]'); btns.forEach(b => { b.disabled = true; });
+  const btns = document.querySelectorAll('[data-act="exp"],[data-act="lexp"],[data-act="lexpall"],[data-act="pdfdl"],[data-act="libprint"],[data-act="libshare"]'); btns.forEach(b => { b.disabled = true; });
   const multi = pages.length > 1, file = fname(pk, '.' + kind);
   toast('Preparing ' + kind.toUpperCase() + '\u2026');
   if (kind !== 'pdf') {
@@ -1416,14 +1610,30 @@ async function doExport(kind, p0) {
     if (pdf) {
       const kp = pages.filter(p => p.key);
       if (kp.length) for (const ks of keySheets(kp, hst)) { const c2 = await shot(ks, 2); pdf.addPage(); pdf.addImage(c2.toDataURL('image/jpeg', 0.93), 'JPEG', 0, 0, 210, 297); ks.remove(); }
+      const ep = pages.filter(p => p.exp);
+      if (ep.length) { const items = await explItems(ep); if (!items.length) toast('None of these questions has an explanation yet'); else for (const es of explSheets(items, ep[0], hst)) { const c3 = await shot(es, 2); pdf.addPage(); pdf.addImage(c3.toDataURL('image/jpeg', 0.93), 'JPEG', 0, 0, 210, 297); es.remove(); } }
       blob = pdf.output('blob');
     } else blob = kind === 'docx' ? await buildDocx(items, pk) : await buildPptx(items, pk);
-    { await downloads.save({ filename: file, data: blob }); toast('Saved ' + file); }
+    if (pk.onBlob) await pk.onBlob(blob, file); else { await downloads.save({ filename: file, data: blob }); toast('Saved ' + file); }
   } catch (e) {
     if (e && e.code === 'declined') toast('Download cancelled');
     else toast('Export failed: ' + (e && e.message ? e.message : 'try again'));
   } finally { hst.remove(); btns.forEach(b => { b.disabled = false; }); }
 }
+/* Explanation toggle: full solutions come from qb/data/sol.json, shown after the answer key on their own pages */
+let SOLT = null;
+function loadSolsT() { if (!SOLT) SOLT = fetch('qb/data/sol.json').then(r => { if (!r.ok) throw new Error('sol'); return r.json(); }).catch(() => { SOLT = null; return {}; }); return SOLT; }
+async function explItems(pages) {
+  const m = await loadSolsT(), out = [];
+  pages.forEach(p => { const lab = String(p.badge || p.title).replace(/\s*\u00b7\s*Page \d+ of \d+$/, ''); p.qs.forEach((q, i) => { const sv = m[q.i]; if (!sv) return; const t = typeof sv === 'string' ? sv : sv.t; if (!t || !String(t).trim()) return; out.push({ n: i + 1 + (p.start || 0), lab, text: String(t), f: typeof sv === 'string' ? null : (sv.f || null) }); }); });
+  return out;
+}
+async function explForQs(qs) {
+  const m = await loadSolsT(), out = [];
+  for (let k = 0; k < qs.length; k++) { const sv = m[qs[k].i]; if (!sv) continue; const t = typeof sv === 'string' ? sv : sv.t; if (!t || !String(t).trim()) continue; let fig = null; const f = typeof sv === 'string' ? null : sv.f; if (f && f.svg) { try { fig = await figPng(f); } catch (e) { /* skip the picture */ } } out.push({ n: k + 1, text: String(t), fig }); }
+  return out;
+}
+(function () { const st = document.createElement('style'); st.textContent = '.tglrow{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;margin:4px 0 14px}.tglrow .tgl-hl{margin:0!important;padding:0 0 0 0!important;background:transparent!important;border:0!important;box-shadow:none!important;min-height:0!important;border-radius:0!important;font-weight:600}.tglrow .tgl-hl input{left:0!important}.gd-note{border-left:4px solid var(--accent,#0e6b84);background:var(--accent-soft,#dbeef3);padding:10px 14px;border-radius:8px;margin:0 0 14px;font-weight:600}'; document.head.append(st); })();
 const keyLine = p => p.qs.map((q, i) => (i + 1 + (p.start || 0)) + '-' + (window.MathDoc ? window.MathDoc.plainText(q.a || '\u2014') : ansText(q))).join('    ');
 /* figures: SVG -> PNG so Word and PowerPoint can hold them */
 async function figPng(f) {
@@ -1435,11 +1645,13 @@ async function figPng(f) {
   return { w, h: hh, data, dataUrl };
 }
 async function buildEditable(kind, pages) {
+  const ep0 = pages.filter(p => p.exp), eItems = ep0.length ? await explItems(ep0) : [], eLab = new Set(eItems.map(x => x.lab)).size > 1;
+  for (const e of eItems) { e.lab = eLab ? e.lab : ''; e.fig = null; if (e.f && e.f.svg) { try { e.fig = await figPng(e.f); } catch (x) { /* skip the picture */ } } }
   if (pages.length > 1 && pages[0].kind === 'test') pages = [Object.assign({}, pages[0], { qs: [].concat(...pages.map(p => p.qs)), start: 0, pageOf: '' })];
-  await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b4.js'), loadScript(CDN.zip), kind === 'docx' ? loadScript(CDN.docx) : loadScript(CDN.pptx)]);
+  await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b5.js'), loadScript(CDN.zip), kind === 'docx' ? loadScript(CDN.docx) : loadScript(CDN.pptx)]);
   const figs = {};
   for (const p of pages) for (const q of p.qs) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  const H = { CHMAP, DIFF, tagText, keyLine, figs, matchParts };
+  const H = { CHMAP, DIFF, tagText, keyLine, figs, matchParts, expl: eItems };
   return kind === 'docx' ? window.OfficeDoc.buildDocx(window.docx, window.JSZip, pages, H) : window.OfficeDoc.buildPptx(window.PptxGenJS, window.JSZip, pages, H);
 }
 
@@ -1650,6 +1862,7 @@ const THEME_ICONS = {
 function themeInit() { let m = null; try { m = localStorage.getItem(THEME_KEY); } catch (e) { m = null; } if (m === 'dark' || m === 'light') document.documentElement.setAttribute('data-theme', m); themeApply(themeNow()); }
 function themeToggle() { const m = themeNow() === 'dark' ? 'light' : 'dark'; themeApply(m); try { localStorage.setItem(THEME_KEY, m); } catch (e) { /* optional */ } }
 const GUIDE_HTML = (owner) => `
+<p class="gd-note">Before 2002 exams questions and solutions are in working mode and will take time to update.</p>
 <p class="gd-lead">The Math Teacher Dashboard is Avanti Fellows' one place for JEE Maths teaching material: a searchable question bank, ready-made DPPs, past-year papers, must-solve lists and revision handouts. Everything can be downloaded as Word, PDF or PowerPoint.</p>
 <nav class="gd-toc" aria-label="Guide sections"><a href="#gd-qb">Question Bank</a><a href="#gd-dpp">DPPs</a><a href="#gd-pyq">PYQs</a><a href="#gd-must">Must Solve</a><a href="#gd-ho">Handouts</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a>${owner ? '<a href="#gd-misc">Owner tools</a>' : ''}</nav>
 <h3 id="gd-qb">1. Question Bank</h3>
@@ -1658,7 +1871,7 @@ const GUIDE_HTML = (owner) => `
 <li><b>Find questions:</b> search by words or question id; filter by chapter, source, exam, year, class, level (L1 easy, L2 medium, L3 hard), type (single, multiple, numerical) and topic.</li>
 <li><b>Each question card</b> shows exam, date and shift, level and tags. Use the eye icon to show the answer, the book icon to open the solution, and the ≡ menu for the topic, type, question id and <b>Flag</b> (to report a wrong question).</li>
 <li><b>Show all answers / Hide options / Show selected only</b> change how the whole page looks. <b>Attention</b> lists questions flagged for checking; <b>Out of syllabus</b> marks questions on topics no longer in JEE.</li>
-<li><b>Tick questions</b> (or Select all filtered) and export just those as Word, PDF or PowerPoint. "Answer key on new page" adds the key at the end.</li>
+<li><b>Tick questions</b> (or Select all filtered) and export just those as Word, PDF or PowerPoint. "Answer Key" adds the key at the end and "Explanation" adds the full solutions on new pages after it.</li>
 <li><b>Overview icon</b> (bar-chart circle at the top right) opens the question counts, the chapter-wise count and the chapter weightage charts.</li>
 </ul>
 <h3 id="gd-dpp">2. DPPs</h3>
@@ -1668,7 +1881,7 @@ const GUIDE_HTML = (owner) => `
 <li><b>Level 1, 2, 3 booklet</b> – a chapter booklet by difficulty and source.</li>
 <li><b>PYQs topic-wise</b> – past-year questions of a chapter by topic, filtered by exam, year and level.</li>
 </ul>
-<p>Pick one or many chapters, see the live preview page by page, and download. Turn on "Include answer key" to add answers on a separate page.</p>
+<p>Pick one or many chapters, see the live preview page by page, and download. Turn on "Answer Key" to add answers on a separate page and "Explanation" to add the full solutions.</p>
 <h3 id="gd-pyq">3. PYQs</h3>
 <p>Past-year papers in two forms: <b>Question Paper</b> (a full shift paper by date and shift, in paper order) and <b>Chapterwise</b> (all PYQs of a chapter). Pick JEE Main, JEE Advanced or KCET, preview, then download.</p>
 <h3 id="gd-must">4. Must Solve</h3>
@@ -1747,34 +1960,34 @@ function buildShell() {
   if (!document.getElementById('app-foot-css')) { const st = document.createElement('style'); st.id = 'app-foot-css'; st.textContent = '.app-foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 14px;margin:28px auto 0;padding:14px 16px 20px;border-top:1px solid var(--color-border-line,rgba(128,128,128,.28));font-size:12px;line-height:1.4;letter-spacing:.02em;color:var(--color-fg-muted,#6b7280)}.app-foot .af-brand{font-weight:600}.app-foot .af-ver:not(:empty)::before,.app-foot .af-link:not(:empty)::before{content:"|";margin-right:14px;opacity:.45}.app-foot .qb-sstat-link{font:inherit;color:inherit;text-decoration:none;cursor:pointer;border-bottom:1px dotted currentColor;padding:0}.app-foot .qb-sstat-link:hover{color:var(--color-fg,#111);border-bottom-style:solid}'; document.head.append(st); }
 }
 function buildLib() {
+  if (!document.getElementById('dpp-css')) { const st = document.createElement('style'); st.id = 'dpp-css'; st.textContent = '.dslide{width:100%;margin:6px 0 2px;accent-color:#16306b;cursor:pointer}.dslide:disabled{opacity:.4;cursor:not-allowed}.dticks{display:flex;justify-content:space-between;gap:6px;font-size:12px;font-weight:600;color:var(--muted,#6b7280)}.dticks span:nth-child(2){text-align:center}.dticks span:last-child{text-align:right}.dswap{position:absolute;top:1.9em;left:0;z-index:3;width:23px;height:23px;display:flex;align-items:center;justify-content:center;font:700 13px/1 system-ui,sans-serif;padding:0;border-radius:999px;border:1px solid #c9d1e3;background:#fff;color:#1f3f95;cursor:pointer;opacity:.85}.dswap:hover{opacity:1;background:#e8eefc}'; document.head.append(st); }
+  const slide = (id, label, key, ticks) => h('div', { class: 'fld' }, h('span', { class: 'lbl', text: label }),
+    h('input', { type: 'range', class: 'dslide', id, min: '1', max: '3', step: '1', value: String(LS[key]), 'aria-label': label, onchange: e => { LS[key] = +e.target.value; renderLib(); }, oninput: e => { LS[key] = +e.target.value; } }),
+    h('div', { class: 'dticks', 'aria-hidden': 'true' }, ticks.map(t => h('span', { text: t }))), h('p', { class: 'hint', id: id === 'toughSl' ? 'toughHint' : 'mixHint' }));
   return h('div', { id: 'viewLib', class: 'make' },
     h('div', { class: 'rail' },
       h('div', { class: 'card' },
-        h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'What do you need?' }), h('div', { class: 'seg vert', id: 'libKind' },
-          h('button', { type: 'button', 'data-act': 'libkind', 'data-k': 'sub', text: 'Subtopic DPPs (Practice Questions)' }),
-          h('button', { type: 'button', 'data-act': 'libkind', 'data-k': 'book', text: 'Level 1, 2, 3 booklet' }),
-          h('button', { type: 'button', 'data-act': 'libkind', 'data-k': 'pyq', text: 'Download PYQs topic wise' }))),
+        h('h3', { text: 'Topicwise DPPs (After every class)' }),
         h('p', { class: 'hint', id: 'libNote' }),
-        h('label', { class: 'pick1 tgl tgl-hl' }, h('input', { type: 'checkbox', role: 'switch', id: 'libKey', 'data-act': 'libkey' }), h('span', { class: 'tgl-track', 'aria-hidden': 'true' }), h('span', { text: 'Include answer key (on a new page)' })),
+        h('div', { class: 'tglrow' },
+          h('label', { class: 'pick1 tgl tgl-hl' }, h('input', { type: 'checkbox', role: 'switch', id: 'libKey', 'data-act': 'libkey' }), h('span', { class: 'tgl-track', 'aria-hidden': 'true' }), h('span', { text: 'Answer Key' })),
+          h('label', { class: 'pick1 tgl tgl-hl' }, h('input', { type: 'checkbox', role: 'switch', id: 'libExpl', 'data-act': 'libexp' }), h('span', { class: 'tgl-track', 'aria-hidden': 'true' }), h('span', { text: 'Explanation' }))),
         h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Chapters (tick one or many)' }), msel('libCh', 'chapters')),
-        h('div', { class: 'fld', id: 'fldDpp' }, h('span', { class: 'lbl', id: 'lblDpp', text: 'Subtopics' }), msel('libDpp', 'subtopics')),
-        h('div', { class: 'fld', id: 'fldLv', hidden: true }, h('span', { class: 'lbl', text: 'Level (tick one or many)' }), h('div', { class: 'seg', id: 'libLv' },
-          ['L1', 'L2', 'L3'].map(l => h('button', { type: 'button', 'data-act': 'liblv', 'data-k': l, text: l })))),
-        h('div', { class: 'fld', id: 'fldPub', hidden: true }, h('span', { class: 'lbl', text: 'Source (tick one or many)' }), h('div', { class: 'seg', id: 'libPub' }, PUBS.map(x => h('button', { type: 'button', 'data-act': 'libpub', 'data-k': x, text: x })))),
-        h('div', { class: 'fld', id: 'fldEx', hidden: true }, h('span', { class: 'lbl', text: 'Exam (leave blank for all)' }), msel('libEx', 'exams')),
-        h('div', { class: 'fld', id: 'fldYear', hidden: true }, h('span', { class: 'lbl', text: 'Year (leave blank for all)' }), msel('libYr', 'years')),
-        h('div', { class: 'fld', id: 'fldPart', hidden: true }, h('label', { class: 'lbl', for: 'libPart', text: 'Which file' }), h('select', { id: 'libPart', onchange: e => { LS.part = e.target.value; renderLib(); } })),
+        h('div', { class: 'fld', id: 'fldDpp' }, h('span', { class: 'lbl', id: 'lblDpp', text: 'Subtopics (tick one or many)' }), msel('libDpp', 'subtopics')),
+        h('div', { class: 'fld', id: 'fldSrc' }, h('span', { class: 'lbl', text: 'Source (tick one or many)' }), msel('libSrc', 'sources')),
+        h('div', { class: 'fld', id: 'fldYear', hidden: true }, h('span', { class: 'lbl', text: 'Year of the exam (leave blank for all)' }), msel('libYr', 'years')),
+        slide('toughSl', 'Toughness of the DPP', 'tough', ['1 · Easy', '2 · Mixed', '3 · Tough']),
+        slide('mixSl', 'Practice questions or PYQs', 'mixv', ['N · Practice', 'O · 50 : 50', 'P · PYQ']),
         oosBox())),
     h('div', { class: 'rail' },
-      h('div', { class: 'exp' }, h('span', { class: 'lbl', id: 'libDl', text: 'All selected pages' }),
+      h('div', { class: 'exp' }, h('span', { class: 'lbl', id: 'libDl', text: 'Download' }),
         h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'docx', title: 'Download Word (editable)', 'aria-label': 'Download Word (editable)', html: FIMG.docx }),
         h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'pdf', title: 'Download PDF', 'aria-label': 'Download PDF', html: FIMG.pdf }),
-        h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'pptx', title: 'Download PowerPoint (editable)', 'aria-label': 'Download PowerPoint (editable)', html: FIMG.pptx })),
-      h('div', { class: 'exp', id: 'boxAll', hidden: true }, h('span', { class: 'lbl', text: 'Whole chapter, Topic wise' }),
-        h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexpall', 'data-k': 'docx', title: 'Download all PYQs of the picked chapters, every topic (Word (editable))', 'aria-label': 'Download all PYQs of the picked chapters, every topic (Word (editable))', html: FIMG.docx }),
-        h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexpall', 'data-k': 'pdf', title: 'Download all PYQs of the picked chapters, every topic (PDF)', 'aria-label': 'Download all PYQs of the picked chapters, every topic (PDF)', html: FIMG.pdf }),
-        h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexpall', 'data-k': 'pptx', title: 'Download all PYQs of the picked chapters, every topic (PowerPoint (editable))', 'aria-label': 'Download all PYQs of the picked chapters, every topic (PowerPoint (editable))', html: FIMG.pptx })),
+        h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'pptx', title: 'Download PowerPoint (editable)', 'aria-label': 'Download PowerPoint (editable)', html: FIMG.pptx }),
+        h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'libprint', title: 'Print', 'aria-label': 'Print', html: ICO.print }),
+        h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'libshare', title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share the PDF', html: ICO.share })),
       h('div', { class: 'stage' }, h('div', { class: 'statbar' }, h('div', { class: 'msg', id: 'libMsg', 'aria-live': 'polite' }),
+        h('button', { type: 'button', class: 'btn', 'data-act': 'libshuffle', title: 'Pick a different set of questions for the same settings', text: '\u21bb Shuffle questions' }),
         h('div', { class: 'pgbtns', id: 'libPages', hidden: true })),
         h('div', { class: 'pgwrap', id: 'libPrev' }))));
 }
