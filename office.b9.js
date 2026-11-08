@@ -115,11 +115,12 @@ async function buildDocx(D, JSZip, pages, H) {
     const dpps = [...new Set(G.pages.map(dppNo))];
     const hp = (children, align, after) => new D.Paragraph({ alignment: align, spacing: { before: 0, after: after || 0 }, children });
     const hc = (w, kidsP, va) => new D.TableCell({ width: { size: w, type: D.WidthType.DXA }, borders: nb, verticalAlign: va || D.VerticalAlign.BOTTOM, margins: { left: 0, right: 0, top: 0, bottom: 40 }, children: kidsP });
-    const brand = [hp([new D.TextRun({ text: 'Avanti Fellows', bold: true, color: NAVY, size: 28, font: 'Cambria' })]), hp([new D.TextRun({ text: 'JEE MATHS', size: 15, color: GREY, font: 'Calibri', characterSpacing: 24 })])];
-    const sub = dpps.length > 1 ? '' : p.sub;
-    const mid = [hp([new D.TextRun({ text: p.title, bold: true, size: 36, font: 'Cambria' })], D.AlignmentType.CENTER, 20)].concat(sub ? [hp([new D.TextRun({ text: sub, size: 18, color: GREY, font: 'Calibri' })], D.AlignmentType.CENTER)] : []);
+    const brand = H.logo ? [hp([new D.ImageRun({ data: H.logo.data, transformation: { width: Math.round(40 * H.logo.w / H.logo.h), height: 40 } })])] : [hp([new D.TextRun({ text: 'Avanti Fellows', bold: true, color: NAVY, size: 28, font: 'Cambria' })])];
+    /* exam name 18 pt bold, date 14 pt below it; Mathematics top right; footer Exam - Date left, page number right */
+    const examName = p.pyq ? String(p.sub || '').replace(/\s*\u00b7\s*all topics$/, '') : p.title, dateLine = p.pyq ? p.title : (dpps.length > 1 ? '' : p.sub);
+    const mid = [hp([new D.TextRun({ text: examName, bold: true, size: 36, font: 'Cambria' })], D.AlignmentType.CENTER, 20)].concat(dateLine ? [hp([new D.TextRun({ text: dateLine, size: 28, color: GREY, font: 'Calibri' })], D.AlignmentType.CENTER)] : []);
     const badge = p.kind === 'dpp' ? (dpps.length === 1 && dpps[0] ? dpps[0] : (dpps.filter(Boolean).length > 1 ? dpps.filter(Boolean)[0] + ' – ' + dpps.filter(Boolean).slice(-1)[0] : '')) : '';
-    const right = [hp([new D.TextRun({ text: badge || dt, size: 19, font: 'Calibri' })], D.AlignmentType.RIGHT)].concat(p.batch ? [hp([new D.TextRun({ text: p.batch, size: 19, font: 'Calibri' })], D.AlignmentType.RIGHT)] : []);
+    const right = [hp([new D.TextRun({ text: 'Mathematics', bold: true, size: 22, font: 'Calibri' })], D.AlignmentType.RIGHT)].concat(badge || dt ? [hp([new D.TextRun({ text: badge || dt, size: 19, font: 'Calibri' })], D.AlignmentType.RIGHT)] : []).concat(p.batch ? [hp([new D.TextRun({ text: p.batch, size: 19, font: 'Calibri' })], D.AlignmentType.RIGHT)] : []);
     const headTable = new D.Table({ width: { size: W, type: D.WidthType.DXA }, columnWidths: [2700, 5106, 2700], borders: { top: nob, bottom: nob, left: nob, right: nob, insideHorizontal: nob, insideVertical: nob },
       rows: [new D.TableRow({ children: [hc(2700, brand), hc(5106, mid), hc(2700, right)] })] });
     const rule = new D.Paragraph({ spacing: { before: 0, after: 0 }, border: { bottom: { style: D.BorderStyle.SINGLE, size: 18, color: NAVY, space: 1 } }, children: [] });
@@ -129,7 +130,7 @@ async function buildDocx(D, JSZip, pages, H) {
     const tabsAt = test ? [3000, 5100, 6700, 8300] : [3600, 6200, 8200];
     const info = new D.Paragraph({ spacing: { before: 100, after: 100 }, tabStops: tabsAt.map(pos => ({ type: D.TabStopType.LEFT, position: pos })), border: { bottom: { style: D.BorderStyle.SINGLE, size: 4, color: 'CBD2E0', space: 6 } }, children: infoTxt.flatMap((t, k) => [new D.TextRun(Object.assign({ text: t }, fi))].concat(k < infoTxt.length - 1 ? [new D.TextRun(Object.assign({ text: '\t' }, fi))] : [])) });
     const footer = new D.Footer({ children: [new D.Paragraph({ tabStops: [{ type: D.TabStopType.RIGHT, position: W }], border: { top: { style: D.BorderStyle.SINGLE, size: 4, color: 'CBD2E0', space: 4 } },
-      children: [new D.TextRun({ text: 'Avanti Fellows · ' + p.title, size: 16, color: GREY, font: 'Calibri' }), new D.TextRun({ text: '\tPage ', size: 16, color: GREY, font: 'Calibri' }), new D.TextRun({ children: [D.PageNumber.CURRENT], size: 16, color: GREY, font: 'Calibri' })] })] });
+      children: [new D.TextRun({ text: p.pyq ? examName + ' - ' + dateLine : p.title, size: 16, color: GREY, font: 'Calibri' }), new D.TextRun({ text: '\tPage ', size: 16, color: GREY, font: 'Calibri' }), new D.TextRun({ children: [D.PageNumber.CURRENT], size: 16, color: GREY, font: 'Calibri' })] })] });
     const two = p.cols !== 1, colW = (two ? COLW : W) - 340, wEm = LINE_EM * colW / (COLW - 340);
     curW = colW + 340;
     /* every question -> its own list of blocks + an estimated height */
@@ -145,7 +146,17 @@ async function buildDocx(D, JSZip, pages, H) {
       const numRun = new D.TextRun({ text: n + '.', bold: true, size: FS, color: NAVY, font: 'Calibri' });
       const mt = MP(q.q), stemTxt = tall(mt ? mt.pre : q.q).replace(/\s*\{\{figure\}\}\s*/g, '\n').replace(/^\n+|\n+$/g, '');
       let perM = q.o.length ? optPerLine(q, colW) : 1; if (perM > 2 && q.o.some(o => /\\d?frac|\\begin/.test(o))) perM = 2;
-      blocks(stemTxt, [numRun, new D.TextRun({ text: '\t', size: FS })], { spacing: { before: 100, after: 40, line: 264, lineRule: D.LineRuleType.AUTO }, indent: { left: 340, hanging: 340 }, keepNext: true }, null).forEach(x => kids.push(x));
+      const hasFig = q.f && H.figs && H.figs[q.i], rawStem = tall(mt ? mt.pre : q.q), fxi = rawStem.indexOf('{{figure}}');
+      const inline = hasFig && fxi > 0 && rawStem.slice(fxi + 10).trim();   /* figure sits inside the stem: text, figure, rest of the text */
+      const clean = s => s.replace(/\s*\{\{figure\}\}\s*/g, '\n').replace(/^\n+|\n+$/g, '');
+      const figPara = (keep) => { const f = H.figs[q.i]; let w = Math.min(f.w, 230), fh = Math.round(f.h * w / f.w); if (fh > 210) { fh = 210; w = Math.round(f.w * fh / f.h); } return { para: new D.Paragraph({ indent: { left: 340 }, spacing: { before: 40, after: 40 }, keepNext: keep, children: [new D.ImageRun({ data: f.data, transformation: { width: w, height: fh } })] }), fh }; };
+      let figDone = false;
+      if (inline) {
+        const pre = clean(rawStem.slice(0, fxi)), post = clean(rawStem.slice(fxi + 10));
+        blocks(pre, [numRun, new D.TextRun({ text: '\t', size: FS })], { spacing: { before: 100, after: 40, line: 264, lineRule: D.LineRuleType.AUTO }, indent: { left: 340, hanging: 340 }, keepNext: true }, null).forEach(x => kids.push(x));
+        const fp = figPara(true); kids.push(fp.para); h += fp.fh * 0.75 / 13.5 + 0.5; xh += fp.fh / 18 + 0.4; figDone = true;
+        blocks(post, [], { spacing: { before: 40, after: 40, line: 264, lineRule: D.LineRuleType.AUTO }, indent: { left: 340 }, keepNext: true }, null).forEach(x => kids.push(x));
+      } else blocks(stemTxt, [numRun, new D.TextRun({ text: '\t', size: FS })], { spacing: { before: 100, after: 40, line: 264, lineRule: D.LineRuleType.AUTO }, indent: { left: 340, hanging: 340 }, keepNext: true }, null).forEach(x => kids.push(x));
       h += textH(stemTxt, wEm);
       const tail = [hint, tag].filter(Boolean).join('  ');
       if (tail) { kids.push(new D.Paragraph({ spacing: { after: 20 }, indent: { left: 340 }, children: [new D.TextRun({ text: tail, italics: true, size: 16, color: GREY, font: 'Calibri' })], keepNext: !!q.o.length })); h += 0.8; }
@@ -160,7 +171,7 @@ async function buildDocx(D, JSZip, pages, H) {
         kids.push(new D.Paragraph({ spacing: { before: 0, after: 60 }, children: [new D.TextRun({ text: '', size: 8 })], keepNext: !!q.o.length }));
         h += 1.6; xh += 1.6 + mt.left.length * 1.3;
       }
-      if (q.f && H.figs && H.figs[q.i]) { const f = H.figs[q.i]; const w = Math.min(f.w, 230), fh = Math.round(f.h * w / f.w); kids.push(new D.Paragraph({ indent: { left: 340 }, spacing: { after: 40 }, keepNext: !!q.o.length, children: [new D.ImageRun({ data: f.data, transformation: { width: w, height: fh } })] })); h += fh * 0.75 / 13.5 + 0.5; xh += fh / 18 + 0.4; }
+      if (hasFig && !figDone) { const fp = figPara(!!q.o.length); kids.push(fp.para); h += fp.fh * 0.75 / 13.5 + 0.5; xh += fp.fh / 18 + 0.4; }
       if (q.o.length) {
         const hasFrac = q.o.some(o => /\\d?frac|\\begin/.test(o));
         const per = perM;
@@ -186,25 +197,10 @@ async function buildDocx(D, JSZip, pages, H) {
     });
     const head = [headTable, rule, info];
     if (!two) { sections.push({ properties: { page }, footers: { default: footer }, children: head.concat(...blocksOf.map(b => b.kids)) }); continue; }
-    /* two columns, page by page: questions fill the left column, then the right one, then a new page (a question is never split) */
-    const CAP1 = 760, CAP = 850, pagesW = []; let cur = null;
-    const newPage = () => { cur = { cols: [[], []], hs: [0, 0], c: 0, cap: pagesW.length ? CAP : CAP1 }; pagesW.push(cur); };
-    newPage();
-    blocksOf.forEach(b => {
-      if (cur.hs[cur.c] + b.h > cur.cap && cur.cols[cur.c].length) { if (cur.c === 0) cur.c = 1; else newPage(); }
-      cur.cols[cur.c].push(b); cur.hs[cur.c] += b.h;
-    });
-    /* last page: balance the two columns */
-    const last = pagesW[pagesW.length - 1], all = last.cols[0].concat(last.cols[1]);
-    if (all.length > 1) { const tot = all.reduce((a, b) => a + b.h, 0); let acc = 0, s = 0; while (s < all.length - 1 && acc + all[s].h / 2 < tot / 2) { acc += all[s].h; s++; } last.cols = [all.slice(0, Math.max(1, s)), all.slice(Math.max(1, s))]; }
-    const dot = { style: D.BorderStyle.DOTTED, size: 4, color: '9AA3B8' };
-    const cellOf = (bs, first) => new D.TableCell({ width: { size: 5253, type: D.WidthType.DXA }, borders: { top: nob, bottom: nob, left: nob, right: first ? dot : nob }, margins: { top: 0, bottom: 0, left: first ? 0 : 160, right: first ? 160 : 0 }, children: [].concat(...bs.map(b => b.kids)).concat([new D.Paragraph({ spacing: { before: 0, after: 0 }, children: [] })]) });
-    const bodyKids = head.slice();
-    pagesW.forEach((pw, k) => {
-      if (k) bodyKids.push(new D.Paragraph({ pageBreakBefore: true, spacing: { before: 0, after: 0, line: 20, lineRule: D.LineRuleType.EXACT }, children: [] }));
-      bodyKids.push(new D.Table({ width: { size: W, type: D.WidthType.DXA }, columnWidths: [5253, 5253], layout: D.TableLayoutType.FIXED, borders: { top: nob, bottom: nob, left: nob, right: nob, insideHorizontal: nob, insideVertical: nob }, rows: [new D.TableRow({ children: [cellOf(pw.cols[0], true), cellOf(pw.cols[1], false)] })] }));
-    });
-    sections.push({ properties: { page }, footers: { default: footer }, children: bodyKids });
+    /* two real Word columns: the questions flow down the left column and on into the right one, as Word lays them out
+       (no estimated page breaks, so no empty space at the bottom of a column); keep-with-next holds each question together */
+    sections.push({ properties: { page }, footers: { default: footer }, children: head });
+    sections.push({ properties: { type: D.SectionType.CONTINUOUS, page, column: { count: 2, space: 400, separate: true, equalWidth: true } }, footers: { default: footer }, children: [].concat(...blocksOf.map(b => b.kids)) });
   }
   const keys = pages.filter(p => p.key);
   if (keys.length) sections.push({ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 720, bottom: 720, left: 720, right: 720 } } },
@@ -235,8 +231,13 @@ async function buildPptx(PptxGenJS, JSZip, pages, H) {
   const eqs = [];
   const mathRun = (tex, display, opt) => { eqs.push({ tex, display }); return { text: '⟦M' + (eqs.length - 1) + '⟧', options: Object.assign({}, opt) }; };
   const p0 = pages[0], s0 = pptx.addSlide(); s0.background = { color: 'FDFAF1' };
-  s0.addText(p0.title, { x: 0.7, y: 2.4, w: 12, h: 1.2, fontFace: 'Cambria', bold: true, fontSize: 40, color: NAVY });
-  s0.addText(p0.kind === 'dpp' ? (pages.length > 1 ? 'DPP booklet · ' + pages.length + ' pages' : p0.sub) : 'Avanti Fellows · JEE Maths' + (p0.batch ? ' · ' + p0.batch : '') + ' · ' + p0.mins + ' min', { x: 0.7, y: 3.7, w: 12, h: 0.5, fontFace: 'Calibri', fontSize: 18, color: '3C3C3C' });
+  /* cover: logo, exam name with the date under it (PYQ papers), Mathematics top right */
+  const cExam = p0.pyq ? String(p0.sub || '').replace(/\s*\u00b7\s*all topics$/, '') : p0.title;
+  const cSub = p0.pyq ? p0.title : p0.kind === 'dpp' ? (pages.length > 1 ? 'DPP booklet \u00b7 ' + pages.length + ' pages' : p0.sub) : [p0.batch, p0.mins ? p0.mins + ' min' : ''].filter(Boolean).join(' \u00b7 ');
+  if (H.logo && H.logo.dataUrl) s0.addImage({ data: H.logo.dataUrl, x: 0.7, y: 0.5, w: 0.75 * H.logo.w / H.logo.h, h: 0.75 });
+  s0.addText('Mathematics', { x: 8.6, y: 0.55, w: 4.1, h: 0.6, fontFace: 'Calibri', bold: true, fontSize: 20, color: NAVY, align: 'right' });
+  s0.addText(cExam, { x: 0.7, y: 2.4, w: 12, h: 1.2, fontFace: 'Cambria', bold: true, fontSize: 40, color: NAVY });
+  if (cSub) s0.addText(cSub, { x: 0.7, y: 3.7, w: 12, h: 0.6, fontFace: 'Calibri', fontSize: 24, color: '3C3C3C' });
   function runs(text, opt) {
     const out = [];
     M().split(text).forEach(pt => {
@@ -444,16 +445,16 @@ async function buildCwPptx(PptxGenJS, JSZip, d, H) {
   }
   /* 4+. one question per slide, followed by a blank slide */
   const ansText = q => /^[A-D](,\s*[A-D])*$/.test(q.a || '') ? q.a.split(/,\s*/).map(l => '(' + l + ')').join(', ') : (q.a || '—');
-  const exam0 = d.bucket === 'Main' ? ['JEE MAINS', GREEN] : ['JEE ADVANCED', RED];
-  const examOf = q => d.perQ ? (q.s === 'P' ? (q.e === 'Main' ? ['JEE MAINS', GREEN] : q.e === 'KCET' ? ['KCET', 'F472B6'] : ['JEE ADVANCED', RED]) : ['PRACTICE · ' + String(q.pb || 'AVANTI').toUpperCase(), TEAL]) : exam0;
+  const exam0 = d.bucket === 'Main' ? ['JEE MAINS', GREEN] : d.bucket === 'KCET' ? ['KCET', 'F472B6'] : d.bucket === 'IAT' ? ['IAT', '2F7D6D'] : d.bucket === 'NDA' ? ['NDA', 'F59E0B'] : ['JEE ADVANCED', RED];
+  const examOf = q => d.perQ ? (q.s === 'P' ? (q.e === 'Main' ? ['JEE MAINS', GREEN] : q.e === 'KCET' ? ['KCET', 'F472B6'] : q.e === 'IAT' ? ['IAT', '2F7D6D'] : q.e === 'NDA' ? ['NDA', 'F59E0B'] : ['JEE ADVANCED', RED]) : ['PRACTICE · ' + String(q.pb || 'AVANTI').toUpperCase(), TEAL]) : exam0;
   d.qs.forEach((q, i) => {
     const exam = examOf(q), practice = d.perQ && q.s !== 'P';
     const s = pptx.addSlide(); s.background = { color: BLACK }; const pm = d.meta[q.i] || {}, pStr = String(pm.paper || q.p || '');
     const dm = /\d{1,2} [A-Za-z]{3} \d{4}/.exec(pStr), sd = /^(\d{4})-(\d{2})-(\d{2})/.exec(pm.sort_date || '');
     const date = dm ? dm[0] : sd && sd[2] !== '00' ? new Date(+sd[1], +sd[2] - 1, +sd[3]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-    const shift = pStr.replace(/\d{1,2} [A-Za-z]{3} \d{4}/, '').replace(/IIT-JEE|JEE (Main|Advanced)|AIEEE|KCET/g, '').replace(/\b(19|20)\d{2}\b/g, '').replace(/\s+/g, ' ').trim();
+    const shift = pStr.replace(/\d{1,2} [A-Za-z]{3} \d{4}/, '').replace(/IIT-JEE|JEE (Main|Advanced)|AIEEE|KCET|IAT/g, '').replace(/\b(19|20)\d{2}\b/g, '').replace(/\s+/g, ' ').trim();
     const when = [date || (q.y ? String(q.y) : 'Year not printed'), shift].filter(Boolean).join(' · ');
-    const pillText = practice ? exam[0] : exam[0] + ' · ' + when, pillW = Math.min(8.2, 0.5 + pillText.length * 0.135);
+    const pillText = practice ? exam[0] : q._lab ? q._lab : exam[0] + ' · ' + when, pillW = Math.min(8.2, 0.5 + pillText.length * 0.135);
     s.addShape(pptx.ShapeType.roundRect, { x: 0.5, y: 0.3, w: 1.05, h: 0.42, fill: { type: 'none' }, line: { color: CORAL, width: 2 }, rectRadius: 0.1 });
     s.addText('Ques', { x: 0.5, y: 0.3, w: 1.05, h: 0.42, fontFace: FH, bold: true, fontSize: 20, color: WHITE, align: 'center', valign: 'middle', margin: 0 });
     s.addShape(pptx.ShapeType.roundRect, { x: 1.7, y: 0.3, w: pillW, h: 0.42, fill: { type: 'none' }, line: { color: exam[1], width: 1.25 }, rectRadius: 0.21 });

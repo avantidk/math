@@ -26,7 +26,7 @@
 .qb-head p{margin:0;color:var(--color-fg-muted);font-size:var(--cds-font-size-body);max-width:64ch;line-height:1.55}
 /**/.qb-tiles{display:flex;flex-direction:column;gap:var(--cds-gap-sm);margin-top:clamp(16px,2.5vw,24px)}
 .qb-trow{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch;--hue:var(--qb-accent)}
-.qb-trow.h-main{--hue:#2b8a9b}.qb-trow.h-adv{--hue:#8a5cc2}.qb-trow.h-old{--hue:#c78a2b}.qb-trow.h-kcet{--hue:#d0457a}.qb-trow.h-np{--hue:#3a9a5b}.qb-trow.h-oos{--hue:#c2503a}
+.qb-trow.h-main{--hue:#2b8a9b}.qb-trow.h-adv{--hue:#8a5cc2}.qb-trow.h-old{--hue:#c78a2b}.qb-trow.h-kcet{--hue:#d0457a}.qb-trow.h-iat{--hue:#2f7d6d}.qb-trow.h-nda{--hue:#b5651d}.qb-trow.h-np{--hue:#3a9a5b}.qb-trow.h-oos{--hue:#c2503a}
 .qb-trow .qb-tile{flex:0 0 8rem}
 .qb-trow .qb-ytile{flex:0 0 3.7rem;padding:6px 8px;background:color-mix(in srgb,var(--hue) 13%,var(--color-panel));border-color:color-mix(in srgb,var(--hue) 30%,var(--qb-line))}
 .qb-trow .qb-ytile .num{font-size:1.2rem}
@@ -395,16 +395,23 @@
 .qb-ytable tr.qb-ytot td{font-weight:600}
 .qb-btn.qb-ibtn{padding:4px 8px;display:inline-flex;align-items:center;justify-content:center}.qb-btn.qb-ibtn:disabled img{opacity:.35}.qb-sbar .qb-frow>.qb-oosg{order:2}.qb-oosx{display:inline-flex;align-self:flex-start;border-radius:999px;border:1px solid var(--qb-line);background:var(--color-bg);overflow:hidden}.qb-oosx button{border:0;background:transparent;font:inherit;font-size:var(--cds-font-size-caption);padding:5px 14px;color:var(--color-fg);cursor:pointer;white-space:nowrap;line-height:inherit}.qb-oosx button[aria-pressed=true]{background:#1f3a5f;color:#fff}.qb-oosx button[data-v=ex][aria-pressed=true]{background:#b23c27}.qb-oosx button:focus-visible{outline:2px solid #1f3a5f;outline-offset:-2px}.qb-sbar .qb-oosx{display:flex!important;width:100%!important;align-self:stretch!important;height:32px!important;min-height:32px!important;box-sizing:border-box!important;margin:0}.qb-sbar .qb-oosx button{flex:1 1 50%;height:100%!important;padding:0 8px!important;font-size:12.5px;line-height:1.2;display:inline-flex;align-items:center;justify-content:center}.qb-sbar .qb-fgroup.qb-oosg{width:100%}.qb-chip.qb-oosf[aria-pressed=true]{background:#c2503a;border-color:#c2503a;color:#fff}.qb-tag.oos{color:#b23c27;border-color:color-mix(in srgb,#b23c27 45%,transparent);background:color-mix(in srgb,#b23c27 10%,transparent);font-weight:600}
 .qb-trow.h-oos .qb-tile,.qb-trow.h-oos .qb-ytile{cursor:pointer}
-.qb-wc-ctl{display:flex;flex-wrap:wrap;gap:8px 18px;margin:8px 0 10px}.qb-wc-g{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.qb-wc-g>span{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-fg-muted);margin-right:2px}
-.qb-wc-sub{font-size:12.5px;color:var(--color-fg-muted);margin-bottom:8px}
-.qb-wc-row{display:grid;grid-template-columns:minmax(8.5rem,15rem) 1fr 3.4rem;gap:10px;align-items:center;width:100%;padding:3px 6px;border:0;background:transparent;border-radius:6px;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.qb-note{margin:0 0 14px;padding:10px 14px;border-radius:10px;border:1px solid color-mix(in srgb,#d9961a 45%,transparent);background:color-mix(in srgb,#f2b134 14%,transparent);font-size:13px;line-height:1.45;color:var(--color-fg,inherit)}
+.qb-wc-ctl{display:flex;flex-wrap:wrap;gap:10px 22px;margin:6px 0 14px}.qb-wc-g{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.qb-wc-g>span{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-fg-muted);margin-right:4px}
+.qb-wc-intro{font-size:14px;line-height:1.55;color:var(--color-fg-muted);margin:0 0 14px}
+.qb-wc-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:16px}
+.qb-wc-card{padding:12px 14px;border:1px solid var(--color-border-line,rgba(128,128,128,.28));border-radius:12px;background:color-mix(in srgb,var(--color-fg-muted) 6%,transparent)}
+.qb-wc-card b{display:block;font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}.qb-wc-card span{display:block;font-size:12.5px;color:var(--color-fg-muted);margin-top:2px}
+.qb-wc-list{display:flex;flex-direction:column;gap:4px}
+.qb-wc-row{display:grid;grid-template-columns:2rem minmax(9rem,17rem) 1fr 7rem;gap:12px;align-items:center;width:100%;padding:8px 10px;border:0;background:transparent;border-radius:10px;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.qb-wc-row:nth-child(odd){background:color-mix(in srgb,var(--color-fg-muted) 5%,transparent)}
 .qb-wc-row:hover{background:var(--qb-soft)}
-.qb-wc-lbl{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.qb-wc-track{display:flex;height:16px;background:color-mix(in srgb,var(--color-fg-muted) 10%,transparent);border-radius:4px;overflow:hidden}
-.qb-wc-seg{display:block;height:100%}.qb-wc-seg.main,.qb-wc-key.main::before{background:#2b8a9b}.qb-wc-seg.adv,.qb-wc-key.adv::before{background:#8a5cc2}
-.qb-wc-val{font-variant-numeric:tabular-nums;font-size:12.5px;text-align:right;font-weight:600}
-.qb-wc-leg{display:flex;flex-direction:row;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:6px 18px;margin-top:8px;font-size:12px;color:var(--color-fg-muted)}.qb-wc-key{display:inline-block;white-space:nowrap}.qb-wc-key::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
-@media (max-width:560px){.qb-wc-row{grid-template-columns:7rem 1fr 2.8rem}}
+.qb-wc-rk{font-size:13px;font-weight:700;color:var(--color-fg-muted);text-align:center}
+.qb-wc-lbl{display:block;font-size:14.5px;font-weight:600;line-height:1.25}.qb-wc-lbl small{display:block;font-size:11.5px;font-weight:500;color:var(--color-fg-muted);margin-top:1px}
+.qb-wc-track{display:block;height:22px;background:color-mix(in srgb,var(--color-fg-muted) 14%,transparent);border-radius:999px;overflow:hidden}
+.qb-wc-seg{display:block;height:100%;border-radius:999px;min-width:2px}.qb-wc-seg.hi,.qb-wc-key.hi::before{background:#1f3f95}.qb-wc-seg.mid,.qb-wc-key.mid::before{background:#4f86d9}.qb-wc-seg.lo,.qb-wc-key.lo::before{background:#a3bde9}
+.qb-wc-val{text-align:right;font-variant-numeric:tabular-nums;line-height:1.2}.qb-wc-val b{display:block;font-size:16px}.qb-wc-val span{display:block;font-size:12px;color:var(--color-fg-muted)}
+.qb-wc-leg{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:14px;font-size:13px;color:var(--color-fg-muted)}.qb-wc-key{display:inline-block;white-space:nowrap}.qb-wc-key::before{content:"";display:inline-block;width:12px;height:12px;border-radius:999px;margin-right:7px;vertical-align:-1px}
+@media (max-width:620px){.qb-wc-row{grid-template-columns:1.6rem 1fr 4.6rem;gap:6px 10px}.qb-wc-track{grid-column:2 / 4;grid-row:2}.qb-wc-lbl{font-size:14px}}
 </style>
 
 <div class="qb" id="top">
@@ -413,7 +420,7 @@
   <section class="qb-hero" id="header">
   <header class="qb-head">
     <div class="qb-eyebrow">Previous year questions · Mathematics</div>
-    <h1>JEE Maths PYQ bank</h1>
+    <h1>Mathematics Bank Status</h1>
     <p>Previous year questions from JEE Main (including AIEEE) and JEE Advanced (including IIT-JEE), plus practice questions from VMC, Cengage, Black Book and other sheets, all tagged by chapter, topic and difficulty. Pick chapters and topics, tick questions, then export them to Word, PDF or PowerPoint.</p>
   </header>
   <div class="qb-tiles" id="tiles" aria-label="Question counts"></div>
@@ -429,6 +436,8 @@
           <th data-field="main_all" title="All JEE Main PYQs, including AIEEE (the exam before 2013)">JEE Main</th>
           <th data-field="adv_all" title="All JEE Advanced PYQs, including IIT-JEE (the exam before 2013)">JEE Adv</th>
           <th data-field="kcet_all" title="KCET (Karnataka CET) PYQs. A separate exam, not linked with JEE Main, JEE Advanced, AIEEE or IIT-JEE">KCET</th>
+          <th data-field="iat_all" title="IAT (IISER Aptitude Test) PYQs, Maths section. A separate exam">IAT</th>
+          <th data-field="nda_all" title="NDA (National Defence Academy) PYQs, Mathematics paper. A separate exam, 120 questions, +2.5 for a correct answer and one third of that deducted for a wrong one">NDA</th>
           <th data-field="src_VMC">VMC</th>
           <th data-field="src_Cengage">Cengage</th>
           <th data-field="src_BlackBook">Black Book</th>
@@ -442,11 +451,11 @@
     </div>
   </section>
   <section class="qb-card qb-ov qb-panel" id="wchart" role="tabpanel" aria-label="Chapter weightage" hidden>
+    <p class="qb-wc-intro" style="margin-top:4px"><b>Chapter Weightage</b>: how many previous-year questions came from each chapter, so you can see which chapters matter most. Tap any chapter to open its questions.</p>
     <div class="qb-wc-ctl">
       <div class="qb-wc-g" data-wc="exam"><span>Exam</span><button type="button" class="qb-chip" data-v="all" aria-pressed="true">All</button><button type="button" class="qb-chip" data-v="main" aria-pressed="false">JEE Main</button><button type="button" class="qb-chip" data-v="adv" aria-pressed="false">JEE Advanced</button></div>
-      <div class="qb-wc-g" data-wc="yrs"><span>Years</span><button type="button" class="qb-chip" data-v="all" aria-pressed="true">All</button><button type="button" class="qb-chip" data-v="10" aria-pressed="false">Last 10</button><button type="button" class="qb-chip" data-v="5" aria-pressed="false">Last 5</button></div>
-      <div class="qb-wc-g" data-wc="sort"><span>Order</span><button type="button" class="qb-chip" data-v="count" aria-pressed="true">Most asked</button><button type="button" class="qb-chip" data-v="syl" aria-pressed="false">Syllabus order</button></div>
-      <div class="qb-wc-g" data-wc="pct"><span>Show</span><button type="button" class="qb-chip" data-v="0" aria-pressed="true">Count</button><button type="button" class="qb-chip" data-v="1" aria-pressed="false">% share</button></div>
+      <div class="qb-wc-g" data-wc="yrs"><span>Period</span><button type="button" class="qb-chip" data-v="all" aria-pressed="true">All years</button><button type="button" class="qb-chip" data-v="10" aria-pressed="false">Last 10 years</button><button type="button" class="qb-chip" data-v="5" aria-pressed="false">Last 5 years</button></div>
+      <div class="qb-wc-g" data-wc="sort"><span>Sort by</span><button type="button" class="qb-chip" data-v="count" aria-pressed="true">Most asked</button><button type="button" class="qb-chip" data-v="syl" aria-pressed="false">Syllabus order</button></div>
     </div>
     <div id="wchartBody" class="qb-wc"></div>
   </section>
@@ -463,6 +472,8 @@
     <button class="qb-btn primary qb-ibtn qb-docx" type="button" disabled title="Export Word (editable)" aria-label="Export Word (editable)"><img src="img/word.png" width="32" height="28" alt="" style="display:block;object-fit:contain"></button>
     <button class="qb-btn primary qb-ibtn qb-pdf" type="button" disabled title="Export PDF" aria-label="Export PDF"><img src="img/pdf.png" width="30" height="30" alt="" style="display:block;object-fit:contain"></button>
     <button class="qb-btn primary qb-ibtn qb-ppt" type="button" disabled title="Export PowerPoint: black Avanti slides, each question on its own slide" aria-label="Export PowerPoint: black Avanti slides, each question on its own slide"><img src="img/ppt.png" width="32" height="28" alt="" style="display:block;object-fit:contain"></button>
+    <button class="qb-btn qb-ibtn qb-print" type="button" disabled title="Print" aria-label="Print"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3.5h10V9"/><rect x="3.5" y="9" width="17" height="8" rx="2"/><path d="M7 14h10v6.5H7z"/></svg></button>
+    <button class="qb-btn qb-ibtn qb-share" type="button" disabled title="Share the PDF (WhatsApp, Discord, email)" aria-label="Share the PDF"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7 15.7 6.3M8.3 13.3l7.4 4.4"/></svg></button>
     </span>
     <div class="qb-fname"></div>
     <div class="qb-msg" role="status" aria-live="polite"></div>
@@ -526,7 +537,7 @@
     <button class="qb-btn qb-clear" type="button">Clear selection</button>
   </div>
 
-  <div class="qb-build" style="font-size:11px;color:var(--color-fg-muted);text-align:right;padding:0 4px">Version 491</div>
+  <div class="qb-build" style="font-size:11px;color:var(--color-fg-muted);text-align:right;padding:0 4px">Version 708</div>
   <section class="qb-list" id="questions" data-source="pyq" aria-label="Questions"></section>
   </div>
   </div>

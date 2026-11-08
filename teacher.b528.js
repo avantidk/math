@@ -40,7 +40,7 @@ let KATEX_P = null;
 let IS_OWNER = null; /* null until known; Misc is for the account owner only */
 let BANK = null, BYID = new Map(), CHMAP = new Map(), downloads = { save: o => new Promise(res => { const blob = o.data instanceof Blob ? o.data : new Blob([o.data]); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = o.filename || 'download'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); res(true); }, 1500); }) }; /* plain browser download until (and unless) the Claude runtime offers its own */
 const S = {
-  mode: 'test', pyq: false, pubs: new Set(), exam: { Main: true, Adv: false, KCET: false }, cls: { 11: true, 12: false },
+  mode: 'test', pyq: false, pubs: new Set(), exam: { Main: true, Adv: false, KCET: false, IAT: false, NDA: false }, cls: { 11: true, 12: false },
   ch: new Set(), tp: new Set(), diff: new Set(['L1']), types: new Set(['MCQ']), count: 25, sides: 2, cols: 2, order: true, tag: true,
   title: '', batch: '', date: new Date().toISOString().slice(0, 10), mins: 60, pos: 4, neg: 1, email: '', key: false,
   picked: [], chSearch: '', lay: null, code: '', paper: null
@@ -223,7 +223,15 @@ function sheetParams() {
   return { mode: 'test', kind: 'test', title: S.title.trim() || defaultTitle(), sub: n.length ? (n.length > 2 ? n.length + ' chapters' : n.join(' \u00b7 ')) : 'Maths', batch: S.batch.trim(), date: S.date, mins: S.mins, pos: S.pos, neg: S.neg,
     cols: S.cols, tag: S.tag, key: S.key, qs: S.picked.map(id => BYID.get(id)).filter(Boolean) };
 }
-function tagText(q) { const lv = q.lvTag ? 'L' + practiceLevel(q) : ''; const ex = q.s === 'P' ? (q.lvTag ? exOf(q) : (q.e === 'KCET' ? 'KCET' : 'JEE ' + (q.e === 'Adv' ? 'Advanced' : 'Main'))) + ' ' + q.y : ''; return lv || ex ? '[' + [lv, ex].filter(Boolean).join(' \u00b7 ') + ']' : ''; }
+/* PYQ section label (chapterwise + question paper, preview and exports): JEE Main = date + shift, JEE ADV = paper + year, NDA = I or II + year, KCET / IAT / AIEEE / IIT = year */
+function pyqLabel(q) {
+  const y = q.y ? String(q.y) : '', p = String(q.p || '');
+  if (q.e === 'Main') { if (exOf(q) !== 'JEE Main') return 'AIEEE' + (y ? ' ' + y : ''); const m = /(\d{1,2} [A-Za-z]{3} \d{4})(.*)$/.exec(p); return m ? ('JEE Main ' + m[1] + (m[2] || '').replace(/\s+/g, ' ').trimEnd()) : 'JEE Main' + (y ? ' ' + y : ''); }
+  if (q.e === 'Adv') { const m = /Paper\s*(\d)/i.exec(p); return (exOf(q) === 'IIT' ? 'IIT-JEE' : 'JEE ADV') + (m ? ' P' + m[1] : '') + (y ? ' ' + y : ''); }
+  if (q.e === 'NDA') { const m = /\((NDA[^)]*)\)/.exec(p); return (m ? m[1] : 'NDA') + (y ? ' ' + y : ''); }
+  return q.e + (y ? ' ' + y : '');
+}
+function tagText(q) { const lv = q.lvTag ? 'L' + practiceLevel(q) : ''; const ex = q.s === 'P' ? pyqLabel(q) : ''; return lv || ex ? '[' + [lv, ex].filter(Boolean).join(' \u00b7 ') + ']' : ''; }
 /* "match the lists" questions: split into intro + two lists so they can be drawn as a table */
 function matchParts(text) {
   const ls = String(text).split('\n'), HA = /^\s*(List|Column)[\s\-]*(I|1)\s*(\([^)]*\))?\s*:\s*(.*)$/i, HB = /^\s*(List|Column)[\s\-]*(II|2)\s*(\([^)]*\))?\s*:\s*(.*)$/i;
@@ -262,13 +270,17 @@ function buildQ(q, n, p) {
   stem.insertAdjacentHTML('afterbegin', boldHtml(tallToDisplay(txt)));
   const kids = [stem];
   if (mt) kids.push(matchTable(mt));
-  if (q.f) kids.push(h('img', { class: 'fig', alt: 'Figure', src: 'data:image/svg+xml;utf8,' + encodeURIComponent(q.f.svg), width: q.f.w, height: q.f.h }));
+  if (q.f) kids.push(h('img', { class: 'fig', alt: 'Figure', src: figSrc(q.f), width: q.f.w, height: q.f.h }));
   if (after) { const st2 = h('div', { class: 'stem' }, ...tags); st2.insertAdjacentHTML('afterbegin', boldHtml(tallToDisplay(after))); kids.push(st2); }
   if (q.o.length) kids.push(h('div', { class: 'opts ' + cls, style: q.o.some(o => /\\d?frac/.test(o)) ? 'row-gap:.8em' : '' }, q.o.map((o, i) => h('div', { class: 'opt' }, h('b', { text: '(' + 'ABCD'[i] + ')' }), h('span', { text: o })))));
   const node = h('div', { class: 'sq' }, q.head ? h('div', { class: 'qhead', text: q.head }) : null, h('div', { class: 'qn', text: n + '.' }), h('div', { class: 'qb' }, kids));
   math(node);
   return node;
 }
+var LOGO_DATA = '';
+try { fetch('img/avanti-logo-dark.png').then(r => r.ok ? r.blob() : null).then(bl => { if (!bl) return; const fr = new FileReader(); fr.onload = () => { LOGO_DATA = fr.result; }; fr.readAsDataURL(bl); }).catch(() => {}); } catch (e) { /* use the file path */ }
+/* a figure that is just a picture wrapped in an SVG is drawn from the picture itself (screenshots and PDFs then never lose it) */
+function figSrc(f) { const m = /<image[^>]*?href="(data:image\/(?:png|jpeg|jpg);base64,[^"]+)"/.exec(f.svg || ''); return m ? m[1] : 'data:image/svg+xml;utf8,' + encodeURIComponent(f.svg); }
 function skeleton(p, keyMode) {
   const test = p.mode === 'test', sub = keyMode ? (keyMode === 'exp' ? 'Explanations' : 'Answer key') : (p.sub || 'Maths');
   const info = h('div', { class: 'sh-info' },
@@ -277,14 +289,18 @@ function skeleton(p, keyMode) {
     test ? h('span', { text: 'Time: ' + p.mins + ' min' }) : h('span', { text: 'Date: ______________' }),
     test ? h('span', { text: 'Max marks: ' + (p.total || p.qs.length) * p.pos + '  (+' + p.pos + ' / \u2212' + p.neg + ')' }) : h('span', { text: 'Marks: ____ / ' + p.qs.length }));
   const dt = p.date ? new Date(p.date + 'T00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  /* header: logo left, exam name (18 bold) with date below (14), Mathematics top right; footer: Exam - Date left, page number right */
+  const examName = p.pyq ? String(p.sub || '').replace(/\s*\u00b7\s*all topics$/, '') : p.title, dateLine = p.pyq ? p.title : sub;
+  const headTitle = p.pyq ? examName : p.title, headSub = p.pyq ? (keyMode ? dateLine + ' \u00b7 ' + (keyMode === 'exp' ? 'Explanations' : 'Answer key') : dateLine) : sub;
+  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/avanti-logo-dark.png', alt: 'Avanti Fellows', style: 'height:40px;width:auto;display:block' });
   return h('div', { class: 'sheet' },
     h('div', { class: 'sh-head' },
-      h('div', { class: 'sh-brand' }, 'Avanti Fellows', h('i', { text: 'JEE Maths' })),
-      h('div', { class: 'sh-title' }, p.title, h('small', { text: sub })),
-      h('div', { class: 'sh-meta' }, p.badge ? h('div', { class: 'sh-badge', text: p.badge }) : h('div', { text: dt }), h('div', { text: p.batch || '' }))),
+      h('div', { class: 'sh-brand' }, logo),
+      h('div', { class: 'sh-title', style: 'font-size:18px;font-weight:700;line-height:1.2' }, headTitle, h('small', { text: headSub, style: 'font-size:14px;font-weight:600;margin-top:3px;letter-spacing:0;color:var(--sheet-muted)' })),
+      h('div', { class: 'sh-meta' }, h('div', { text: 'Mathematics', style: 'font-weight:700;font-size:12px' }), p.badge && !p.pyq ? h('div', { class: 'sh-badge', text: p.badge }) : (dt ? h('div', { text: dt }) : null), p.batch ? h('div', { text: p.batch }) : null)),
     keyMode || !test ? null : info,
     h('div', { class: 'sh-body' }),
-    h('div', { class: 'sh-foot' }, h('span', { text: 'Avanti Fellows \u00b7 ' + p.title }), h('span', { text: keyMode ? 'Teacher copy' : (test ? 'Test' + (p.pageOf ? ' \u00b7 Page ' + p.pageOf : '') : 'DPP') })));
+    h('div', { class: 'sh-foot' }, h('span', { text: p.pyq ? examName + ' - ' + dateLine : p.title }), h('span', { text: keyMode ? 'Teacher copy' : test ? 'Test' + (p.pageOf ? ' \u00b7 Page ' + p.pageOf : '') : (p.pg ? 'Page ' + p.pg : '') })));
 }
 function pickSplit(hs, gap, avail, cols) {
   const n = hs.length, total = sum(hs);
@@ -549,14 +565,14 @@ function initPubs() {
   S.pubs = new Set(PUBS);
 }
 const shortList = (a, n) => a.slice(0, n).join(', ') + (a.length > n ? ' +' + (a.length - n) : '');
-const BASE = { mode: 'dpp', kind: 'dpp', cols: 2, tag: true, date: '', batch: '', mins: 0, pos: 4, neg: 1 };
+const BASE = { mode: 'dpp', kind: 'dpp', big: true, cols: 2, tag: true, date: '', batch: '', mins: 0, pos: 4, neg: 1 };
 /* a DPP is about 15 questions on one A4 side */
 function dppPages(d) {
   const n = d.fitParts ? [].concat(...d.fitParts).length : d.qs.length;
   const parts = d.fitParts || [d.qs.slice()];
   let start = 0;
   return parts.map((g, i) => {
-    const p = Object.assign({}, BASE, { title: d.chapter, sub: shortList(d.tps, 3), badge: 'DPP ' + d.num + (parts.length > 1 ? ' \u00b7 Page ' + (i + 1) + ' of ' + parts.length : ''), qs: g, start, total: n, maxFs: DPP_FS, file: d.chapter + ' DPP ' + d.num });
+    const p = Object.assign({}, BASE, { title: d.chapter, sub: shortList(d.tps, 3), badge: 'DPP ' + d.num, pg: parts.length > 1 ? (i + 1) + ' of ' + parts.length : '', qs: g, start, total: n, maxFs: DPP_FS, file: d.chapter + ' DPP ' + d.num });
     start += g.length; return p;
   });
 }
@@ -610,8 +626,8 @@ function bookletPages(cc, part) {
   });
   return (BK[key] = out);
 }
-const exOf = q => q.e === 'KCET' ? 'KCET' : q.e === 'Adv' ? (q.y < 2013 ? 'IIT' : 'JEE Advanced') : (q.y < 2013 ? 'AIEEE' : 'JEE Main');
-const EXAMS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET'];
+const exOf = q => q.e === 'KCET' ? 'KCET' : q.e === 'IAT' ? 'IAT' : q.e === 'NDA' ? 'NDA' : q.e === 'Adv' ? (q.y < 2013 ? 'IIT' : 'JEE Advanced') : (q.y < 2013 ? 'AIEEE' : 'JEE Main');
+const EXAMS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET', 'IAT', 'NDA'];
 const yf = qs => qs.filter(q => (!LS.yrs.length || LS.yrs.includes(String(q.y))) && (!LS.ex.length || LS.ex.includes(exOf(q))) && LS.lv.includes(q.d));
 function pyqYears(cc) { const c = PYQT[cc], a = c.other.concat(...c.topics.map(t => t.qs)); return [...new Set(a.map(q => String(q.y)))].sort((x, y) => y - x); }
 function pyqPages(cc, id) {
@@ -728,7 +744,7 @@ function dppBuild() {
 /* lay the chosen questions out for real: one page (k = n) or two pages split after k; both pages get the same text size */
 function dppPlace(qs, k, title, file) {
   const n = qs.length, tps = [...new Set(qs.map(q => q.tp === 'Unmapped' ? 'Mixed problems' : q.tp))], sub = shortList(tps, 3);
-  const mk = (g, start, i, tot) => Object.assign({}, BASE, { title, sub, badge: tot > 1 ? 'DPP · Page ' + (i + 1) + ' of ' + tot : 'DPP', qs: g, start, total: n, maxFs: DPP_MAXPX, file, capGap: true });
+  const mk = (g, start, i, tot) => Object.assign({}, BASE, { title, sub, badge: 'DPP', pg: tot > 1 ? (i + 1) + ' of ' + tot : '', qs: g, start, total: n, maxFs: DPP_MAXPX, file, capGap: true });
   const parts = k >= n ? [qs] : [qs.slice(0, k), qs.slice(k)];
   let pages = parts.map((g, i) => mk(g, i ? parts[0].length : 0, i, parts.length));
   const host = h('div', { style: 'position:absolute;left:-10000px;top:0;width:794px' }); document.body.append(host);
@@ -887,10 +903,8 @@ function showLibPrev() {
   const step = () => { if (LS.tok !== tok) return; const end = Math.min(i + 3, pages.length); for (; i < end; i++) { const L = layoutSheet(pages[i], scalers[i]); if (L.overflow) warn = true; L.nodes.forEach((nd, j) => { nd.style.position = 'relative'; nd.append(h('button', { type: 'button', class: 'dswap', 'data-act': 'libswap', 'data-k': pages[i].qs[j].i, title: 'Swap this question for another one', 'aria-label': 'Swap this question for another one', text: '\u21c4' })); }); } rescale(); say(i >= pages.length); if (i < pages.length) setTimeout(step, 0); else addKeyPages(wrap, pages); };
   step();
 }
-function libPdf(onBlob) {
-  const pages = currentPages(); if (!pages.length) { toast('No questions here yet'); return; }
-  doExport('pdf', { pages, file: pages[0].file, onBlob });
-}
+/* Print and Share, used by every tab that downloads: they all go through the same PDF as "Download PDF" */
+const pdfBlobOf = payload => new Promise((res, rej) => { doExport('pdf', Object.assign({}, payload, { onBlob: (blob, file) => res({ blob, file }), onFail: rej })).catch(rej); });
 async function sendPdf(app, blob, file, title) {
   const f = new File([blob], file, { type: 'application/pdf' });
   try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title, text: title }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
@@ -900,26 +914,39 @@ async function sendPdf(app, blob, file, title) {
   try { window.open(url, '_blank', 'noopener'); } catch (e) { /* the file is saved anyway */ }
   toast('PDF saved. Attach "' + file + '" in ' + nm + '.');
 }
-function shareFileMenu(btn) {
+function shareFrom(btn, title, get) {
   closeShare();
-  const pages = currentPages(); if (!pages.length) { toast('No questions here yet'); return; }
-  const title = pages[0].title + ' DPP';
-  const item = (ico, label, app) => h('button', { class: 'smi', type: 'button', onclick: () => { closeShare(); libPdf((blob, file) => sendPdf(app, blob, file, title)); } }, h('span', { class: 'smic', html: ico }), h('span', { text: label }));
+  const item = (ico, label, app) => h('button', { class: 'smi', type: 'button', onclick: async () => { closeShare(); try { toast('Preparing the PDF…'); const r = await get(); await sendPdf(app, r.blob, r.file, title); } catch (e) { toast('Could not prepare the PDF' + (e && e.message ? ': ' + e.message : '')); } } }, h('span', { class: 'smic', html: ico }), h('span', { text: label }));
   const m = h('div', { id: 'shareMenu', class: 'smenu', role: 'menu' }, h('div', { class: 'smh', text: 'Send the PDF' }),
     item(ICO.chat, 'WhatsApp', 'wa'), item(ICO.share, 'Discord', 'dc'), item(ICO.mail, 'Email', 'ml'),
     h('div', { class: 'smn', text: 'On a phone this opens the share sheet with the PDF attached. On a computer the PDF is saved, then the app opens so you can attach it.' }));
   document.body.append(m);
   const r = btn.getBoundingClientRect(), mw = m.offsetWidth;
-  m.style.top = Math.min(window.innerHeight - m.offsetHeight - 8, r.bottom + 6) + 'px';
+  m.style.top = Math.max(8, Math.min(window.innerHeight - m.offsetHeight - 8, r.bottom + 6)) + 'px';
   m.style.left = Math.max(8, Math.min(window.innerWidth - mw - 8, r.right - mw)) + 'px';
   setTimeout(() => { document.addEventListener('click', closeShareOut, true); document.addEventListener('keydown', closeShareKey, true); }, 0);
 }
-function printLib() {
-  if (!currentPages().length) { toast('No questions here yet'); return; }
+function printFrom(get) {
   const w = window.open('', '_blank');
   if (!w) { toast('This view does not allow a print window. Use Download PDF, then print the file.'); return; }
-  try { w.document.write('<!doctype html><title>Preparing\u2026</title><body style="font-family:sans-serif;padding:24px">Preparing the PDF for printing\u2026</body>'); } catch (e) { /* ignore */ }
-  libPdf(async blob => { try { w.location.href = URL.createObjectURL(blob); setTimeout(() => { try { w.focus(); w.print(); } catch (e) { /* the PDF is open: print from there */ } }, 1000); } catch (e) { try { w.close(); } catch (x) { /* ignore */ } toast('Could not open the print view. Use Download PDF, then print the file.'); } });
+  try { w.document.write('<!doctype html><title>Preparing…</title><body style="font-family:sans-serif;padding:24px">Preparing the PDF for printing…</body>'); } catch (e) { /* ignore */ }
+  Promise.resolve().then(get).then(r => { w.location.href = URL.createObjectURL(r.blob); setTimeout(() => { try { w.focus(); w.print(); } catch (e) { /* the PDF is open: print from there */ } }, 1000); })
+    .catch(e => { try { w.close(); } catch (x) { /* ignore */ } toast('Could not prepare the PDF' + (e && e.message ? ': ' + e.message : '')); });
+}
+window.__pdfPrint = printFrom; window.__pdfShare = shareFrom;
+const prtBtn = src => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'xprint', 'data-src': src, title: 'Print', 'aria-label': 'Print', html: ICO.print });
+const shrBtn = src => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'xshare', 'data-src': src, title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share the PDF', html: ICO.share });
+function pdfSource(t) {
+  const src = t.dataset.src;
+  if (src === 'lib') { const pages = currentPages(); if (!pages.length) { toast('No questions here yet'); return null; } return { title: pages[0].title + ' DPP', get: () => pdfBlobOf({ pages, file: pages[0].file }) }; }
+  if (src === 'pyq') {
+    const T = t.dataset.t, r = pdfRows(T).find(x => x.k === t.dataset.k); if (!r) { toast('Pick a paper or chapter first'); return null; }
+    const pages = pdfPages(T, r).map(p => Object.assign({}, p, { key: !!PDFT[T].key, exp: !!PDFT[T].exp }));
+    return { title: r.name, get: () => pdfBlobOf({ pages, file: r.file }) };
+  }
+  if (src === 'test') { const pages = testPages(); if (!pages.length) { toast('Add some questions first'); return null; } return { title: pages[0].title || 'Test', get: () => pdfBlobOf(Object.assign({}, pages[0], { pages })) }; }
+  if (src === 'must') { const m = mustPages(); if (!m) return null; return { title: m.title, get: () => pdfBlobOf({ pages: m.pages, file: m.file }) }; }
+  return null;
 }
 function exportLib(kind) {
   const pages = currentPages(); if (!pages.length) { toast('No questions here yet'); return; }
@@ -928,7 +955,7 @@ function exportLib(kind) {
 }
 /* ---------- "PYQ ChapterWise PDF" and "Shift Wise PDF" tabs ---------- */
 const PDFT = { cw: { bucket: 'Main', sel: null, page: 0, v: 0, years: [], key: false }, sw: { bucket: 'Main', sel: null, page: 0, v: 0, year: 'all', key: false } };
-const BUCKET_NAME = { Main: 'JEE Main', Adv: 'JEE Advanced', KCET: 'KCET' };
+const BUCKET_NAME = { Main: 'JEE Main', Adv: 'JEE Advanced', KCET: 'KCET', IAT: 'IAT', NDA: 'NDA' };
 const chOrder = cc => { const c = CHMAP.get(cc); return c.cl * 100 + c.o; };
 function pyqOf(bucket) { return BANK.qs.filter(q => q.s === 'P' && q.e === bucket); }
 const cwYearOk = q => !PDFT.cw.years.length || PDFT.cw.years.includes(String(q.y));
@@ -945,9 +972,9 @@ function pdfRows(T) {
   } else {
     const by = {};
     qs.forEach(q => { if (/^PYQARC/.test(q.i) || /shift not given|Year not printed/i.test(q.p || '')) return; const k = (q.y || '') + '|' + q.p; (by[k] = by[k] || []).push(q); });
-    const sk = k => { const q = by[k][0], m = /^J[MA](\d{4})(\d{2})(\d{2})(\d)/.exec(q.i) || /^KCET(\d{4})(\d{2})(\d{2})()/.exec(q.i); return m ? m[1] + m[2] + m[3] + m[4] : String(q.y || '') + '0000' + (/(\d)\s*$/.exec(q.p) || [0, 0])[1]; };
+    const sk = k => { const q = by[k][0], m = /^(?:J[MA]|IIT)(\d{4})(\d{2})(\d{2})(\d)/.exec(q.i) || /^(?:KCET|IAT|NDA)(\d{4})(\d{2})(\d{2})()/.exec(q.i); return m ? m[1] + m[2] + m[3] + m[4] : String(q.y || '') + '0000' + (/(\d)\s*$/.exec(q.p) || [0, 0])[1]; };
     rows = Object.keys(by).sort((a, b) => sk(b).localeCompare(sk(a))).map(k => {
-      const q = by[k][0], name = P.bucket === 'Adv' && q.y >= 2013 ? q.y + ' \u00b7 ' + q.p : q.p.replace(/\s+Shift/, ' \u00b7 Shift');
+      const q = by[k][0], name = P.bucket === 'Adv' && q.y >= 2013 ? q.y + ' \u00b7 ' + q.p : q.p.replace(/\s+(Shift|Screening|Mains|Paper)/, ' \u00b7 $1');
       return { k, name, qs: by[k], file: BUCKET_NAME[P.bucket] + ' ' + name + ' PYQs' };
     });
   }
@@ -956,15 +983,15 @@ function pdfRows(T) {
 /* one page set per row; chapter wise = topic wise inside the chapter, shift wise = chapter order */
 function pdfPages(T, r) {
   const key = 'pg|' + T + '|' + PDFT[T].bucket + '|' + (T === 'cw' ? cwYrKey() + '|' : '') + r.k; if (BK[key]) return BK[key];
-  const bucket = PDFT[T].bucket, sub = BUCKET_NAME[bucket] + (T === 'cw' ? ' \u00b7 all topics' : '');
+  const bucket = PDFT[T].bucket, sub = (T !== 'cw' && bucket === 'Adv' && r.qs[0] && r.qs[0].y && r.qs[0].y < 2013 ? 'IIT-JEE' : BUCKET_NAME[bucket]) + (T === 'cw' ? ' \u00b7 all topics' : '');
   let flat = [];
   if (T === 'cw') {
     const c = PYQT[r.k], topics = c ? c.topics.map(t => ({ label: 'Topic ' + t.no, name: t.name, qs: t.qs.filter(q => q.e === bucket && cwYearOk(q)) })).concat([{ label: 'Other', name: 'Other topics', qs: c.other.filter(q => q.e === bucket && cwYearOk(q)) }]) : [{ label: '', name: 'All topics', qs: r.qs }];
-    topics.forEach(t => t.qs.forEach((q, i) => flat.push(Object.assign({}, q, { _t: (t.label ? t.label + ' \u00b7 ' : '') + t.name, head: i === 0 ? (t.label ? t.label + ' \u00b7 ' : '') + t.name : '' }))));
+    topics.forEach(t => t.qs.forEach((q, i) => flat.push(Object.assign({}, q, { _pf: 1, _t: (t.label ? t.label + ' \u00b7 ' : '') + t.name, head: i === 0 ? (t.label ? t.label + ' \u00b7 ' : '') + t.name : '' }))));
   } else {
-    r.qs.slice().sort((a, b) => chOrder(a.cc) - chOrder(b.cc)).forEach(q => flat.push(Object.assign({}, q, { _t: '', head: '' }))); /* question paper: no chapter names, like a real paper */
+    r.qs.slice().sort((a, b) => chOrder(a.cc) - chOrder(b.cc)).forEach(q => flat.push(Object.assign({}, q, { _pf: 1, _t: '', head: '' }))); /* question paper: no chapter names, like a real paper */
   }
-  const pages = packPages(flat, (g, i, n) => ({ title: r.name, sub, badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : 'All questions' }));
+  const pages = packPages(flat, (g, i, n) => ({ title: r.name, sub, pyq: true, pg: n > 1 ? (i + 1) + ' of ' + n : '' }));
   if (T === 'cw') pages.forEach(pg => { if (pg.qs.length && !pg.qs[0].head) pg.qs = [Object.assign({}, pg.qs[0], { head: pg.qs[0]._t + ' (continued)' })].concat(pg.qs.slice(1)); });
   return (BK[key] = pages);
 }
@@ -975,7 +1002,7 @@ async function cwPptxData(r) {
   const P = PDFT.cw, bucket = P.bucket, cc = r.k, c = CHMAP.get(cc), pc = PYQT[cc];
   const years = {}; pyqOf(bucket).filter(q => q.cc === cc && q.y).forEach(q => { years[q.y] = (years[q.y] || 0) + 1; });
   const inScope = q => q.e === bucket && cwYearOk(q);
-  const flat = pc ? [].concat(...pc.topics.map(t => t.qs.filter(inScope).map(q => Object.assign({}, q, { _t: t.name }))), pc.other.filter(inScope).map(q => Object.assign({}, q, { _t: 'Other topics' }))) : r.qs.map(q => Object.assign({}, q, { _t: r.name }));
+  const flat = pc ? [].concat(...pc.topics.map(t => t.qs.filter(inScope).map(q => Object.assign({}, q, { _t: t.name, _lab: pyqLabel(q) }))), pc.other.filter(inScope).map(q => Object.assign({}, q, { _t: 'Other topics', _lab: pyqLabel(q) }))) : r.qs.map(q => Object.assign({}, q, { _t: r.name, _lab: pyqLabel(q) }));
   const topics = pc ? pc.topics.map(t => ({ name: t.name, n: t.qs.filter(inScope).length })).concat(pc.other.filter(inScope).length ? [{ name: 'Other topics', n: pc.other.filter(inScope).length }] : []) : [];
   const figs = {}; for (const q of flat) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
   let logo = null; try { const rs = await fetch('img/avanti-logo.png'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
@@ -987,7 +1014,7 @@ async function exportCwPptx(r) {
   toast('Preparing PowerPoint…');
   try {
     const d = await cwPptxData(r); if (PDFT.cw.exp) d.expl = await explForQs(d.qs);
-    await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b5.js'), loadScript(CDN.zip), loadScript(CDN.pptx)]);
+    await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b9.js'), loadScript(CDN.zip), loadScript(CDN.pptx)]);
     const blob = await window.OfficeDoc.buildCwPptx(window.PptxGenJS, window.JSZip, Object.assign(d, { bucket: d.bucketLabel }), { CHMAP, figs: d.figs });
     const file = r.file + '.pptx';
     await downloads.save({ filename: file, data: blob }); toast('Saved ' + file);
@@ -1006,7 +1033,7 @@ function qbJson(n) {
   }
   return QBJ[n];
 }
-const QB_EXAM = { 'JEE Main': 'Main', 'AIEEE': 'Main', 'JEE Advanced': 'Adv', 'IIT': 'Adv', 'KCET': 'KCET' };
+const QB_EXAM = { 'JEE Main': 'Main', 'AIEEE': 'Main', 'JEE Advanced': 'Adv', 'IIT': 'Adv', 'KCET': 'KCET', 'IAT': 'IAT', 'NDA': 'NDA' };
 function qbCompact(r, withKcet) {
   const e = QB_EXAM[r.exam]; if (!e) return null;
   const P = r.source === 'PYQ';
@@ -1036,13 +1063,13 @@ function loadBank() {
 window.__qbCwPptx = async function (ids, explain) {
   if (!BANK) { const bank = await loadBank(); BANK = bank; BANK.all = bank.qs.slice(); bank.qs.forEach(q => BYID.set(q.i, q)); bank.chapters.forEach(c => CHMAP.set(c.c, c)); }
   /* KCET questions are kept out of the main bank (a separate exam), so look any id that is not there up in the raw PYQ file */
-  let xtra = null; if (ids.some(i => !BYID.has(i))) { xtra = new Map(); (await qbJson('pyq')).forEach(r => { if (r.exam === 'KCET') { const q = qbCompact(r, true); if (q) xtra.set(q.i, q); } }); }
+  let xtra = null; if (ids.some(i => !BYID.has(i))) { xtra = new Map(); (await qbJson('pyq')).forEach(r => { if (r.exam === 'KCET' || r.exam === 'IAT' || r.exam === 'NDA') { const q = qbCompact(r, true); if (q) xtra.set(q.i, q); } }); }
   const qs = ids.map(i => BYID.get(i) || (xtra && xtra.get(String(i)))).filter(Boolean); if (!qs.length) throw new Error('no questions found');
   const ccs = [...new Set(qs.map(q => q.cc))].sort((a, b) => chOrder(a) - chOrder(b)), one = ccs.length === 1, c0 = CHMAP.get(ccs[0]);
   const cls = [...new Set(ccs.map(cc => CHMAP.get(cc).cl))].sort();
   const synIdx = (cc, tp) => { const s = (BANK.syl || {})[cc] || []; const k = s.findIndex(t => norm(t[1]) === norm(tp)); return k < 0 ? 999 : k; };
   const tname = q => (one ? '' : CHMAP.get(q.cc).n + ' · ') + (/^UNMAPPED/.test(q.tc || '') || !q.tp || q.tp === 'Unmapped' ? 'Other topics' : q.tp);
-  const flat = qs.map(q => Object.assign({}, q, { _t: tname(q) }));
+  const flat = qs.map(q => Object.assign({}, q, { _t: tname(q), _lab: q.s === 'P' ? pyqLabel(q) : '' }));
   const tm = new Map(); flat.forEach(q => { const k = q.cc + '|' + q._t; if (!tm.has(k)) tm.set(k, { name: q._t, n: 0, o: chOrder(q.cc) * 1000 + synIdx(q.cc, q.tp) }); tm.get(k).n++; });
   const topics = [...tm.values()].sort((a, b) => a.o - b.o).map(t => ({ name: t.name, n: t.n }));
   const years = {}; qs.filter(q => q.s === 'P' && q.y).forEach(q => { years[q.y] = (years[q.y] || 0) + 1; });
@@ -1053,7 +1080,7 @@ window.__qbCwPptx = async function (ids, explain) {
   const yl = Object.keys(years).map(Number).sort((a, b) => a - b);
   const d = { logo, chapter: one ? c0.n : 'Selected Questions', cl: cls[0], cc: one ? ccs[0] : '', clLabel: 'CLASS ' + cls.join(' & '), chLabel: one ? 'CHAPTER ' + ccs[0].split('M')[1] : ccs.length + ' CHAPTERS',
     bucket: ex.length === 1 ? ex[0] : 'Main', bucketName: kindLabel, kindLabel, perQ: true, noFront: true, noTopic: true, year: yl.length ? (yl.length === 1 ? String(yl[0]) : 'all') : '\u2014', count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
-  await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b5.js'), loadScript(CDN.zip), loadScript(CDN.pptx)]);
+  await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b9.js'), loadScript(CDN.zip), loadScript(CDN.pptx)]);
   if (explain) d.expl = await explForQs(qs);
   return window.OfficeDoc.buildCwPptx(window.PptxGenJS, window.JSZip, d, { CHMAP, figs });
 };
@@ -1067,11 +1094,11 @@ function renderPdfTab(T) {
     view.append(
       h('div', { class: 'rail' }, h('div', { class: 'card' },
         h('h3', { text: T === 'cw' ? 'Chapterwise PYQ PDF' : 'Question Paper PDF' }),
-        h('div', { class: 'seg', id: T + 'Ex' }, ['Main', 'Adv', 'KCET'].map(k => h('button', { type: 'button', 'data-act': 'pdfex', 'data-t': T, 'data-k': k, text: BUCKET_NAME[k] }))),
+        h('div', { class: 'seg', id: T + 'Ex' }, ['Main', 'Adv', 'KCET', 'IAT', 'NDA'].map(k => h('button', { type: 'button', 'data-act': 'pdfex', 'data-t': T, 'data-k': k, text: BUCKET_NAME[k] }))),
         T === 'cw' ? h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Years (tick one or many)' }), msel('cwYr', 'years')) : h('div', { class: 'fld' }, h('label', { class: 'lbl', for: T + 'Year', text: 'Year' }), h('select', { id: T + 'Year', onchange: e => { PDFT[T].year = e.target.value; PDFT[T].sel = null; PDFT[T].page = 0; renderPdfTab(T); } })),
         h('div', { class: 'tglrow' }, keySwitch(T + 'Key', 'pdfkey', { 'data-t': T }), expSwitch(T + 'Expl', 'pdfexp', { 'data-t': T })),
         h('div', { class: 'pdflist', id: T + 'List' }, h('div', { class: 'fld' }, h('span', { class: 'lbl', text: T === 'cw' ? 'Chapter' : 'Question paper (date and shift)' }), ssel(T + 'Pick', T === 'cw' ? 'a chapter' : 'a shift'))))),
-      h('div', { class: 'stage' }, h('div', { class: 'statbar' }, h('div', { class: 'msg', id: T + 'Msg', 'aria-live': 'polite' }), h('div', { class: 'pgbtns', id: T + 'Pages', hidden: true }), h('div', { class: 'rowbtns', id: T + 'Exp', hidden: true }, ...[['docx', 'Word (editable)'], ['pdf', 'PDF'], ['pptx', 'PowerPoint (editable)']].map(([f, nm]) => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'pdfdl', 'data-t': T, 'data-k': '', 'data-f': f, title: 'Download ' + nm, 'aria-label': 'Download ' + nm, html: FIMG[f] }))), h('button', { type: 'button', class: 'btn ibtn maxbtn', 'data-act': 'max', 'aria-pressed': 'false', title: 'Maximize', 'aria-label': 'Maximize', html: ICO.max })), h('div', { class: 'pgwrap', id: T + 'Prev' })));
+      h('div', { class: 'stage' }, h('div', { class: 'statbar' }, h('div', { class: 'msg', id: T + 'Msg', 'aria-live': 'polite' }), h('div', { class: 'pgbtns', id: T + 'Pages', hidden: true }), h('div', { class: 'rowbtns', id: T + 'Exp', hidden: true }, ...[['docx', 'Word (editable)'], ['pdf', 'PDF'], ['pptx', 'PowerPoint (editable)']].map(([f, nm]) => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'pdfdl', 'data-t': T, 'data-k': '', 'data-f': f, title: 'Download ' + nm, 'aria-label': 'Download ' + nm, html: FIMG[f] })), ...['xprint', 'xshare'].map(a => { const b = a === 'xprint' ? prtBtn('pyq') : shrBtn('pyq'); b.dataset.t = T; b.dataset.k = ''; return b; })), h('button', { type: 'button', class: 'btn ibtn maxbtn', 'data-act': 'max', 'aria-pressed': 'false', title: 'Maximize', 'aria-label': 'Maximize', html: ICO.max })), h('div', { class: 'pgwrap', id: T + 'Prev' })));
     if (window.ResizeObserver) new ResizeObserver(rescale).observe($('#' + T + 'Prev'));
   }
   $('#' + T + 'Ex').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === P.bucket)));
@@ -1163,7 +1190,7 @@ async function renderHandouts() {
 /* ---------- Must Solve tab: questions that repeat in JEE (exact or very similar) and sure-shot picks, by chapter and topic ---------- */
 let MUST = null, MTOP = null; const MS = { sel: new Set(), chs: [], kind: 'all', lv: ['L1', 'L2', 'L3'], ans: false, key: false };
 const MKIND = { e: ['Exact repeat', 'mk-e'], i: ['Similar type', 'mk-i'], u: ['Sure-shot', 'mk-u'] };
-const mYear = q => (q.y ? q.y : 'n/a') + ' ' + (q.e === 'KCET' ? 'KCET' : q.e === 'Adv' ? 'Adv' : 'Main');
+const mYear = q => (q.y ? q.y : 'n/a') + ' ' + (q.e === 'KCET' ? 'KCET' : q.e === 'IAT' ? 'IAT' : q.e === 'NDA' ? 'NDA' : q.e === 'Adv' ? 'Adv' : 'Main');
 /* Must Solve: click a year (or "Asked N times") to see the question as it came in that year, in a pop-up */
 function mustPopStyle() {
   if (document.getElementById('mpopcss')) return;
@@ -1279,35 +1306,39 @@ async function renderMust() {
       selCnt),
     h('div', { class: 'tglrow' }, keySwitch('mustKey', 'mkey'), expSwitch('mustExpl', 'mexp')),
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Download' }),
-      h('div', { class: 'mexp' }, ['docx', 'pdf', 'pptx'].map(k => h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-mexp': k, title: 'Download ' + ({ pdf: 'PDF', docx: 'Word (editable)', pptx: 'PowerPoint (editable)' })[k], 'aria-label': 'Download ' + ({ pdf: 'PDF', docx: 'Word', pptx: 'PowerPoint' })[k], html: FIMG[k] || ICO.dl, onclick: () => exportMust(k) })))),
+      h('div', { class: 'mexp' }, ['docx', 'pdf', 'pptx'].map(k => h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-mexp': k, title: 'Download ' + ({ pdf: 'PDF', docx: 'Word (editable)', pptx: 'PowerPoint (editable)' })[k], 'aria-label': 'Download ' + ({ pdf: 'PDF', docx: 'Word', pptx: 'PowerPoint' })[k], html: FIMG[k] || ICO.dl, onclick: () => exportMust(k) })).concat([h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-act': 'xprint', 'data-src': 'must', title: 'Print', 'aria-label': 'Print', html: ICO.print }), h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-act': 'xshare', 'data-src': 'must', title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share the PDF', html: ICO.share })]))),
     h('div', { class: 'mlegend' }, h('p', { class: 'hint', html: '<b>Exact repeat:</b> the same question came again. <b>Similar type:</b> the same idea and method, different numbers or wording. <b>Sure-shot:</b> a standard JEE must-know picked by us.' })))),
     h('div', { class: 'stage' }, h('div', { class: 'statbar' }, msg), list));
   draw(); fillCh();
   KATEX_P && KATEX_P.then(() => math(list)).catch(() => {});
 }
 const chName0 = c => (CHMAP.get(c) || { n: c }).n;
-async function exportMust(kind) {
+function mustPages() {
   const all = (MS.flat || []).filter(f => BYID.get(f.it.r)), chosen = all.filter(f => MS.sel.has(f.it.r)), flat = chosen.length ? chosen : all;
-  if (!flat.length) { toast('No questions to export'); return; }
-  if (!downloads) { toast('Downloads are not available in this view'); return; }
+  if (!flat.length) { toast('No questions to export'); return null; }
   const chs = [...new Set(flat.map(f => f.c))], one = chs.length === 1;
   const title = one ? chName0(chs[0]) : 'Must Solve';
   const file = 'Must Solve ' + (one ? chs[0] + ' ' + title : chs.length > 3 ? chs.length + ' chapters' : chs.join(' ')) + (MS.kind !== 'all' ? ' ' + MKIND[MS.kind][0] : '') + (MS.lv.length < 3 ? ' ' + MS.lv.join('+') : '');
+  const groups = [], gi = new Map();
+  flat.forEach(f => { const k = f.c + '|' + f.tp; if (!gi.has(k)) { gi.set(k, { label: (one ? '' : f.c + ' · ') + f.tp, qs: [] }); groups.push(gi.get(k)); } gi.get(k).qs.push(BYID.get(f.it.r)); });
+  const lf = levelFlat(groups);
+  const pages = packPages(lf, (g, i, n) => ({ title, sub: 'Must Solve · questions to solve first', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : 'Must Solve' }));
+  pages.forEach(pg => { if (pg.qs.length && !pg.qs[0].head) pg.qs = [Object.assign({}, pg.qs[0], { head: contHead(pg.qs[0]) })].concat(pg.qs.slice(1)); });
+  pages.forEach(pg => { pg.key = !!MS.key; pg.exp = !!MS.exp; });
+  return { flat, title, file, pages };
+}
+async function exportMust(kind) {
+  const m = mustPages(); if (!m) return;
+  if (!downloads) { toast('Downloads are not available in this view'); return; }
   const btns = document.querySelectorAll('[data-mexp]'); btns.forEach(b => { b.disabled = true; });
   try {
     if (kind === 'pptx') {
-      toast('Preparing PPT\u2026');
-      const blob = await window.__qbCwPptx(flat.map(f => f.it.r), MS.exp);
-      await downloads.save({ filename: file.replace(/[\\/:*?"<>|]+/g, ' ') + '.pptx', data: blob }); toast('Saved the PPT');
+      toast('Preparing PPT…');
+      const blob = await window.__qbCwPptx(m.flat.map(f => f.it.r), MS.exp);
+      await downloads.save({ filename: m.file.replace(/[\\/:*?"<>|]+/g, ' ') + '.pptx', data: blob }); toast('Saved the PPT');
     } else {
-      const groups = [], gi = new Map();
-      flat.forEach(f => { const k = f.c + '|' + f.tp; if (!gi.has(k)) { gi.set(k, { label: (one ? '' : f.c + ' \u00b7 ') + f.tp, qs: [] }); groups.push(gi.get(k)); } gi.get(k).qs.push(BYID.get(f.it.r)); });
-      const lf = levelFlat(groups);
-      const pages = packPages(lf, (g, i, n) => ({ title, sub: 'Must Solve \u00b7 questions to solve first', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : 'Must Solve' }));
-      pages.forEach(pg => { if (pg.qs.length && !pg.qs[0].head) pg.qs = [Object.assign({}, pg.qs[0], { head: contHead(pg.qs[0]) })].concat(pg.qs.slice(1)); });
-      pages.forEach(pg => { pg.key = !!MS.key; pg.exp = !!MS.exp; });
       btns.forEach(b => { b.disabled = false; });
-      await doExport(kind, { pages, file });
+      await doExport(kind, { pages: m.pages, file: m.file });
       return;
     }
   } catch (e) {
@@ -1398,7 +1429,7 @@ function refreshRail() {
   PUBS.filter(x => sc[x]).forEach(x => so.append(chip(x, S.pubs.has(x), 'src', { 'data-k': x }, sc[x])));
   $('#fExam').hidden = !S.pyq; $('#mkOos').hidden = !S.pyq;
   const ex = $('#chExam'); ex.textContent = '';
-  ex.append(chip('JEE Main', S.exam.Main, 'exam', { 'data-k': 'Main' }), chip('JEE Advanced', S.exam.Adv, 'exam', { 'data-k': 'Adv' }), chip('KCET', S.exam.KCET, 'exam', { 'data-k': 'KCET' }));
+  ex.append(chip('JEE Main', S.exam.Main, 'exam', { 'data-k': 'Main' }), chip('JEE Advanced', S.exam.Adv, 'exam', { 'data-k': 'Adv' }), chip('KCET', S.exam.KCET, 'exam', { 'data-k': 'KCET' }), chip('IAT', S.exam.IAT, 'exam', { 'data-k': 'IAT' }), chip('NDA', S.exam.NDA, 'exam', { 'data-k': 'NDA' }));
   const cl = $('#chCls'); cl.textContent = '';
   cl.append(chip('Class 11', S.cls[11], 'cls', { 'data-k': 11 }), chip('Class 12', S.cls[12], 'cls', { 'data-k': 12 }));
   // chapters (dropdown, tick many)
@@ -1440,7 +1471,7 @@ function onAct(e) {
   if (e.type === 'click' && t.tagName === 'INPUT') return;
   switch (a) {
     case 'src': { const on = k === 'P' ? S.pyq : S.pubs.has(k); if (on && (S.pyq ? 1 : 0) + S.pubs.size <= 1) { toast('Keep at least one source'); break; } if (k === 'P') S.pyq = !S.pyq; else if (on) S.pubs.delete(k); else S.pubs.add(k); S.picked = []; update(); break; }
-    case 'exam': S.exam[k] = !S.exam[k]; if (!S.exam.Main && !S.exam.Adv && !S.exam.KCET) S.exam[k] = true; update(); break;
+    case 'exam': S.exam[k] = !S.exam[k]; if (!S.exam.Main && !S.exam.Adv && !S.exam.KCET && !S.exam.IAT && !S.exam.NDA) S.exam[k] = true; update(); break;
     case 'cls': S.cls[k] = !S.cls[k]; if (!S.cls[11] && !S.cls[12]) S.cls[k] = true; update(); break;
     case 'ch': toggle(S.ch, k); S.tp = new Set([...S.tp].filter(x => !S.ch.size || S.ch.has(x.split('|')[0]))); update(); break;
     case 'tp': toggle(S.tp, k); update(); break;
@@ -1475,8 +1506,8 @@ function onAct(e) {
     case 'liblv': { const n = LS.lv.includes(k) ? LS.lv.filter(x => x !== k) : LS.lv.concat(k); if (!n.length) { toast('Keep at least one level'); break; } LS.lv = ['L1', 'L2', 'L3'].filter(x => n.includes(x)); renderLib(); break; }
     case 'mall': case 'mnone': { const boxe = $('#' + k); boxe.querySelectorAll('.ml input').forEach(x => { x.checked = a === 'mall'; }); boxe.querySelector('.ml input') ? boxe.querySelector('.ml input').dispatchEvent(new Event('change')) : 0; break; }
     case 'libshow': showLibPrev(); break;
-    case 'libprint': printLib(); break;
-    case 'libshare': shareFileMenu(t); break;
+    case 'xprint': { const g = pdfSource(t); if (g) printFrom(g.get); break; }
+    case 'xshare': { const g = pdfSource(t); if (g) shareFrom(t, g.title, g.get); break; }
     case 'libshuffle': { LS.seed = 1 + Math.floor(Math.random() * 2147483000); showLibPrev(); toast('New set of questions'); break; }
     case 'libswap': { const r = dppCur(); if (dppSwap(r, k)) showLibPrev(); else toast('No other question can replace this one'); break; }
     case 'libpage': LS.page = +k; showLibPrev(); break;
@@ -1529,6 +1560,7 @@ async function copyText(txt) {
 function exportHost() { const hst = h('div', { 'data-exphost': '', style: 'position:absolute;left:-10000px;top:0;width:794px;background:#fff' }); document.body.append(hst); return hst; }
 async function shot(node, scale) {
   await document.fonts.ready;
+  await Promise.all([...node.querySelectorAll('img')].map(im => (im.decode ? im.decode().catch(() => {}) : Promise.resolve())));
   return window.html2canvas(node, { scale, backgroundColor: '#ffffff', logging: false, useCORS: true, onclone: d => { try { const ks = d.createElement('style'); ks.textContent = '.katex-mathml{display:none!important}'; d.head.appendChild(ks); } catch (e) { /* ignore */ } const x = d.querySelector('[data-exphost]'); if (x) { x.style.left = '0px'; x.style.top = '0px'; x.style.zIndex = '-1'; } } });
 }
 const ansText = q => (q.a || '\u2014').replace(/\\[()\[\]]/g, '');
@@ -1581,7 +1613,7 @@ async function doExport(kind, p0) {
   const pages = p0 && p0.pages ? p0.pages : p0 ? [p0] : testPages(), pk = p0 && p0.pages ? p0 : pages[0];
   if (!pages.length || !pages[0].qs.length) { toast('Add some questions first'); return; }
   if (!downloads) { toast('Downloads are not available in this view'); return; }
-  const btns = document.querySelectorAll('[data-act="exp"],[data-act="lexp"],[data-act="lexpall"],[data-act="pdfdl"],[data-act="libprint"],[data-act="libshare"]'); btns.forEach(b => { b.disabled = true; });
+  const btns = document.querySelectorAll('[data-act="exp"],[data-act="lexp"],[data-act="lexpall"],[data-act="pdfdl"],[data-act="xprint"],[data-act="xshare"]'); btns.forEach(b => { b.disabled = true; });
   const multi = pages.length > 1, file = fname(pk, '.' + kind);
   toast('Preparing ' + kind.toUpperCase() + '\u2026');
   if (kind !== 'pdf') {
@@ -1616,6 +1648,7 @@ async function doExport(kind, p0) {
     } else blob = kind === 'docx' ? await buildDocx(items, pk) : await buildPptx(items, pk);
     if (pk.onBlob) await pk.onBlob(blob, file); else { await downloads.save({ filename: file, data: blob }); toast('Saved ' + file); }
   } catch (e) {
+    if (pk.onFail) pk.onFail(e);
     if (e && e.code === 'declined') toast('Download cancelled');
     else toast('Export failed: ' + (e && e.message ? e.message : 'try again'));
   } finally { hst.remove(); btns.forEach(b => { b.disabled = false; }); }
@@ -1648,10 +1681,11 @@ async function buildEditable(kind, pages) {
   const ep0 = pages.filter(p => p.exp), eItems = ep0.length ? await explItems(ep0) : [], eLab = new Set(eItems.map(x => x.lab)).size > 1;
   for (const e of eItems) { e.lab = eLab ? e.lab : ''; e.fig = null; if (e.f && e.f.svg) { try { e.fig = await figPng(e.f); } catch (x) { /* skip the picture */ } } }
   if (pages.length > 1 && pages[0].kind === 'test') pages = [Object.assign({}, pages[0], { qs: [].concat(...pages.map(p => p.qs)), start: 0, pageOf: '' })];
-  await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b5.js'), loadScript(CDN.zip), kind === 'docx' ? loadScript(CDN.docx) : loadScript(CDN.pptx)]);
+  await Promise.all([loadScript('mathdoc.b3.js'), loadScript('office.b9.js'), loadScript(CDN.zip), kind === 'docx' ? loadScript(CDN.docx) : loadScript(CDN.pptx)]);
   const figs = {};
   for (const p of pages) for (const q of p.qs) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  const H = { CHMAP, DIFF, tagText, keyLine, figs, matchParts, expl: eItems };
+  let logo = null; try { const rs = await fetch('img/avanti-logo-dark.png'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl); logo = { data: new Uint8Array(await bl.arrayBuffer()), w: bm.width, h: bm.height, dataUrl: await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }) }; } } catch (e) { /* no logo file: skip */ }
+  const H = { CHMAP, DIFF, tagText, keyLine, figs, matchParts, expl: eItems, logo };
   return kind === 'docx' ? window.OfficeDoc.buildDocx(window.docx, window.JSZip, pages, H) : window.OfficeDoc.buildPptx(window.PptxGenJS, window.JSZip, pages, H);
 }
 
@@ -1862,9 +1896,9 @@ const THEME_ICONS = {
 function themeInit() { let m = null; try { m = localStorage.getItem(THEME_KEY); } catch (e) { m = null; } if (m === 'dark' || m === 'light') document.documentElement.setAttribute('data-theme', m); themeApply(themeNow()); }
 function themeToggle() { const m = themeNow() === 'dark' ? 'light' : 'dark'; themeApply(m); try { localStorage.setItem(THEME_KEY, m); } catch (e) { /* optional */ } }
 const GUIDE_HTML = (owner) => `
-<p class="gd-note">Before 2002 exams questions and solutions are in working mode and will take time to update.</p>
-<p class="gd-lead">The Math Teacher Dashboard is Avanti Fellows' one place for JEE Maths teaching material: a searchable question bank, ready-made DPPs, past-year papers, must-solve lists and revision handouts. Everything can be downloaded as Word, PDF or PowerPoint.</p>
-<nav class="gd-toc" aria-label="Guide sections"><a href="#gd-qb">Question Bank</a><a href="#gd-dpp">DPPs</a><a href="#gd-pyq">PYQs</a><a href="#gd-must">Must Solve</a><a href="#gd-ho">Handouts</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a>${owner ? '<a href="#gd-misc">Owner tools</a>' : ''}</nav>
+<p class="gd-note">Questions and solutions for exams before 2000 are in working mode and will take time to update.</p>
+<p class="gd-lead">The Mathematics Dashboard is Avanti Fellows' one place for JEE Maths teaching material: a searchable question bank, ready-made DPPs, past-year papers, must-solve lists and revision handouts. Everything can be downloaded as Word, PDF or PowerPoint.</p>
+<nav class="gd-toc" aria-label="Guide sections"><a href="#gd-qb">Question Bank</a><a href="#gd-dpp">DPPs</a><a href="#gd-pyq">PYQs</a><a href="#gd-must">Must Solve</a><a href="#gd-ho">Handouts</a><a href="#gd-dates">Exam dates</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a>${owner ? '<a href="#gd-misc">Owner tools</a>' : ''}</nav>
 <h3 id="gd-qb">1. Question Bank</h3>
 <p>Every question in one list: JEE Main, JEE Advanced, AIEEE and IIT-JEE previous-year questions (PYQs) plus practice questions from different sources.</p>
 <ul>
@@ -1883,11 +1917,14 @@ const GUIDE_HTML = (owner) => `
 </ul>
 <p>Pick one or many chapters, see the live preview page by page, and download. Turn on "Answer Key" to add answers on a separate page and "Explanation" to add the full solutions.</p>
 <h3 id="gd-pyq">3. PYQs</h3>
-<p>Past-year papers in two forms: <b>Question Paper</b> (a full shift paper by date and shift, in paper order) and <b>Chapterwise</b> (all PYQs of a chapter). Pick JEE Main, JEE Advanced or KCET, preview, then download.</p>
+<p>Past-year papers in two forms: <b>Question Paper</b> (a full shift paper by date and shift, in paper order) and <b>Chapterwise</b> (all PYQs of a chapter). Pick JEE Main, JEE Advanced, KCET, IAT or NDA, preview, then download.</p>
 <h3 id="gd-must">4. Must Solve</h3>
 <p>Questions that came again and again in JEE, in the same or a very similar form, plus questions that are sure to come. Choose chapters with the tick-box list. Inside a chapter, questions are grouped by topic; each group shows a note on why it matters (<i>Sure-shot</i>, <i>Must know</i>) and in which years the question came. Tick and download like the Question Bank.</p>
 <h3 id="gd-ho">5. Handouts</h3>
 <p>Short revision notes chapter by chapter (PDF). Preview each page, switch to the black-and-white print version with the half-filled circle icon, maximise to read, or download.</p>
+<h3 id="gd-dates">Exam dates</h3>
+<p>Dates of every exam whose papers are in the bank. New exams are added to this table when they are uploaded.</p>
+<div id="gd-dates-box" style="max-height:340px;overflow:auto;border:1px solid var(--color-border-line,#ccc);border-radius:8px">Loading…</div>
 <h3 id="gd-exp">Downloads</h3>
 <ul>
 <li><b>Word</b> is fully editable, with real equations. <b>PowerPoint</b> is editable too. <b>PDF</b> is ready to print.</li>
@@ -1920,7 +1957,34 @@ function guideOpen() {
       h('div', { class: 'gd-body', html: GUIDE_HTML(IS_OWNER === true) })));
   document.body.append(m);
   m.querySelectorAll('.gd-toc a').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); const t = m.querySelector(a.getAttribute('href')); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }));
+  guideDates(m);
   const x = m.querySelector('.gd-x'); if (x) x.focus();
+}
+function guideDates(m) {
+  const box = m.querySelector('#gd-dates-box'); if (!box) return;
+  const esc = t => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  box.style.cssText = 'max-height:none;overflow:visible;border:0';
+  fetch('qb/data/examdates.json').then(r => { if (!r.ok) throw new Error('dates'); return r.json(); }).then(d => {
+    const exams = d.exams || []; let cur = 0;
+    const line = 'var(--color-border-line,#d8d2c4)', mute = 'var(--color-text-secondary,#6E6757)';
+    const draw = () => {
+      const ex = exams[cur] || { rows: [] };
+      let h = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px">' + exams.map((e, i) => '<button type="button" data-ex="' + i + '" style="cursor:pointer;font:inherit;font-size:12.5px;padding:4px 12px;border-radius:999px;border:1px solid ' + (i === cur ? 'transparent' : line) + ';background:' + (i === cur ? 'var(--color-fg,#1c1a16)' : 'transparent') + ';color:' + (i === cur ? 'var(--color-bg,#fff)' : 'inherit') + '">' + esc(e.name) + '</button>').join('') + '</div>';
+      if (ex.sub) h += '<div style="font-size:12px;color:' + mute + ';margin:0 0 8px">' + esc(ex.sub) + ' · ' + (ex.rows || []).length + ' years</div>';
+      h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px">';
+      (ex.rows || []).forEach(r => {
+        h += '<div style="border:1px solid ' + line + ';border-radius:10px;padding:8px 10px"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">' + esc(r.y) + '</b>' + (r.v ? '<span title="Checked against official or news sources" style="font-size:11px;color:#2f7d4f">✓ checked</span>' : '<span title="As stored in the bank, not checked online" style="font-size:11px;color:' + mute + '">from bank</span>') + '</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">';
+        if (!(r.d || []).length) h += '<span style="font-size:12px;color:' + mute + ';font-style:italic">Date not added yet</span>';
+        (r.d || []).forEach(x => { h += '<span style="font-size:12px;border-radius:6px;padding:2px 7px;background:var(--color-bg-subtle,rgba(127,127,127,.12))">' + esc(x[0]) + (x[1] ? ' <span style="color:' + mute + '">· ' + esc(x[1]) + '</span>' : '') + '</span>'; });
+        h += '</div></div>';
+      });
+      h += '</div>';
+      if (d.note) h += '<p style="font-size:12px;color:' + mute + ';margin:10px 0 0">' + esc(d.note) + (d.asof ? ' Updated ' + esc(d.asof) + '.' : '') + '</p>';
+      box.innerHTML = h;
+      box.querySelectorAll('button[data-ex]').forEach(b => b.addEventListener('click', () => { cur = +b.getAttribute('data-ex'); draw(); }));
+    };
+    draw();
+  }).catch(() => { box.textContent = 'The dates could not load. Please refresh the page.'; });
 }
 function guideClose() { const m = document.getElementById('guideModal'); if (m) m.remove(); const b = document.getElementById('guideBtn'); if (b) b.focus(); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('guideModal')) guideClose(); });
@@ -1934,11 +1998,11 @@ function buildShell() {
   root.append(
     h('div', { class: 'shell' },
       h('header', { class: 'topbar' },
-        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/avanti-logo.png', alt: 'Avanti Fellows', width: 150, height: 51 }), h('h1', { class: 'tb-title', text: 'Math Teacher Dashboard' }), h('span', { class: 'tb-sub', text: 'JEE Mathematics \u00b7 Question Bank, DPPs, Tests and Handouts' })),
+        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/avanti-logo.png', alt: 'Avanti Fellows', width: 150, height: 51 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: "JEE, CET, NDA, IAT, PYQ's, DPP's, Handouts" })),
         h('button', { type: 'button', class: 'tb-theme', id: 'themeBtn', 'data-act': 'theme', 'aria-pressed': 'false' }),
         h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
         h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),
-        h('div', { class: 'tb-pop', id: 'qbPop', hidden: true, role: 'menu' }, [['heroov', 'JEE Maths PYQ bank: question counts'], ['overview', 'Chapter-wise count'], ['wchart', 'Chapter weightage']].map(([k, t]) => h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-qbpanel': k, text: t }))),
+        h('div', { class: 'tb-pop', id: 'qbPop', hidden: true, role: 'menu' }, [['heroov', 'Mathematics Bank: Question Counts'], ['overview', 'Chapter-wise Count'], ['wchart', 'Chapter Weightage']].map(([k, t]) => h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-qbpanel': k, text: t }))),
         h('nav', { class: 'tb-menu' }, tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), miscMenu())),
       h('main', { class: 'main' },
         h('div', { id: 'viewQb', class: 'qbhost' }),
@@ -1953,11 +2017,11 @@ function buildShell() {
         h('div', { id: 'viewRes', class: 'resview', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewSyl', class: 'sy-wrap', hidden: true })),
       h('footer', { class: 'app-foot', id: 'appFoot' },
-        h('span', { class: 'af-brand', text: 'Avanti Fellows \u00b7 Math Teacher Dashboard' }),
+        h('span', { class: 'af-brand' }, 'Made with ', h('span', { class: 'af-heart', style: 'color:#e11d48', 'aria-label': 'love', text: '\u2665' }), ' by Ankit'),
         h('span', { class: 'af-ver', id: 'appFootVer' }),
         h('span', { class: 'af-link', id: 'appFootLink' }))));
   if (!document.getElementById('app-fit-css')) { const fs2 = document.createElement('style'); fs2.id = 'app-fit-css'; fs2.textContent = 'html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}.tb-menu{max-width:100%}.katex-mathml{max-width:1px!important;overflow:hidden!important}'; document.head.appendChild(fs2); }
-  if (!document.getElementById('app-foot-css')) { const st = document.createElement('style'); st.id = 'app-foot-css'; st.textContent = '.app-foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 14px;margin:28px auto 0;padding:14px 16px 20px;border-top:1px solid var(--color-border-line,rgba(128,128,128,.28));font-size:12px;line-height:1.4;letter-spacing:.02em;color:var(--color-fg-muted,#6b7280)}.app-foot .af-brand{font-weight:600}.app-foot .af-ver:not(:empty)::before,.app-foot .af-link:not(:empty)::before{content:"|";margin-right:14px;opacity:.45}.app-foot .qb-sstat-link{font:inherit;color:inherit;text-decoration:none;cursor:pointer;border-bottom:1px dotted currentColor;padding:0}.app-foot .qb-sstat-link:hover{color:var(--color-fg,#111);border-bottom-style:solid}'; document.head.append(st); }
+  if (!document.getElementById('app-foot-css')) { const st = document.createElement('style'); st.id = 'app-foot-css'; st.textContent = '.app-foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 14px;margin:28px auto 0;padding:14px 16px 20px;border-top:1px solid var(--color-border-line,rgba(128,128,128,.28));font-size:12px;line-height:1.4;letter-spacing:.02em;color:var(--color-fg-muted,#6b7280)}.app-foot .af-brand{font-weight:600;order:3;flex-basis:100%;text-align:center;margin-top:8px}.app-foot .af-ver::before{display:none!important}.app-foot .af-ver:not(:empty)::before,.app-foot .af-link:not(:empty)::before{content:"|";margin-right:14px;opacity:.45}.app-foot .qb-sstat-link{font:inherit;color:inherit;text-decoration:none;cursor:pointer;border-bottom:1px dotted currentColor;padding:0}.app-foot .qb-sstat-link:hover{color:var(--color-fg,#111);border-bottom-style:solid}'; document.head.append(st); }
 }
 function buildLib() {
   if (!document.getElementById('dpp-css')) { const st = document.createElement('style'); st.id = 'dpp-css'; st.textContent = '.dslide{width:100%;margin:6px 0 2px;accent-color:#16306b;cursor:pointer}.dslide:disabled{opacity:.4;cursor:not-allowed}.dticks{display:flex;justify-content:space-between;gap:6px;font-size:12px;font-weight:600;color:var(--muted,#6b7280)}.dticks span:nth-child(2){text-align:center}.dticks span:last-child{text-align:right}.dswap{position:absolute;top:1.9em;left:0;z-index:3;width:23px;height:23px;display:flex;align-items:center;justify-content:center;font:700 13px/1 system-ui,sans-serif;padding:0;border-radius:999px;border:1px solid #c9d1e3;background:#fff;color:#1f3f95;cursor:pointer;opacity:.85}.dswap:hover{opacity:1;background:#e8eefc}'; document.head.append(st); }
@@ -1984,8 +2048,7 @@ function buildLib() {
         h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'docx', title: 'Download Word (editable)', 'aria-label': 'Download Word (editable)', html: FIMG.docx }),
         h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'pdf', title: 'Download PDF', 'aria-label': 'Download PDF', html: FIMG.pdf }),
         h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'pptx', title: 'Download PowerPoint (editable)', 'aria-label': 'Download PowerPoint (editable)', html: FIMG.pptx }),
-        h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'libprint', title: 'Print', 'aria-label': 'Print', html: ICO.print }),
-        h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'libshare', title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share the PDF', html: ICO.share })),
+        prtBtn('lib'), shrBtn('lib')),
       h('div', { class: 'stage' }, h('div', { class: 'statbar' }, h('div', { class: 'msg', id: 'libMsg', 'aria-live': 'polite' }),
         h('button', { type: 'button', class: 'btn', 'data-act': 'libshuffle', title: 'Pick a different set of questions for the same settings', text: '\u21bb Shuffle questions' }),
         h('div', { class: 'pgbtns', id: 'libPages', hidden: true })),
@@ -1998,16 +2061,16 @@ function step(n, title, help, ...kids) {
 /* Whole shift paper: take every question of one past paper, in paper order, as a 3 hour test */
 function paperList() {
   const m = new Map();
-  (BANK && BANK.all || []).forEach(q => { if (q.s !== 'P' || !q.p || !(/shift/i.test(q.p) || q.e === 'KCET')) return; const g = m.get(q.p) || { p: q.p, e: q.e, ids: [] }; g.ids.push(q.i); m.set(q.p, g); });
-  const dt = p => { const d = Date.parse(p.replace(/\s*shift.*$/i, '')); return isNaN(d) ? 0 : d; };
+  (BANK && BANK.all || []).forEach(q => { if (q.s !== 'P' || !q.p || !(/shift/i.test(q.p) || q.e === 'KCET' || q.e === 'IAT' || q.e === 'NDA')) return; const g = m.get(q.p) || { p: q.p, e: q.e, ids: [] }; g.ids.push(q.i); m.set(q.p, g); });
+  const dt = p => { const d = Date.parse(p.replace(/\s*shift.*$/i, '').replace(/\s*(Screening|Mains|Paper\s*\d)\s*$/i, '').replace(/\s*\(NDA[^)]*\)\s*$/, '')); return isNaN(d) ? 0 : d; };
   return [...m.values()].filter(g => g.ids.length >= 5).sort((a, b) => dt(b.p) - dt(a.p) || (/shift\s*(\d)/i.exec(b.p) || [])[1] - (/shift\s*(\d)/i.exec(a.p) || [])[1]);
 }
-const qnoOf = id => { const m = /P(\d+)$/.exec(id) || /(\d\d)$/.exec(id); return m ? +m[1] : 0; };
+const qnoOf = id => { const m = /^NDA\d{8}(\d{3})$/.exec(id) || /P(\d+)$/.exec(id) || /(\d\d)$/.exec(id); return m ? +m[1] : 0; };
 function paperUi() {
   const sel = $('#paperSel'); if (!sel) return;
   if (!sel.dataset.ready && BANK) {
     sel.dataset.ready = '1'; sel.textContent = '';
-    [['Main', 'JEE Main / AIEEE'], ['Adv', 'JEE Advanced / IIT-JEE'], ['KCET', 'KCET']].forEach(([e, lab]) => {
+    [['Main', 'JEE Main / AIEEE'], ['Adv', 'JEE Advanced / IIT-JEE'], ['KCET', 'KCET'], ['IAT', 'IAT'], ['NDA', 'NDA']].forEach(([e, lab]) => {
       const og = h('optgroup', { label: lab }); paperList().filter(g => g.e === e).forEach(g => og.append(h('option', { value: g.p, text: g.p + ' \u00b7 ' + g.ids.length + ' Qs' }))); if (og.children.length) sel.append(og);
     });
   }
@@ -2019,7 +2082,7 @@ function usePaper(label) {
   const ids = g.ids.slice().sort((a, b) => qnoOf(a) - qnoOf(b)).filter(i => BYID.has(i));
   if (!ids.length) { toast('No questions found for this paper'); return; }
   S.paper = { label, ids }; S.picked = ids.slice(); S.count = ids.length; S.order = false;
-  const kc = g.e === 'KCET'; S.title = (kc ? 'KCET ' : g.e === 'Adv' ? 'JEE Advanced ' : 'JEE Main ') + label; S.mins = kc ? 80 : 180; S.pos = kc ? 1 : 4; S.neg = kc ? 0 : 1;
+  const kc = g.e === 'KCET', ia = g.e === 'IAT', nd = g.e === 'NDA'; S.title = (nd ? '' : ia ? 'IAT ' : kc ? 'KCET ' : g.e === 'Adv' ? 'JEE Advanced ' : 'JEE Main ') + (nd ? label.replace(/^(.*?)\s*\((NDA[^)]*)\)\s*$/, '$2 $1') : label); S.mins = nd ? 150 : ia ? 45 : kc ? 80 : 180; S.pos = nd ? 2.5 : ia ? 4 : kc ? 1 : 4; S.neg = nd ? 0.83 : ia ? 1 : kc ? 0 : 1;
   [['fTitle', S.title], ['fMins', S.mins], ['fPos', S.pos], ['fNeg', S.neg], ['fCount', S.count]].forEach(([id, v]) => { const el = $('#' + id); if (el) el.value = v; });
   const o = $('#tOrder'); if (o) o.checked = false;
   paperUi(); renderPreview();
@@ -2029,7 +2092,7 @@ function usePaper(label) {
 function buildRail() {
   const num = (id, key, min, max, step) => h('input', { type: 'number', id, min, max, step: step || 1, value: S[key], oninput: e => { const v = parseFloat(e.target.value); if (!isNaN(v)) { S[key] = v; if (key === 'mins' || key === 'pos' || key === 'neg') renderPreview(); } } });
   return h('div', { class: 'rail' },
-    h('div', { class: 'card' }, h('h3', { text: 'Or use a whole shift paper' }), h('p', { class: 'hint', text: 'Pick a past paper by date and shift. All its questions come in paper order with 180 minutes, +4 and \u22121. Change anything below, then press Save test.' }),
+    h('div', { class: 'card' }, h('h3', { text: 'Or use a whole shift paper' }), h('p', { class: 'hint', text: 'Pick a past paper by date and shift. All its questions come in paper order with 180 minutes, +4 and \u22121 (KCET, IAT and NDA use their own time and marking: NDA is 150 minutes, +2.5 and \u22120.83). Change anything below, then press Save test.' }),
       h('div', { class: 'row' }, h('select', { id: 'paperSel', class: 'rs-sel', 'aria-label': 'Shift paper' }), h('button', { type: 'button', class: 'btn pri', 'data-act': 'paperuse', text: 'Use this paper' })),
       h('p', { class: 'hint papon', id: 'paperOn', hidden: true }), h('button', { type: 'button', class: 'btn sm', id: 'paperOff', 'data-act': 'paperoff', hidden: true, text: 'Switch off, pick questions normally' })),
     h('div', { class: 'card' }, h('h3', { text: 'Pick your questions' }), h('p', { class: 'hint lead', text: 'Work down the steps. The number on each chip shows how many questions it has.' }),
@@ -2050,7 +2113,7 @@ function buildRail() {
         field('Date', 'fDate', h('input', { type: 'date', id: 'fDate', value: S.date, oninput: e => { S.date = e.target.value; renderPreview(); } })),
         field('Batch', 'fBatch', h('input', { type: 'text', id: 'fBatch', placeholder: 'e.g. JEE 2027 \u00b7 Batch A', value: S.batch, oninput: e => { S.batch = e.target.value; renderPreview(); } }))),
       h('div', { 'data-testonly': '', class: 'row' },
-        field('Time (minutes)', 'fMins', num('fMins', 'mins', 1, 300)), field('Marks per correct', 'fPos', num('fPos', 'pos', 1, 10)), field('Marks lost if wrong', 'fNeg', num('fNeg', 'neg', 0, 10, 0.25))),
+        field('Time (minutes)', 'fMins', num('fMins', 'mins', 1, 300)), field('Marks per correct', 'fPos', num('fPos', 'pos', 1, 10, 'any')), field('Marks lost if wrong', 'fNeg', num('fNeg', 'neg', 0, 10, 'any'))),
       null),
     h('div', { class: 'card' }, h('h3', { text: 'Page' }),
       h('div', { class: 'row' }, field('Number of questions', 'fCount', h('input', { type: 'number', id: 'fCount', min: 1, max: 100, value: S.count, oninput: e => { const v = parseInt(e.target.value, 10); if (v >= 1 && v <= 100) { S.count = v; renderPreview(); } } }))),
@@ -2068,6 +2131,7 @@ function buildStage() {
       h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'exp', 'data-k': 'docx', title: 'Download Word (editable)', 'aria-label': 'Download Word (editable)', html: FIMG.docx }),
       h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'exp', 'data-k': 'pdf', title: 'Download PDF', 'aria-label': 'Download PDF', html: FIMG.pdf }),
       h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'exp', 'data-k': 'pptx', title: 'Download PowerPoint (editable)', 'aria-label': 'Download PowerPoint (editable)', html: FIMG.pptx }),
+      prtBtn('test'), shrBtn('test'),
       h('span', { class: 'hint', text: 'PDF is a print-ready copy. Word and PowerPoint are fully editable: text is text, and every formula is a native equation you can click and change.' })),
     h('div', { class: 'testbox' },
       h('h3', { text: 'Save this test' }),
