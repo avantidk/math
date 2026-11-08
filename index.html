@@ -12,7 +12,7 @@
 (function(){
   var origFetch=window.fetch.bind(window);
   var CACHEABLE=/^(qb\/data\/|qb\/qb[.\-]|bank(-meta)?\.json|must\.json|syllabus\.json|handouts\/index\.json|katex\.css|teacher[.\-]|app\.js)/;
-  var BUILD='715'; /* bump on every publish: a new build starts a fresh page cache so new code shows on the first reload */
+  var BUILD='716'; /* bump on every publish: a new build starts a fresh page cache so new code shows on the first reload */
   var cachep=null; try{ if(window.caches){ cachep=window.caches.open('avanti-teacher-b'+BUILD).catch(function(){return null;}); window.caches.keys().then(function(ks){ ks.forEach(function(k){ if(/^avanti-teacher-/.test(k)&&k!=='avanti-teacher-b'+BUILD) window.caches.delete(k); }); }).catch(function(){}); } }catch(e){ cachep=null; }
   var inflight={}, refreshed={};
   function net(url){
