@@ -201,3 +201,48 @@ html body .gd-toc a{padding:6px 13px;border-radius:999px;border:1px solid var(--
 html body .gd-toc a:hover{background:var(--accent-soft)}
 html body .gd-foot{margin-top:24px;color:var(--muted);font-size:13px;text-align:center}
 @media (max-width:760px){html body .gd-body{padding:6px 16px 20px;font-size:14.5px}html body .gd-top h2{font-size:19px}}
+
+/* ---------- b3: topic list on one line per subtopic ---------- */
+html body .qb-sbar #topic-filter .qb-ms-panel{width:min(34rem,calc(100vw - 56px));max-width:none;overflow-x:auto}
+html body .qb-sbar #topic-filter .qb-ms-list{width:max-content;min-width:100%}
+html body .qb-sbar #topic-filter .qb-ms-item{white-space:nowrap;align-items:center;gap:10px}
+html body .qb-sbar #topic-filter .qb-ms-item span:not(.n){flex:1 1 auto;white-space:nowrap}
+html body .qb-sbar #topic-filter .qb-ms-item .n{flex:none;padding-left:14px}
+html body .qb-sbar #topic-filter .qb-ms-grp{white-space:nowrap}
+html body .qb-sbar #topic-filter .qb-ms-tools input{min-width:7rem}
+html body .qb-sbar #topic-filter .qb-ms-tools{position:sticky;left:0}
+
+/* ---------- b3: PYQ chooser, proper dark mode ---------- */
+html body .pyqpick{background:var(--panel);border:1px solid var(--rule);padding:16px}
+html body .pyqbar{background:transparent;border:0;border-radius:0;padding:0;gap:12px}
+html body .pyqbar .lbl{color:var(--muted);letter-spacing:.1em}
+html body .pyqopt{background:var(--field);color:var(--ink)}
+html body .pyqopt span{color:var(--muted);opacity:1}
+html body .pyqopt[aria-pressed=true] span,html body .pyqopt.on span{color:var(--body)}
+html body .pyqopt b,html body .pyqopt strong{color:var(--ink)}
+html body .pyqopt[aria-pressed=true],html body .pyqopt.on{color:var(--ink)}
+html body .pyqpick>.hint{color:var(--muted)}
+
+/* ---------- b3: Syllabus Priority is public, so it follows the theme ---------- */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sy-wrap{--sy-fg:#e9eefb;--sy-muted:#8c9ab6;--sy-rule:#212e4a;--sy-surface:#111a30;--sy-accent:#8aa9ff;--sy-accent-soft:#17264a;--sy-zero:#5b6783}:root:not([data-theme="light"]) .sy-wrap .sy-p-high{color:#0a1122}:root:not([data-theme="light"]) .sy-wrap .sy-chg-down{color:#e8935f}}
+:root[data-theme="dark"] .sy-wrap{--sy-fg:#e9eefb;--sy-muted:#8c9ab6;--sy-rule:#212e4a;--sy-surface:#111a30;--sy-accent:#8aa9ff;--sy-accent-soft:#17264a;--sy-zero:#5b6783}
+:root[data-theme="dark"] .sy-wrap .sy-p-high{color:#0a1122}
+:root[data-theme="dark"] .sy-wrap .sy-chg-down{color:#e8935f}
+
+/* b3: the Topics picker takes a full line, like Chapters, so a chosen subtopic reads on one long line */
+html body .qb-sbar .qb-frow>#topic-filter{grid-column:1/-1;width:100%}
+html body .qb-sbar #topic-filter .qb-ms-btn{white-space:normal;text-align:left;line-height:1.3}
+html body .qb-sbar #topic-filter .qb-ms-panel{width:100%}
+
+/* b3: subtopic codes (CMS) in the topic list */
+html body .qb-sbar #topic-filter .qb-ms-item span.code{flex:none;min-width:6.4em;white-space:nowrap;font-size:12px;font-weight:600}
+/* b3: with the code in front, long subtopic names wrap inside the list instead of being cut off */
+html body .qb-sbar #topic-filter .qb-ms-panel{overflow-x:hidden}
+html body .qb-sbar #topic-filter .qb-ms-list{width:auto;min-width:0}
+html body .qb-sbar #topic-filter .qb-ms-item{white-space:normal;align-items:flex-start}
+html body .qb-sbar #topic-filter .qb-ms-item span:not(.n):not(.code){white-space:normal;min-width:0;line-height:1.35}
+html body .qb-sbar #topic-filter .qb-ms-item input{margin-top:2px}
+
+/* b3: no search boxes inside the chapter and topic pickers */
+html body .qb-ms-search{display:none!important}
+html body .qb-ms-tools{justify-content:flex-start}

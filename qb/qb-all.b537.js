@@ -407,8 +407,8 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   }
 
   function metaLine(q) {
-    if (q.source === 'Non-PYQ') return 'Practice · ' + (q.publisher || 'VMC') + (q.ref_year ? ' [' + q.ref_year + ']' : '') + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + q.topic : '') + ' · ' + q.difficulty;
-    return q.exam + (q.year ? ' ' + q.year : '') + ' · ' + q.paper + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + q.topic : '') + ' · ' + q.difficulty + (q.attention ? ' · NEEDS ATTENTION' : '');
+    if (q.source === 'Non-PYQ') return 'Practice · ' + (q.publisher || 'VMC') + (q.ref_year ? ' [' + q.ref_year + ']' : '') + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' ' : '') + q.topic : '') + ' · ' + q.difficulty;
+    return q.exam + (q.year ? ' ' + q.year : '') + ' · ' + q.paper + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' ' : '') + q.topic : '') + ' · ' + q.difficulty + (q.attention ? ' · NEEDS ATTENTION' : '');
   }
 
   /* ================= WORD ================= */
@@ -1198,7 +1198,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
       meta.appendChild(el('span', 'qb-date', q.exam === 'JEE Main' || !q.year || String(q.paper).indexOf(String(q.year)) >= 0 ? q.paper : q.paper + ' · ' + q.year));
     }
     var bTop = null, bTyp = icoBtn('list', q.type, true);
-    if (q.topic) { var tnum = /-(\d+M[\d.]+)$/.exec(q.topic_code || ''); bTop = icoBtn('tag', (tnum ? 'c' + tnum[1] + ' · ' : '') + q.topic, true); }
+    if (q.topic) { bTop = icoBtn('tag', (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' · ' : '') + q.topic, true); }
     var bId = icoBtn('hash', 'ID: ' + q.id, true); bId.classList.add('idg'); bId.title = 'Tap to copy the question ID';
     bId.addEventListener('click', function () {
       var t = q.id, tip = 'ID: ' + t, ok = function () { flash(bId, 'Copied ' + t); };
@@ -1683,7 +1683,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
         var lab = el('label', 'qb-ms-item' + (counts[t.topic_code] ? '' : ' zero'));
         var cb = el('input'); cb.type = 'checkbox'; cb.checked = S.tp.has(t.topic_code);
         cb.addEventListener('change', function () { if (cb.checked) S.tp.add(t.topic_code); else S.tp.delete(t.topic_code); apply(); });
-        lab.appendChild(cb); lab.appendChild(el('span', null, t.topic)); lab.appendChild(el('span', 'n', String(counts[t.topic_code] || 0)));
+        lab.appendChild(cb); if (!/^UNMAPPED/.test(t.topic_code)) lab.appendChild(el('span', 'code', t.topic_code.replace(/^JM-/, ''))); lab.appendChild(el('span', null, t.topic)); lab.appendChild(el('span', 'n', String(counts[t.topic_code] || 0)));
         tpList.appendChild(lab);
       });
     });
@@ -1755,7 +1755,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     var exams = uniq(qs.map(function (q) { return q.exam; }));
     var years = uniq(qs.filter(function (q) { return q.year; }).map(function (q) { return String(q.year); })).sort();
     var parts = [];
-    if (chs.length === 1) { var c = CHMAP[chs[0]]; parts.push('c' + chs[0] + ' ' + (c ? c.chapter : qs[0].chapter)); }
+    if (chs.length === 1) { var c = CHMAP[chs[0]]; parts.push(chs[0] + ' ' + (c ? c.chapter : qs[0].chapter)); }
     else parts.push('Maths');
     if (years.length === 1) parts.push(years[0]); else if (years.length > 1) parts.push(years[0] + '-' + years[years.length - 1]);
     if (exams.length === 1) parts.push(exams[0] === 'JEE Main' ? 'JEE Mains' : exams[0]);
@@ -1808,7 +1808,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     tf.hidden = !S.ch.size;
     if (wasHidden && !tf.hidden) tf.classList.add('ask');
     if (tf.hidden) { tpPanel.hidden = true; tf.classList.remove('ask'); }
-    tpBtn.textContent = S.tp.size === 0 ? 'All topics' : S.tp.size === 1 ? (TOPICS.filter(function (t) { return S.tp.has(t.topic_code); })[0] || { topic: '1 topic' }).topic : S.tp.size + ' topics';
+    tpBtn.textContent = S.tp.size === 0 ? 'All topics' : S.tp.size === 1 ? (function (t0) { return t0 ? (/^UNMAPPED/.test(t0.topic_code) ? '' : t0.topic_code.replace(/^JM-/, '') + ' ') + t0.topic : '1 topic'; })(TOPICS.filter(function (t) { return S.tp.has(t.topic_code); })[0]) : S.tp.size + ' topics';
     drawTpList();
     updateFlagCol();
     var pills = $('.qb-pills'); pills.replaceChildren();
@@ -1818,7 +1818,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
       pills.appendChild(p);
     });
     TOPICS.filter(function (t) { return S.tp.has(t.topic_code); }).forEach(function (t) {
-      var p = el('button', 'qb-pill tp', t.topic + ' ×'); p.type = 'button'; p.setAttribute('aria-label', 'Remove topic ' + t.topic);
+      var p = el('button', 'qb-pill tp', (/^UNMAPPED/.test(t.topic_code) ? '' : t.topic_code.replace(/^JM-/, '') + ' ') + t.topic + ' ×'); p.type = 'button'; p.setAttribute('aria-label', 'Remove topic ' + t.topic);
       p.addEventListener('click', function () { S.tp.delete(t.topic_code); apply(); });
       pills.appendChild(p);
     });
@@ -1845,7 +1845,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
         var c = CHMAP[cur], all = byChapter[cur];
         var head = el('div', 'qb-ghead');
         head.id = 'ch-' + cur;
-        head.appendChild(el('span', 'code', 'c' + cur));
+        head.appendChild(el('span', 'code', cur));
         head.appendChild(el('h2', null, c ? c.chapter : q.chapter));
         head.appendChild(el('span', 'n', all.length + (all.length === 1 ? ' question' : ' questions')));
         var lab = el('label'), cb = el('input'); cb.type = 'checkbox'; cb.dataset.ids = all.map(function (x) { return x.id; }).join(',');
@@ -1937,7 +1937,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
       var pct = total ? (r.n / total * 100) : 0;
       row.title = r.c.chapter_code + ' ' + r.c.chapter + ': ' + r.n + ' questions (JEE Main ' + r.main + ', JEE Advanced ' + r.adv + '). Click to list them.';
       row.appendChild(el('span', 'qb-wc-rk', WC.sort === 'count' ? '#' + r.rank : ''));
-      var lb = el('span', 'qb-wc-lbl', r.c.chapter); lb.appendChild(el('small', null, r.c.chapter_code + ' · Class ' + r.c['class']));
+      var lb = el('span', 'qb-wc-lbl', r.c.chapter_code + ' ' + r.c.chapter); lb.appendChild(el('small', null, r.c.chapter_code + ' · Class ' + r.c['class']));
       row.appendChild(lb);
       var tr = el('span', 'qb-wc-track'), f = el('span', 'qb-wc-seg ' + r.band); f.style.width = (r.n / top * 100) + '%'; tr.appendChild(f);
       row.appendChild(tr);

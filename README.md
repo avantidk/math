@@ -6,6 +6,6 @@ Source files of the Math Teacher Dashboard artifact (https://claude.ai/artifact/
 - `teacher.js`, `app.js`, `app.css`: dashboard code and styles
 - `qb/`: question bank page, code and data (PYQ, non-PYQ, solutions, figures)
 - `handouts/`: chapter handout PDFs
-- `*.bNNN.js` / `*.bNNN.html`: build versions. Only the ones the page loads are in git (`teacher.b528.js`, `qb/qb-all.b535.js`, `qb/qb.b525.html`, plus fallbacks `qb/qb.b491.html`, `qb/qb-all.b491.js`, `office.b9.js`, `mathdoc.b3.js`). Older builds stay in the artifact but are ignored by `.gitignore`.
+- `*.bNNN.js` / `*.bNNN.html`: build versions. Only the ones the page loads are in git (`teacher.b531.js`, `qb/qb-all.b537.js`, `qb/qb.b525.html`, plus fallbacks `qb/qb.b491.html`, `qb/qb-all.b491.js`, `office.b9.js`, `mathdoc.b3.js`). Older builds stay in the artifact but are ignored by `.gitignore`.
 
 Some features (sign-in, saving tests, the shared database) use the Claude artifact runtime and only work when the page runs as a claude.ai artifact.

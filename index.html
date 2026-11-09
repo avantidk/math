@@ -3,7 +3,7 @@
 <link rel="stylesheet" href="app.css">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="skin.b2.css">
+<link rel="stylesheet" href="skin.b3.css">
 <div id="app"><div style="padding:64px 16px;text-align:center;font-family:system-ui,sans-serif;color:#6E6757">Loading…</div></div>
 <noscript>This page needs JavaScript.</noscript>
 <script type="application/json" id="tests-data">[{"code":"T~eyJ0IjoiSkVFIE1haW4gMiBBcHIgMjAyNiBTaGlmdCAyIiwibSI6MTgwLCJwIjo0LCJuIjoxLCJlIjoiIn0~JM20260402201~JM20260402202~JM20260402203~JM20260402204~JM20260402205~JM20260402206~JM20260402207~JM20260402208~JM20260402209~JM20260402210~JM20260402211~JM20260402212~JM20260402213~JM20260402214~JM20260402215~JM20260402216~JM20260402217~JM20260402218~JM20260402219~JM20260402220~JM20260402221~JM20260402222~JM20260402223~JM20260402224~JM20260402225","title":"JEE Main 2 Apr 2026 Shift 2","n":25,"at":1793463979233},{"code":"T~eyJ0IjoiSW5kZWZpbml0ZSBJbnRlZ3JhdGlvbiBUZXN0IiwibSI6NjAsInAiOjQsIm4iOjEsImUiOiIifQ~BB-5-1-024~BB-5-1-030~BB-5-1-034~BB-5-1-020~BB-5-1-028~BB-5-1-029~BB-5-1-015~BB-5-1-105~BB-5-1-101~BB-5-1-027~BB-5-1-036~BB-5-1-094~BB-5-5-010~BB-5-5-001~BB-5-5-009~BB-5-5-004~BB-5-3-014~BB-5-3-002~BB-5-3-015~BB-5-3-001","title":"Indefinite Integration Test","n":20,"at":1793195353415},{"code":"T~eyJ0IjoiSkVFIE1haW4gNiBBcHIgMjAyNiBTaGlmdCAyIiwibSI6MTgwLCJwIjo0LCJuIjoxLCJlIjoiIn0~JM20260406201~JM20260406202~JM20260406203~JM20260406204~JM20260406205~JM20260406206~JM20260406207~JM20260406208~JM20260406209~JM20260406210~JM20260406211~JM20260406212~JM20260406213~JM20260406214~JM20260406215~JM20260406216~JM20260406217~JM20260406218~JM20260406219~JM20260406220~JM20260406221~JM20260406222~JM20260406223~JM20260406224~JM20260406225","title":"JEE Main 6 Apr 2026 Shift 2","n":25,"at":1793195285719},{"code":"T~eyJ0IjoiSkVFIE1haW4gOCBBcHIgMjAyNiBTaGlmdCAyIiwibSI6MTgwLCJwIjo0LCJuIjoxLCJlIjoiIn0~JM20260408201~JM20260408202~JM20260408203~JM20260408204~JM20260408205~JM20260408206~JM20260408207~JM20260408208~JM20260408209~JM20260408210~JM20260408211~JM20260408212~JM20260408213~JM20260408214~JM20260408215~JM20260408216~JM20260408217~JM20260408218~JM20260408219~JM20260408220~JM20260408221~JM20260408222~JM20260408223~JM20260408224~JM20260408225","title":"JEE Main 8 Apr 2026 Shift 2","n":25,"at":1792665868694},{"code":"T~eyJ0IjoiSW5kZWZpbml0ZSBJbnRlZ3JhdGlvbiBUZXN0IiwibSI6NjAsInAiOjQsIm4iOjEsImUiOiIifQ~JM20260123214~JM201804161P58~JM202009051P34~JM201904091P47~JM202304101P19~JM202304081P21~JM201504040P68~JM201604101P65~JM202009032P37~JM202102251P31~JM20260128110~AIEEE200505080P74~JM201901101P55~JM201604030P67~JM201901111P53~JM201904101P45~JM202401292P15~JM201901122P50~JM202009041P36~JM20260123118~JM201901091P57~JM202207292P24~JM202001081P41~JM202103181P29~JM202001091P40","title":"Indefinite Integration Test","n":25,"at":1792644960896}]</script>
@@ -12,7 +12,7 @@
 (function(){
   var origFetch=window.fetch.bind(window);
   var CACHEABLE=/^(qb\/data\/|qb\/qb[.\-]|bank(-meta)?\.json|must\.json|syllabus\.json|handouts\/index\.json|katex\.css|teacher[.\-]|app\.js)/;
-  var BUILD='716'; /* bump on every publish: a new build starts a fresh page cache so new code shows on the first reload */
+  var BUILD='728'; /* bump on every publish: a new build starts a fresh page cache so new code shows on the first reload */
   var cachep=null; try{ if(window.caches){ cachep=window.caches.open('avanti-teacher-b'+BUILD).catch(function(){return null;}); window.caches.keys().then(function(ks){ ks.forEach(function(k){ if(/^avanti-teacher-/.test(k)&&k!=='avanti-teacher-b'+BUILD) window.caches.delete(k); }); }).catch(function(){}); } }catch(e){ cachep=null; }
   var inflight={}, refreshed={};
   function net(url){
@@ -41,14 +41,14 @@
 "  try { const el = $('#tests-data'); TESTS = el ? JSON.parse(el.textContent) : []; } catch (e) { TESTS = []; }",
 "  const opts = { tests: TESTS, artifact: null, pageHtml, user: null };",
 "  try {",
-"    const code = await fetch('teacher.b528.js').then(r => { if (!r.ok) throw new Error('teacher.js'); return r.text(); });",
+"    const code = await fetch('teacher.b531.js').then(r => { if (!r.ok) throw new Error('teacher.js'); return r.text(); });",
 "    const s = document.createElement('script'); s.textContent = code; document.head.append(s);",
 "    if (!window.AvantiTeacher) throw new Error('teacher');",
 "  } catch (e) { const app = $('#app'); app.textContent = ''; app.append(h('div', { style: 'padding:48px 16px;text-align:center;font-family:system-ui,sans-serif' }, h('p', { text: 'The dashboard could not load. Please refresh the page.' }))); return; }",
 "  const get = (u, t) => fetch(u).then(r => { if (!r.ok) throw new Error(u); return t === 'text' ? r.text() : r.json(); });",
 "  const data = {}; ['topics', 'chapters'].forEach(n => { data[n] = get('qb/data/' + n + '.json'); });",
 "  const first = get('qb/data/first.json'); first.catch(() => {});",
-"  const html = get('qb/qb.b525.html', 'text'), js = get('qb/qb-all.b535.js', 'text');",
+"  const html = get('qb/qb.b525.html', 'text'), js = get('qb/qb-all.b537.js', 'text');",
 "  const kcss = fetch('katex.css').then(r => r.text()).catch(() => null), kjs = Promise.resolve().then(() => loadScript(CDN.katex)).catch(() => null);",
 "  /* first screen first: the big question files start only after the page code, the style sheet and the small first.json are in, so they never slow the first screen down */",
 "  const gate = Promise.all([first, html, js, kcss, kjs].map(p => Promise.resolve(p).catch(() => null)));",
@@ -77,5 +77,6 @@
   }).catch(fail);
 })();
 </script>
+
 
 </body></html>

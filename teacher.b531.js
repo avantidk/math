@@ -545,7 +545,7 @@ function levelFlat(groups) {
 const contHead = q => [q._t, q._l && q._l + ' questions'].filter(Boolean).join(' \u00b7 ') + ' (continued)';
 function buildPyqTopics() {
   PYQT = {};
-  Object.keys(BANK.syl || {}).forEach(cc => { PYQT[cc] = { topics: BANK.syl[cc].map(t => ({ no: t[0], name: t[1], qs: [] })), other: [] }; });
+  Object.keys(BANK.syl || {}).forEach(cc => { PYQT[cc] = { topics: BANK.syl[cc].map(t => ({ no: t[0], name: t[1], code: t[2], qs: [] })), other: [] }; });
   BANK.qs.forEach(q => {
     if (q.s !== 'P' || !PYQT[q.cc]) return;
     const c = PYQT[q.cc], t = c.topics.find(x => norm(x.name) === norm(q.tp)); (t ? t.qs : c.other).push(q);
@@ -633,8 +633,8 @@ function pyqYears(cc) { const c = PYQT[cc], a = c.other.concat(...c.topics.map(t
 function pyqPages(cc, id) {
   const key = 'p|' + cc + '|' + id + '|' + LS.yrs.join(',') + '|' + LS.ex.join(',') + '|' + LS.lv.join(''); if (BK[key]) return BK[key];
   const c = PYQT[cc], name = CHMAP.get(cc).n, out = [];
-  const list = id === 'all' ? c.topics.map(t => ({ label: 'Topic ' + t.no, name: t.name, qs: yf(t.qs) })).concat(c.other.length ? [{ label: 'Other', name: 'Other topics', qs: yf(c.other) }] : [])
-    : id === 'other' ? [{ label: 'Other', name: 'Other topics', qs: yf(c.other) }] : c.topics.filter(t => String(t.no) === id).map(t => ({ label: 'Topic ' + t.no, name: t.name, qs: yf(t.qs) }));
+  const list = id === 'all' ? c.topics.map(t => ({ label: t.code || ('Topic ' + t.no), name: t.name, qs: yf(t.qs) })).concat(c.other.length ? [{ label: 'Other', name: 'Other topics', qs: yf(c.other) }] : [])
+    : id === 'other' ? [{ label: 'Other', name: 'Other topics', qs: yf(c.other) }] : c.topics.filter(t => String(t.no) === id).map(t => ({ label: t.code || ('Topic ' + t.no), name: t.name, qs: yf(t.qs) }));
   if (id === 'all') {
     const flat = levelFlat(list.map(t => ({ label: t.label + ' \u00b7 ' + t.name, qs: t.qs })));
     if (flat.length) {
@@ -831,7 +831,7 @@ function renderLib() {
   syncOos();
   const was = LS.shown;
   const chOf = [...new Set(BANK.qs.map(q => q.cc))].filter(cc => CHMAP.get(cc)).sort((a, b) => chOrd2(a) - chOrd2(b));
-  LS.chs = mfill('libCh', chOf.map(cc => [cc, CHMAP.get(cc).n]), LS.chs, v => { LS.chs = v; renderLib(); }, 'chapters');
+  LS.chs = mfill('libCh', chOf.map(cc => [cc, cc + ' ' + CHMAP.get(cc).n]), LS.chs, v => { LS.chs = v; renderLib(); }, 'chapters');
   const multiCh = LS.chs.length > 1;
   /* sources: PYQ plus every practice source, all listed */
   const cnt = {}; BANK.qs.forEach(q => { if (LS.chs.includes(q.cc)) cnt[srcOf(q)] = (cnt[srcOf(q)] || 0) + 1; });
@@ -847,8 +847,8 @@ function renderLib() {
   /* subtopics of the picked chapters */
   const pool0 = dppPool(true), per = {}; pool0.forEach(q => { const k = topicKeyOf(q); per[k] = (per[k] || 0) + 1; });
   const items = []; LS.chs.slice().sort((a, b) => chOrd2(a) - chOrd2(b)).forEach(cc => {
-    const pre = multiCh ? CHMAP.get(cc).n + ' · ' : '';
-    ((BANK.syl || {})[cc] || []).forEach(t => items.push([cc + '|' + t[0], pre + 'Topic ' + t[0] + ' · ' + t[1] + ' (' + (per[cc + '|' + t[0]] || 0) + ')']));
+    const pre = multiCh ? cc + ' ' + CHMAP.get(cc).n + ' · ' : '';
+    ((BANK.syl || {})[cc] || []).forEach(t => items.push([cc + '|' + t[0], pre + t[2] + ' · ' + t[1] + ' (' + (per[cc + '|' + t[0]] || 0) + ')']));
     if (per[cc + '|other']) items.push([cc + '|other', pre + 'Other topics (' + per[cc + '|other'] + ')']);
   });
   const k = LS.chs.join(',');
@@ -986,7 +986,7 @@ function pdfPages(T, r) {
   const bucket = PDFT[T].bucket, sub = (T !== 'cw' && bucket === 'Adv' && r.qs[0] && r.qs[0].y && r.qs[0].y < 2013 ? 'IIT-JEE' : BUCKET_NAME[bucket]) + (T === 'cw' ? ' \u00b7 all topics' : '');
   let flat = [];
   if (T === 'cw') {
-    const c = PYQT[r.k], topics = c ? c.topics.map(t => ({ label: 'Topic ' + t.no, name: t.name, qs: t.qs.filter(q => q.e === bucket && cwYearOk(q)) })).concat([{ label: 'Other', name: 'Other topics', qs: c.other.filter(q => q.e === bucket && cwYearOk(q)) }]) : [{ label: '', name: 'All topics', qs: r.qs }];
+    const c = PYQT[r.k], topics = c ? c.topics.map(t => ({ label: t.code || ('Topic ' + t.no), name: t.name, qs: t.qs.filter(q => q.e === bucket && cwYearOk(q)) })).concat([{ label: 'Other', name: 'Other topics', qs: c.other.filter(q => q.e === bucket && cwYearOk(q)) }]) : [{ label: '', name: 'All topics', qs: r.qs }];
     topics.forEach(t => t.qs.forEach((q, i) => flat.push(Object.assign({}, q, { _pf: 1, _t: (t.label ? t.label + ' \u00b7 ' : '') + t.name, head: i === 0 ? (t.label ? t.label + ' \u00b7 ' : '') + t.name : '' }))));
   } else {
     r.qs.slice().sort((a, b) => chOrder(a.cc) - chOrder(b.cc)).forEach(q => flat.push(Object.assign({}, q, { _pf: 1, _t: '', head: '' }))); /* question paper: no chapter names, like a real paper */
@@ -1120,7 +1120,7 @@ function renderPdfTab(T) {
   }
   if (P.sel && !rows.some(r => r.k === P.sel)) P.sel = null;
   if (!rows.length) { list.append(h('p', { class: 'hint', text: 'No questions here yet.' })); }
-  sfill(T + 'Pick', rows.map(r => [r.k, r.name + ' (' + qWord(r.qs.length) + ')']), P.sel, k => { P.sel = k; P.page = 0; const r0 = rows.find(r => r.k === k); if (r0) $('.mt', $('#' + T + 'Pick')).textContent = r0.name; showPdfPrev(T); }, T === 'cw' ? 'a chapter' : 'a shift', { empty: 'No questions here yet' });
+  sfill(T + 'Pick', rows.map(r => [r.k, (T === 'cw' ? r.k + ' ' : '') + r.name + ' (' + qWord(r.qs.length) + ')']), P.sel, k => { P.sel = k; P.page = 0; const r0 = rows.find(r => r.k === k); if (r0) $('.mt', $('#' + T + 'Pick')).textContent = (T === 'cw' ? r0.k + ' ' : '') + r0.name; showPdfPrev(T); }, T === 'cw' ? 'a chapter' : 'a shift', { empty: 'No questions here yet' });
   markPdfRows(T);
   showPdfPrev(T);
 }
@@ -1363,7 +1363,7 @@ function pyqShow() {
   setTimeout(rescale, 0);
 }
 function setTab(t) {
-  if (IS_OWNER === false && ['make', 'res', 'god', 'syl'].includes(t)) t = 'qb';
+  if (IS_OWNER === false && ['make', 'res', 'god'].includes(t)) t = 'qb';
   if (t === 'pyq') { pyqShow(); return; }
   const pv = $('#viewPyq'); if (pv) pv.hidden = true;
   setTabInner(t);
@@ -1371,7 +1371,7 @@ function setTab(t) {
 function setTabInner(t) {
   $('#viewQb').hidden = t !== 'qb'; $('#viewLib').hidden = t !== 'lib'; $('#viewMake').hidden = t !== 'make'; $('#viewCw').hidden = t !== 'cw'; $('#viewSw').hidden = t !== 'sw'; $('#viewHo').hidden = t !== 'ho'; $('#viewMust').hidden = t !== 'must'; $('#viewGod').hidden = t !== 'god'; $('#viewSyl').hidden = t !== 'syl'; $('#viewRes').hidden = t !== 'res';
   document.querySelectorAll('[data-act="tab"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === t)));
-  { const mb = $('#miscBtn'), md = $('#miscDrop'); if (mb) { const inMisc = ['make', 'res', 'god', 'syl'].includes(t); mb.setAttribute('aria-pressed', String(inMisc)); mb.firstChild.textContent = inMisc ? 'Misc: ' + ({ make: 'Tests', res: 'Results', god: 'God Mode', syl: 'Syllabus Priority' })[t] + ' ' : 'Misc '; mb.setAttribute('aria-expanded', 'false'); if (md) md.hidden = true; } }
+  { const mb = $('#miscBtn'), md = $('#miscDrop'); if (mb) { const inMisc = ['make', 'res', 'god'].includes(t); mb.setAttribute('aria-pressed', String(inMisc)); mb.firstChild.textContent = inMisc ? 'Misc: ' + ({ make: 'Tests', res: 'Results', god: 'God Mode', syl: 'Syllabus Priority' })[t] + ' ' : 'Misc '; mb.setAttribute('aria-expanded', 'false'); if (md) md.hidden = true; } }
   if (t === 'qb') qbInit(); else if (t === 'syl') renderSyl(); else if (t === 'god') renderGod(); else if (t === 'res') renderResults(); else if (t === 'ho') renderHandouts(); else if (t === 'must') ensureDpp().then(renderMust); else if (t === 'cw' || t === 'sw') ensureDpp().then(() => { renderPdfTab(t); setTimeout(rescale, 0); }); else ensureDpp().then(() => { if (t === 'make') { if (!makeReady) { makeReady = true; refreshRail(); } renderPreview(); } else renderLib(); setTimeout(rescale, 0); });
   setTimeout(rescale, 0);
 }
@@ -1434,12 +1434,12 @@ function refreshRail() {
   cl.append(chip('Class 11', S.cls[11], 'cls', { 'data-k': 11 }), chip('Class 12', S.cls[12], 'cls', { 'data-k': 12 }));
   // chapters (dropdown, tick many)
   const cnt = {}; BANK.qs.forEach(q => { if (srcOk(q) && (S.mode === 'dpp' || gradable(q))) cnt[q.cc] = (cnt[q.cc] || 0) + 1; });
-  const chItems = BANK.chapters.filter(c => S.cls[c.cl] && cnt[c.c]).sort((a, b) => a.cl - b.cl || a.o - b.o).map(c => [c.c, c.n + ' (' + cnt[c.c] + ')']);
+  const chItems = BANK.chapters.filter(c => S.cls[c.cl] && cnt[c.c]).sort((a, b) => a.cl - b.cl || a.o - b.o).map(c => [c.c, c.c + ' ' + c.n + ' (' + cnt[c.c] + ')']);
   S.ch = new Set(mfill('mkCh', chItems, [...S.ch], v => { S.ch = new Set(v); S.tp = new Set([...S.tp].filter(x => S.ch.has(x.split('|')[0]))); update(); }, 'chapters', { empty: 'No chapters for these filters' }));
   // topics
   const tc = {};
   BANK.qs.forEach(q => { if (srcOk(q) && q.tp && S.ch.has(q.cc) && (S.mode === 'dpp' || gradable(q))) { const k = q.cc + '|' + q.tp; tc[k] = (tc[k] || 0) + 1; } });
-  const tpItems = Object.keys(tc).sort((a, b) => (CHMAP.get(a.split('|')[0]).o - CHMAP.get(b.split('|')[0]).o) || a.localeCompare(b)).map(k => [k, (S.ch.size > 1 ? CHMAP.get(k.split('|')[0]).n + ' \u00b7 ' : '') + k.split('|')[1] + ' (' + tc[k] + ')']);
+  const tpItems = Object.keys(tc).sort((a, b) => (CHMAP.get(a.split('|')[0]).o - CHMAP.get(b.split('|')[0]).o) || a.localeCompare(b)).map(k => [k, (S.ch.size > 1 ? k.split('|')[0] + ' ' + CHMAP.get(k.split('|')[0]).n + ' \u00b7 ' : '') + k.split('|')[1] + ' (' + tc[k] + ')']);
   S.tp = new Set(mfill('mkTp', tpItems, [...S.tp], v => { S.tp = new Set(v); update(); }, 'topics', { empty: 'Pick a chapter first', none: 'All topics of the chapters (none ticked)' }));
   // difficulty + types
   const dc = {}, ty = {};
@@ -1845,7 +1845,7 @@ async function renderSyl() {
       h('div', { class: 'sy-tw' }, h('table', {},
         h('thead', {}, h('tr', {}, h('th', { text: 'CMS code' }), h('th', { text: 'Subtopic' }), h('th', { class: 'num', text: 'Main PYQs' }), h('th', { text: 'Main priority' }), h('th', { class: 'num', text: 'Adv PYQs' }), h('th', { text: 'Adv priority' }))),
         h('tbody', {}, c.subs.map(s => h('tr', {},
-          h('td', { class: 'mono sy-code' }, s.code),
+          h('td', { class: 'mono sy-code' }, String(s.code).replace(/^JM-/, '')),
           h('td', { class: 'sy-sn', text: s.no + '. ' + s.name }),
           numCell(s.m), h('td', {}, pill(s.mt)),
           numCell(s.a), h('td', {}, pill(s.at))))))));
@@ -1906,7 +1906,7 @@ const GUIDE_HTML = (owner) => `
 <li><b>Each question card</b> shows exam, date and shift, level and tags. Use the eye icon to show the answer, the book icon to open the solution, and the ≡ menu for the topic, type, question id and <b>Flag</b> (to report a wrong question).</li>
 <li><b>Show all answers / Hide options / Show selected only</b> change how the whole page looks. <b>Attention</b> lists questions flagged for checking; <b>Out of syllabus</b> marks questions on topics no longer in JEE.</li>
 <li><b>Tick questions</b> (or Select all filtered) and export just those as Word, PDF or PowerPoint. "Answer Key" adds the key at the end and "Explanation" adds the full solutions on new pages after it.</li>
-<li><b>Overview icon</b> (bar-chart circle at the top right) opens the question counts, the chapter-wise count and the chapter weightage charts.</li>
+<li><b>Overview icon</b> (bar-chart circle at the top right) opens the question counts, the chapter-wise count, the syllabus priority and the chapter weightage charts.</li>
 </ul>
 <h3 id="gd-dpp">2. DPPs</h3>
 <p>Ready-made practice sheets. Choose what you need:</p>
@@ -1944,7 +1944,6 @@ ${owner ? `<h3 id="gd-misc">Owner tools (Misc menu – beta, visible only to the
 <li><b>Tests</b> – build a timed test from chapters, topics or a whole past shift paper (180 minutes, +4 / −1), save it, and it appears on the student page.</li>
 <li><b>Results</b> – student scores read live from the Google Sheet that collects test submissions.</li>
 <li><b>God Mode</b> – type or upload a question, solve it and draw its graph, then save the answer as an explanation.</li>
-<li><b>Syllabus Priority</b> – each subtopic tiered by how many PYQs it has had, with a year-wise trend from 2020 to 2026.</li>
 </ul>` : ''}
 <p class="gd-foot">Built by Ankit for the Avanti Fellows teaching team.</p>`;
 
@@ -1994,7 +1993,7 @@ function buildShell() {
   const tb = (k, text, on) => h('button', { type: 'button', class: 'tb', 'data-act': 'tab', 'data-k': k, 'aria-pressed': String(!!on), text });
   const miscMenu = () => h('div', { class: 'tb-misc', hidden: true },
     h('button', { type: 'button', class: 'tb tb-miscbtn', id: 'miscBtn', 'data-act': 'misc', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-pressed': 'false' }, 'Misc ', h('span', { class: 'tb-caret', text: '\u25be' })),
-    h('div', { class: 'tb-drop', id: 'miscDrop', hidden: true, role: 'menu' }, [['make', 'Tests'], ['res', 'Results'], ['god', 'God Mode'], ['syl', 'Syllabus Priority']].map(([k, t]) => h('button', { type: 'button', class: 'tb-item', role: 'menuitem', 'data-act': 'tab', 'data-k': k, 'aria-pressed': 'false', text: t }))));
+    h('div', { class: 'tb-drop', id: 'miscDrop', hidden: true, role: 'menu' }, [['make', 'Tests'], ['res', 'Results'], ['god', 'God Mode']].map(([k, t]) => h('button', { type: 'button', class: 'tb-item', role: 'menuitem', 'data-act': 'tab', 'data-k': k, 'aria-pressed': 'false', text: t }))));
   root.append(
     h('div', { class: 'shell' },
       h('header', { class: 'topbar' },
@@ -2002,7 +2001,7 @@ function buildShell() {
         h('button', { type: 'button', class: 'tb-theme', id: 'themeBtn', 'data-act': 'theme', 'aria-pressed': 'false' }),
         h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
         h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),
-        h('div', { class: 'tb-pop', id: 'qbPop', hidden: true, role: 'menu' }, [['heroov', 'Mathematics Bank: Question Counts'], ['overview', 'Chapter-wise Count'], ['wchart', 'Chapter Weightage']].map(([k, t]) => h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-qbpanel': k, text: t }))),
+        h('div', { class: 'tb-pop', id: 'qbPop', hidden: true, role: 'menu' }, [['heroov', 'Mathematics Bank: Question Counts'], ['overview', 'Chapter-wise Count'], ['syl', 'Syllabus Priority'], ['wchart', 'Chapter Weightage']].map(([k, t]) => k === 'syl' ? h('button', { type: 'button', class: 'tb-item', role: 'menuitem', 'data-act': 'tab', 'data-k': 'syl', text: t }) : h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-qbpanel': k, text: t }))),
         h('nav', { class: 'tb-menu' }, tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), miscMenu())),
       h('main', { class: 'main' },
         h('div', { id: 'viewQb', class: 'qbhost' }),
@@ -2167,7 +2166,7 @@ function boot() {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMax(); }); document.addEventListener('click', onAct); document.addEventListener('change', onAct);
   window.addEventListener('resize', rescale);
   try { if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { if (d && d.save) downloads = d; }).catch(() => {}); } catch (e) { /* no runtime */ }
-  try { const up = (window.claude && window.claude.use) ? Promise.resolve(window.claude.use('user')) : Promise.resolve(null); up.then(u => { IS_OWNER = !!(u && u.isOwner && u.isOwner()); const m = $('.tb-misc'); if (m) m.hidden = !IS_OWNER; if (!IS_OWNER && ['make', 'res', 'god', 'syl'].some(k => { const v = $('#view' + k[0].toUpperCase() + k.slice(1)); return v && !v.hidden; })) setTab('qb'); }).catch(() => { IS_OWNER = false; }); } catch (e) { IS_OWNER = false; }
+  try { const up = (window.claude && window.claude.use) ? Promise.resolve(window.claude.use('user')) : Promise.resolve(null); up.then(u => { IS_OWNER = !!(u && u.isOwner && u.isOwner()); const m = $('.tb-misc'); if (m) m.hidden = !IS_OWNER; if (!IS_OWNER && ['make', 'res', 'god'].some(k => { const v = $('#view' + k[0].toUpperCase() + k.slice(1)); return v && !v.hidden; })) setTab('qb'); }).catch(() => { IS_OWNER = false; }); } catch (e) { IS_OWNER = false; }
   qbInit();
   try { if (sessionStorage.getItem('avanti_tab') === 'make') { sessionStorage.removeItem('avanti_tab'); setTab('make'); } } catch (e) { /* ignore */ }
   try { if (sessionStorage.getItem('avanti_sync') === '1') syncStudents().then(r => { toast(syncNote(r)); }); } catch (e) { /* ignore */ }
