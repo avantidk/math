@@ -1,0 +1,29 @@
+# Keeps the free Supabase project from pausing after a week without use.
+# Runs every Monday and can also be started by hand from the Actions tab.
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: '17 4 * * 1'   # Mondays 04:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://usehxhvzhdbcmnmqaxoo.supabase.co
+      SUPABASE_KEY: sb_publishable_QQ_N_B6kl416kbGMF0DQtw_9Jg58PoN
+    steps:
+      - name: Ping the database
+        run: |
+          code=$(curl -sS -o "$RUNNER_TEMP/ping.json" -w "%{http_code}" \
+            -H "apikey: $SUPABASE_KEY" \
+            "$SUPABASE_URL/rest/v1/teachers?select=afid&limit=1")
+          echo "Supabase responded with HTTP $code"
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            echo "Ping failed. Check that the project is running (Restore project in the Supabase dashboard) and that the key is correct."
+            exit 1
+          fi
