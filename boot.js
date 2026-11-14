@@ -3,7 +3,7 @@
    BUILD must be bumped on every release so returning visitors get the new code on their next visit. */
 (function () {
 'use strict';
-const BUILD = '845';
+const BUILD = '846';
 const RELEASED = '14 Nov 2026';   /* date of this release, shown in the footer */
 const CDN_KATEX = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js';
 const CACHEABLE = /^(qb\/data\/|qb\/qb[.\-]|bank(-meta)?\.json|must\.json|syllabus\.json|handouts\/index\.json|katex\.css|teacher[.\-])/;
@@ -20,7 +20,7 @@ function net(url) {
   if (!inflight[url]) {
     inflight[url] = origFetch(url, { cache: 'no-cache' }).then(r => {
       if (r.ok && cachep) cachep.then(c => { if (c) { try { c.put(url, r.clone()).catch(() => {}); } catch (e) { /* cache full */ } } });
-      setTimeout(() => { delete inflight[url]; }, 0);
+      if (!r.ok) setTimeout(() => { delete inflight[url]; }, 0);   /* a good answer is kept for this visit, so the same file is never downloaded twice */
       return r;
     }, e => { delete inflight[url]; throw e; });
   }
@@ -30,6 +30,7 @@ window.fetch = function (input, init) {
   const url = typeof input === 'string' ? input : (input && input.url);
   if (init != null || typeof url !== 'string' || !CACHEABLE.test(url)) return origFetch(input, init);
   const hit = cachep ? cachep.then(c => (c ? c.match(url) : null)).catch(() => null) : Promise.resolve(null);
+  if (inflight[url]) return inflight[url].then(r => r.clone());   /* already downloaded (or downloading) on this visit */
   return hit.then(hh => {
     if (hh) { if (!refreshed[url]) { refreshed[url] = 1; setTimeout(() => { net(url).catch(() => {}); }, 3000); } return hh; }
     refreshed[url] = 1; return net(url);

@@ -1213,7 +1213,8 @@ async function renderMust() {
     return nav;
   };
   const selCnt = h('span', { class: 'mselcnt' });
-  const selInfo = () => { const n = (MS.flat || []).filter(f => MS.sel.has(f.it.r)).length; selCnt.textContent = n ? n + ' selected \u00b7 downloads only these' : 'None selected \u00b7 downloads all ' + (MS.flat || []).length + ' shown'; };
+  const topN = h('span', { class: 'msel-n', text: '0' }), topOf = h('span', { class: 'msel-of' });
+  const selInfo = () => { const n = (MS.flat || []).filter(f => MS.sel.has(f.it.r)).length, all = (MS.flat || []).length; selCnt.textContent = n ? n + ' selected \u00b7 downloads only these' : 'None selected \u00b7 downloads all ' + all + ' shown'; topN.textContent = String(n); topOf.textContent = 'of ' + all + ' shown'; };
   const tick = on => { (MS.flat || []).forEach(f => { if (on) MS.sel.add(f.it.r); else MS.sel.delete(f.it.r); }); list.querySelectorAll('.mpick input').forEach(c => { c.checked = MS.sel.has(c.dataset.r); }); selInfo(); };
   const draw = (keep) => {
     if (!keep) page = 0;
@@ -1273,11 +1274,28 @@ async function renderMust() {
   const fillCh = () => mfill('mustCh', chItems, MS.chs, v => { MS.chs = v; draw(); fillCh(); }, 'chapters', { none: 'All chapters' });
   const lvBtns = h('div', { class: 'seg' }, ['L1', 'L2', 'L3'].map(l => h('button', { type: 'button', 'aria-pressed': String(MS.lv.includes(l)), text: l, onclick: e => { MS.lv = MS.lv.includes(l) ? MS.lv.filter(x => x !== l) : MS.lv.concat(l); e.currentTarget.setAttribute('aria-pressed', String(MS.lv.includes(l))); draw(); } })));
   view.textContent = '';
-  view.append(h('div', { class: 'rail' }, h('div', { class: 'card' }, h('h3', { text: 'Must Solve' }),
+  /* top of the side panel, like the Question Bank: count, switches, Save as worksheet, Create test + Export menu */
+  const mRow = wsRow('must') || h('div', { class: 'wsrow' });
+  mRow.classList.add('qb-wsrow', 'm-wsrow');
+  const sv = mRow.querySelector('[data-act=wssave]'); if (sv) sv.classList.add('qb-savews');
+  const mExp = h('button', { type: 'button', class: 'btn wsbtn qb-expbtn', 'aria-haspopup': 'menu', 'aria-expanded': 'false', title: 'Download, print or share these questions', html: ICO.dl + '<span>Export</span><span class="pt-caret" aria-hidden="true">\u25be</span>',
+    onclick: e => {
+      const P = window.AvantiPortal, IC = (P && P.icons) || {}, hid = sel => () => { const b = view.querySelector('.mtop ' + sel); if (b) b.click(); };
+      if (!P || !P.dropMenu) return;
+      P.dropMenu(e.currentTarget, [
+        { icon: IC.pdf, text: 'Download PDF', sub: 'Print-ready, with the Avanti header', onclick: () => exportMust('pdf') },
+        G('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable document', onclick: () => exportMust('docx') } : null,
+        G('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: () => exportMust('pptx') } : null,
+        '-',
+        { icon: ICO.print, text: 'Print', sub: 'Opens the PDF to print', onclick: hid('[data-act=xprint]') },
+        { icon: IC.share || ICO.share, text: 'Share PDF\u2026', sub: 'WhatsApp, email or your phone\u2019s apps', onclick: hid('[data-act=xshare]') }]);
+    } });
+  mRow.append(mExp); mRow.classList.add('n' + mRow.children.length);
+  view.append(h('div', { class: 'rail' }, h('div', { class: 'card' }, h('div', { class: 'msel-top' }, topN, h('b', { text: 'selected' }), topOf),
     h('div', { class: 'tglrow' }, keySwitch('mustKey', 'mkey'), expSwitch('mustExpl', 'mexp')),
-    h('div', { class: 'fld mtop' },
+    mRow,
+    h('div', { class: 'fld mtop', hidden: true },
       h('div', { class: 'mexp' }, ['docx', 'pdf', 'pptx'].map(k => h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-mexp': k, title: 'Download ' + ({ pdf: 'PDF', docx: 'Word (editable)', pptx: 'PowerPoint (editable)' })[k], 'aria-label': 'Download ' + ({ pdf: 'PDF', docx: 'Word', pptx: 'PowerPoint' })[k], html: FIMG[k] || ICO.dl, onclick: () => exportMust(k) })).concat([h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-act': 'xprint', 'data-src': 'must', title: 'Print', 'aria-label': 'Print', html: ICO.print }), h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-act': 'xshare', 'data-src': 'must', title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share the PDF', html: ICO.share })]))),
-    wsRow('must'),
     h('p', { class: 'hint', text: 'Questions that came again and again in JEE, in the same or a very similar form, plus questions that are sure to come. Solve these first.' }),
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Chapters (tick one or many)' }), chSel),
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Type' }), seg([['all', 'All'], ['e', 'Exact repeat'], ['i', 'Similar type'], ['u', 'Sure-shot']], () => MS.kind, k => { MS.kind = k; })),

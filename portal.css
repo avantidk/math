@@ -844,3 +844,11 @@ html body .statbar .btn.ibtn { width: 44px; padding: 0; }
 html body .statbar .btn.ibtn img, html body .statbar .btn.ibtn svg { display: block; width: 24px; height: 24px; object-fit: contain; margin: 0; }
 html body .statbar .wsrow .wsbtn svg { width: 16px; height: 16px; }
 html body .statbar .rowbtns, html body .statbar .wsrow { align-items: center; }
+/* Must Solve side panel top: same as the Question Bank selection box */
+.msel-top { display: flex; align-items: center; gap: 8px; margin: 2px 0 12px; font-size: 14px; color: var(--muted); }
+.msel-top b { color: var(--ink); font-weight: 600; }
+.msel-n { min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center; background: var(--navy, #1f3f95); color: #fff; font: 700 12.5px/1 var(--font-body); }
+.m-wsrow { margin: 12px 0 6px; }
+.m-wsrow.n2 .qb-savews { grid-column: auto; }
+.m-wsrow .wsbtn svg { width: 16px; height: 16px; }
+html.plan-free .m-wsrow .qb-expbtn { display: none; }

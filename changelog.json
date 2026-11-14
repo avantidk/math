@@ -1,5 +1,14 @@
 [
   {
+    "v": "846",
+    "date": "14 Nov 2026",
+    "items": [
+      "Must Solve: the top of the side panel now looks like the Question Bank: number selected, Answer Key and Explanation, Save as worksheet, and Create test next to one Export menu (PDF, Word, PowerPoint, Print, Share).",
+      "Faster loading: a file needed twice on the same visit (for example the maths styles) is now downloaded only once.",
+      "Quadratic Equations (11M4): all 514 questions and solutions reviewed. Fixed 36 questions (headers, missing equations, typos, broken symbols, a subtopic) and 99 solutions (errors, editorial notes, references to other questions, stray figure markers, missing line breaks)."
+    ]
+  },
+  {
     "v": "845",
     "date": "14 Nov 2026",
     "items": [
