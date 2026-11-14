@@ -405,3 +405,7 @@ html body .tb-drop a.pf-up:hover, .pf-up:hover, .pf-up:focus-visible { box-shado
   .statbar .wsrow { flex-basis: 100%; flex-wrap: wrap; }
   .statbar .wsrow .wsbtn { flex: 1 1 140px; }
 }
+.pt-warnrow td { background: color-mix(in srgb, #f2b134 16%, transparent); }
+.pt-warnrow td:last-child { color: #8a5a00; font-weight: 600; }
+:root[data-theme="dark"] .pt-warnrow td:last-child { color: #ffd27a; }
+.pt-badrow td:last-child { color: var(--bad); font-weight: 600; }

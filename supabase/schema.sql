@@ -147,13 +147,13 @@ language sql immutable as $$
     when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('kcetpcb', 'cetpcb', 'kcetmedical') then 'KCET (PCB)'
     else trim(p) end
 $$;
--- Category and gender: understands short forms (GEN, UR, OBC, F, M ...).
+-- Category (General, Gen-EWS, OBC-NCL, SC, ST) and gender (Male, Female, Other): understands short forms (GEN, UR, EWS, OBC, F, M ...).
 create or replace function public.norm_category(p text) returns text
 language sql immutable as $$
   select case
     when p is null or trim(p) = '' then null
     when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('general', 'gen', 'gn', 'ur', 'open', 'oc', 'unreserved') then 'General'
-    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('ews', 'genews', 'generalews') then 'EWS'
+    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('ews', 'genews', 'generalews', 'gnews', 'urews', 'economicallyweakersection') then 'Gen-EWS'
     when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('obc', 'obcncl', 'obcnoncreamylayer', 'bc', 'obcn') then 'OBC-NCL'
     when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('sc', 'scheduledcaste') then 'SC'
     when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('st', 'scheduledtribe') then 'ST'
@@ -166,7 +166,7 @@ language sql immutable as $$
     when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('female', 'f', 'girl', 'woman') then 'Female'
     when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('male', 'm', 'boy', 'man') then 'Male'
     when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('other', 'o', 'transgender', 'thirdgender') then 'Other'
-    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('prefernottosay', 'notsay', 'na') then 'Prefer not to say'
+    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('prefernottosay', 'notsay', 'na', 'notspecified') then 'Other'
     else trim(p) end
 $$;
 
@@ -457,12 +457,18 @@ begin
     school_note = case when school is null then null else school_note end,
     class     = case when v_av and class     is not null then class     else public.norm_class(left(p_class, 20)) end,
     stream    = case when v_av and stream    is not null then stream    else public.norm_stream(left(p_stream, 40)) end,
-    category  = case when v_av and category  is not null then category  else left(nullif(trim(p_category), ''), 30) end,
-    gender    = case when v_av and gender    is not null then gender    else left(nullif(trim(p_gender), ''), 30) end,
+    category  = case when v_av and category  is not null then category  else public.norm_category(left(p_category, 30)) end,
+    gender    = case when v_av and gender    is not null then gender    else public.norm_gender(left(p_gender, 30)) end,
     updated_at = now()
   where id = auth.uid() returning * into me;
   if me.role = 'student' and me.session is null and me.class is not null then
     update public.profiles set session = public.session_for(class) where id = me.id returning * into me;
+  end if;
+  if me.role = 'student' and ((me.class is not null and me.class not in ('11', '12', 'Dropper'))
+     or (me.stream is not null and me.stream not in ('JEE', 'NEET', 'KCET (PCM)', 'KCET (PCB)'))
+     or (me.category is not null and me.category not in ('General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST'))
+     or (me.gender is not null and me.gender not in ('Male', 'Female', 'Other'))) then
+    raise exception 'Choose class, stream, category and gender from the lists.';
   end if;
   if me.full_name is null or me.school is null
      or (me.role = 'student' and (me.class is null or me.stream is null or me.category is null or me.gender is null)) then
@@ -1020,11 +1026,11 @@ declare
   f jsonb := jsonb_build_object('full_name', left(nullif(trim(r->>'full_name'), ''), 120), 'class', public.norm_class(left(r->>'class', 20)),
                'stream', public.norm_stream(left(r->>'stream', 40)), 'category',
                  -- a file with the Category and Gender columns swapped is read the right way round
-                 case when public.norm_category(r->>'category') not in ('General', 'EWS', 'OBC-NCL', 'SC', 'ST') and public.norm_gender(r->>'category') in ('Female', 'Male', 'Other', 'Prefer not to say')
+                 case when public.norm_category(r->>'category') not in ('General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST') and public.norm_gender(r->>'category') in ('Male', 'Female', 'Other')
                       then public.norm_category(left(r->>'gender', 30)) else public.norm_category(left(r->>'category', 30)) end,
                'session', case when coalesce(r->>'session', '') ~ '^\d{4}-\d{2}$' then r->>'session' end,
                'gender',
-                 case when public.norm_category(r->>'category') not in ('General', 'EWS', 'OBC-NCL', 'SC', 'ST') and public.norm_gender(r->>'category') in ('Female', 'Male', 'Other', 'Prefer not to say')
+                 case when public.norm_category(r->>'category') not in ('General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST') and public.norm_gender(r->>'category') in ('Male', 'Female', 'Other')
                       then public.norm_gender(left(r->>'category', 30)) else public.norm_gender(left(r->>'gender', 30)) end, 'batch', left(nullif(trim(r->>'batch'), ''), 60));
   a public.student_allowlist; v_miss text;
 begin
@@ -1035,8 +1041,8 @@ begin
   if f->>'class' is not null and f->>'class' not in ('11', '12', 'Dropper') then return json_build_object('ok', false, 'error', 'Class must be 11, 12 or Dropper (you wrote "' || (r->>'class') || '")'); end if;
   if f->>'stream' is not null and f->>'stream' not in ('JEE', 'NEET', 'KCET (PCM)', 'KCET (PCB)') then return json_build_object('ok', false, 'error', 'Stream must be JEE, NEET, KCET (PCM) or KCET (PCB) (you wrote "' || (r->>'stream') || '")'); end if;
   if nullif(trim(r->>'session'), '') is not null and f->>'session' is null then return json_build_object('ok', false, 'error', 'Session must look like 2026-27'); end if;
-  if f->>'category' is not null and f->>'category' not in ('General', 'EWS', 'OBC-NCL', 'SC', 'ST') then return json_build_object('ok', false, 'error', 'Category must be General, EWS, OBC-NCL, SC or ST'); end if;
-  if f->>'gender' is not null and f->>'gender' not in ('Female', 'Male', 'Other', 'Prefer not to say') then return json_build_object('ok', false, 'error', 'Gender must be Female, Male, Other or Prefer not to say'); end if;
+  if f->>'category' is not null and f->>'category' not in ('General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST') then return json_build_object('ok', false, 'error', 'Category must be General, Gen-EWS, OBC-NCL, SC or ST'); end if;
+  if f->>'gender' is not null and f->>'gender' not in ('Male', 'Female', 'Other') then return json_build_object('ok', false, 'error', 'Gender must be Male, Female or Other'); end if;
   select * into a from public.student_allowlist where avanti_id = v_id for update;
   if a.avanti_id is null then
     select string_agg(k, ', ') into v_miss from unnest(array['full_name', 'class', 'stream', 'category', 'gender']) k where f->>k is null;
@@ -1114,6 +1120,8 @@ begin
   if not (me.is_staff or me.school_approved) then raise exception 'Editing students is possible after Avanti Fellows approves your school.'; end if;
   if coalesce(public.norm_class(p->>'class'), '11') not in ('11', '12', 'Dropper') then raise exception 'Class must be 11, 12 or Dropper'; end if;
   if coalesce(public.norm_stream(p->>'stream'), 'JEE') not in ('JEE', 'NEET', 'KCET (PCM)', 'KCET (PCB)') then raise exception 'Stream must be JEE, NEET, KCET (PCM) or KCET (PCB)'; end if;
+  if coalesce(public.norm_category(p->>'category'), 'General') not in ('General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST') then raise exception 'Category must be General, Gen-EWS, OBC-NCL, SC or ST'; end if;
+  if coalesce(public.norm_gender(p->>'gender'), 'Male') not in ('Male', 'Female', 'Other') then raise exception 'Gender must be Male, Female or Other'; end if;
   if nullif(trim(p_student_id), '') is not null then
     r := public.save_student(p || jsonb_build_object('student_id', p_student_id), me, true);
     if not (r->>'ok')::boolean then raise exception '%', r->>'error'; end if;
@@ -1121,8 +1129,8 @@ begin
   end if;
   update public.profiles set
     full_name = coalesce(left(nullif(trim(p->>'full_name'), ''), 120), full_name), class = coalesce(public.norm_class(left(p->>'class', 20)), class),
-    stream = coalesce(public.norm_stream(left(p->>'stream', 40)), stream), category = coalesce(left(nullif(trim(p->>'category'), ''), 30), category),
-    gender = coalesce(left(nullif(trim(p->>'gender'), ''), 30), gender),
+    stream = coalesce(public.norm_stream(left(p->>'stream', 40)), stream), category = coalesce(public.norm_category(left(p->>'category', 30)), category),
+    gender = coalesce(public.norm_gender(left(p->>'gender', 30)), gender),
     session = coalesce(case when coalesce(p->>'session', '') ~ '^\d{4}-\d{2}$' then p->>'session' end, session), updated_at = now()
   where id = p_user and role = 'student' and avanti_id is null and (public.admin_of(me) or lower(school) = lower(coalesce(me.school, '')));
   if not found then raise exception 'Student not found in your school'; end if;
@@ -1189,12 +1197,21 @@ update public.profiles p set session = coalesce((select a.session from public.st
  where p.role = 'student' and p.session is null and p.class is not null;
 -- Category / gender: short forms, and rows where the two were swapped
 update public.student_allowlist set category = public.norm_category(gender), gender = public.norm_gender(category)
- where public.norm_gender(category) in ('Female', 'Male', 'Other', 'Prefer not to say') and public.norm_category(gender) in ('General', 'EWS', 'OBC-NCL', 'SC', 'ST');
+ where public.norm_gender(category) in ('Male', 'Female', 'Other') and public.norm_category(gender) in ('General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST');
 update public.student_allowlist set category = public.norm_category(category), gender = public.norm_gender(gender)
  where category is distinct from public.norm_category(category) or gender is distinct from public.norm_gender(gender);
 update public.profiles set category = public.norm_category(gender), gender = public.norm_gender(category)
- where public.norm_gender(category) in ('Female', 'Male', 'Other', 'Prefer not to say') and public.norm_category(gender) in ('General', 'EWS', 'OBC-NCL', 'SC', 'ST');
+ where public.norm_gender(category) in ('Male', 'Female', 'Other') and public.norm_category(gender) in ('General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST');
 update public.profiles set category = public.norm_category(category), gender = public.norm_gender(gender)
+ where category is distinct from public.norm_category(category) or gender is distinct from public.norm_gender(gender);
+-- Student profiles with a value outside the lists: cleared, so the student chooses it again
+update public.profiles set
+  class = case when class in ('11', '12', 'Dropper') then class end,
+  category = case when category in ('General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST') then category end,
+  gender = case when gender in ('Male', 'Female', 'Other') then gender end
+ where role = 'student' and ((class is not null and class not in ('11', '12', 'Dropper'))
+   or (category is not null and category not in ('General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST')) or (gender is not null and gender not in ('Male', 'Female', 'Other')));
+update public.attempts set category = public.norm_category(category), gender = public.norm_gender(gender)
  where category is distinct from public.norm_category(category) or gender is distinct from public.norm_gender(gender);
 update public.attempts set class = public.norm_class(class), stream = public.norm_stream(stream) where class is distinct from public.norm_class(class) or stream is distinct from public.norm_stream(stream);
 -- Older tests: every class / stream when none was chosen

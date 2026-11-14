@@ -34,11 +34,11 @@ const sessionFor = c => { const d = new Date(); d.setMonth(d.getMonth() - 3); co
 const SESSIONS = (() => { const d = new Date(); d.setMonth(d.getMonth() - 3); const y = d.getFullYear(), out = []; for (let k = y - 2; k <= y + 1; k++) { out.push(k + '-' + String((k + 1) % 100).padStart(2, '0'), k + '-' + String((k + 2) % 100).padStart(2, '0')); } return [...new Set(out)].sort().reverse(); })();
 /* common spellings in uploads: 11th, XI, Class 12, PCM, NEET ... */
 const normClass = v => { const t = String(v || '').toLowerCase().replace(/[^a-z0-9]/g, ''); return /^(11|11th|xi|class11|class11th|classxi|eleven|eleventh)$/.test(t) ? '11' : /^(12|12th|xii|class12|class12th|classxii|twelve|twelfth)$/.test(t) ? '12' : /^(dropper|drop|droppers|repeater|repeaters)$/.test(t.replace(/[0-9]/g, '')) ? 'Dropper' : String(v || '').trim(); };
-const normCategory = v => { const t = String(v || '').toLowerCase().replace(/[^a-z]/g, ''); return /^(general|gen|gn|ur|open|oc|unreserved)$/.test(t) ? 'General' : /^(ews|genews|generalews)$/.test(t) ? 'EWS' : /^(obc|obcncl|obcnoncreamylayer|bc|obcn)$/.test(t) ? 'OBC-NCL' : /^(sc|scheduledcaste)$/.test(t) ? 'SC' : /^(st|scheduledtribe)$/.test(t) ? 'ST' : String(v || '').trim(); };
-const normGender = v => { const t = String(v || '').toLowerCase().replace(/[^a-z]/g, ''); return /^(female|f|girl|woman)$/.test(t) ? 'Female' : /^(male|m|boy|man)$/.test(t) ? 'Male' : /^(other|o|transgender|thirdgender)$/.test(t) ? 'Other' : /^(prefernottosay|notsay|na)$/.test(t) ? 'Prefer not to say' : String(v || '').trim(); };
+const normCategory = v => { const t = String(v || '').toLowerCase().replace(/[^a-z]/g, ''); return /^(general|gen|gn|ur|open|oc|unreserved)$/.test(t) ? 'General' : /^(ews|genews|generalews|gnews|urews|economicallyweakersection)$/.test(t) ? 'Gen-EWS' : /^(obc|obcncl|obcnoncreamylayer|bc|obcn)$/.test(t) ? 'OBC-NCL' : /^(sc|scheduledcaste)$/.test(t) ? 'SC' : /^(st|scheduledtribe)$/.test(t) ? 'ST' : String(v || '').trim(); };
+const normGender = v => { const t = String(v || '').toLowerCase().replace(/[^a-z]/g, ''); return /^(female|f|girl|woman)$/.test(t) ? 'Female' : /^(male|m|boy|man)$/.test(t) ? 'Male' : /^(other|o|transgender|thirdgender)$/.test(t) ? 'Other' : /^(prefernottosay|notsay|na|notspecified)$/.test(t) ? 'Other' : String(v || '').trim(); };
 const normStream = v => { const t = String(v || '').toLowerCase().replace(/[^a-z]/g, ''); return /^(jee|pcm|pcmb|jeemain|jeemains|jeeadvanced|engineering|iit|iitjee)$/.test(t) ? 'JEE' : /^(neet|pcb|medical|neetug)$/.test(t) ? 'NEET' : /^(kcetpcm|kcet|cetpcm|kcetengineering)$/.test(t) ? 'KCET (PCM)' : /^(kcetpcb|cetpcb|kcetmedical)$/.test(t) ? 'KCET (PCB)' : String(v || '').trim(); };
-const CATEGORIES = ['General', 'EWS', 'OBC-NCL', 'SC', 'ST'];
-const GENDERS = ['Female', 'Male', 'Other', 'Prefer not to say'];
+const CATEGORIES = ['General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST'];
+const GENDERS = ['Male', 'Female', 'Other'];
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 /* ---------- maths ---------- */
@@ -878,14 +878,26 @@ function normRow(o) {
   if (d instanceof Date && !isNaN(d)) { const x = new Date(d.getTime() + 12 * 3600e3); d = x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); }
   else if (typeof d === 'number' && window.XLSX) { const p = window.XLSX.SSF.parse_date_code(d); d = p ? p.y + '-' + String(p.m).padStart(2, '0') + '-' + String(p.d).padStart(2, '0') : String(d); }
   const out = {}; COLS.forEach(k => { out[k] = String((k === 'dob' ? d : r[k]) == null ? '' : (k === 'dob' ? d : r[k])).trim(); });
-  out.class = pickFrom(CLASSES, normClass(out.class)); out.stream = pickFrom(STREAMS, normStream(out.stream)); if (!out.session && CLASSES.includes(out.class)) out.session = sessionFor(out.class); out.category = normCategory(out.category); out.gender = normGender(out.gender);
-  if (!CATEGORIES.includes(out.category) && GENDERS.includes(out.category) && (CATEGORIES.includes(out.gender) || !out.gender)) { const c = out.category; out.category = out.gender; out.gender = c; }   /* Category and Gender columns swapped in the file */
-  const err = [];
+  /* exact values are kept; anything else is converted and listed as a warning, or rejected when it cannot be converted */
+  const raw = Object.assign({}, out), warn = [], err = [];
+  const conv = { class: v => pickFrom(CLASSES, normClass(v)), stream: v => pickFrom(STREAMS, normStream(v)), category: v => pickFrom(CATEGORIES, normCategory(v)), gender: v => pickFrom(GENDERS, normGender(v)) };
+  Object.keys(conv).forEach(k => { out[k] = conv[k](out[k]); });
+  let swapped = false;
+  if (!CATEGORIES.includes(out.category) && GENDERS.includes(conv.gender(raw.category)) && (!raw.gender || CATEGORIES.includes(conv.category(raw.gender)))) {   /* Category and Gender columns swapped in the file */
+    out.category = raw.gender ? conv.category(raw.gender) : ''; out.gender = conv.gender(raw.category); swapped = true;
+    warn.push('Category and Gender were in each other\'s columns: Category → ' + (out.category || '?') + ', Gender → ' + out.gender);
+  }
+  [['class', CLASSES], ['stream', STREAMS], ['category', CATEGORIES], ['gender', GENDERS]].forEach(([k, L]) => {
+    if (!out[k]) return;
+    if (!L.includes(out[k])) err.push(COL_LBL[k] + ' "' + raw[k] + '" is not one of ' + L.join(', '));
+    else if (!(swapped && (k === 'category' || k === 'gender')) && out[k] !== raw[k]) warn.push(COL_LBL[k] + ' "' + raw[k] + '" → ' + out[k]);
+  });
+  if (!out.session && CLASSES.includes(out.class)) out.session = sessionFor(out.class);
   if (!out.student_id) err.push('Student ID missing');
   if (out.dob && !/^\d{4}-\d{1,2}-\d{1,2}$|^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$/.test(out.dob)) err.push('date of birth not understood');
-  [['class', CLASSES], ['stream', STREAMS], ['category', CATEGORIES], ['gender', GENDERS]].forEach(([k, L]) => { if (out[k] && !L.includes(out[k])) err.push(COL_LBL[k] + ' must be one of ' + L.join(', ')); });
   if (out.session && !/^\d{4}-\d{2}$/.test(out.session)) err.push('Session must look like ' + sessionFor('12'));
   ['full_name', 'dob', 'class', 'stream', 'category', 'gender'].forEach(k => { if (!out[k]) err.push(COL_LBL[k] + ' missing'); });
+  out._warn = warn.join('; ');
   out._err = err.join('; ');
   return out;
 }
@@ -909,23 +921,30 @@ function bulkUpload(after) {
     out.textContent = '';
     if (!rows.length) { out.append(empty('No students found', 'The first sheet has no rows under the headings. Use the template.')); return; }
     if (rows.length > 2000) { out.append(errorBox('This file has ' + rows.length + ' rows. Upload up to 2000 at a time.')); return; }
-    const bad = rows.filter(r => r._err).length;
-    out.append(h('p', { class: 'pt-meta' }, h('b', { text: rows.length + ' students found' }), bad ? ' · ' + bad + ' with problems (these rows will not be saved; fix them in the file and upload again)' : ''),
+    const bad = rows.filter(r => r._err).length, conv = rows.filter(r => !r._err && r._warn).length;
+    out.append(h('p', { class: 'pt-meta' }, h('b', { text: rows.length + ' students found' }), bad ? ' · ' + bad + ' with problems (red: these rows will not be saved; fix them in the file and upload again)' : ''),
+      conv ? h('div', { class: 'pt-note pt-warnnote', role: 'note' }, h('b', { text: conv + ' row' + (conv === 1 ? '' : 's') + ' will be converted before saving (yellow). ' }), 'Allowed values are Class 11, 12, Dropper · Stream JEE, NEET, KCET (PCM), KCET (PCB) · Category General, Gen-EWS, OBC-NCL, SC, ST · Gender Male, Female, Other. Check each change below before you upload.') : null,
       h('div', { class: 'pt-tw pt-tw-s' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['#'].concat(COLS.map(k => COL_LBL[k]), ['Check']).map(x => h('th', { text: x })))),
-        h('tbody', {}, rows.slice(0, 200).map((r, i) => h('tr', { class: r._err ? 'pt-badrow' : null }, h('td', { text: i + 1 }), COLS.map(k => h('td', { text: r[k] || '—' })), h('td', { text: r._err || 'OK' })))))),
-      rows.length > 200 ? h('p', { class: 'pt-hint', text: 'Showing the first 200 rows.' }) : null);
+        h('tbody', {}, rows.slice(0, 200).map((r, i) => h('tr', { class: r._err ? 'pt-badrow' : r._warn ? 'pt-warnrow' : null }, h('td', { text: i + 1 }), COLS.map(k => h('td', { text: r[k] || '—' })), h('td', { text: r._err || (r._warn ? 'Will convert: ' + r._warn : 'OK') })))))),
+      rows.length > 200 ? h('p', { class: 'pt-hint', text: 'Showing the first 200 rows.' }) : '');
   });
   const close = modal('Bulk upload students', body, [{ text: 'Close', onclick: () => {} }, { text: 'Upload students', pri: true, onclick: () => {
     if (!rows.length) { toast('Choose a file first'); return false; }
-    out.prepend(loading('Uploading ' + rows.length + ' students…'));
-    rpc('teacher_add_students', { p_rows: rows.map(r => { const o = Object.assign({}, r); delete o._err; return o; }) }).then(res => {
+    const good = rows.filter(r => !r._err), convN = good.filter(r => r._warn).length;
+    if (!good.length) { toast('No row can be saved. Fix the red rows in the file and choose it again.'); return false; }
+    const go = () => {
+    out.prepend(loading('Uploading ' + good.length + ' students…'));
+    rpc('teacher_add_students', { p_rows: good.map(r => { const o = Object.assign({}, r); delete o._err; delete o._warn; return o; }) }).then(res => {
       const ok = res.filter(x => x.ok), added = ok.filter(x => x.action === 'added').length, upd = ok.filter(x => x.action === 'exists').length, fail = res.filter(x => !x.ok);
       out.textContent = '';
       out.append(h('div', { class: 'pt-stats' }, stat('Added', added), stat('Already registered', upd, 'skipped, not uploaded again'), stat('Not saved', fail.length)),
         fail.length ? h('div', { class: 'pt-tw pt-tw-s' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Row', 'Student ID', 'Problem'].map(x => h('th', { text: x })))),
-          h('tbody', {}, fail.map(x => h('tr', { class: 'pt-badrow' }, h('td', { text: x.row }), h('td', { text: (rows[x.row - 1] || {}).student_id || '—' }), h('td', { text: x.error })))))) : h('p', { class: 'pt-msg ok', text: 'All students saved.' }));
+          h('tbody', {}, fail.map(x => h('tr', { class: 'pt-badrow' }, h('td', { text: x.row }), h('td', { text: (good[x.row - 1] || {}).student_id || '—' }), h('td', { text: x.error })))))) : h('p', { class: 'pt-msg ok', text: 'All students saved.' }));
       rows = []; fileIn.value = ''; if (after) after();
     }).catch(e => { out.querySelector('.pt-state') && out.querySelector('.pt-state').remove(); out.prepend(errorBox(e.message)); });
+    };
+    if (convN || good.length < rows.length) confirmBox('Upload with changes?', (convN ? convN + ' row' + (convN === 1 ? '' : 's') + ' will be converted to the allowed values exactly as shown in yellow. ' : '') + (rows.length - good.length ? (rows.length - good.length) + ' red row' + (rows.length - good.length === 1 ? '' : 's') + ' will not be uploaded. ' : '') + 'Continue?', 'Upload ' + good.length + ' students').then(ok => { if (ok) go(); });
+    else go();
     return false;
   } }]);
   return close;
