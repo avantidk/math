@@ -143,24 +143,36 @@ function loginPage(msg) {
       h('label', { for: 'lgId', text: 'Avanti ID or Student ID' }), idIn, h('label', { for: 'lgDob', text: 'Date of birth' }), dobIn, avErr, avBtn));
   const I = d => '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
   const FEATS = [
-    [I('<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 9h4M7 12h7"/><circle cx="16.5" cy="9.5" r="1.5"/>'), 'Online tests like the real NTA exam',
-      'Full-screen test with a timer, question panel (answered, not answered, marked, not visited), Mark for review, auto-save and auto-submit. Tab switches are recorded.'],
-    [I('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), 'Instant reports and ranks',
-      'Score, rank in your school and among all students, question-wise review with answers, topic-wise analysis and time spent on each question.'],
-    [I('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'), 'Question Bank of 15,000+ questions',
-      'Filter by chapter, topic, level, exam and year. Every question with its answer, and full solutions for most.'],
-    [I('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>'), 'Previous year papers, 1978 to 2026',
-      'JEE Main, JEE Advanced (IIT), AIEEE, KCET, NDA and IAT, paper-wise and chapter-wise, with answer keys.'],
-    [I('<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>'), 'DPPs, Must Solve lists and handouts',
-      'Ready-made daily practice sheets, the must-solve questions of every chapter and revision handouts.'],
-    [I('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>'), 'For teachers',
-      'Make a test from the Question Bank in minutes, share one link with your class, see every student’s result, and download worksheets as PDF, Word or PowerPoint.']
+    ['blue', I('<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 9h4M7 12h7"/>'), 'NTA-style online tests', 'Full screen, timer, question panel, mark for review, auto-submit.'],
+    ['gold', I('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), 'Instant reports & ranks', 'Rank in school and all-India, topic-wise analysis, time per question.'],
+    ['green', I('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'), '15,000+ question bank', 'Filter by chapter, topic, level, exam and year, with solutions.'],
+    ['purple', I('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>'), 'Past papers 1978–2026', 'Paper-wise and chapter-wise, with answer keys.'],
+    ['rose', I('<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>'), 'DPPs, Must Solve & handouts', 'Daily practice sheets and revision notes for every chapter.'],
+    ['teal', I('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>'), 'Built for teachers', 'Make a test in minutes, share one link, track every student.']
   ];
-  const info = h('section', { class: 'lg-info', 'aria-label': 'What you get' },
-    h('p', { class: 'lg-tag', text: 'Everything for JEE Maths in one place' }),
-    h('div', { class: 'lg-stats' }, [['15,000+', 'questions'], ['1978–2026', 'past papers'], ['28', 'chapters']].map(([b, t]) => h('div', { class: 'lg-stat' }, h('b', { text: b }), h('span', { text: t })))),
-    h('ul', { class: 'lg-feats' }, FEATS.map(([ic, t, d]) => h('li', {}, h('span', { class: 'lg-fic', html: ic }), h('div', {}, h('h3', { text: t }), h('p', { text: d }))))),
-    h('p', { class: 'lg-free', text: 'Start free. Premium from ₹299 a year adds downloads, all-India ranks and more. Avanti students get Premium free.' }));
+  // the picture of the test screen (an example, not real data)
+  const st = ['a', 'a', 'n', 'a', 'm', 'a', 'v', 'a', 'n', 'a', 'a', 'm', 'c', 'v', 'v', 'a', 'n', 'v', 'v', 'v'];
+  const mock = h('div', { class: 'lgx-mock', 'aria-hidden': 'true' },
+    h('div', { class: 'lgx-bar' }, h('i'), h('i'), h('i'), h('span', { text: 'JEE Main Mock Test · Mathematics' }), h('em', { class: 'lgx-sec', text: '🔒 Secure mode' }), h('b', { class: 'lgx-timer', text: '⏱ 01:42:18' })),
+    h('div', { class: 'lgx-body' },
+      h('div', { class: 'lgx-q' }, h('div', { class: 'lgx-qh' }, h('b', { text: 'Question 13' }), h('span', { text: '+4 / −1' })),
+        h('p', { html: 'The value of &nbsp;<span class="lgx-math">∫<sub>0</sub><sup>π/2</sup> sin<sup>2</sup>x dx</span>&nbsp; is' }),
+        h('div', { class: 'lgx-opts' }, [['A', 'π/2'], ['B', 'π/4', 1], ['C', 'π'], ['D', '1']].map(([l, t, on]) => h('div', { class: 'lgx-opt' + (on ? ' on' : '') }, h('b', { text: l }), h('span', { text: t })))),
+        h('div', { class: 'lgx-btns' }, h('span', { class: 'mk', text: 'Mark for review & next' }), h('span', { class: 'sv', text: 'Save & next' }))),
+      h('div', { class: 'lgx-pal' }, h('div', { class: 'lgx-grid' }, st.map((k, i) => h('span', { class: 'p-' + k, text: String(i + 1) }))),
+        h('ul', {}, [['a', 'Answered'], ['n', 'Not answered'], ['m', 'Marked'], ['v', 'Not visited']].map(([k, t]) => h('li', {}, h('i', { class: 'p-' + k }), t))))),
+    h('div', { class: 'lgx-float' }, h('span', { class: 'lgx-fic', html: I('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>') }),
+      h('div', {}, h('small', { text: 'Report ready · example' }), h('b', { text: 'Score 248 / 300' }), h('span', { text: 'Rank 3 in school · 41 all-India' }))));
+  const info = h('section', { class: 'lg-info lgx', 'aria-label': 'What you get' },
+    h('span', { class: 'lgx-pill', text: '★ Free to start · by Avanti Fellows' }),
+    h('h2', { class: 'lgx-h' }, 'Practise like the ', h('em', { text: 'real exam.' }), h('br'), 'Improve every week.'),
+    h('p', { class: 'lgx-lead', text: 'NTA-style online tests, 15,000+ questions with solutions and every past paper since 1978, in one place for JEE Maths.' }),
+    h('div', { class: 'lgx-exams' }, ['JEE Main', 'JEE Advanced', 'KCET', 'NDA', 'IAT', 'AIEEE'].map(t => h('span', { text: t }))),
+    mock,
+    h('div', { class: 'lgx-stats' }, [['15,000+', 'Questions'], ['11,000+', 'Full solutions'], ['1978–2026', 'Past papers'], ['28', 'Chapters']].map(([b, t]) => h('div', {}, h('b', { text: b }), h('span', { text: t })))),
+    h('h3', { class: 'lgx-sub', text: 'Everything you need to prepare' }),
+    h('ul', { class: 'lgx-feats' }, FEATS.map(([c, ic, t, d]) => h('li', { class: 'c-' + c }, h('span', { class: 'lgx-fic', html: ic }), h('div', {}, h('b', { text: t }), h('span', { text: d }))))),
+    h('p', { class: 'lgx-free' }, h('b', { text: 'Start free. ' }), 'Premium from ₹299 a year adds PDF downloads, all-India ranks and more. Avanti students get Premium free.'));
   root.append(h('div', { class: 'lg lg-split' },
     h('header', { class: 'lg-head' }, h('img', { src: 'img/avanti-logo.png', alt: 'Avanti Fellows', width: 150, height: 51 }),
       h('h1', { text: 'Mathematics Dashboard' }), h('p', { text: "JEE, CET, NDA, IAT · PYQ's, DPP's, Handouts and tests" })),
