@@ -21,4 +21,4 @@ tests and results. It replaced an older Claude artifact.
 - `supabase/schema.sql`: the whole database; safe to run again. `supabase/functions/`: Edge Functions.
 - `.github/scripts/guard.sh`: run it before every merge (`bash .github/scripts/guard.sh`). The deploy workflow refuses to
   publish when it fails.
-- Bump `BUILD` in `boot.js` and the `?v=` numbers in `index.html` on every release.
+- Bump `BUILD` and `RELEASED` in `boot.js` and the `?v=` numbers in `index.html` on every release (the footer shows "Website vBUILD · RELEASED").

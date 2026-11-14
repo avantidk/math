@@ -532,6 +532,10 @@ function paginate(qs, base) {
   const use = even.every(r => ok(r[0], r[1])) ? even : greedy;
   return use.map(r => qs.slice(r[0], r[1]));
 }
+function idPages(ids, title) {
+  const qs = ids.map(i => BYID.get(i)).filter(Boolean);
+  return qs.length ? packPages(qs, (g, i, n) => ({ title, sub: 'Worksheet', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : 'Worksheet' })) : [];
+}
 function packPages(qs, mk) {
   const pg = paginate(qs, BASE), out = []; let start = 0;
   pg.forEach((g, i) => { out.push(Object.assign({}, BASE, mk(g, i, pg.length), { qs: g, start, cols: 2 })); start += g.length; });
@@ -1764,6 +1768,7 @@ function buildShell() {
         h('div', { id: 'viewPortal', class: 'pt-wrap', hidden: true })),
       h('footer', { class: 'app-foot', id: 'appFoot' },
         h('span', { class: 'af-brand' }, 'Made with ', h('span', { class: 'af-heart', style: 'color:#e11d48', 'aria-label': 'love', text: '\u2665' }), ' by Ankit'),
+        h('span', { class: 'af-ver', id: 'appFootSite' }),
         h('span', { class: 'af-ver', id: 'appFootVer' }),
         h('span', { class: 'af-link', id: 'appFootLink' }))));
   if (!document.getElementById('app-fit-css')) { const fs2 = document.createElement('style'); fs2.id = 'app-fit-css'; fs2.textContent = 'html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}.tb-menu{max-width:100%}.katex-mathml{max-width:1px!important;overflow:hidden!important}'; document.head.appendChild(fs2); }
@@ -1845,6 +1850,9 @@ window.AvantiTeacher = {
   setTab: t => setTab(t), hideViews: () => hideViews(), toast: m => toast(m),
   /* the question bank (same data as the Question Bank, DPPs and PYQs tabs), for the test maker */
   bank: () => ensureDpp().then(() => ({ qs: BANK.all, byId: BYID, chapters: CHMAP })),
+  /* saved worksheets: the same PDF / Word / PowerPoint export and share menu as DPPs (plan checks inside) */
+  exportIds: async (ids, title, kind) => { await ensureDpp(); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } doExport(kind, { pages, file: title }); },
+  shareIds: async (btn, ids, title) => { await ensureDpp(); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
   math: node => math(node)
 };
 

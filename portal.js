@@ -59,7 +59,7 @@ function mathIn(node) {
     try { window.renderMathInElement(node, { delimiters: [{ left: '\\[', right: '\\]', display: true }, { left: '\\(', right: '\\)', display: false }], throwOnError: false }); } catch (e) { /* raw text stays */ }
   });
 }
-const qText = t => esc(t).replace(/\n/g, '<br>');
+const qText = t => esc(t).replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');   /* **bold** in question text */
 function figure(f) {
   if (!f || !f.svg) return null;
   return h('img', { class: 'pt-fig', alt: 'Figure', src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(f.svg) });
@@ -146,17 +146,26 @@ const OTHER = '__other__';
 /* School dropdown from the database. With allowOther, a teacher can pick "Other" and type a school that is not on the list. */
 function schoolSelect(id, val, first, allowOther) {
   const s = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: first }));
+  const find = h('input', { type: 'search', class: 'pt-in pt-schoolfind', id: id + 'Find', placeholder: 'Search schools…', 'aria-label': 'Search schools', autocomplete: 'off' });
+  let ALL = [];
+  const fill = q => {
+    const keep = s.value, t = (q || '').trim().toLowerCase(), shown = t ? ALL.filter(x => x.toLowerCase().includes(t)) : ALL;
+    s.textContent = ''; s.append(h('option', { value: '', text: t ? (shown.length ? shown.length + ' match' + (shown.length === 1 ? '' : 'es') + ' · choose…' : 'No school matches "' + q.trim() + '"') : first }));
+    shown.forEach(x => s.append(h('option', { value: x, text: x })));
+    if (allowOther) s.append(h('option', { value: OTHER, text: 'Other (my school is not in the list)…' }));
+    if (keep && [...s.options].some(o => o.value === keep)) s.value = keep; else if (shown.length === 1) { s.value = shown[0]; s.dispatchEvent(new Event('change')); }
+  };
+  find.addEventListener('input', () => fill(find.value));
   const other = allowOther ? h('input', { type: 'text', class: 'pt-in', id: id + 'Other', maxlength: 160, placeholder: 'Type your school name', hidden: true, 'aria-label': 'Your school name' }) : null;
   const sync = () => { if (other) { other.hidden = s.value !== OTHER; if (!other.hidden) other.focus(); } };
   s.addEventListener('change', sync);
   schools().then(list => {
-    const all = list.slice(); if (val && !all.includes(val)) all.unshift(val);
-    all.forEach(x => s.append(h('option', { value: x, text: x })));
-    if (allowOther) s.append(h('option', { value: OTHER, text: 'Other (my school is not in the list)…' }));
-    s.value = val || '';
-    if (!all.length && !allowOther) s.firstChild.textContent = 'No schools in the database yet';
+    ALL = list.slice(); if (val && !ALL.includes(val)) ALL.unshift(val);
+    fill(''); s.value = val || '';
+    if (!ALL.length && !allowOther) s.firstChild.textContent = 'No schools in the database yet';
+    find.hidden = ALL.length < 6;
   }).catch(() => { s.firstChild.textContent = 'Could not load schools'; });
-  const wrap = h('div', { class: 'pt-school' }, s, other);
+  const wrap = h('div', { class: 'pt-school' }, find, s, other);
   wrap.value = () => (s.value === OTHER ? (other.value || '').trim().replace(/\s+/g, ' ') : s.value);
   wrap.sel = s;
   return wrap;
@@ -304,6 +313,10 @@ async function pageWorksheets() {
     h('div', { class: 'pt-actions' },
       h('button', { type: 'button', class: 'btn pri', text: 'Create test', onclick: () => createTestFrom(w.question_ids, w.title) }),
       h('button', { type: 'button', class: 'btn', text: 'View questions', onclick: () => previewIds(w.title, w.question_ids) }),
+      can('pdf') ? h('button', { type: 'button', class: 'btn ibtn pt-icon', title: 'Download PDF', 'aria-label': 'Download ' + w.title + ' as PDF', html: '<img src="img/pdf.png" width="26" height="26" alt="">', onclick: () => TE().exportIds(w.question_ids, w.title, 'pdf') }) : null,
+      can('docx') ? h('button', { type: 'button', class: 'btn ibtn pt-icon', title: 'Download Word (editable)', 'aria-label': 'Download ' + w.title + ' as Word', html: '<img src="img/word.png" width="26" height="24" alt="">', onclick: () => TE().exportIds(w.question_ids, w.title, 'docx') }) : null,
+      can('pptx') ? h('button', { type: 'button', class: 'btn ibtn pt-icon', title: 'Download PowerPoint (editable)', 'aria-label': 'Download ' + w.title + ' as PowerPoint', html: '<img src="img/ppt.png" width="26" height="24" alt="">', onclick: () => TE().exportIds(w.question_ids, w.title, 'pptx') }) : null,
+      can('share') ? h('button', { type: 'button', class: 'btn ibtn pt-icon', title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share ' + w.title, html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>', onclick: e => TE().shareIds(e.currentTarget, w.question_ids, w.title) }) : null,
       h('button', { type: 'button', class: 'btn', text: 'Rename', onclick: async () => { const t = await promptBox('Rename worksheet', 'Title', w.title); if (!t) return; const { error } = await sb().from('worksheets').update({ title: t, updated_at: new Date().toISOString() }).eq('id', w.id); if (error) toast('Could not rename: ' + error.message); else pageWorksheets(); } }),
       h('button', { type: 'button', class: 'btn pt-danger', text: 'Delete', onclick: async () => { if (!await confirmBox('Delete worksheet?', '"' + w.title + '" will be deleted. Tests made from it are not affected.', 'Delete', true)) return; const { error } = await sb().from('worksheets').delete().eq('id', w.id); if (error) toast('Could not delete: ' + error.message); else pageWorksheets(); } }))))) :
     empty('No saved worksheets yet', 'In the Question Bank, tick questions and press "Save as worksheet". You can also save the questions of a test while creating it.', h('button', { type: 'button', class: 'btn pri', text: 'Open Question Bank', onclick: () => { leave(); TE().setTab('qb'); } }));
@@ -817,7 +830,7 @@ function studentForm(o) {
   const req = k => k !== 'session' && !(edit && k === 'dob');
   const fld = (k, hint) => h('label', { class: 'pt-fld', for: F[k].id }, h('span', {}, COL_LBL[k], req(k) ? h('b', { class: 'pt-req', text: ' *' }) : null), F[k], hint ? h('small', { text: hint }) : null);
   const node = h('div', { class: 'pt-form' },
-    o.hideId ? null : h('div', { class: 'pt-row2' }, fld('student_id', edit ? 'The ID cannot be changed.' : 'The student signs in with this ID.'), fld('dob', edit ? 'Leave blank to keep the current date of birth.' : 'Used as the password with the ID.')),
+    o.hideId ? null : h('div', { class: 'pt-row2' }, fld('student_id', edit ? 'The ID cannot be changed.' : 'The student signs in with this ID.'), fld('dob', edit ? 'Not shown: it is stored scrambled for safety. Type a date only to change it.' : 'Used as the password with the ID.')),
     fld('full_name'), h('div', { class: 'pt-row2' }, fld('class'), fld('stream')), h('div', { class: 'pt-row2' }, fld('category'), fld('gender')), fld('session', 'Filled from the class: Class 11 → ' + sessionFor('11') + ', Class 12 / Dropper → ' + sessionFor('12') + '.'));
   F.class.addEventListener('change', () => { if (F.class.value) F.session.value = sessionFor(F.class.value); });
   node.values = () => { const r = {}; COLS.forEach(k => { r[k] = (F[k].value || '').trim(); }); return r; };
