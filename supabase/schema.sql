@@ -232,6 +232,9 @@ alter table public.student_allowlist add column if not exists added_by uuid refe
 alter table public.student_allowlist add column if not exists batch text;
 alter table public.student_allowlist add column if not exists updated_at timestamptz not null default now();
 alter table public.student_allowlist add column if not exists session text;
+-- Date of birth shown to the student's teachers and the admin (the hash is still what sign-in checks).
+-- Older rows have no readable date until the student signs in once or the same file is uploaded again.
+alter table public.student_allowlist add column if not exists dob date;
 alter table public.student_allowlist_import add column if not exists session text;
 
 create table if not exists public.login_attempts (
@@ -276,11 +279,11 @@ declare v_id text := public.norm_avanti_id(p_avanti_id); v_dob date := public.no
 begin
   if v_id is null then raise exception 'Avanti ID is empty'; end if;
   if v_dob is null then raise exception 'Date of birth "%" for % is not a date. Use YYYY-MM-DD or DD-MM-YYYY.', p_dob, v_id; end if;
-  insert into public.student_allowlist (avanti_id, dob_hash, full_name, school, class, stream, category, gender, batch, source, session)
-  values (v_id, extensions.crypt(to_char(v_dob, 'YYYY-MM-DD'), extensions.gen_salt('bf', 8)),
+  insert into public.student_allowlist (avanti_id, dob, dob_hash, full_name, school, class, stream, category, gender, batch, source, session)
+  values (v_id, v_dob, extensions.crypt(to_char(v_dob, 'YYYY-MM-DD'), extensions.gen_salt('bf', 8)),
           nullif(trim(p_full_name), ''), nullif(trim(p_school), ''), public.norm_class(p_class), public.norm_stream(p_stream),
           nullif(trim(p_category), ''), nullif(trim(p_gender), ''), nullif(trim(p_batch), ''), 'avanti', public.session_for(public.norm_class(p_class)))
-  on conflict (avanti_id) do update set dob_hash = excluded.dob_hash, full_name = excluded.full_name, school = excluded.school,
+  on conflict (avanti_id) do update set dob = excluded.dob, dob_hash = excluded.dob_hash, full_name = excluded.full_name, school = excluded.school,
     class = excluded.class, stream = excluded.stream, category = excluded.category, gender = excluded.gender,
     session = coalesce(student_allowlist.session, excluded.session),
     batch = coalesce(excluded.batch, student_allowlist.batch), source = 'avanti', updated_at = now(),
@@ -335,7 +338,7 @@ begin
     insert into public.login_attempts (ip, avanti_id, ok) values (p_ip, v_id, false);
     return json_build_object('ok', false, 'reason', 'wrong');
   end if;
-  update public.student_allowlist set failed_attempts = 0, locked_until = null where avanti_id = v_id;
+  update public.student_allowlist set failed_attempts = 0, locked_until = null, dob = coalesce(dob, v_dob) where avanti_id = v_id;
   update public.profiles p set full_name = coalesce(al.full_name, p.full_name), school = coalesce(al.school, p.school),
          class = coalesce(al.class, p.class), stream = coalesce(al.stream, p.stream),
          category = coalesce(al.category, p.category), gender = coalesce(al.gender, p.gender),
@@ -1048,8 +1051,8 @@ begin
     select string_agg(k, ', ') into v_miss from unnest(array['full_name', 'class', 'stream', 'category', 'gender']) k where f->>k is null;
     if v_dob is null then v_miss := concat_ws(', ', 'dob', v_miss); end if;
     if v_miss is not null then return json_build_object('ok', false, 'error', 'Missing: ' || v_miss); end if;
-    insert into public.student_allowlist (avanti_id, dob_hash, full_name, school, class, stream, category, gender, batch, source, added_by, session)
-    values (v_id, extensions.crypt(to_char(v_dob, 'YYYY-MM-DD'), extensions.gen_salt('bf', 8)), f->>'full_name', v_school,
+    insert into public.student_allowlist (avanti_id, dob, dob_hash, full_name, school, class, stream, category, gender, batch, source, added_by, session)
+    values (v_id, v_dob, extensions.crypt(to_char(v_dob, 'YYYY-MM-DD'), extensions.gen_salt('bf', 8)), f->>'full_name', v_school,
             f->>'class', f->>'stream', f->>'category', f->>'gender', f->>'batch',
             case when me.is_staff then 'avanti' else 'teacher' end, me.id,   -- added by an Avanti teacher: Premium student
             coalesce(f->>'session', public.session_for(f->>'class')));
@@ -1060,6 +1063,7 @@ begin
     end if;
     if lower(coalesce(a.school, '')) <> lower(v_school) then return json_build_object('ok', false, 'error', 'Student ID ' || v_id || ' belongs to another school'); end if;
     update public.student_allowlist set
+      dob = coalesce(v_dob, dob),
       dob_hash = case when v_dob is not null then extensions.crypt(to_char(v_dob, 'YYYY-MM-DD'), extensions.gen_salt('bf', 8)) else dob_hash end,
       full_name = coalesce(f->>'full_name', full_name), class = coalesce(f->>'class', class), stream = coalesce(f->>'stream', stream),
       category = coalesce(f->>'category', category), gender = coalesce(f->>'gender', gender), batch = coalesce(f->>'batch', batch),
@@ -1099,6 +1103,9 @@ begin
     i := i + 1;
     begin
       if exists (select 1 from public.student_allowlist where avanti_id = public.norm_avanti_id(r->>'student_id')) then
+        update public.student_allowlist set dob = public.norm_dob(r->>'dob')
+         where avanti_id = public.norm_avanti_id(r->>'student_id') and dob is null and public.norm_dob(r->>'dob') is not null
+           and extensions.crypt(to_char(public.norm_dob(r->>'dob'), 'YYYY-MM-DD'), dob_hash) = dob_hash;
         v_out := v_out || jsonb_build_array(jsonb_build_object('row', i, 'ok', true, 'action', 'exists', 'student_id', public.norm_avanti_id(r->>'student_id')));
       else
         v_out := v_out || jsonb_build_array(jsonb_build_object('row', i) || public.save_student(r, me, false)::jsonb);
@@ -1148,11 +1155,11 @@ begin
   if v_school is null then raise exception 'Add your school in Edit profile first'; end if;
   with st as (
     select a.avanti_id as student_id, coalesce(p.full_name, a.full_name) as full_name, a.class, a.stream, a.category, a.gender, a.session,
-           a.source, p.id as user_id, null::text as email
+           a.source, p.id as user_id, null::text as email, a.dob
       from public.student_allowlist a left join public.profiles p on p.avanti_id = a.avanti_id
      where lower(a.school) = lower(v_school)
     union all
-    select null, p.full_name, p.class, p.stream, p.category, p.gender, p.session, 'google', p.id, p.email
+    select null, p.full_name, p.class, p.stream, p.category, p.gender, p.session, 'google', p.id, p.email, null::date
       from public.profiles p where p.role = 'student' and p.avanti_id is null and lower(p.school) = lower(v_school)),
   perf as (
     select user_id, count(*) as tests, round(avg(100.0 * score / nullif(max_score, 0)), 1) as avg_pct,
@@ -1161,7 +1168,7 @@ begin
       from public.attempts where status = 'submitted' and user_id in (select user_id from st where user_id is not null) group by user_id)
   select json_build_object('school', v_school, 'students', coalesce(json_agg(json_build_object(
            'student_id', st.student_id, 'full_name', st.full_name, 'class', st.class, 'stream', st.stream, 'category', st.category,
-           'gender', st.gender, 'session', st.session, 'source', st.source, 'user_id', st.user_id, 'email', st.email,
+           'gender', st.gender, 'session', st.session, 'source', st.source, 'dob', st.dob, 'user_id', st.user_id, 'email', st.email,
            'signed_in', st.user_id is not null, 'tests', coalesce(pf.tests, 0), 'avg_pct', pf.avg_pct, 'best_pct', pf.best_pct,
            'accuracy', pf.accuracy, 'last_at', pf.last_at) order by st.class, st.session, st.full_name), '[]'::json))
     into res from st left join perf pf on pf.user_id = st.user_id;
@@ -1264,6 +1271,29 @@ begin
   return json_build_object('ok', true);
 end $$;
 
+-- Numbers shown next to the profile-menu items.
+create or replace function public.menu_counts() returns json
+language plpgsql stable security definer set search_path = public as $$
+declare me public.profiles;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if me.id is null then return '{}'::json; end if;
+  return json_build_object(
+    'tests', (select count(*) from public.tests t where t.owner_id = me.id or public.admin_of(me)),
+    'worksheets', (select count(*) from public.worksheets w where w.owner_id = me.id),
+    'students', case when public.admin_of(me) then (select count(*) from public.student_allowlist) + (select count(*) from public.profiles x where x.role = 'student' and x.avanti_id is null)
+                     when me.role = 'teacher' and me.school is not null then
+                       (select count(*) from public.student_allowlist a where lower(a.school) = lower(me.school))
+                       + (select count(*) from public.profiles x where x.role = 'student' and x.avanti_id is null and lower(x.school) = lower(me.school)) end,
+    'available', case when me.role = 'student' then (select count(*) from public.tests t
+                       where t.is_active and t.owner_id <> me.id and me.class = any(t.target_classes) and me.stream = any(t.target_streams)
+                         and (t.school is null or lower(t.school) = lower(coalesce(me.school, '')))
+                         and not exists (select 1 from public.attempts a where a.test_id = t.id and a.user_id = me.id and a.status = 'submitted')) end,
+    'reports', (select count(*) from public.attempts a where a.user_id = me.id and a.status = 'submitted'),
+    'approvals', case when public.admin_of(me) then (select count(*) from public.profiles t
+                       where t.role = 'teacher' and not t.is_staff and not t.school_approved and t.school is not null) end);
+end $$;
+
 -- Help & Support contact (also shown on the login page, so it is readable without signing in).
 create or replace function public.support_contact() returns json
 language sql stable security definer set search_path = public as $$
@@ -1287,7 +1317,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.my_attempts(), public.my_tests(), public.list_schools(), public.is_premium_teacher(), public.price_paise(text),
   public.teacher_add_student(jsonb), public.teacher_add_students(jsonb), public.teacher_update_student(uuid, text, jsonb),
   public.school_students(text), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),
-  public.admin_set_teacher_school(uuid, text, text, text), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
+  public.admin_set_teacher_school(uuid, text, text, text), public.menu_counts(), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
   to authenticated;
 -- server only (Edge Functions use the service role)
 grant execute on function public.avanti_verify(text, text, text), public.grant_premium(text, text, integer),

@@ -189,6 +189,8 @@ const CROWN = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColo
 const rupees = p => '₹' + Math.round((p || 0) / 100);
 /* Avatar colour: Free student green, Free teacher blue, Premium (and Staff) golden with a green ring for students and a red ring for teachers. */
 function avatarClass(p, perm) { return 'pf-btn ' + (perm.plan === 'free' ? (p.role === 'teacher' ? 'av-free-t' : 'av-free-s') : 'av-gold ' + (p.role === 'teacher' ? 'av-ring-t' : 'av-ring-s')); }
+/* the number shown after each menu item, from menu_counts() */
+const COUNT_KEY = { '#/tests': 'available', '#/reports': 'reports', '#/my-tests': 'tests', '#/students': 'students', '#/worksheets': 'worksheets', '#/approvals': 'approvals' };
 function renderMenu() {
   const slot = $('#tbProfile'); const p = A.profile; if (!slot || !p) return;
   slot.textContent = '';
@@ -197,12 +199,12 @@ function renderMenu() {
   if (perm.plan === 'premium' && !p.is_avanti) items.push(['#/membership', 'Membership']);
   if (student) items.push(['#/tests', 'Available tests'], ['#/reports', 'My Reports']);
   if (teacher || perm.staff) {
-    if (perm.createTests) items.push(['#/create', 'Create Test'], ['#/my-tests', 'My Tests and Results']);
+    if (perm.createTests) items.push(['#/my-tests', 'My Tests and Results']);
     if (perm.manageStudents) items.push(['#/students', 'My Students']);
     else if (perm.createTests) items.push(['#/add-student', 'Add a student']);
     if (perm.worksheets) items.push(['#/worksheets', 'Saved worksheets']);
   }
-  if (perm.isAdmin) items.push(['#/approvals', 'Teacher approvals' + (p.pending_approvals ? ' (' + p.pending_approvals + ')' : '')]);
+  if (perm.isAdmin) items.push(['#/approvals', 'Teacher approvals']);
   items.push(['#/help', 'Help & Support']);
   const planLabel = perm.isAdmin ? 'Admin · Full access' : perm.plan === 'staff' ? 'Avanti teacher' : p.is_avanti ? 'Avanti · Premium' : perm.plan === 'premium' ? 'Premium' : 'Free';
   const upgrade = perm.plan === 'free' ? h('a', { class: 'pf-up', role: 'menuitem', href: '#/membership', onclick: close },
@@ -214,12 +216,14 @@ function renderMenu() {
       h('span', { class: 'pf-mail', title: p.email || p.avanti_id || '', text: p.email || p.avanti_id || '' }),
       h('span', { class: 'pf-plan ' + (perm.plan === 'free' ? (teacher ? 'pf-free-t' : 'pf-free-s') : 'pf-gold'), text: perm.isAdmin || perm.plan === 'staff' ? planLabel : planLabel + ' · ' + (teacher ? 'Teacher' : 'Student') })),
     upgrade,
-    items.map(([href, t]) => h('a', { class: 'tb-item', role: 'menuitem', href, text: t, onclick: close })),
-    h('button', { type: 'button', class: 'tb-item pf-out', role: 'menuitem', text: 'Logout', onclick: () => A.signOut() }));
+    items.map(([href, t]) => h('a', { class: 'tb-item pf-item', role: 'menuitem', href, 'data-count': COUNT_KEY[href] || null, onclick: close }, h('span', { text: t }), COUNT_KEY[href] ? h('span', { class: 'pf-count' }) : null)),
+    h('button', { type: 'button', class: 'tb-item pf-out', role: 'menuitem', text: 'Logout', onclick: () => A.signOut() }),
+    window.AvantiBoot ? h('div', { class: 'pf-ver', text: 'Website v' + window.AvantiBoot.build + ' · ' + window.AvantiBoot.released }) : null);
   const btn = h('button', { type: 'button', class: avatarClass(p, perm), id: 'pfBtn', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Profile menu (' + planLabel + ')', title: planLabel, text: initials(p),
     onclick: e => { e.stopPropagation(); const open = drop.hidden; drop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); } });
   function close() { drop.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
   slot.append(btn, drop);
+  rpc('menu_counts').then(c => drop.querySelectorAll('[data-count]').forEach(a => { const n = c && c[a.dataset.count]; if (n != null) a.querySelector('.pf-count').textContent = '(' + n + ')'; })).catch(() => {});
   if (!renderMenu.bound) {
     renderMenu.bound = true;
     document.addEventListener('click', e => { const d = $('#pfDrop'); if (d && !d.hidden && !e.target.closest('#tbProfile')) { d.hidden = true; $('#pfBtn').setAttribute('aria-expanded', 'false'); } });

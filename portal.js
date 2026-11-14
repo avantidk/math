@@ -163,7 +163,6 @@ function schoolSelect(id, val, first, allowOther) {
     ALL = list.slice(); if (val && !ALL.includes(val)) ALL.unshift(val);
     fill(''); s.value = val || '';
     if (!ALL.length && !allowOther) s.firstChild.textContent = 'No schools in the database yet';
-    find.hidden = ALL.length < 6;
   }).catch(() => { s.firstChild.textContent = 'Could not load schools'; });
   const wrap = h('div', { class: 'pt-school' }, find, s, other);
   wrap.value = () => (s.value === OTHER ? (other.value || '').trim().replace(/\s+/g, ' ') : s.value);
@@ -303,24 +302,76 @@ async function myWorksheets() {
   if (error) throw new Error(error.message);
   return data || [];
 }
+/* a small pop-up menu under a button (Export, More) */
+function dropMenu(btn, items) {
+  const old = document.querySelector('.pt-dmenu'); if (old) { const same = old.owner === btn; old.remove(); if (same) return; }
+  const m = h('div', { class: 'pt-dmenu', role: 'menu' }, items.filter(Boolean).map(it => it === '-' ? h('div', { class: 'pt-dsep', role: 'separator' })
+    : h('button', { type: 'button', role: 'menuitem', class: 'pt-ditem' + (it.bad ? ' bad' : ''), onclick: () => { close(); it.onclick(); } }, it.icon ? h('span', { class: 'pt-dic', html: it.icon }) : null, h('span', { class: 'pt-dtx' }, h('b', { text: it.text }), it.sub ? h('small', { text: it.sub }) : null))));
+  m.owner = btn; document.body.append(m);
+  const r = btn.getBoundingClientRect(), w = m.offsetWidth;
+  m.style.top = Math.min(window.innerHeight - m.offsetHeight - 8, r.bottom + 6) + 'px';
+  m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)) + 'px';
+  btn.setAttribute('aria-expanded', 'true');
+  const out = e => { if (!m.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close(); }, key = e => { if (e.key === 'Escape') { close(); btn.focus(); } };
+  function close() { m.remove(); btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', out, true); document.removeEventListener('keydown', key, true); window.removeEventListener('scroll', close, true); }
+  setTimeout(() => { document.addEventListener('click', out, true); document.addEventListener('keydown', key, true); window.addEventListener('scroll', close, true); }, 0);
+  const first = m.querySelector('button'); if (first) first.focus();
+}
+const IC = {
+  pdf: '<img src="img/pdf.png" width="22" height="22" alt="">', docx: '<img src="img/word.png" width="22" height="20" alt="">', pptx: '<img src="img/ppt.png" width="22" height="20" alt="">',
+  share: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  del: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
+  down: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>',
+  more: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>'
+};
+/* Share a worksheet as a PDF: the phone's share sheet when it can attach files, otherwise download + WhatsApp / email */
+async function shareWorksheet(w) {
+  if (!can('share')) { toast('Sharing needs a Premium membership.'); return; }
+  toast('Preparing the PDF…');
+  let r; try { r = await TE().pdfIds(w.question_ids, w.title); } catch (e) { toast('Could not make the PDF: ' + (e && e.message ? e.message : 'try again')); return; }
+  if (r) shareReady(r.blob, r.file, w.title);
+}
+/* "PDF ready" box used by every share button on the site. The share sheet needs a fresh click, so it opens from here. */
+function shareReady(blob, fileName, title) {
+  if (!can('share')) { toast('Sharing needs a Premium membership.'); return; }
+  const file = new File([blob], fileName, { type: 'application/pdf' }), url = URL.createObjectURL(blob), text = title + ' (Avanti Fellows)';
+  const canFiles = !!(navigator.canShare && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
+  const msg = h('p', { class: 'pt-msg', role: 'status' });
+  const sizeKb = Math.max(1, Math.round(blob.size / 1024));
+  modal('Share "' + title + '"', h('div', { class: 'pt-form pt-share' },
+    h('div', { class: 'pt-sharefile' }, h('span', { html: IC.pdf }), h('div', {}, h('b', { text: fileName }), h('small', { text: (sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + ' MB' : sizeKb + ' KB') + ' · PDF' }))),
+    canFiles ? h('button', { type: 'button', class: 'btn pri pt-big', onclick: async () => { try { await navigator.share({ files: [file], title, text }); msg.textContent = 'Shared.'; msg.className = 'pt-msg ok'; } catch (e) { if (!e || e.name !== 'AbortError') { msg.textContent = 'This device could not open the share sheet. Download the PDF and attach it instead.'; msg.className = 'pt-msg bad'; } } } }, h('span', { html: IC.share }), 'Share with an app…') : null,
+    h('div', { class: 'pt-actions' },
+      h('a', { class: 'btn' + (canFiles ? '' : ' pri'), href: url, download: fileName }, h('span', { html: IC.down }), 'Download PDF'),
+      h('a', { class: 'btn', href: 'https://wa.me/?text=' + encodeURIComponent(text), target: '_blank', rel: 'noopener', text: 'WhatsApp' }),
+      h('a', { class: 'btn', href: 'https://mail.google.com/mail/?view=cm&fs=1&su=' + encodeURIComponent(text) + '&body=' + encodeURIComponent('Please find the PDF attached: ' + fileName), target: '_blank', rel: 'noopener', text: 'Gmail' })),
+    h('p', { class: 'pt-hint', text: canFiles ? '"Share with an app" sends the PDF itself. WhatsApp and Gmail open a message: attach the downloaded PDF there.' : 'Download the PDF first, then attach it in the WhatsApp or Gmail message that opens.' }), msg),
+    [{ text: 'Done', pri: false, onclick: () => { setTimeout(() => URL.revokeObjectURL(url), 120000); } }]);
+}
 async function pageWorksheets() {
   if (!can('worksheets')) return nope('Saved worksheets are for Premium teachers', 'Upgrade to keep question lists as worksheets and reuse them in tests.');
   show(head('Saved worksheets', 'Question lists you kept from the Question Bank or the test maker.'), loading());
   const list = await myWorksheets();
+  const rename = async w => { const t = await promptBox('Rename worksheet', 'Title', w.title); if (!t) return; const { error } = await sb().from('worksheets').update({ title: t, updated_at: new Date().toISOString() }).eq('id', w.id); if (error) toast('Could not rename: ' + error.message); else pageWorksheets(); };
+  const del = async w => { if (!await confirmBox('Delete worksheet?', '"' + w.title + '" will be deleted. Tests made from it are not affected.', 'Delete', true)) return; const { error } = await sb().from('worksheets').delete().eq('id', w.id); if (error) toast('Could not delete: ' + error.message); else { toast('Worksheet deleted'); pageWorksheets(); AU().renderMenu(); } };
+  const exportBtn = w => can('pdf') ? h('button', { type: 'button', class: 'btn pt-split', 'aria-haspopup': 'menu', 'aria-expanded': 'false', onclick: e => dropMenu(e.currentTarget, [
+      { icon: IC.pdf, text: 'Download PDF', sub: 'Print-ready, with the Avanti header', onclick: () => TE().exportIds(w.question_ids, w.title, 'pdf') },
+      can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable document', onclick: () => TE().exportIds(w.question_ids, w.title, 'docx') } : null,
+      can('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: () => TE().exportIds(w.question_ids, w.title, 'pptx') } : null,
+      can('share') ? '-' : null,
+      can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: () => shareWorksheet(w) } : null]) },
+    h('span', { html: IC.down }), 'Export', h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' })) : null;
+  const moreBtn = w => h('button', { type: 'button', class: 'btn pt-iconbtn', title: 'More', 'aria-label': 'More actions for ' + w.title, 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: IC.more,
+    onclick: e => dropMenu(e.currentTarget, [{ icon: IC.edit, text: 'Rename', onclick: () => rename(w) }, { icon: IC.del, text: 'Delete', bad: true, onclick: () => del(w) }]) });
   const body = list.length ? h('div', { class: 'pt-cards' }, list.map(w => card(
-    h('div', { class: 'pt-ct' }, h('h3', { text: w.title }), badge(w.question_ids.length + ' questions')),
-    h('p', { class: 'pt-hint', text: 'Updated ' + when(w.updated_at) }),
-    h('div', { class: 'pt-actions' },
-      h('button', { type: 'button', class: 'btn pri', text: 'Create test', onclick: () => createTestFrom(w.question_ids, w.title) }),
+    h('div', { class: 'pt-ct' }, h('h3', { text: w.title }), moreBtn(w)),
+    h('p', { class: 'pt-meta' }, h('b', { text: w.question_ids.length }), ' questions · updated ' + when(w.updated_at)),
+    h('div', { class: 'pt-actions pt-wsact' },
       h('button', { type: 'button', class: 'btn', text: 'View questions', onclick: () => previewIds(w.title, w.question_ids) }),
-      can('pdf') ? h('button', { type: 'button', class: 'btn ibtn pt-icon', title: 'Download PDF', 'aria-label': 'Download ' + w.title + ' as PDF', html: '<img src="img/pdf.png" width="26" height="26" alt="">', onclick: () => TE().exportIds(w.question_ids, w.title, 'pdf') }) : null,
-      can('docx') ? h('button', { type: 'button', class: 'btn ibtn pt-icon', title: 'Download Word (editable)', 'aria-label': 'Download ' + w.title + ' as Word', html: '<img src="img/word.png" width="26" height="24" alt="">', onclick: () => TE().exportIds(w.question_ids, w.title, 'docx') }) : null,
-      can('pptx') ? h('button', { type: 'button', class: 'btn ibtn pt-icon', title: 'Download PowerPoint (editable)', 'aria-label': 'Download ' + w.title + ' as PowerPoint', html: '<img src="img/ppt.png" width="26" height="24" alt="">', onclick: () => TE().exportIds(w.question_ids, w.title, 'pptx') }) : null,
-      can('share') ? h('button', { type: 'button', class: 'btn ibtn pt-icon', title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share ' + w.title, html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>', onclick: e => TE().shareIds(e.currentTarget, w.question_ids, w.title) }) : null,
-      h('button', { type: 'button', class: 'btn', text: 'Rename', onclick: async () => { const t = await promptBox('Rename worksheet', 'Title', w.title); if (!t) return; const { error } = await sb().from('worksheets').update({ title: t, updated_at: new Date().toISOString() }).eq('id', w.id); if (error) toast('Could not rename: ' + error.message); else pageWorksheets(); } }),
-      h('button', { type: 'button', class: 'btn pt-danger', text: 'Delete', onclick: async () => { if (!await confirmBox('Delete worksheet?', '"' + w.title + '" will be deleted. Tests made from it are not affected.', 'Delete', true)) return; const { error } = await sb().from('worksheets').delete().eq('id', w.id); if (error) toast('Could not delete: ' + error.message); else pageWorksheets(); } }))))) :
+      exportBtn(w))))) :
     empty('No saved worksheets yet', 'In the Question Bank, tick questions and press "Save as worksheet". You can also save the questions of a test while creating it.', h('button', { type: 'button', class: 'btn pri', text: 'Open Question Bank', onclick: () => { leave(); TE().setTab('qb'); } }));
-  show(head('Saved worksheets', 'Question lists you kept from the Question Bank or the test maker.', link('#/create', 'Create Test', 'btn pri')), body);
+  show(head('Saved worksheets', list.length + ' worksheet' + (list.length === 1 ? '' : 's') + ' · question lists you kept from the Question Bank or the test maker'), body);
 }
 async function saveWorksheet(ids, name) {
   if (!can('worksheets')) { toast('Saved worksheets are for Premium teachers.'); return; }
@@ -767,16 +818,23 @@ function runExam(d) {
       }));
     }
     main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge(q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : 'MCQ: one correct'),
-      h('span', { class: 'pt-hint', text: '+' + num(d.marks_correct, 2) + (q.type === 'MCQ' && +d.marks_wrong ? ' / −' + num(d.marks_wrong, 2) : '') })),
+      h('span', { class: 'pt-hint', text: '+' + num(d.marks_correct, 2) + (q.type === 'MCQ' && +d.marks_wrong ? ' / −' + num(d.marks_wrong, 2) : '') }),
+      X.qtEl = h('span', { class: 'ex-qtime', title: 'Time spent on this question', 'aria-label': 'Time on this question' })),
       h('div', { class: 'ex-q', html: qText(q.q) }), figure(q.f) || '', input,
       h('div', { class: 'ex-nav' },
         h('button', { type: 'button', class: 'btn', text: '‹ Previous', disabled: X.cur === 0, onclick: () => go(X.cur - 1) }),
         h('button', { type: 'button', class: 'btn', text: 'Clear response', onclick: () => { a.r = q.type === 'MSQ' ? [] : ''; X.dirty = true; draw(); } }),
         h('button', { type: 'button', class: 'btn ex-mk', text: a.m ? 'Unmark review' : 'Mark for review & next', onclick: () => { a.m = !a.m; X.dirty = true; if (a.m && X.cur < qs.length - 1) go(X.cur + 1); else { draw(); save(); } } }),
         h('button', { type: 'button', class: 'btn pri', text: X.cur < qs.length - 1 ? 'Save & next ›' : 'Save', onclick: () => { X.dirty = true; if (X.cur < qs.length - 1) go(X.cur + 1); else { save(true); toast('Saved. Press Submit when you are done.'); } } })));
-    drawPal(); mathIn(main);
+    drawPal(); mathIn(main); tickQ();
+  }
+  function tickQ() {
+    const q = qs[X.cur]; if (!q || !X.qtEl) return;
+    const s2 = Math.floor(ans[q.id].t + (Date.now() - X.enter) / 1000);
+    X.qtEl.textContent = '\u23f1 ' + Math.floor(s2 / 60) + ':' + String(s2 % 60).padStart(2, '0') + ' on this question';
   }
   function tickTimer() {
+    tickQ();
     const left = deadline - (Date.now() + offset);
     if (left <= 0) { timer.textContent = '0:00'; finish(true); return; }
     const s = Math.ceil(left / 1000), hh = Math.floor(s / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
@@ -821,7 +879,7 @@ function studentForm(o) {
   const sel = (id, list, val) => { const x = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: 'Choose…' }), list.map(z => h('option', { value: z, text: z }))); x.value = val || ''; return x; };
   const F = {
     student_id: h('input', { id: 'sfId', class: 'pt-in', type: 'text', maxlength: 40, value: v.student_id || '', placeholder: 'e.g. Avanti ID or roll number', disabled: edit, autocomplete: 'off' }),
-    dob: h('input', { id: 'sfDob', class: 'pt-in', type: 'date', max: new Date().toISOString().slice(0, 10) }),
+    dob: h('input', { id: 'sfDob', class: 'pt-in', type: 'date', max: new Date().toISOString().slice(0, 10), value: v.dob || '' }),
     full_name: h('input', { id: 'sfName', class: 'pt-in', type: 'text', maxlength: 120, value: v.full_name || '' }),
     class: sel('sfClass', CLASSES, v.class), stream: sel('sfStream', STREAMS, v.stream),
     category: sel('sfCat', CATEGORIES, v.category), gender: sel('sfGender', GENDERS, v.gender),
@@ -830,7 +888,7 @@ function studentForm(o) {
   const req = k => k !== 'session' && !(edit && k === 'dob');
   const fld = (k, hint) => h('label', { class: 'pt-fld', for: F[k].id }, h('span', {}, COL_LBL[k], req(k) ? h('b', { class: 'pt-req', text: ' *' }) : null), F[k], hint ? h('small', { text: hint }) : null);
   const node = h('div', { class: 'pt-form' },
-    o.hideId ? null : h('div', { class: 'pt-row2' }, fld('student_id', edit ? 'The ID cannot be changed.' : 'The student signs in with this ID.'), fld('dob', edit ? 'Not shown: it is stored scrambled for safety. Type a date only to change it.' : 'Used as the password with the ID.')),
+    o.hideId ? null : h('div', { class: 'pt-row2' }, fld('student_id', edit ? 'The ID cannot be changed.' : 'The student signs in with this ID.'), fld('dob', edit ? (v.dob ? 'The student signs in with the ID and this date.' : 'Not known yet: it appears after the student signs in once, or when the same file is uploaded again. You can type it here.') : 'Used as the password with the ID.')),
     fld('full_name'), h('div', { class: 'pt-row2' }, fld('class'), fld('stream')), h('div', { class: 'pt-row2' }, fld('category'), fld('gender')), fld('session', 'Filled from the class: Class 11 → ' + sessionFor('11') + ', Class 12 / Dropper → ' + sessionFor('12') + '.'));
   F.class.addEventListener('change', () => { if (F.class.value) F.session.value = sessionFor(F.class.value); });
   node.values = () => { const r = {}; COLS.forEach(k => { r[k] = (F[k].value || '').trim(); }); return r; };
@@ -967,7 +1025,7 @@ function editStudent(st, after) {
   modal('Edit ' + (st.full_name || 'student'), h('div', {}, st.student_id ? null : h('p', { class: 'pt-hint', text: 'Signs in with Google: ' + (st.email || '') }), f, msg),
     [{ text: 'Cancel', onclick: () => {} }, { text: 'Save changes', pri: true, onclick: close => {
       const miss = f.missing(); if (miss.length) { msg.textContent = 'Please fill in: ' + miss.join(', '); msg.className = 'pt-msg bad'; return false; }
-      const v = f.values(); delete v.student_id; if (!v.dob) delete v.dob;
+      const v = f.values(); delete v.student_id; if (!v.dob || v.dob === st.dob) delete v.dob;
       rpc('teacher_update_student', { p_user: st.student_id ? null : st.user_id, p_student_id: st.student_id || null, p: v })
         .then(() => { close(); toast('Saved'); if (after) after(); }).catch(e => { msg.textContent = e.message; msg.className = 'pt-msg bad'; });
       return false;
@@ -999,9 +1057,10 @@ async function pageStudents() {
     const rows = all.filter(x => (!F.cls || x.class === F.cls) && (!F.stream || x.stream === F.stream) && (!F.session || x.session === F.session) && (!q || [x.full_name, x.student_id, x.email].some(v => String(v || '').toLowerCase().includes(q))));
     countEl.textContent = rows.length + ' of ' + all.length + ' students';
     tbody.textContent = '';
-    if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: 9 }, empty('No students match', all.length ? 'Change the filters above.' : 'Add students one by one, or upload a whole class from Excel.'))));
+    if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: 10 }, empty('No students match', all.length ? 'Change the filters above.' : 'Add students one by one, or upload a whole class from Excel.'))));
     rows.forEach(x => tbody.append(h('tr', {},
       h('td', {}, h('b', { text: x.full_name || '—' }), h('div', { class: 'pt-hint', text: x.student_id ? 'ID ' + x.student_id : (x.email || 'Google sign-in') })),
+      h('td', { class: 'pt-num', text: x.dob ? x.dob.split('-').reverse().join('-') : (x.student_id ? '—' : 'Google') }),
       h('td', { text: [x.class && (x.class === 'Dropper' ? 'Dropper' : 'Class ' + x.class), x.stream].filter(Boolean).join(' · ') || '—' }), h('td', { text: x.session || '—' }),
       h('td', { text: [x.category, x.gender].filter(Boolean).join(' · ') || '—' }),
       h('td', {}, x.signed_in ? badge('Signed in', 'ok') : badge('Not yet', 'mute'), x.source === 'avanti' ? h('div', { class: 'pt-hint', text: 'Avanti list' }) : null),
@@ -1022,7 +1081,7 @@ async function pageStudents() {
     h('div', { class: 'pt-stats' }, stat('Students', all.length), stat('Signed in', signed), stat('Took a test', took.length), stat('Average score', avg == null ? '—' : pct(avg), 'of students who took a test')),
     card(h('div', { class: 'pt-frow' }, mkSel('Class', 'All classes', CLASSES, 'cls'), mkSel('Stream', 'All streams', STREAMS, 'stream'), mkSel('Session', 'All sessions', uniq('session'), 'session'),
         h('input', { type: 'search', class: 'pt-in', placeholder: 'Search name, ID or email', 'aria-label': 'Search students', oninput: e => { F.q = e.target.value.trim(); draw(); } })), countEl,
-      h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Student', 'Class · Stream', 'Session', 'Category · Gender', 'Sign-in', 'Tests', 'Average', 'Last test', ''].map(x => h('th', { text: x })))), tbody))));
+      h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Student', 'Date of birth', 'Class · Stream', 'Session', 'Category · Gender', 'Sign-in', 'Tests', 'Average', 'Last test', ''].map(x => h('th', { text: x })))), tbody))));
   draw();
 }
 
@@ -1086,6 +1145,6 @@ async function pageApprovals() {
     list.length > pend.length ? card(h('h2', { text: 'Approved' }), table(list.filter(x => x.approved))) : null);
 }
 
-window.AvantiPortal = { route, leave: () => leave(false), saveWorksheet, createTestFrom, onboard, profileMissing };
+window.AvantiPortal = { shareReady, route, leave: () => leave(false), saveWorksheet, createTestFrom, onboard, profileMissing };
 if (AU() && AU().profile && TE()) route();
 })();

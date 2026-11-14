@@ -828,29 +828,19 @@ function showLibPrev() {
   step();
 }
 /* Print and Share, used by every tab that downloads: they all go through the same PDF as "Download PDF" */
-const pdfBlobOf = payload => new Promise((res, rej) => { doExport('pdf', Object.assign({}, payload, { onBlob: (blob, file) => res({ blob, file }), onFail: rej })).catch(rej); });
+const pdfBlobOf = payload => new Promise((res, rej) => { doExport('pdf', Object.assign({}, payload, { onBlob: (blob, file) => res({ blob, file }), onFail: rej })).then(() => rej(new Error('The PDF was not made')), rej); });
 async function sendPdf(app, blob, file, title) {
   if (!need('share')) return;
-  const f = new File([blob], file, { type: 'application/pdf' });
-  try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title, text: title }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
-  await downloads.save({ filename: file, data: blob });
-  const text = title + ' (Avanti Fellows)', nm = { wa: 'WhatsApp', dc: 'Discord', ml: 'your email' }[app];
-  const url = app === 'wa' ? 'https://wa.me/?text=' + encodeURIComponent(text) : app === 'ml' ? 'https://mail.google.com/mail/?view=cm&fs=1&su=' + encodeURIComponent(text) + '&body=' + encodeURIComponent('PDF attached: ' + file) : 'https://discord.com/channels/@me';
-  try { window.open(url, '_blank', 'noopener'); } catch (e) { /* the file is saved anyway */ }
-  toast('PDF saved. Attach "' + file + '" in ' + nm + '.');
+  if (window.AvantiPortal && window.AvantiPortal.shareReady) { window.AvantiPortal.shareReady(blob, file, title); return; }
+  await downloads.save({ filename: file, data: blob }); toast('PDF saved. Attach "' + file + '" in your app.');
 }
 function shareFrom(btn, title, get) {
   if (!need('share')) return;
-  closeShare();
-  const item = (ico, label, app) => h('button', { class: 'smi', type: 'button', onclick: async () => { closeShare(); try { toast('Preparing the PDF…'); const r = await get(); await sendPdf(app, r.blob, r.file, title); } catch (e) { toast('Could not prepare the PDF' + (e && e.message ? ': ' + e.message : '')); } } }, h('span', { class: 'smic', html: ico }), h('span', { text: label }));
-  const m = h('div', { id: 'shareMenu', class: 'smenu', role: 'menu' }, h('div', { class: 'smh', text: 'Send the PDF' }),
-    item(ICO.chat, 'WhatsApp', 'wa'), item(ICO.share, 'Discord', 'dc'), item(ICO.mail, 'Email', 'ml'),
-    h('div', { class: 'smn', text: 'On a phone this opens the share sheet with the PDF attached. On a computer the PDF is saved, then the app opens so you can attach it.' }));
-  document.body.append(m);
-  const r = btn.getBoundingClientRect(), mw = m.offsetWidth;
-  m.style.top = Math.max(8, Math.min(window.innerHeight - m.offsetHeight - 8, r.bottom + 6)) + 'px';
-  m.style.left = Math.max(8, Math.min(window.innerWidth - mw - 8, r.right - mw)) + 'px';
-  setTimeout(() => { document.addEventListener('click', closeShareOut, true); document.addEventListener('keydown', closeShareKey, true); }, 0);
+  closeShare(); toast('Preparing the PDF\u2026');
+  if (btn) btn.disabled = true;
+  Promise.resolve().then(get).then(r => sendPdf('', r.blob, r.file, title))
+    .catch(e => toast('Could not prepare the PDF' + (e && e.message ? ': ' + e.message : '')))
+    .then(() => { if (btn) btn.disabled = false; });
 }
 function printFrom(get) {
   if (!need('print')) return;
@@ -1852,6 +1842,7 @@ window.AvantiTeacher = {
   bank: () => ensureDpp().then(() => ({ qs: BANK.all, byId: BYID, chapters: CHMAP })),
   /* saved worksheets: the same PDF / Word / PowerPoint export and share menu as DPPs (plan checks inside) */
   exportIds: async (ids, title, kind) => { await ensureDpp(); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } doExport(kind, { pages, file: title }); },
+  pdfIds: async (ids, title) => { await ensureDpp(); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
   shareIds: async (btn, ids, title) => { await ensureDpp(); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
   math: node => math(node)
 };
