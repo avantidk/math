@@ -838,3 +838,9 @@ html:not(.plan-staff) .qb-results .qb-tools > .qb-reset, html:not(.plan-staff) .
   .lgx-lead { max-width: 64ch; }
 }
 @media (min-width: 980px) { .lg-split .lg-info.lgx { max-width: 1040px; padding-right: clamp(32px, 3.5vw, 56px); } }
+/* DPP / PYQ / Must Solve toolbar: every button the same height, same text style, icons centred */
+html body .statbar .btn, html body .statbar .wsrow .wsbtn { height: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding-top: 0; padding-bottom: 0; font: 600 14px/1 var(--font-body); vertical-align: middle; box-sizing: border-box; }
+html body .statbar .btn.ibtn { width: 44px; padding: 0; }
+html body .statbar .btn.ibtn img, html body .statbar .btn.ibtn svg { display: block; width: 24px; height: 24px; object-fit: contain; margin: 0; }
+html body .statbar .wsrow .wsbtn svg { width: 16px; height: 16px; }
+html body .statbar .rowbtns, html body .statbar .wsrow { align-items: center; }
