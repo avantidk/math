@@ -128,3 +128,24 @@ Google shows "Sign in to usehxhvzhdbcmnmqaxoo.supabase.co" because that is where
 Shown in the profile menu → **Help & Support** and on the login page. Change it any time in the SQL Editor:
 `update public.app_settings set value = '+91 98765 43210' where key = 'support_phone';`
 `update public.app_settings set value = 'name@avantifellows.org' where key = 'support_email';`
+
+## Protecting the live site (do this once)
+
+The old Claude artifact is retired. Its page only says the dashboard has moved. Three layers stop old code reaching the live site:
+
+1. **CLAUDE.md** tells every Claude session never to sync from the old artifact and never to push to `main`.
+2. **The guard** (`.github/scripts/guard.sh`) runs on every push. It fails if the code looks like the old artifact version.
+3. **Deploy only through the guard:** GitHub → repository **Settings** → **Pages** → *Build and deployment* → **Source: GitHub Actions**.
+   From then on the site is published by the "Deploy site" workflow, which stops if the guard fails.
+4. **Block direct pushes to main:** GitHub → **Settings** → **Rules** → **Rulesets** → **New ruleset** → *New branch ruleset*:
+   name `Protect main`, Enforcement **Active**, Target branches → **Add target** → **Include default branch**, tick
+   **Restrict deletions**, **Block force pushes**, **Require a pull request before merging** (0 approvals is fine) and
+   **Require status checks to pass** → **Add checks** → `guard`. Click **Create**.
+   After this, changes reach `main` only through a pull request whose guard check passed.
+
+## Classes, streams and sessions
+
+- Classes: 11, 12, Dropper. Streams: JEE, NEET, KCET (PCM), KCET (PCB). Uploads also accept 11th, XI, 12th, XII, PCM (= JEE), PCB (= NEET).
+- Session is filled from the class for the academic year starting in April: Class 11 → 2026-28, Class 12 and Dropper → 2026-27.
+- A test is open only to the school, classes and streams the teacher chose. Only the admin can make a test for another school or all schools.
+- The admin (`ankitkamboj@avantifellows.org`) sees every school's students, every test and every report. Other Avanti teachers see only their own school.

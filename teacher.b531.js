@@ -1038,15 +1038,16 @@ function renderPdfTab(T) {
     view.textContent = '';
     view.append(
       h('div', { class: 'rail' }, h('div', { class: 'card' },
-        h('h3', { text: T === 'cw' ? 'Chapterwise PYQ PDF' : 'Question Paper PDF' }),
-        h('div', { class: 'seg', id: T + 'Ex' }, ['Main', 'Adv', 'KCET', 'IAT', 'NDA'].map(k => h('button', { type: 'button', 'data-act': 'pdfex', 'data-t': T, 'data-k': k, text: BUCKET_NAME[k] }))),
+        h('div', { class: 'row pyqsel' },
+          h('div', { class: 'fld' }, h('label', { class: 'lbl', for: T + 'Kind', text: 'PYQs' }), h('select', { id: T + 'Kind', onchange: e => { PYQSUB = e.target.value; pyqShow(); } }, h('option', { value: 'sw', text: 'Question Paper' }), h('option', { value: 'cw', text: 'Chapterwise' }))),
+          h('div', { class: 'fld' }, h('label', { class: 'lbl', for: T + 'Ex', text: 'Exam' }), h('select', { id: T + 'Ex', onchange: e => { PDFT[T].bucket = e.target.value; PDFT[T].sel = null; PDFT[T].page = 0; renderPdfTab(T); } }, ['Main', 'Adv', 'KCET', 'IAT', 'NDA'].map(k => h('option', { value: k, text: BUCKET_NAME[k] }))))),
         T === 'cw' ? h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Years (tick one or many)' }), msel('cwYr', 'years')) : h('div', { class: 'fld' }, h('label', { class: 'lbl', for: T + 'Year', text: 'Year' }), h('select', { id: T + 'Year', onchange: e => { PDFT[T].year = e.target.value; PDFT[T].sel = null; PDFT[T].page = 0; renderPdfTab(T); } })),
         h('div', { class: 'tglrow' }, keySwitch(T + 'Key', 'pdfkey', { 'data-t': T }), expSwitch(T + 'Expl', 'pdfexp', { 'data-t': T })),
-        h('div', { class: 'pdflist', id: T + 'List' }, h('div', { class: 'fld' }, h('span', { class: 'lbl', text: T === 'cw' ? 'Chapter' : 'Question paper (date and shift)' }), ssel(T + 'Pick', T === 'cw' ? 'a chapter' : 'a shift'))), wsRow(T))),
-      h('div', { class: 'stage' }, h('div', { class: 'statbar' }, h('div', { class: 'msg', id: T + 'Msg', 'aria-live': 'polite' }), h('div', { class: 'pgbtns', id: T + 'Pages', hidden: true }), h('div', { class: 'rowbtns', id: T + 'Exp', hidden: true }, ...[['docx', 'Word (editable)'], ['pdf', 'PDF'], ['pptx', 'PowerPoint (editable)']].map(([f, nm]) => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'pdfdl', 'data-t': T, 'data-k': '', 'data-f': f, title: 'Download ' + nm, 'aria-label': 'Download ' + nm, html: FIMG[f] })), ...['xprint', 'xshare'].map(a => { const b = a === 'xprint' ? prtBtn('pyq') : shrBtn('pyq'); b.dataset.t = T; b.dataset.k = ''; return b; })), h('button', { type: 'button', class: 'btn ibtn maxbtn', 'data-act': 'max', 'aria-pressed': 'false', title: 'Maximize', 'aria-label': 'Maximize', html: ICO.max })), h('div', { class: 'pgwrap', id: T + 'Prev' })));
+        h('div', { class: 'pdflist', id: T + 'List' }, h('div', { class: 'fld' }, h('span', { class: 'lbl', text: T === 'cw' ? 'Chapter' : 'Question paper (date and shift)' }), ssel(T + 'Pick', T === 'cw' ? 'a chapter' : 'a shift'))))),
+      h('div', { class: 'stage' }, h('div', { class: 'statbar' }, h('div', { class: 'msg', id: T + 'Msg', 'aria-live': 'polite' }), h('div', { class: 'pgbtns', id: T + 'Pages', hidden: true }), h('div', { class: 'rowbtns', id: T + 'Exp', hidden: true }, ...[['docx', 'Word (editable)'], ['pdf', 'PDF'], ['pptx', 'PowerPoint (editable)']].map(([f, nm]) => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'pdfdl', 'data-t': T, 'data-k': '', 'data-f': f, title: 'Download ' + nm, 'aria-label': 'Download ' + nm, html: FIMG[f] })), ...['xprint', 'xshare'].map(a => { const b = a === 'xprint' ? prtBtn('pyq') : shrBtn('pyq'); b.dataset.t = T; b.dataset.k = ''; return b; }), wsRow(T)), h('button', { type: 'button', class: 'btn ibtn maxbtn', 'data-act': 'max', 'aria-pressed': 'false', title: 'Maximize', 'aria-label': 'Maximize', html: ICO.max })), h('div', { class: 'pgwrap', id: T + 'Prev' })));
     if (window.ResizeObserver) new ResizeObserver(rescale).observe($('#' + T + 'Prev'));
   }
-  $('#' + T + 'Ex').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === P.bucket)));
+  $('#' + T + 'Ex').value = P.bucket; $('#' + T + 'Kind').value = T;
   const list = $('#' + T + 'List'); list.querySelectorAll('.hint').forEach(e => e.remove());
   let rows = pdfRows(T); const my = ++P.v;
   if (T === 'cw') {
@@ -1072,7 +1073,7 @@ function renderPdfTab(T) {
 function showPdfPrev(T) {
   const P = PDFT[T], wrap = $('#' + T + 'Prev'), msg = $('#' + T + 'Msg'), pb = $('#' + T + 'Pages'); if (!wrap) return;
   wrap.textContent = ''; pb.hidden = true; pb.textContent = '';
-  const r = P.sel && pdfRows(T).find(x => x.k === P.sel), ex = $('#' + T + 'Exp'); if (ex) { ex.hidden = !r; ex.querySelectorAll('button').forEach(b => { b.dataset.k = r ? r.k : ''; }); }
+  const r = P.sel && pdfRows(T).find(x => x.k === P.sel), ex = $('#' + T + 'Exp'); if (ex) { ex.hidden = !r; ex.querySelectorAll('button:not(.wsbtn)').forEach(b => { b.dataset.k = r ? r.k : ''; }); }
   if (!r) { msg.className = 'msg'; msg.textContent = 'Click a row to preview it. The PDF, Word and PowerPoint buttons above the preview save it.'; return; }
   const pages = pdfPages(T, r).map(p => Object.assign({}, p, { key: !!P.key, exp: !!P.exp })), tok = P.tok = (P.tok || 0) + 1; let warn = false;
   const scalers = pages.map(() => { const sc = h('div', { class: 'pgscale' }); wrap.append(h('div', { class: 'pgbox' }, sc)); return sc; }); rescale();
@@ -1278,6 +1279,10 @@ async function renderMust() {
   const lvBtns = h('div', { class: 'seg' }, ['L1', 'L2', 'L3'].map(l => h('button', { type: 'button', 'aria-pressed': String(MS.lv.includes(l)), text: l, onclick: e => { MS.lv = MS.lv.includes(l) ? MS.lv.filter(x => x !== l) : MS.lv.concat(l); e.currentTarget.setAttribute('aria-pressed', String(MS.lv.includes(l))); draw(); } })));
   view.textContent = '';
   view.append(h('div', { class: 'rail' }, h('div', { class: 'card' }, h('h3', { text: 'Must Solve' }),
+    h('div', { class: 'tglrow' }, keySwitch('mustKey', 'mkey'), expSwitch('mustExpl', 'mexp')),
+    h('div', { class: 'fld mtop' },
+      h('div', { class: 'mexp' }, ['docx', 'pdf', 'pptx'].map(k => h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-mexp': k, title: 'Download ' + ({ pdf: 'PDF', docx: 'Word (editable)', pptx: 'PowerPoint (editable)' })[k], 'aria-label': 'Download ' + ({ pdf: 'PDF', docx: 'Word', pptx: 'PowerPoint' })[k], html: FIMG[k] || ICO.dl, onclick: () => exportMust(k) })).concat([h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-act': 'xprint', 'data-src': 'must', title: 'Print', 'aria-label': 'Print', html: ICO.print }), h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-act': 'xshare', 'data-src': 'must', title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share the PDF', html: ICO.share })]))),
+    wsRow('must'),
     h('p', { class: 'hint', text: 'Questions that came again and again in JEE, in the same or a very similar form, plus questions that are sure to come. Solve these first.' }),
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Chapters (tick one or many)' }), chSel),
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Type' }), seg([['all', 'All'], ['e', 'Exact repeat'], ['i', 'Similar type'], ['u', 'Sure-shot']], () => MS.kind, k => { MS.kind = k; })),
@@ -1285,10 +1290,6 @@ async function renderMust() {
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Choose questions' }),
       h('div', { class: 'mselbar' }, h('button', { type: 'button', class: 'btn', text: 'Select all shown', onclick: () => tick(true) }), h('button', { type: 'button', class: 'btn', text: 'Clear', onclick: () => tick(false) })),
       selCnt),
-    h('div', { class: 'tglrow' }, keySwitch('mustKey', 'mkey'), expSwitch('mustExpl', 'mexp')),
-    h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Download' }),
-      h('div', { class: 'mexp' }, ['docx', 'pdf', 'pptx'].map(k => h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-mexp': k, title: 'Download ' + ({ pdf: 'PDF', docx: 'Word (editable)', pptx: 'PowerPoint (editable)' })[k], 'aria-label': 'Download ' + ({ pdf: 'PDF', docx: 'Word', pptx: 'PowerPoint' })[k], html: FIMG[k] || ICO.dl, onclick: () => exportMust(k) })).concat([h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-act': 'xprint', 'data-src': 'must', title: 'Print', 'aria-label': 'Print', html: ICO.print }), h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-act': 'xshare', 'data-src': 'must', title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share the PDF', html: ICO.share })]))),
-    wsRow('must'),
     h('div', { class: 'mlegend' }, h('p', { class: 'hint', html: '<b>Exact repeat:</b> the same question came again. <b>Similar type:</b> the same idea and method, different numbers or wording. <b>Sure-shot:</b> a standard JEE must-know picked by us.' })))),
     h('div', { class: 'stage' }, h('div', { class: 'statbar' }, msg), list));
   draw(); fillCh();
@@ -1328,19 +1329,12 @@ async function exportMust(kind) {
     if (e && e.code === 'declined') toast('Download cancelled'); else toast('Export failed: ' + (e && e.message ? e.message : 'try again'));
   } finally { btns.forEach(b => { b.disabled = false; }); }
 }
-let PYQSUB = null;
-function pyqPick() {
-  const v = $('#viewPyq'); if (!v) return;
-  v.textContent = '';
-  const b = (k, t, d) => h('button', { type: 'button', class: 'pyqopt', 'data-act': 'pyqsub', 'data-k': k, 'aria-pressed': String(PYQSUB === k) }, h('strong', { text: t }), h('span', { text: d }));
-  v.append(h('div', { class: 'pyqbar' }, h('span', { class: 'lbl', text: 'PYQs: choose one' }), h('div', { class: 'pyqopts' }, b('sw', 'Question Paper', 'A whole shift paper, by year'), b('cw', 'Chapterwise', 'Every chapter, all topics'))));
-  if (!PYQSUB) v.append(h('p', { class: 'hint', text: 'Pick Question Paper or Chapterwise to see the list.' }));
-}
+let PYQSUB = (() => { try { return localStorage.getItem('avanti-pyqsub') === 'cw' ? 'cw' : 'sw'; } catch (e) { return 'sw'; } })();
 function pyqShow() {
   hideViews();
-  if (PYQSUB) setTabInner(PYQSUB);
+  try { localStorage.setItem('avanti-pyqsub', PYQSUB); } catch (e) { /* optional */ }
+  setTabInner(PYQSUB);
   document.querySelectorAll('[data-act="tab"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === 'pyq')));
-  pyqPick(); $('#viewPyq').hidden = false;
   setTimeout(rescale, 0);
 }
 function setTab(t) {
@@ -1361,8 +1355,8 @@ function setTabInner(t) {
 function rescale() {
   ['#pgwrap', '#libPrev', '#cwPrev', '#swPrev'].forEach(id => {
     const wrap = $(id); if (!wrap || !wrap.clientWidth) return;
-    const cs = getComputedStyle(wrap), k = Math.min(1, (wrap.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0)) / SHEET_W);
-    wrap.querySelectorAll('.pgbox').forEach(bx => { const sc = $('.pgscale', bx); if (!sc) return; sc.style.transform = 'scale(' + k + ')'; bx.style.height = Math.ceil(SHEET_H * k) + 'px'; });
+    const cs = getComputedStyle(wrap), k = Math.min(1.35, (wrap.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0)) / SHEET_W);
+    wrap.querySelectorAll('.pgbox').forEach(bx => { const sc = $('.pgscale', bx); if (!sc) return; sc.style.transform = 'scale(' + k + ')'; bx.style.height = Math.ceil(SHEET_H * k) + 'px'; bx.style.width = Math.floor(SHEET_W * k) + 'px'; bx.style.margin = '0 auto'; });
   });
 }
 
@@ -1796,15 +1790,14 @@ function buildLib() {
         slide('mixSl', 'Practice questions or PYQs', 'mixv', ['N · Practice', 'O · 50 : 50', 'P · PYQ']),
         oosBox())),
     h('div', { class: 'rail' },
-      h('div', { class: 'exp' }, h('span', { class: 'lbl', id: 'libDl', text: 'Download' }),
-        h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'docx', title: 'Download Word (editable)', 'aria-label': 'Download Word (editable)', html: FIMG.docx }),
-        h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'pdf', title: 'Download PDF', 'aria-label': 'Download PDF', html: FIMG.pdf }),
-        h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'pptx', title: 'Download PowerPoint (editable)', 'aria-label': 'Download PowerPoint (editable)', html: FIMG.pptx }),
-        prtBtn('lib'), shrBtn('lib')),
-      wsRow('lib'),
       h('div', { class: 'stage' }, h('div', { class: 'statbar' }, h('div', { class: 'msg', id: 'libMsg', 'aria-live': 'polite' }),
-        h('button', { type: 'button', class: 'btn', 'data-act': 'libshuffle', title: 'Pick a different set of questions for the same settings', text: '\u21bb Shuffle questions' }),
-        h('div', { class: 'pgbtns', id: 'libPages', hidden: true })),
+        h('div', { class: 'pgbtns', id: 'libPages', hidden: true }),
+        h('div', { class: 'rowbtns', id: 'libExp' },
+          h('button', { type: 'button', class: 'btn', 'data-act': 'libshuffle', title: 'Pick a different set of questions for the same settings', text: '\u21bb Shuffle' }),
+          h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'docx', title: 'Download Word (editable)', 'aria-label': 'Download Word (editable)', html: FIMG.docx }),
+          h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'pdf', title: 'Download PDF', 'aria-label': 'Download PDF', html: FIMG.pdf }),
+          h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'pptx', title: 'Download PowerPoint (editable)', 'aria-label': 'Download PowerPoint (editable)', html: FIMG.pptx }),
+          prtBtn('lib'), shrBtn('lib'), wsRow('lib'))),
         h('div', { class: 'pgwrap', id: 'libPrev' }))));
 }
 /* Whole shift paper: take every question of one past paper, in paper order, as a 3 hour test */

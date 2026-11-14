@@ -28,8 +28,13 @@ const mmss = s => (s == null ? '—' : Math.floor(s / 60) + ':' + String(Math.ro
 const when = d => (d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
 const day = d => (d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 const testLink = code => location.origin + location.pathname + '#/t/' + code;
-const CLASSES = ['9', '10', '11', '12', 'Dropper'];
-const STREAMS = ['PCM', 'PCB', 'PCMB', 'Commerce', 'Arts', 'Other'];
+const CLASSES = ['11', '12', 'Dropper'];
+const STREAMS = ['JEE', 'NEET', 'KCET (PCM)', 'KCET (PCB)'];
+const sessionFor = c => { const d = new Date(); d.setMonth(d.getMonth() - 3); const y = d.getFullYear(); return c === '11' ? y + '-' + String((y + 2) % 100).padStart(2, '0') : c ? y + '-' + String((y + 1) % 100).padStart(2, '0') : ''; };
+const SESSIONS = (() => { const d = new Date(); d.setMonth(d.getMonth() - 3); const y = d.getFullYear(), out = []; for (let k = y - 2; k <= y + 1; k++) { out.push(k + '-' + String((k + 1) % 100).padStart(2, '0'), k + '-' + String((k + 2) % 100).padStart(2, '0')); } return [...new Set(out)].sort().reverse(); })();
+/* common spellings in uploads: 11th, XI, Class 12, PCM, NEET ... */
+const normClass = v => { const t = String(v || '').toLowerCase().replace(/[^a-z0-9]/g, ''); return /^(11|11th|xi|class11|class11th|classxi|eleven|eleventh)$/.test(t) ? '11' : /^(12|12th|xii|class12|class12th|classxii|twelve|twelfth)$/.test(t) ? '12' : /^(dropper|drop|droppers|repeater|repeaters)$/.test(t.replace(/[0-9]/g, '')) ? 'Dropper' : String(v || '').trim(); };
+const normStream = v => { const t = String(v || '').toLowerCase().replace(/[^a-z]/g, ''); return /^(jee|pcm|pcmb|jeemain|jeemains|jeeadvanced|engineering|iit|iitjee)$/.test(t) ? 'JEE' : /^(neet|pcb|medical|neetug)$/.test(t) ? 'NEET' : /^(kcetpcm|kcet|cetpcm|kcetengineering)$/.test(t) ? 'KCET (PCM)' : /^(kcetpcb|cetpcb|kcetmedical)$/.test(t) ? 'KCET (PCB)' : String(v || '').trim(); };
 const CATEGORIES = ['General', 'EWS', 'OBC-NCL', 'SC', 'ST'];
 const GENDERS = ['Female', 'Male', 'Other', 'Prefer not to say'];
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -157,7 +162,7 @@ function schoolSelect(id, val, first, allowOther) {
 /* The profile form: every field is required. Teachers give name and school; students give name, school, class, stream, category and gender.
    For Avanti ID students, details that come from the Avanti list are shown but cannot be changed; only missing ones can be filled. */
 function profileForm(p, o) {
-  const student = p.role === 'student', avanti = !!p.avanti_id, locked = k => avanti && !!p[k];
+  const student = p.role === 'student', avanti = !!p.avanti_id, locked = k => (student || avanti) && !!p[k];
   const msg = h('p', { class: 'pt-msg', role: 'status' });
   const ro = (label, value) => h('div', { class: 'pt-fld' }, h('span', { text: label }), h('div', { class: 'pt-ro', text: value || '—' }));
   const fld = (label, input, hint) => h('label', { class: 'pt-fld', for: input.id || (input.sel && input.sel.id) }, h('span', {}, label, h('b', { class: 'pt-req', text: ' *' })), input, hint ? h('small', { text: hint }) : null);
@@ -188,8 +193,9 @@ function profileForm(p, o) {
     box('full_name'), box('school'),
     student ? h('div', { class: 'pt-row2' }, box('class'), box('stream')) : null,
     student ? h('div', { class: 'pt-row2' }, box('category'), box('gender')) : null,
-    avanti ? h('p', { class: 'pt-hint', text: 'Details from Avanti records cannot be changed here. Ask your teacher if something is wrong.' }) : null,
-    h('div', { class: 'pt-actions' }, btn), msg);
+    student && keys.some(k => locked(k)) ? h('p', { class: 'pt-hint', text: 'Saved details cannot be changed here. Ask your teacher if something is wrong.' }) : null,
+    student && keys.some(k => !locked(k)) ? h('div', { class: 'pt-note pt-warnnote', role: 'note' }, h('b', { text: 'Please check carefully before you continue. ' }), 'Once saved, you cannot change these details yourself. Only your teacher can correct them.') : null,
+    keys.some(k => !locked(k)) || !student ? h('div', { class: 'pt-actions' }, btn) : null, msg);
 }
 function profileMissing(p) {
   const keys = p.role === 'student' ? ['full_name', 'school', 'class', 'stream', 'category', 'gender'] : ['full_name', 'school'];
@@ -359,11 +365,11 @@ async function pageCreate(arg, r) {
   show(head(r === 'edit' ? 'Edit test' : 'Create Test', 'Loading the question bank…'), loading('Loading the question bank…'));
   const B = await TE().bank(); CHN = B.chapters;
   const all = B.qs.filter(gradable);
-  const S = { title: '', mins: 60, pos: 4, neg: 1, cls: '', stream: '', school: '', active: true, sel: [], id: null, locked: false };
+  const S = { title: '', mins: 60, pos: 4, neg: 1, cls: new Set(), streams: new Set(), school: '', active: true, sel: [], id: null, locked: false };
   if (r === 'edit') {
     const { data: t, error } = await sb().from('tests').select('*').eq('id', arg).maybeSingle();
     if (error || !t) { show(errorBox(error ? error.message : 'Test not found.', null)); return; }
-    Object.assign(S, { id: t.id, code: t.code, title: t.title, mins: t.duration_min, pos: +t.marks_correct, neg: +t.marks_wrong, cls: t.target_class || '', stream: t.target_stream || '', school: t.school || '', active: t.is_active, sel: t.questions });
+    Object.assign(S, { id: t.id, code: t.code, title: t.title, mins: t.duration_min, pos: +t.marks_correct, neg: +t.marks_wrong, cls: new Set(t.target_classes || []), streams: new Set(t.target_streams || []), school: t.school || '', active: t.is_active, sel: t.questions });
     const { data: mt } = await sb().rpc('my_tests'); const me = (mt || []).find(x => x.id === t.id); S.locked = !!(me && me.submitted > 0);
   } else if (PREFILL) {
     S.sel = PREFILL.ids.map(i => B.byId.get(i)).filter(gradable).map(snap); S.title = PREFILL.title || '';
@@ -376,8 +382,9 @@ async function pageCreate(arg, r) {
   const fTitle = inp('ctTitle', 'text', S.title, { maxlength: 200, placeholder: 'e.g. Quadratic Equations · Weekly test 3', required: true });
   const fMins = inp('ctMins', 'number', S.mins, { min: 1, max: 600 }), fPos = inp('ctPos', 'number', S.pos, { min: 0.5, max: 100, step: 'any' }), fNeg = inp('ctNeg', 'number', S.neg, { min: 0, max: 100, step: 'any' });
   const mkSel = (id, first, list, val) => { const s = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: first }), list.map(x => h('option', { value: x, text: x }))); s.value = val; return s; };
-  const fCls = mkSel('ctCls', 'Any class', CLASSES, S.cls), fStr = mkSel('ctStr', 'Any stream', STREAMS, S.stream);
-  const fSchool = can('staff') ? schoolSelect('ctSchool', S.school, 'All schools') : (() => { const d = h('div', { class: 'pt-ro', id: 'ctSchool', text: P().school || '—' }); d.value = () => P().school; return d; })();
+  const chipSet = (id, list, set) => { const box = h('div', { class: 'chips', id, role: 'group' }); const draw = () => { box.textContent = ''; list.forEach(v => box.append(h('button', { type: 'button', class: 'chip', 'aria-pressed': String(set.has(v)), text: id === 'ctCls' && v !== 'Dropper' ? 'Class ' + v : v, onclick: () => { set.has(v) ? set.delete(v) : set.add(v); draw(); } }))); }; draw(); return box; };
+  const fCls = chipSet('ctCls', CLASSES, S.cls), fStr = chipSet('ctStr', STREAMS, S.streams);
+  const fSchool = can('isAdmin') ? schoolSelect('ctSchool', S.school, 'All schools') : (() => { const d = h('div', { class: 'pt-ro', id: 'ctSchool', text: P().school || '—' }); d.value = () => P().school; return d; })();
   const fAct = h('input', { type: 'checkbox', id: 'ctAct', role: 'switch' }); fAct.checked = S.active;
   const fld = (label, el, hint) => h('label', { class: 'pt-fld', for: el.id }, h('span', { text: label }), el, hint ? h('small', { text: hint }) : null);
   const msg = h('p', { class: 'pt-msg', role: 'status' });
@@ -472,8 +479,8 @@ async function pageCreate(arg, r) {
   async function save() {
     msg.className = 'pt-msg'; msg.textContent = '';
     const row = { title: fTitle.value.trim(), duration_min: parseInt(fMins.value, 10), marks_correct: parseFloat(fPos.value), marks_wrong: parseFloat(fNeg.value) || 0,
-      target_class: fCls.value || null, target_stream: fStr.value || null, school: fSchool.value() || null, is_active: fAct.checked, questions: S.sel.map(q => ({ id: q.id, type: q.type, q: q.q, o: q.o, a: q.a, ch: q.ch, chn: q.chn, tp: q.tp, f: q.f || null })) };
-    const bad = !row.title ? 'Give the test a title.' : !(row.duration_min >= 1 && row.duration_min <= 600) ? 'Duration must be 1 to 600 minutes.' : !(row.marks_correct > 0) ? 'Marks for a correct answer must be more than 0.' : row.marks_wrong < 0 ? 'Negative marks cannot be below 0.' : !S.sel.length ? 'Add at least one question.' : '';
+      target_classes: [...S.cls], target_streams: [...S.streams], school: fSchool.value() || null, is_active: fAct.checked, questions: S.sel.map(q => ({ id: q.id, type: q.type, q: q.q, o: q.o, a: q.a, ch: q.ch, chn: q.chn, tp: q.tp, f: q.f || null })) };
+    const bad = !row.title ? 'Give the test a title.' : !S.cls.size ? 'Choose the class (or classes) that should take this test.' : !S.streams.size ? 'Choose the stream (or streams) that should take this test.' : !(row.duration_min >= 1 && row.duration_min <= 600) ? 'Duration must be 1 to 600 minutes.' : !(row.marks_correct > 0) ? 'Marks for a correct answer must be more than 0.' : row.marks_wrong < 0 ? 'Negative marks cannot be below 0.' : !S.sel.length ? 'Add at least one question.' : '';
     if (bad) { msg.textContent = bad; msg.classList.add('bad'); return; }
     if (S.locked) { delete row.questions; delete row.marks_correct; delete row.marks_wrong; }
     saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
@@ -493,7 +500,8 @@ async function pageCreate(arg, r) {
       h('div', { class: 'pt-col' },
         card(h('h2', { text: 'Test details' }), fld('Title', fTitle),
           h('div', { class: 'pt-row3' }, fld('Duration (minutes)', fMins), fld('Marks if correct', fPos), fld('Negative marks', fNeg, 'Taken off for a wrong MCQ answer')),
-          h('div', { class: 'pt-row2' }, fld('Class', fCls), fld('Stream', fStr)), fld(can('staff') ? 'School (optional)' : 'School', fSchool, can('staff') ? 'Only students of this school can take it. Leave blank for every school.' : 'Only students of your school can see and take this test.'),
+          h('div', { class: 'pt-fld' }, h('span', {}, 'Class', h('b', { class: 'pt-req', text: ' *' })), fCls), h('div', { class: 'pt-fld' }, h('span', {}, 'Stream', h('b', { class: 'pt-req', text: ' *' })), fStr),
+          fld('School', fSchool, can('isAdmin') ? 'Only students of this school can take it. Choose All schools for everyone.' : 'Only students of your school, in the classes and streams chosen above, can see and take this test.'),
           h('label', { class: 'pt-switch', for: 'ctAct' }, fAct, h('span', { text: 'Active: students can open the test now' })),
           S.locked ? h('p', { class: 'pt-note', text: 'Students have already submitted this test, so the questions and marks are locked. You can still change the title, class, school and on/off.' }) : null),
         card(selHead, selBox, h('div', { class: 'pt-actions' }, saveBtn,
@@ -518,16 +526,17 @@ async function pageMyTests() {
   const preview = async t => { const { data, error } = await sb().from('tests').select('title,questions').eq('id', t.id).single(); if (error) { toast(error.message); return; } previewQs(data.title, data.questions, true); };
   show(top, h('div', { class: 'pt-cards' }, list.map(t => card(
     h('div', { class: 'pt-ct' }, h('h3', { text: t.title }), t.is_active ? badge('Active', 'ok') : badge('Inactive', 'mute')),
-    h('p', { class: 'pt-meta', text: [t.n_questions + ' questions', t.duration_min + ' min', '+' + num(t.marks_correct, 2) + ' / −' + num(t.marks_wrong, 2), t.target_class ? 'Class ' + t.target_class : 'Any class', t.target_stream || 'Any stream', t.school || 'All schools'].join(' · ') }),
+    t.mine === false ? h('p', { class: 'pt-meta' }, 'By ', h('b', { text: t.owner_name || 'Teacher' }), ' · ' + (t.school || 'All schools')) : null,
+    h('p', { class: 'pt-meta', text: [t.n_questions + ' questions', t.duration_min + ' min', '+' + num(t.marks_correct, 2) + ' / −' + num(t.marks_wrong, 2), 'Class ' + (t.target_classes || []).join(', '), (t.target_streams || []).join(', '), t.school || 'All schools'].join(' · ') }),
     h('p', { class: 'pt-meta' }, h('b', { text: t.submitted }), ' submitted', t.in_progress ? ' · ' + t.in_progress + ' writing now' : '', ' · created ' + day(t.created_at)),
     h('div', { class: 'pt-link' }, h('code', { text: testLink(t.code) })),
     h('div', { class: 'pt-actions' },
       h('button', { type: 'button', class: 'btn pri', text: 'Copy link', onclick: () => copy(testLink(t.code), 'Link copied') }),
       link('#/results/' + t.id, 'Results', 'btn'),
-      link('#/edit/' + t.id, 'Edit', 'btn'),
+      t.mine === false ? null : link('#/edit/' + t.id, 'Edit', 'btn'),
       h('button', { type: 'button', class: 'btn', text: 'Preview', onclick: () => preview(t) }),
-      h('button', { type: 'button', class: 'btn', text: t.is_active ? 'Deactivate' : 'Activate', onclick: () => toggle(t) }),
-      h('button', { type: 'button', class: 'btn pt-danger', text: 'Delete', onclick: () => del(t) }))))));
+      t.mine === false ? null : h('button', { type: 'button', class: 'btn', text: t.is_active ? 'Deactivate' : 'Activate', onclick: () => toggle(t) }),
+      t.mine === false ? null : h('button', { type: 'button', class: 'btn pt-danger', text: 'Delete', onclick: () => del(t) }))))));
 }
 
 /* ---------- Teacher results ---------- */
@@ -589,18 +598,29 @@ async function pageResults(id) {
 /* ---------- Student: available tests, reports ---------- */
 async function pageAvailable() {
   show(head('Available tests', ''), loading());
-  const list = await rpc('list_available_tests');
+  const [list, past] = await Promise.all([rpc('list_available_tests'), rpc('my_attempts').catch(() => [])]);
+  const pastCard = card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Past tests' }), past.length ? h('span', { class: 'pt-meta', text: past.filter(a => a.status === 'submitted').length + ' submitted' }) : null),
+    past.length ? pastTable(past) : empty('No tests taken yet', 'Your past tests and reports appear here after you submit a test.'));
   const codeIn = h('input', { type: 'text', class: 'pt-in', placeholder: 'Test code or link', 'aria-label': 'Test code or link' });
   const go = h('form', { class: 'pt-frow', onsubmit: e => { e.preventDefault(); const v = codeIn.value.trim(); const m = v.match(/#\/t\/([a-z0-9]+)/i) || v.match(/^([a-z0-9]{6,12})$/i); if (m) location.hash = '#/t/' + m[1].toLowerCase(); else toast('Paste the test link or its code'); } }, codeIn, h('button', { type: 'submit', class: 'btn', text: 'Open' }));
   const p = P();
-  const top = head('Available tests', 'Tests for ' + ['Class ' + (p.class || '?'), p.stream, p.school].filter(Boolean).join(' · '), link('#/reports', 'My Reports', 'btn'));
-  if (!list.length) { show(top, card(empty('No tests for you right now', 'When a teacher shares a test for your class, it appears here. Got a link? Open it, or paste it below.')), card(h('h2', { text: 'Have a test link?' }), go)); return; }
-  show(top, h('div', { class: 'pt-cards' }, list.map(t => card(
+  const top = head('Available tests', 'Tests for ' + ['Class ' + (p.class || '?'), p.stream, p.school].filter(Boolean).join(' · '));
+  const open = list.filter(t => t.attempt_status !== 'submitted');
+  if (!open.length) { show(top, card(empty('No new tests for you right now', 'When your teacher shares a test for your class and stream, it appears here. Got a link? Open it, or paste it below.'), go), pastCard); return; }
+  show(top, h('div', { class: 'pt-cards' }, open.map(t => card(
     h('div', { class: 'pt-ct' }, h('h3', { text: t.title }), t.attempt_status === 'submitted' ? badge('Done', 'ok') : t.attempt_status === 'in_progress' ? badge('In progress', 'mid') : badge('New')),
     h('p', { class: 'pt-meta', text: [t.n_questions + ' questions', t.duration_min + ' min', '+' + num(t.marks_correct, 2) + ' / −' + num(t.marks_wrong, 2), 'by ' + t.teacher].join(' · ') }),
     t.attempt_status === 'submitted' ? h('p', { class: 'pt-meta' }, 'Your score: ', h('b', { text: num(t.score, 2) + ' / ' + num(t.max_score, 2) })) : null,
     h('div', { class: 'pt-actions' }, t.attempt_status === 'submitted' ? link('#/report/' + t.attempt_id, 'View report', 'btn pri') : link('#/t/' + t.code, t.attempt_status ? 'Resume test' : 'Start test', 'btn pri'))))),
-  card(h('h2', { text: 'Have a test link?' }), go));
+  pastCard, card(h('h2', { text: 'Have a test link?' }), go));
+}
+function pastTable(list) {
+  return h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Test', 'Date', 'Score', 'Correct / Wrong / Skipped', 'Time', ''].map(x => h('th', { text: x })))),
+    h('tbody', {}, list.map(a => h('tr', {}, h('td', {}, h('b', { text: a.title })), h('td', { text: when(a.submitted_at || a.started_at) }),
+      h('td', { class: 'pt-num', text: a.status === 'submitted' ? num(a.score, 2) + ' / ' + num(a.max_score, 2) : '—' }),
+      h('td', { class: 'pt-num', text: a.status === 'submitted' ? a.correct + ' / ' + a.wrong + ' / ' + a.skipped : '—' }),
+      h('td', { class: 'pt-num', text: a.status === 'submitted' ? mmss(a.time_taken_sec) : '—' }),
+      h('td', {}, a.status === 'submitted' ? link('#/report/' + a.id, 'Open report', 'btn pri') : link('#/t/' + a.code, 'Resume', 'btn')))))));
 }
 async function pageReports() {
   show(head('My Reports', ''), loading());
@@ -650,7 +670,11 @@ async function pageTake(code) {
   if (!info) { show(card(empty('Test not found', 'This test link is not valid. Ask your teacher for the link again.', link('#/tests', 'Available tests', 'btn')))); return; }
   if (info.is_owner) { show(card(empty('This is your own test', 'Students open this link to take it. You can preview it and see results from My Tests.', link('#/my-tests', 'My Tests', 'btn pri')))); return; }
   if (info.attempt_status === 'submitted') { location.replace('#/report/' + info.attempt_id); return; }
-  if (!info.for_me && !info.attempt_id) { show(card(empty(info.title, 'This test is only for students of ' + info.school + '. Ask your teacher if you think this is wrong.', link('#/tests', 'Available tests', 'btn')))); return; }
+  if (!info.for_me && !info.attempt_id) {
+    const me = P(), otherSchool = info.school && String(info.school).toLowerCase() !== String(me.school || '').toLowerCase();
+    const who = otherSchool ? 'students of ' + info.school : (info.target_classes || []).map(c => c === 'Dropper' ? 'Droppers' : 'Class ' + c).join(', ') + ' · ' + (info.target_streams || []).join(', ');
+    show(card(empty(info.title, 'This test is only for ' + who + '. You are ' + [me.class === 'Dropper' ? 'a Dropper' : 'in Class ' + (me.class || '?'), me.stream].filter(Boolean).join(' · ') + '. Ask your teacher if you think this is wrong.', link('#/tests', 'Available tests', 'btn')))); return;
+  }
   if (!info.is_active && !info.attempt_id) { show(card(empty(info.title, 'This test is not open right now. Ask your teacher.', link('#/tests', 'Available tests', 'btn')))); return; }
   const startBtn = h('button', { type: 'button', class: 'btn pri pt-big', text: info.attempt_status === 'in_progress' ? 'Resume test' : 'Start test', onclick: async () => {
     startBtn.disabled = true; startBtn.textContent = 'Starting…';
@@ -774,8 +798,8 @@ function runExam(d) {
 }
 
 /* ---------- Teachers: students of their school ---------- */
-const COLS = ['student_id', 'dob', 'full_name', 'class', 'stream', 'category', 'gender', 'batch'];
-const COL_LBL = { student_id: 'Student ID', dob: 'Date of birth', full_name: 'Full name', class: 'Class', stream: 'Stream', category: 'Category', gender: 'Gender', batch: 'Batch' };
+const COLS = ['student_id', 'dob', 'full_name', 'class', 'stream', 'category', 'gender', 'session'];
+const COL_LBL = { student_id: 'Student ID', dob: 'Date of birth', full_name: 'Full name', class: 'Class', stream: 'Stream', category: 'Category', gender: 'Gender', session: 'Session' };
 const pickFrom = (list, v) => { const t = String(v == null ? '' : v).trim(); return list.find(x => x.toLowerCase() === t.toLowerCase()) || t; };
 function studentForm(o) {
   o = o || {}; const v = o.values || {}, edit = !!o.edit;
@@ -786,13 +810,14 @@ function studentForm(o) {
     full_name: h('input', { id: 'sfName', class: 'pt-in', type: 'text', maxlength: 120, value: v.full_name || '' }),
     class: sel('sfClass', CLASSES, v.class), stream: sel('sfStream', STREAMS, v.stream),
     category: sel('sfCat', CATEGORIES, v.category), gender: sel('sfGender', GENDERS, v.gender),
-    batch: h('input', { id: 'sfBatch', class: 'pt-in', type: 'text', maxlength: 60, value: v.batch || '', placeholder: 'e.g. Morning batch (optional)' })
+    session: sel('sfSession', SESSIONS, v.session || '')
   };
-  const req = k => k !== 'batch' && !(edit && k === 'dob');
+  const req = k => k !== 'session' && !(edit && k === 'dob');
   const fld = (k, hint) => h('label', { class: 'pt-fld', for: F[k].id }, h('span', {}, COL_LBL[k], req(k) ? h('b', { class: 'pt-req', text: ' *' }) : null), F[k], hint ? h('small', { text: hint }) : null);
   const node = h('div', { class: 'pt-form' },
     o.hideId ? null : h('div', { class: 'pt-row2' }, fld('student_id', edit ? 'The ID cannot be changed.' : 'The student signs in with this ID.'), fld('dob', edit ? 'Leave blank to keep the current date of birth.' : 'Used as the password with the ID.')),
-    fld('full_name'), h('div', { class: 'pt-row2' }, fld('class'), fld('stream')), h('div', { class: 'pt-row2' }, fld('category'), fld('gender')), fld('batch'));
+    fld('full_name'), h('div', { class: 'pt-row2' }, fld('class'), fld('stream')), h('div', { class: 'pt-row2' }, fld('category'), fld('gender')), fld('session', 'Filled from the class: Class 11 → ' + sessionFor('11') + ', Class 12 / Dropper → ' + sessionFor('12') + '.'));
+  F.class.addEventListener('change', () => { if (F.class.value) F.session.value = sessionFor(F.class.value); });
   node.values = () => { const r = {}; COLS.forEach(k => { r[k] = (F[k].value || '').trim(); }); return r; };
   node.missing = () => COLS.filter(k => req(k) && !(o.hideId && (k === 'student_id' || k === 'dob')) && !node.values()[k]).map(k => COL_LBL[k]);
   return node;
@@ -818,7 +843,7 @@ function pageAddStudent() {
     try {
       const v = f.values(), r = await rpc('teacher_add_student', { p: v });
       msg.textContent = 'Added. ' + v.full_name + ' can now sign in with Student ID ' + r.student_id + ' and their date of birth.'; msg.className = 'pt-msg ok';
-      done.prepend(h('div', { class: 'pt-si' }, h('b', { text: '✓' }), h('span', { class: 'pt-si-t', text: v.full_name + ' · ' + r.student_id }), h('span', { class: 'pt-hint', text: 'Class ' + v.class + ' · ' + v.stream + (v.batch ? ' · ' + v.batch : '') })));
+      done.prepend(h('div', { class: 'pt-si' }, h('b', { text: '✓' }), h('span', { class: 'pt-si-t', text: v.full_name + ' · ' + r.student_id }), h('span', { class: 'pt-hint', text: 'Class ' + v.class + ' · ' + v.stream + ' · ' + (v.session || sessionFor(v.class)) })));
       f = studentForm(); holder.textContent = ''; holder.append(f);
     } catch (e) { msg.textContent = e.message; msg.className = 'pt-msg bad'; }
     btn.disabled = false;
@@ -831,13 +856,13 @@ function pageAddStudent() {
 
 let XLSX_P = null;
 function loadXlsx() { if (!XLSX_P) XLSX_P = new Promise((res, rej) => { if (window.XLSX) return res(); const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = res; sc.onerror = () => { XLSX_P = null; rej(new Error('Could not load the Excel reader. Check your internet connection.')); }; document.head.append(sc); }); return XLSX_P; }
-const TEMPLATE = [COLS, ['2401234567', '2008-05-14', 'Priya Sharma', '11', 'PCM', 'OBC-NCL', 'Female', 'Morning batch'], ['ROLL-1102', '2009-01-02', 'Rohan Kumar', '12', 'PCB', 'General', 'Male', '']];
+const TEMPLATE = [COLS, ['2401234567', '2008-05-14', 'Priya Sharma', '11', 'JEE', 'OBC-NCL', 'Female', sessionFor('11')], ['ROLL-1102', '2008-01-02', 'Rohan Kumar', '12', 'NEET', 'General', 'Male', sessionFor('12')]];
 async function downloadTemplate(kind) {
   if (kind === 'csv') { saveCsv('students_template.csv', TEMPLATE); return; }
   try {
     await loadXlsx();
     const ws = window.XLSX.utils.aoa_to_sheet(TEMPLATE); ws['!cols'] = COLS.map(() => ({ wch: 18 }));
-    const help = window.XLSX.utils.aoa_to_sheet([['Column', 'What to write'], ['student_id', 'Avanti ID or roll number. Letters, numbers, . _ / - (3 to 40). Must be unique.'], ['dob', 'Date of birth, YYYY-MM-DD or DD-MM-YYYY. The student signs in with the ID and this date.'], ['full_name', 'Full name'], ['class', CLASSES.join(', ')], ['stream', STREAMS.join(', ')], ['category', CATEGORIES.join(', ')], ['gender', GENDERS.join(', ')], ['batch', 'Optional, e.g. Morning batch']]);
+    const help = window.XLSX.utils.aoa_to_sheet([['Column', 'What to write'], ['student_id', 'Avanti ID or roll number. Letters, numbers, . _ / - (3 to 40). Must be unique.'], ['dob', 'Date of birth, YYYY-MM-DD or DD-MM-YYYY. The student signs in with the ID and this date.'], ['full_name', 'Full name'], ['class', CLASSES.join(', ') + ' (11th, XI, 12th, XII also work)'], ['stream', STREAMS.join(', ') + ' (PCM is read as JEE, PCB as NEET)'], ['category', CATEGORIES.join(', ')], ['gender', GENDERS.join(', ')], ['session', 'Optional. Leave blank to fill it from the class: Class 11 → ' + sessionFor('11') + ', Class 12 / Dropper → ' + sessionFor('12')]]);
     help['!cols'] = [{ wch: 14 }, { wch: 90 }];
     const wb = window.XLSX.utils.book_new(); window.XLSX.utils.book_append_sheet(wb, ws, 'Students'); window.XLSX.utils.book_append_sheet(wb, help, 'How to fill');
     window.XLSX.writeFile(wb, 'students_template.xlsx');
@@ -851,11 +876,13 @@ function normRow(o) {
   if (d instanceof Date && !isNaN(d)) { const x = new Date(d.getTime() + 12 * 3600e3); d = x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); }
   else if (typeof d === 'number' && window.XLSX) { const p = window.XLSX.SSF.parse_date_code(d); d = p ? p.y + '-' + String(p.m).padStart(2, '0') + '-' + String(p.d).padStart(2, '0') : String(d); }
   const out = {}; COLS.forEach(k => { out[k] = String((k === 'dob' ? d : r[k]) == null ? '' : (k === 'dob' ? d : r[k])).trim(); });
-  out.class = pickFrom(CLASSES, out.class); out.stream = pickFrom(STREAMS, out.stream); out.category = pickFrom(CATEGORIES, out.category); out.gender = pickFrom(GENDERS, out.gender);
+  out.class = pickFrom(CLASSES, normClass(out.class)); out.stream = pickFrom(STREAMS, normStream(out.stream)); if (!out.session && CLASSES.includes(out.class)) out.session = sessionFor(out.class); out.category = pickFrom(CATEGORIES, out.category); out.gender = pickFrom(GENDERS, out.gender);
   const err = [];
   if (!out.student_id) err.push('Student ID missing');
   if (out.dob && !/^\d{4}-\d{1,2}-\d{1,2}$|^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$/.test(out.dob)) err.push('date of birth not understood');
   [['class', CLASSES], ['stream', STREAMS], ['category', CATEGORIES], ['gender', GENDERS]].forEach(([k, L]) => { if (out[k] && !L.includes(out[k])) err.push(COL_LBL[k] + ' must be one of ' + L.join(', ')); });
+  if (out.session && !/^\d{4}-\d{2}$/.test(out.session)) err.push('Session must look like ' + sessionFor('12'));
+  ['full_name', 'dob', 'class', 'stream', 'category', 'gender'].forEach(k => { if (!out[k]) err.push(COL_LBL[k] + ' missing'); });
   out._err = err.join('; ');
   return out;
 }
@@ -928,19 +955,19 @@ async function pageStudents() {
   show(head('My Students', ''), loading('Loading your students…'));
   const R = await rpc('school_students', { p_school: STU_SCHOOL || null });
   const all = R.students || [];
-  const F = { cls: '', batch: '', q: '' };
+  const F = { cls: '', stream: '', session: '', q: '' };
   const reload = () => pageStudents();
   const uniq = k => [...new Set(all.map(x => x[k]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'en', { numeric: true }));
   const tbody = h('tbody', {}), countEl = h('span', { class: 'pt-meta' });
   const draw = () => {
     const q = F.q.toLowerCase();
-    const rows = all.filter(x => (!F.cls || x.class === F.cls) && (!F.batch || (x.batch || '') === F.batch) && (!q || [x.full_name, x.student_id, x.email].some(v => String(v || '').toLowerCase().includes(q))));
+    const rows = all.filter(x => (!F.cls || x.class === F.cls) && (!F.stream || x.stream === F.stream) && (!F.session || x.session === F.session) && (!q || [x.full_name, x.student_id, x.email].some(v => String(v || '').toLowerCase().includes(q))));
     countEl.textContent = rows.length + ' of ' + all.length + ' students';
     tbody.textContent = '';
     if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: 9 }, empty('No students match', all.length ? 'Change the filters above.' : 'Add students one by one, or upload a whole class from Excel.'))));
     rows.forEach(x => tbody.append(h('tr', {},
       h('td', {}, h('b', { text: x.full_name || '—' }), h('div', { class: 'pt-hint', text: x.student_id ? 'ID ' + x.student_id : (x.email || 'Google sign-in') })),
-      h('td', { text: [x.class && 'Class ' + x.class, x.stream].filter(Boolean).join(' · ') || '—' }), h('td', { text: x.batch || '—' }),
+      h('td', { text: [x.class && (x.class === 'Dropper' ? 'Dropper' : 'Class ' + x.class), x.stream].filter(Boolean).join(' · ') || '—' }), h('td', { text: x.session || '—' }),
       h('td', { text: [x.category, x.gender].filter(Boolean).join(' · ') || '—' }),
       h('td', {}, x.signed_in ? badge('Signed in', 'ok') : badge('Not yet', 'mute'), x.source === 'avanti' ? h('div', { class: 'pt-hint', text: 'Avanti list' }) : null),
       h('td', { class: 'pt-num', text: x.tests }), h('td', { class: 'pt-num pt-barcell' }, x.avg_pct == null ? '—' : [h('span', { text: pct(x.avg_pct) }), bar(x.avg_pct, x.avg_pct < 40 ? 'bad' : x.avg_pct < 70 ? 'mid' : 'ok')]),
@@ -948,19 +975,19 @@ async function pageStudents() {
       h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, can('schoolApproved') ? h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editStudent(x, reload) }) : null,
         x.user_id && x.tests ? h('button', { type: 'button', class: 'btn', text: 'Tests', onclick: () => studentTests(x) }) : null)))));
   };
-  const mkSel = (label, list, key) => { const s = h('select', { class: 'pt-in', 'aria-label': label, onchange: e => { F[key] = e.target.value; draw(); } }, h('option', { value: '', text: 'All ' + label.toLowerCase() + 'es' }), list.map(v => h('option', { value: v, text: v }))); return s; };
+  const mkSel = (label, all1, list, key) => h('select', { class: 'pt-in', 'aria-label': label, onchange: e => { F[key] = e.target.value; draw(); } }, h('option', { value: '', text: all1 }), list.map(v => h('option', { value: v, text: v })));
   const signed = all.filter(x => x.signed_in).length, took = all.filter(x => x.tests > 0), avg = took.length ? took.reduce((a, x) => a + (+x.avg_pct || 0), 0) / took.length : null;
   let schoolPick = null;
-  if (can('staff')) { schoolPick = schoolSelect('stuSchool', R.school, 'Choose a school'); schoolPick.sel.addEventListener('change', () => { STU_SCHOOL = schoolPick.value(); pageStudents(); }); }
+  if (can('isAdmin')) { schoolPick = schoolSelect('stuSchool', R.school, 'Choose a school'); schoolPick.sel.addEventListener('change', () => { STU_SCHOOL = schoolPick.value(); pageStudents(); }); }
   show(head('My Students', R.school + ' · ' + all.length + ' student' + (all.length === 1 ? '' : 's'),
       h('button', { type: 'button', class: 'btn', text: '+ Add a student', onclick: () => addStudentFlow(reload) }),
       h('button', { type: 'button', class: 'btn pri', text: 'Bulk upload', onclick: () => bulkUpload(reload) })),
-    schoolPick ? card(h('label', { class: 'pt-fld' }, h('span', { text: 'School (Avanti staff)' }), schoolPick)) : null,
+    schoolPick ? card(h('label', { class: 'pt-fld' }, h('span', { text: 'School (admin: every school)' }), schoolPick)) : null,
     can('schoolApproved') ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Your school is waiting for approval by Avanti Fellows. ' }), 'You can add students, upload new students and create tests now. Editing existing students unlocks once your school is approved.'),
     h('div', { class: 'pt-stats' }, stat('Students', all.length), stat('Signed in', signed), stat('Took a test', took.length), stat('Average score', avg == null ? '—' : pct(avg), 'of students who took a test')),
-    card(h('div', { class: 'pt-frow' }, mkSel('Class', uniq('class'), 'cls'), mkSel('Batch', uniq('batch'), 'batch'),
+    card(h('div', { class: 'pt-frow' }, mkSel('Class', 'All classes', uniq('class'), 'cls'), mkSel('Stream', 'All streams', uniq('stream'), 'stream'), mkSel('Session', 'All sessions', uniq('session'), 'session'),
         h('input', { type: 'search', class: 'pt-in', placeholder: 'Search name, ID or email', 'aria-label': 'Search students', oninput: e => { F.q = e.target.value.trim(); draw(); } })), countEl,
-      h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Student', 'Class', 'Batch', 'Category · Gender', 'Sign-in', 'Tests', 'Average', 'Last test', ''].map(x => h('th', { text: x })))), tbody))));
+      h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Student', 'Class · Stream', 'Session', 'Category · Gender', 'Sign-in', 'Tests', 'Average', 'Last test', ''].map(x => h('th', { text: x })))), tbody))));
   draw();
 }
 

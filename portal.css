@@ -388,3 +388,20 @@ html body .tb-drop a.pf-up:hover, .pf-up:hover, .pf-up:focus-visible { box-shado
 .lg-link { background: none; border: 0; color: #ffd873; font: 600 13.5px var(--font-body, system-ui); text-decoration: underline; cursor: pointer; padding: 0; }
 .lg-helpbox { flex-basis: 100%; display: flex; flex-direction: column; gap: 8px; background: var(--panel, #fff); border-radius: 14px; padding: 14px; }
 .lg-helpbox .lg-btn { margin-top: 0; display: flex; align-items: center; justify-content: center; text-decoration: none; overflow-wrap: anywhere; }
+
+/* ---------- one toolbar for DPPs and PYQs: message left; downloads, print, share, worksheet and test buttons right ---------- */
+.statbar .rowbtns { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; flex: 0 1 auto; }
+.statbar .rowbtns[hidden] { display: none !important; }
+.statbar .rowbtns .btn.ibtn { width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 10px; }
+.statbar .rowbtns > .btn:not(.ibtn) { min-height: 44px; }
+.statbar .wsrow { width: auto; margin: 0; flex: 0 1 auto; flex-wrap: nowrap; gap: 8px; }
+.statbar .wsrow .wsbtn { flex: 0 0 auto; min-height: 44px; white-space: nowrap; padding: 8px 14px; }
+.pyqsel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pyqsel select { width: 100%; }
+.card > .fld.mtop { margin-top: -4px; }
+.card > .fld.mtop .mexp { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 760px) {
+  .statbar .rowbtns { justify-content: flex-start; width: 100%; }
+  .statbar .wsrow { flex-basis: 100%; flex-wrap: wrap; }
+  .statbar .wsrow .wsbtn { flex: 1 1 140px; }
+}
