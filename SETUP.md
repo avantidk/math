@@ -90,7 +90,16 @@ Premium is given only after the server checks Razorpay's signature (and the sign
 
 ## Good to know
 
-- Students must fill in name, school, class, stream, category and gender before using the site; category and gender appear in test results and the CSV.
+- School dropdowns (Edit profile, Create Test) list every school on the Avanti allow-list. To add a school, add its students to the list.
+- Students who sign in with Avanti ID cannot edit their details: name, school, class, stream, category and gender come from the allow-list and are refreshed at every sign-in (and whenever the list is loaded again).
+- Google-sign-in students must fill in name, school, class, stream, category and gender before using the site; category and gender appear in test results and the CSV.
 - Plans, roles, tests and results are enforced by the database. The question files (`qb/data/*.json`) and handout PDFs are public files on GitHub Pages: the site hides and blocks downloads for Free users, but someone who knows the file address could still open it. To lock those too, they would need to move into Supabase Storage.
 - A user's Teacher/Student choice is saved at their first sign-in. To change it later: SQL Editor → `update public.profiles set role = 'teacher' where email = 'name@gmail.com';`
 - Give someone Premium by hand: `update public.profiles set premium_until = now() + interval '1 year', plan = 'premium' where email = 'name@gmail.com';`
+
+## Google sign-in screen shows the Supabase address
+
+Google shows "Sign in to usehxhvzhdbcmnmqaxoo.supabase.co" because that is where Google sends people back after sign-in. To show "Sign in to Math Dashboard" instead, Google needs a sign-in address on a domain Avanti owns, and a verified app brand:
+1. Supabase → **Project Settings** → **Custom Domains** (needs the paid Pro plan plus the custom-domain add-on): add e.g. `auth.avantifellows.org`, add the DNS records it shows, and activate it.
+2. In Google Cloud → **Google Auth Platform** → **Branding**: App name "Math Dashboard", add the logo, add `avantifellows.org` under **Authorized domains**, then **Verify branding**. In **Clients**, add `https://auth.avantifellows.org/auth/v1/callback` as a redirect URI.
+3. Tell Claude the new address so the website uses it.

@@ -2052,12 +2052,15 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   }
   $('.qb-print').addEventListener('click', function () { if (!QBP('print') || !selected().length || busy || !window.__pdfPrint) return; window.__pdfPrint(qbPdfBlob); });
   $('.qb-share').addEventListener('click', function (e) { if (!QBP('share') || !selected().length || busy || !window.__pdfShare) return; window.__pdfShare(e.currentTarget, exportName(selected()), qbPdfBlob); });
-  /* Premium and Staff teachers: keep the ticked questions as a worksheet, or make a test from them */
+  /* Premium and Staff teachers: keep the ticked questions as a worksheet, or make a test from them (own row under the export icons) */
   (function () {
-    var bar = $('.qb-share') && $('.qb-share').parentNode; if (!bar || !QBP('createTests') || $('.qb-savews')) return;
-    function mk(cls, label, fn) { var b = document.createElement('button'); b.type = 'button'; b.className = 'qb-btn ' + cls; b.textContent = label; b.disabled = !S.sel.size; b.addEventListener('click', function () { if (S.sel.size && window.AvantiPortal) fn(selected().map(function (q) { return q.id; }), exportName(selected())); }); bar.appendChild(b); }
-    mk('qb-savews', 'Save as worksheet', function (ids, name) { window.AvantiPortal.saveWorksheet(ids, name); });
-    mk('qb-mktest primary', 'Create test', function (ids, name) { window.AvantiPortal.createTestFrom(ids, name); });
+    var exp = $('.qb-exp'); if (!exp || !QBP('createTests') || $('.qb-wsrow')) return;
+    var ICO = { save: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>', test: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>' };
+    var row = document.createElement('div'); row.className = 'qb-wsrow wsrow';
+    function mk(cls, ico, label, title, fn) { var b = document.createElement('button'); b.type = 'button'; b.className = 'btn wsbtn ' + cls; b.title = title; b.innerHTML = ico + '<span>' + label + '</span>'; b.disabled = !S.sel.size; b.addEventListener('click', function () { if (S.sel.size && window.AvantiPortal) fn(selected().map(function (q) { return q.id; }), exportName(selected())); }); row.appendChild(b); }
+    mk('qb-savews', ICO.save, 'Save as worksheet', 'Keep the ticked questions in Saved worksheets', function (ids, name) { window.AvantiPortal.saveWorksheet(ids, name); });
+    mk('qb-mktest pri', ICO.test, 'Create test', 'Make an online test from the ticked questions', function (ids, name) { window.AvantiPortal.createTestFrom(ids, name); });
+    exp.parentNode.insertBefore(row, exp.nextSibling);
   })();
   $('.qb-pdf').addEventListener('click', function () {
     var qs = selected(); if (!qs.length || busy) return;

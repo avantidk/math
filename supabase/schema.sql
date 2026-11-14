@@ -167,6 +167,10 @@ begin
   on conflict (avanti_id) do update set dob_hash = excluded.dob_hash, full_name = excluded.full_name, school = excluded.school,
     class = excluded.class, stream = excluded.stream, category = excluded.category, gender = excluded.gender,
     failed_attempts = 0, locked_until = null;
+  -- the student's profile always follows the Avanti list
+  update public.profiles p set full_name = a.full_name, school = a.school, class = a.class, stream = a.stream,
+         category = a.category, gender = a.gender, updated_at = now()
+    from public.student_allowlist a where a.avanti_id = v_id and p.avanti_id = a.avanti_id;
 end $$;
 
 create or replace function public.allowlist_load_import() returns integer
@@ -212,6 +216,9 @@ begin
     return json_build_object('ok', false, 'reason', 'wrong');
   end if;
   update public.student_allowlist set failed_attempts = 0, locked_until = null where avanti_id = v_id;
+  update public.profiles p set full_name = a.full_name, school = a.school, class = a.class, stream = a.stream,
+         category = a.category, gender = a.gender, updated_at = now()
+    from public.student_allowlist a where a.avanti_id = v_id and p.avanti_id = a.avanti_id;
   insert into public.login_attempts (ip, avanti_id, ok) values (p_ip, v_id, true);
   delete from public.login_attempts where at < now() - interval '30 days';
   v_email := 'avanti-' || lower(regexp_replace(v_id, '[^A-Za-z0-9]', '', 'g')) || '@students.avanti-id.local';
@@ -308,6 +315,9 @@ create or replace function public.update_my_profile(p_full_name text, p_school t
 language plpgsql security definer set search_path = public as $$
 begin
   if auth.uid() is null then raise exception 'Please sign in again'; end if;
+  if exists (select 1 from public.profiles where id = auth.uid() and avanti_id is not null) then
+    raise exception 'Your details come from Avanti records and cannot be changed here. Ask your teacher to correct them.';
+  end if;
   update public.profiles set
     full_name = left(nullif(trim(p_full_name), ''), 120),
     school    = left(nullif(trim(p_school), ''), 160),
@@ -793,6 +803,18 @@ begin
   return res;
 end $$;
 
+-- School names for the dropdowns (Edit profile, Create Test): every school on the Avanti list.
+create or replace function public.list_schools() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(s order by s), '[]'::json)
+    from (select distinct trim(school) as s from public.student_allowlist where nullif(trim(school), '') is not null) x
+$$;
+
+-- Students who sign in with Avanti ID: copy their details from the Avanti list (runs every time this file is run).
+update public.profiles p set full_name = a.full_name, school = a.school, class = a.class, stream = a.stream,
+         category = a.category, gender = a.gender, updated_at = now()
+    from public.student_allowlist a where a.avanti_id = p.avanti_id and p.avanti_id = a.avanti_id;
+
 -- Used by the weekly GitHub Action that keeps the free Supabase project awake.
 create or replace function public.ping() returns integer language sql stable as $$ select 1 $$;
 
@@ -805,7 +827,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text),
   public.list_available_tests(), public.test_info(text), public.start_attempt(text),
   public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer),
-  public.my_attempts(), public.my_tests(), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
+  public.my_attempts(), public.my_tests(), public.list_schools(), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
   to authenticated;
 -- server only (Edge Functions use the service role)
 grant execute on function public.avanti_verify(text, text, text), public.grant_premium(text, text, integer),

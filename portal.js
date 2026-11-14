@@ -133,16 +133,43 @@ function leave(keepTab) {
 window.addEventListener('hashchange', route);
 
 /* ---------- Edit profile ---------- */
-function pageProfile() {
-  const p = P(), student = p.role === 'student';
+let SCHOOLS_P = null;
+function schools() { if (!SCHOOLS_P) SCHOOLS_P = rpc('list_schools').catch(e => { SCHOOLS_P = null; throw e; }); return SCHOOLS_P; }
+/* a dropdown of the schools on the Avanti list; the saved value is kept even if it is no longer on the list */
+function schoolSelect(id, val, first) {
+  const s = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: first }));
+  schools().then(list => {
+    const all = list.slice(); if (val && !all.includes(val)) all.unshift(val);
+    all.forEach(x => s.append(h('option', { value: x, text: x }))); s.value = val || '';
+    if (!all.length) s.firstChild.textContent = 'No schools in the database yet';
+  }).catch(() => { s.firstChild.textContent = 'Could not load schools'; });
+  return s;
+}
+async function pageProfile() {
+  const p = P(), student = p.role === 'student', avanti = !!p.avanti_id;
+  const plan = AU().perm.plan;
+  const ro = (label, value) => h('div', { class: 'pt-fld' }, h('span', { text: label }), h('div', { class: 'pt-ro', text: value || '—' }));
+  const account = card(h('h2', { text: 'Account' }),
+    ro('Signed in as', avanti ? p.avanti_id : p.email),
+    ro('Role', p.role === 'teacher' ? 'Teacher' : 'Student'),
+    ro('Plan', { free: 'Free', premium: 'Premium', staff: 'Staff (full access)' }[plan] + (plan === 'premium' && p.premium_until ? ' · until ' + day(p.premium_until) : '')),
+    h('p', { class: 'pt-hint', text: 'Role and plan are set by the server. Contact Avanti Fellows if your role is wrong.' }),
+    h('div', { class: 'pt-actions' }, plan === 'free' ? link('#/membership', '★ Purchase membership', 'btn pt-gold') : null, h('button', { type: 'button', class: 'btn', text: 'Logout', onclick: () => AU().signOut() })));
+  if (avanti) {   // Avanti ID students: details come from the Avanti list and cannot be changed here
+    show(head('Your profile', 'These details come from Avanti records.'),
+      h('div', { class: 'pt-grid2' }, card(h('h2', { text: 'Your details' }),
+        ro('Full name', p.full_name), ro('School', p.school), h('div', { class: 'pt-row2' }, ro('Class', p.class), ro('Stream', p.stream)),
+        h('div', { class: 'pt-row2' }, ro('Category', p.category), ro('Gender', p.gender)),
+        h('p', { class: 'pt-note', text: 'Something wrong? Ask your teacher to correct it in the Avanti list. It updates here the next time you sign in.' })), account));
+    return;
+  }
   const sel = (id, list, val) => { const s = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: 'Choose…' }), list.map(x => h('option', { value: x, text: x }))); s.value = val || ''; return s; };
   const fName = h('input', { id: 'pfName', class: 'pt-in', type: 'text', maxlength: 120, value: p.full_name || '', required: true, autocomplete: 'name' });
-  const fSchool = h('input', { id: 'pfSchool', class: 'pt-in', type: 'text', maxlength: 160, value: p.school || '', placeholder: student ? 'e.g. JNV Pune' : 'School or centre (optional)' });
+  const fSchool = schoolSelect('pfSchool', p.school, student ? 'Choose your school…' : 'No school (optional)');
   const fClass = sel('pfClass', CLASSES, p.class), fStream = sel('pfStream', STREAMS, p.stream);
   const fCat = sel('pfCat', CATEGORIES, p.category), fGender = sel('pfGender', GENDERS, p.gender);
   const msg = h('p', { class: 'pt-msg', role: 'status' });
   const fld = (label, input, hint) => h('label', { class: 'pt-fld', for: input.id }, h('span', { text: label }), input, hint ? h('small', { text: hint }) : null);
-  const ro = (label, value) => h('div', { class: 'pt-fld' }, h('span', { text: label }), h('div', { class: 'pt-ro', text: value || '—' }));
   const incomplete = student ? !(p.full_name && p.school && p.class && p.category && p.gender) : !p.full_name;
   show(head('Edit profile', incomplete ? 'Please complete your profile to continue.' : 'Your name and school appear on test results.'),
     h('div', { class: 'pt-grid2' },
@@ -150,23 +177,17 @@ function pageProfile() {
         h('form', { class: 'pt-form', onsubmit: async e => {
           e.preventDefault(); msg.textContent = ''; msg.className = 'pt-msg';
           if (!fName.value.trim()) { msg.textContent = 'Please enter your name.'; msg.classList.add('bad'); fName.focus(); return; }
-          if (student && (!fSchool.value.trim() || !fClass.value || !fCat.value || !fGender.value)) { msg.textContent = 'Students need a school, class, category and gender.'; msg.classList.add('bad'); return; }
+          if (student && (!fSchool.value || !fClass.value || !fCat.value || !fGender.value)) { msg.textContent = 'Students need a school, class, category and gender.'; msg.classList.add('bad'); return; }
           const b = e.target.querySelector('button[type=submit]'); b.disabled = true; b.textContent = 'Saving…';
           try { await rpc('update_my_profile', { p_full_name: fName.value, p_school: fSchool.value, p_class: student ? fClass.value : (fClass.value || null), p_stream: student ? fStream.value : (fStream.value || null), p_category: student ? fCat.value : null, p_gender: student ? fGender.value : null }); await AU().refresh(); msg.textContent = 'Saved.'; msg.classList.add('ok'); }
           catch (x) { msg.textContent = 'Could not save: ' + x.message; msg.classList.add('bad'); }
           b.disabled = false; b.textContent = 'Save profile';
         } },
-          fld('Full name', fName), fld('School', fSchool, student ? 'Used for your rank within your school.' : null),
+          fld('Full name', fName), fld('School', fSchool, student ? 'Used for your rank within your school.' : 'Pick your school or centre if it is on the list.'),
           student ? h('div', { class: 'pt-row2' }, fld('Class', fClass), fld('Stream', fStream)) : null,
           student ? h('div', { class: 'pt-row2' }, fld('Category', fCat), fld('Gender', fGender)) : null,
           h('div', { class: 'pt-actions' }, h('button', { type: 'submit', class: 'btn pri', text: 'Save profile' })), msg)),
-      card(h('h2', { text: 'Account' }),
-        ro('Signed in as', p.email || (p.avanti_id ? 'Avanti ID ' + p.avanti_id : '')),
-        ro('Role', p.role === 'teacher' ? 'Teacher' : 'Student'),
-        ro('Plan', { free: 'Free', premium: 'Premium', staff: 'Staff (full access)' }[AU().perm.plan] + (AU().perm.plan === 'premium' && p.premium_until ? ' · until ' + day(p.premium_until) : '')),
-        p.avanti_id ? ro('Avanti ID', p.avanti_id) : null,
-        h('p', { class: 'pt-hint', text: 'Role and plan are set by the server. Contact Avanti Fellows if your role is wrong.' }),
-        h('div', { class: 'pt-actions' }, AU().perm.plan === 'free' ? link('#/membership', 'Purchase membership', 'btn pri') : null, h('button', { type: 'button', class: 'btn', text: 'Logout', onclick: () => AU().signOut() })))));
+      account));
 }
 
 /* ---------- Membership (Razorpay) ---------- */
@@ -176,7 +197,7 @@ async function pageMembership() {
   const { data: pays } = await sb().from('payments').select('order_id,payment_id,amount_paise,status,created_at,paid_at').order('created_at', { ascending: false }).limit(20);
   const feats = ['Every handout (free members see only the first chapter of each class)', 'Download every DPP, PYQ paper, Must Solve list and handout as PDF', 'Print and share PDFs', 'Create online tests with a share link (teachers)', 'Results, ranks and CSV export (teachers)'];
   const msg = h('p', { class: 'pt-msg', role: 'status' });
-  const payBtn = h('button', { type: 'button', class: 'btn pri pt-big', text: plan === 'premium' ? 'Renew for 1 more year · ₹1' : 'Pay ₹1 · Get Premium for 1 year', onclick: () => pay(payBtn, msg) });
+  const payBtn = h('button', { type: 'button', class: 'btn pt-gold pt-big', text: plan === 'premium' ? 'Renew for 1 more year · ₹1' : 'Pay ₹1 · Get Premium for 1 year', onclick: () => pay(payBtn, msg) });
   const status = plan === 'staff' ? card(h('h2', { text: 'Staff account' }), h('p', { text: 'Your @avantifellows.org account has full access to everything. No payment is needed.' }))
     : plan === 'premium' ? card(h('h2', { text: 'Premium' }), h('p', { text: 'Your Premium membership is active until ' + day(p.premium_until) + '. After that the account returns to Free unless you renew.' }), payBtn, msg)
       : card(h('h2', { text: 'Premium membership' }), h('p', { class: 'pt-price' }, h('strong', { text: '₹1' }), ' for 1 year'), h('ul', { class: 'pt-feats' }, feats.map(f => h('li', { text: f }))), payBtn, msg,
@@ -250,7 +271,7 @@ async function saveWorksheet(ids, name) {
   const t = await promptBox('Save as worksheet', 'Worksheet title', name || 'Worksheet');
   if (!t) return;
   const { error } = await sb().from('worksheets').insert({ title: t, question_ids: ids.slice(0, 300) });
-  if (error) toast('Could not save the worksheet: ' + error.message); else toast('Saved "' + t + '" (' + ids.length + ' questions) in Saved worksheets.');
+  if (error) toast('Could not save the worksheet: ' + error.message); else toast('Saved "' + t + '" (' + Math.min(ids.length, 300) + ' questions' + (ids.length > 300 ? ', the first 300 of ' + ids.length : '') + ') in Saved worksheets.');
 }
 let PREFILL = null;
 function createTestFrom(ids, name) {
@@ -285,6 +306,16 @@ function qCard(q, i, o) {
 }
 
 /* ---------- Create / edit test ---------- */
+const MON = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+const EXN = { Main: 'JEE Main', Adv: 'JEE Advanced', KCET: 'KCET', IAT: 'IAT', NDA: 'NDA' };
+const paperKey = x => x.e + '|' + (x.y || '') + '|' + x.p;
+function paperInfo(x) {
+  const p = String(x.p || ''), m = /(\d{1,2})\s+([A-Za-z]{3})[a-z]*\.?,?\s+(\d{4})/.exec(p), y = (/\b(19|20)\d{2}\b/.exec(p) || [])[0] || x.y;
+  const t = m && MON[m[2].toLowerCase()] != null ? Date.UTC(+m[3], MON[m[2].toLowerCase()], +m[1]) : y ? Date.UTC(+y, 4, 15) : 0;
+  const sh = +((/shift\s*(\d)/i.exec(p) || /paper\s*(\d)/i.exec(p) || [])[1] || 0);
+  const label = (/\b(19|20)\d{2}\b/.test(p) ? p : (EXN[x.e] || x.e) + ' ' + (x.y || '') + ' · ' + p).trim();
+  return { key: paperKey(x), e: x.e, label, t, sh };
+}
 const gradable = q => { if (!q || !q.a) return false; if (q.t === 'Numerical') return /^-?\d+(\.\d+)?$/.test(q.a.trim()) || /^-?\d+(\.\d+)?\s*to\s*-?\d+(\.\d+)?$/i.test(q.a.trim()); return (q.t === 'MCQ' || q.t === 'MSQ') && (q.o || []).length > 0 && /^[A-D](,[A-D])*$/.test(q.a); };
 let CHN = new Map();
 function snap(q) { const ch = CHN.get(q.cc); return { id: q.i, type: q.t, q: q.q, o: q.o || [], a: q.a, ch: q.cc, chn: ch ? ch.n : q.cc, tp: q.tp || '', f: q.f && q.f.svg ? { svg: q.f.svg } : null, d: q.d, src: q.s === 'P' ? (q.e === 'Main' ? 'JEE Main' : q.e === 'Adv' ? 'JEE Advanced' : q.e) + (q.y ? ' ' + q.y : '') : 'Practice' }; }
@@ -311,7 +342,7 @@ async function pageCreate(arg, r) {
   const fMins = inp('ctMins', 'number', S.mins, { min: 1, max: 600 }), fPos = inp('ctPos', 'number', S.pos, { min: 0.5, max: 100, step: 'any' }), fNeg = inp('ctNeg', 'number', S.neg, { min: 0, max: 100, step: 'any' });
   const mkSel = (id, first, list, val) => { const s = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: first }), list.map(x => h('option', { value: x, text: x }))); s.value = val; return s; };
   const fCls = mkSel('ctCls', 'Any class', CLASSES, S.cls), fStr = mkSel('ctStr', 'Any stream', STREAMS, S.stream);
-  const fSchool = inp('ctSchool', 'text', S.school, { maxlength: 160, placeholder: 'Leave blank for all schools' });
+  const fSchool = schoolSelect('ctSchool', S.school, 'All schools');
   const fAct = h('input', { type: 'checkbox', id: 'ctAct', role: 'switch' }); fAct.checked = S.active;
   const fld = (label, el, hint) => h('label', { class: 'pt-fld', for: el.id }, h('span', { text: label }), el, hint ? h('small', { text: hint }) : null);
   const msg = h('p', { class: 'pt-msg', role: 'status' });
@@ -324,7 +355,7 @@ async function pageCreate(arg, r) {
     if (F.src === 'ws') { const w = (wsList || []).find(x => x.id === F.ws); return w ? w.question_ids.map(i => B.byId.get(i)).filter(gradable) : []; }
     const q = F.q.trim().toLowerCase();
     return all.filter(x => (F.src === 'all' || (F.src === 'pyq' ? x.s === 'P' : x.s === 'N'))
-      && (!F.exam || x.e === F.exam) && (!F.paper || x.p === F.paper) && (!F.ch || x.cc === F.ch) && (!F.tp || x.tp === F.tp)
+      && (!F.exam || x.e === F.exam) && (!F.paper || paperKey(x) === F.paper) && (!F.ch || x.cc === F.ch) && (!F.tp || x.tp === F.tp)
       && (!F.lv.size || F.lv.has(x.d)) && (!F.ty.size || F.ty.has(x.t))
       && (!q || x.i.toLowerCase().includes(q) || x.q.toLowerCase().includes(q)));
   }
@@ -348,8 +379,9 @@ async function pageCreate(arg, r) {
     if (F.src === 'pyq') {
       const exSel = h('select', { class: 'pt-in', 'aria-label': 'Exam', onchange: e => { F.exam = e.target.value; F.paper = ''; F.page = 0; drawFilters(); drawResults(); } }, h('option', { value: '', text: 'All exams' }), [['Main', 'JEE Main / AIEEE'], ['Adv', 'JEE Advanced / IIT'], ['KCET', 'KCET'], ['IAT', 'IAT'], ['NDA', 'NDA']].map(([v, t]) => h('option', { value: v, text: t })));
       exSel.value = F.exam;
-      const papers = [...new Set(all.filter(x => x.s === 'P' && x.p && (!F.exam || x.e === F.exam)).map(x => x.p))].sort((a, b) => (Date.parse(b) || 0) - (Date.parse(a) || 0) || b.localeCompare(a));
-      const pSel = h('select', { class: 'pt-in', 'aria-label': 'Paper', onchange: e => { F.paper = e.target.value; F.page = 0; drawFilters(); drawResults(); } }, h('option', { value: '', text: 'Any paper' }), papers.map(p => h('option', { value: p, text: p })));
+      const pm = new Map(); all.forEach(x => { if (x.s === 'P' && x.p && (!F.exam || x.e === F.exam)) { const k = paperKey(x); if (!pm.has(k)) pm.set(k, paperInfo(x)); } });
+      const papers = [...pm.values()].sort((a, b) => b.t - a.t || a.sh - b.sh || a.label.localeCompare(b.label));
+      const pSel = h('select', { class: 'pt-in', 'aria-label': 'Paper', onchange: e => { F.paper = e.target.value; F.page = 0; drawFilters(); drawResults(); } }, h('option', { value: '', text: 'Any paper (newest first)' }), papers.map(p => h('option', { value: p.key, text: (F.exam ? '' : (EXN[p.e] || p.e) + ' · ') + p.label.replace(/^JEE (Main|Advanced) (?=\d{4} ·)/, '') })));
       pSel.value = F.paper;
       row.prepend(exSel, pSel);
     }
@@ -405,7 +437,7 @@ async function pageCreate(arg, r) {
   async function save() {
     msg.className = 'pt-msg'; msg.textContent = '';
     const row = { title: fTitle.value.trim(), duration_min: parseInt(fMins.value, 10), marks_correct: parseFloat(fPos.value), marks_wrong: parseFloat(fNeg.value) || 0,
-      target_class: fCls.value || null, target_stream: fStr.value || null, school: fSchool.value.trim() || null, is_active: fAct.checked, questions: S.sel.map(q => ({ id: q.id, type: q.type, q: q.q, o: q.o, a: q.a, ch: q.ch, chn: q.chn, tp: q.tp, f: q.f || null })) };
+      target_class: fCls.value || null, target_stream: fStr.value || null, school: fSchool.value || null, is_active: fAct.checked, questions: S.sel.map(q => ({ id: q.id, type: q.type, q: q.q, o: q.o, a: q.a, ch: q.ch, chn: q.chn, tp: q.tp, f: q.f || null })) };
     const bad = !row.title ? 'Give the test a title.' : !(row.duration_min >= 1 && row.duration_min <= 600) ? 'Duration must be 1 to 600 minutes.' : !(row.marks_correct > 0) ? 'Marks for a correct answer must be more than 0.' : row.marks_wrong < 0 ? 'Negative marks cannot be below 0.' : !S.sel.length ? 'Add at least one question.' : '';
     if (bad) { msg.textContent = bad; msg.classList.add('bad'); return; }
     if (S.locked) { delete row.questions; delete row.marks_correct; delete row.marks_wrong; }

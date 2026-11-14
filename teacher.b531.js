@@ -859,6 +859,26 @@ function printFrom(get) {
 window.__pdfPrint = printFrom; window.__pdfShare = shareFrom;
 const prtBtn = src => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'xprint', 'data-src': src, title: 'Print', 'aria-label': 'Print', html: ICO.print });
 const shrBtn = src => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'xshare', 'data-src': src, title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share the PDF', html: ICO.share });
+/* "Save as worksheet" and "Create test" for Premium and Staff teachers, under the downloads of DPPs, PYQs and Must Solve */
+const WS_ICO = {
+  save: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+  test: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>'
+};
+function wsRow(src) {
+  if (!G('createTests')) return null;
+  return h('div', { class: 'wsrow' },
+    h('button', { type: 'button', class: 'btn wsbtn', 'data-act': 'wssave', 'data-src': src, title: 'Keep these questions in Saved worksheets', html: WS_ICO.save + '<span>Save as worksheet</span>' }),
+    h('button', { type: 'button', class: 'btn pri wsbtn', 'data-act': 'wstest', 'data-src': src, title: 'Make an online test from these questions', html: WS_ICO.test + '<span>Create test</span>' }));
+}
+function wsSource(src) {
+  let pages = null, title = '';
+  if (src === 'lib') { pages = currentPages(); title = pages.length ? pages[0].title + ' DPP' : ''; }
+  else if (src === 'cw' || src === 'sw') { const P = PDFT[src], r = P.sel && pdfRows(src).find(x => x.k === P.sel); if (!r) { toast('Pick a ' + (src === 'cw' ? 'chapter' : 'question paper') + ' first'); return null; } pages = pdfPages(src, r); title = r.name; }
+  else if (src === 'must') { const m = mustPages(); if (!m) return null; pages = m.pages; title = m.title === 'Must Solve' ? 'Must Solve' : m.title + ' · Must Solve'; }
+  const ids = [...new Set((pages || []).flatMap(p => p.qs || []).map(q => q && q.i).filter(i => i && BYID.has(i)))];
+  if (!ids.length) { toast('No questions here yet'); return null; }
+  return { ids, title };
+}
 function pdfSource(t) {
   const src = t.dataset.src;
   if (src === 'lib') { const pages = currentPages(); if (!pages.length) { toast('No questions here yet'); return null; } return { title: pages[0].title + ' DPP', get: () => pdfBlobOf({ pages, file: pages[0].file }) }; }
@@ -1022,7 +1042,7 @@ function renderPdfTab(T) {
         h('div', { class: 'seg', id: T + 'Ex' }, ['Main', 'Adv', 'KCET', 'IAT', 'NDA'].map(k => h('button', { type: 'button', 'data-act': 'pdfex', 'data-t': T, 'data-k': k, text: BUCKET_NAME[k] }))),
         T === 'cw' ? h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Years (tick one or many)' }), msel('cwYr', 'years')) : h('div', { class: 'fld' }, h('label', { class: 'lbl', for: T + 'Year', text: 'Year' }), h('select', { id: T + 'Year', onchange: e => { PDFT[T].year = e.target.value; PDFT[T].sel = null; PDFT[T].page = 0; renderPdfTab(T); } })),
         h('div', { class: 'tglrow' }, keySwitch(T + 'Key', 'pdfkey', { 'data-t': T }), expSwitch(T + 'Expl', 'pdfexp', { 'data-t': T })),
-        h('div', { class: 'pdflist', id: T + 'List' }, h('div', { class: 'fld' }, h('span', { class: 'lbl', text: T === 'cw' ? 'Chapter' : 'Question paper (date and shift)' }), ssel(T + 'Pick', T === 'cw' ? 'a chapter' : 'a shift'))))),
+        h('div', { class: 'pdflist', id: T + 'List' }, h('div', { class: 'fld' }, h('span', { class: 'lbl', text: T === 'cw' ? 'Chapter' : 'Question paper (date and shift)' }), ssel(T + 'Pick', T === 'cw' ? 'a chapter' : 'a shift'))), wsRow(T))),
       h('div', { class: 'stage' }, h('div', { class: 'statbar' }, h('div', { class: 'msg', id: T + 'Msg', 'aria-live': 'polite' }), h('div', { class: 'pgbtns', id: T + 'Pages', hidden: true }), h('div', { class: 'rowbtns', id: T + 'Exp', hidden: true }, ...[['docx', 'Word (editable)'], ['pdf', 'PDF'], ['pptx', 'PowerPoint (editable)']].map(([f, nm]) => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'pdfdl', 'data-t': T, 'data-k': '', 'data-f': f, title: 'Download ' + nm, 'aria-label': 'Download ' + nm, html: FIMG[f] })), ...['xprint', 'xshare'].map(a => { const b = a === 'xprint' ? prtBtn('pyq') : shrBtn('pyq'); b.dataset.t = T; b.dataset.k = ''; return b; })), h('button', { type: 'button', class: 'btn ibtn maxbtn', 'data-act': 'max', 'aria-pressed': 'false', title: 'Maximize', 'aria-label': 'Maximize', html: ICO.max })), h('div', { class: 'pgwrap', id: T + 'Prev' })));
     if (window.ResizeObserver) new ResizeObserver(rescale).observe($('#' + T + 'Prev'));
   }
@@ -1276,6 +1296,7 @@ async function renderMust() {
     h('div', { class: 'tglrow' }, keySwitch('mustKey', 'mkey'), expSwitch('mustExpl', 'mexp')),
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Download' }),
       h('div', { class: 'mexp' }, ['docx', 'pdf', 'pptx'].map(k => h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-mexp': k, title: 'Download ' + ({ pdf: 'PDF', docx: 'Word (editable)', pptx: 'PowerPoint (editable)' })[k], 'aria-label': 'Download ' + ({ pdf: 'PDF', docx: 'Word', pptx: 'PowerPoint' })[k], html: FIMG[k] || ICO.dl, onclick: () => exportMust(k) })).concat([h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-act': 'xprint', 'data-src': 'must', title: 'Print', 'aria-label': 'Print', html: ICO.print }), h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-act': 'xshare', 'data-src': 'must', title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share the PDF', html: ICO.share })]))),
+    wsRow('must'),
     h('div', { class: 'mlegend' }, h('p', { class: 'hint', html: '<b>Exact repeat:</b> the same question came again. <b>Similar type:</b> the same idea and method, different numbers or wording. <b>Sure-shot:</b> a standard JEE must-know picked by us.' })))),
     h('div', { class: 'stage' }, h('div', { class: 'statbar' }, msg), list));
   draw(); fillCh();
@@ -1386,6 +1407,7 @@ function onAct(e) {
     case 'liblv': { const n = LS.lv.includes(k) ? LS.lv.filter(x => x !== k) : LS.lv.concat(k); if (!n.length) { toast('Keep at least one level'); break; } LS.lv = ['L1', 'L2', 'L3'].filter(x => n.includes(x)); renderLib(); break; }
     case 'mall': case 'mnone': { const boxe = $('#' + k); boxe.querySelectorAll('.ml input').forEach(x => { x.checked = a === 'mall'; }); boxe.querySelector('.ml input') ? boxe.querySelector('.ml input').dispatchEvent(new Event('change')) : 0; break; }
     case 'libshow': showLibPrev(); break;
+    case 'wssave': case 'wstest': { const w = window.AvantiPortal && wsSource(t.dataset.src); if (w) { if (a === 'wssave') window.AvantiPortal.saveWorksheet(w.ids, w.title); else window.AvantiPortal.createTestFrom(w.ids, w.title); } break; }
     case 'xprint': { const g = pdfSource(t); if (g) printFrom(g.get); break; }
     case 'xshare': { const g = pdfSource(t); if (g) shareFrom(t, g.title, g.get); break; }
     case 'libshuffle': { LS.seed = 1 + Math.floor(Math.random() * 2147483000); showLibPrev(); toast('New set of questions'); break; }
@@ -1787,6 +1809,7 @@ function buildLib() {
         h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'pdf', title: 'Download PDF', 'aria-label': 'Download PDF', html: FIMG.pdf }),
         h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'lexp', 'data-k': 'pptx', title: 'Download PowerPoint (editable)', 'aria-label': 'Download PowerPoint (editable)', html: FIMG.pptx }),
         prtBtn('lib'), shrBtn('lib')),
+      wsRow('lib'),
       h('div', { class: 'stage' }, h('div', { class: 'statbar' }, h('div', { class: 'msg', id: 'libMsg', 'aria-live': 'polite' }),
         h('button', { type: 'button', class: 'btn', 'data-act': 'libshuffle', title: 'Pick a different set of questions for the same settings', text: '\u21bb Shuffle questions' }),
         h('div', { class: 'pgbtns', id: 'libPages', hidden: true })),

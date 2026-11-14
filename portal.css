@@ -52,11 +52,12 @@ html.plan-free .main :not(input):not(textarea):not(select) { -webkit-user-select
 .pf-btn { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,.55); background: linear-gradient(140deg, var(--gold, #f2b134), var(--gold-deep, #d9961a)); color: #0c1a3d; font: 800 14px/1 var(--font-body, system-ui); cursor: pointer; display: grid; place-items: center; letter-spacing: .02em; }
 .pf-btn:hover, .pf-btn[aria-expanded="true"] { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,216,115,.35); }
 .pf-btn:focus-visible { outline: 2px solid #ffd873; outline-offset: 2px; }
-.pf-drop { position: absolute; right: 0; top: calc(100% + 10px); z-index: 300; min-width: 250px; text-align: left; }
+.pf-drop { position: absolute; right: 0; top: calc(100% + 10px); z-index: 300; min-width: 300px; width: max-content; max-width: min(400px, calc(100vw - 24px)); box-sizing: border-box; text-align: left; }
 .pf-drop a.tb-item { text-decoration: none; display: block; }
 .pf-who { display: flex; flex-direction: column; gap: 3px; padding: 10px 14px 12px; margin-bottom: 4px; border-bottom: 1px solid var(--rule); }
 .pf-who strong { color: var(--ink); font-size: 14.5px; }
-.pf-who span { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.pf-who span { color: var(--muted); font-size: 12.5px; }
+.pf-who .pf-mail { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .pf-who .pf-plan { align-self: flex-start; margin-top: 4px; font-weight: 700; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; background: var(--accent-soft); color: var(--accent); }
 .pf-who .pf-staff { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
 .pf-who .pf-premium { background: color-mix(in srgb, var(--gold, #f2b134) 26%, transparent); color: #8a5a00; }
@@ -301,3 +302,25 @@ body.hv-on { overflow: hidden; }
 .hv-page { display: block; max-width: 100%; height: auto; border-radius: 4px; }
 .hv-msg { color: #e9eefb; margin: 40px 0; text-align: center; }
 @media print { body.hv-on .hv { display: none !important; } }
+
+/* ---------- gold "Purchase membership" ---------- */
+.btn.pt-gold, .pf-drop a.tb-item.pf-buy { position: relative; overflow: hidden; border: 1px solid #c98b12 !important; color: #2a1a00 !important; font-weight: 800;
+  background: linear-gradient(135deg, #ffe08a 0%, #f6c445 40%, #e1a11c 100%) !important; box-shadow: 0 4px 14px rgba(217,150,26,.35), inset 0 1px 0 rgba(255,255,255,.6); text-decoration: none; }
+.btn.pt-gold:hover, .pf-drop a.tb-item.pf-buy:hover { filter: brightness(1.05); box-shadow: 0 6px 18px rgba(217,150,26,.5), inset 0 1px 0 rgba(255,255,255,.6); }
+.btn.pt-gold::after, .pf-drop a.tb-item.pf-buy::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); transform: skewX(-20deg); animation: ptshine 3.2s ease-in-out infinite; pointer-events: none; }
+@keyframes ptshine { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+.pf-drop a.tb-item.pf-buy { margin: 4px 0; border-radius: 10px !important; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .btn.pt-gold::after, .pf-drop a.tb-item.pf-buy::after { animation: none; display: none; } }
+
+/* ---------- "Save as worksheet" and "Create test" row (Question Bank, DPPs, PYQs, Must Solve) ---------- */
+.wsrow { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; box-sizing: border-box; margin-top: 8px; min-width: 0; }
+.wsrow .wsbtn { flex: 1 1 180px; min-width: 0; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 12px;
+  border-radius: 10px; font: 600 13.5px/1.2 var(--font-body); white-space: normal; text-align: center; cursor: pointer;
+  border: 1.5px solid var(--accent); background: var(--panel); color: var(--accent); box-shadow: none; }
+.wsrow .wsbtn svg { flex: none; }
+.wsrow .wsbtn.pri { background: var(--accent); color: var(--accent-ink); }
+.wsrow .wsbtn:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+.wsrow .wsbtn.pri:hover:not(:disabled), .wsrow .wsbtn.pri:focus { background: var(--accent); color: var(--accent-ink); filter: brightness(1.12); }
+.wsrow .wsbtn:disabled { opacity: .45; cursor: not-allowed; }
+.qb-wsrow { flex-basis: 100%; order: 0; }
+.rail > .wsrow, .card > .wsrow { margin-top: 0; }

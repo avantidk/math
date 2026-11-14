@@ -172,16 +172,16 @@ function renderMenu() {
   slot.textContent = '';
   const perm = A.perm, student = p.role === 'student', teacher = p.role === 'teacher';
   const items = [['#/profile', 'Edit profile']];
-  if (perm.plan === 'free') items.push(['#/membership', 'Purchase membership']);
+  if (perm.plan === 'free') items.push(['#/membership', '★ Purchase membership', 'pf-buy']);
   else items.push(['#/membership', 'Membership']);
   if (student) items.push(['#/tests', 'Available tests'], ['#/reports', 'My Reports']);
   if (teacher && perm.createTests) items.push(['#/create', 'Create Test'], ['#/my-tests', 'My Tests and Results'], ['#/worksheets', 'Saved worksheets']);
   const planLabel = { free: 'Free', premium: 'Premium', staff: 'Staff' }[perm.plan];
   const drop = h('div', { class: 'tb-drop pf-drop', id: 'pfDrop', role: 'menu', hidden: true },
-    h('div', { class: 'pf-who' }, h('strong', { text: p.full_name || (p.avanti_id ? 'Avanti ID ' + p.avanti_id : 'Your account') }),
-      h('span', { text: p.email || (p.avanti_id ? 'Avanti ID ' + p.avanti_id : '') }),
+    h('div', { class: 'pf-who' }, h('strong', { text: p.full_name || p.avanti_id || 'Your account' }),
+      h('span', { class: 'pf-mail', title: p.email || p.avanti_id || '', text: p.email || p.avanti_id || '' }),
       h('span', { class: 'pf-plan pf-' + perm.plan, text: planLabel + (p.role ? ' · ' + (teacher ? 'Teacher' : 'Student') : '') })),
-    items.map(([href, t]) => h('a', { class: 'tb-item', role: 'menuitem', href, text: t, onclick: close })),
+    items.map(([href, t, c]) => h('a', { class: 'tb-item' + (c ? ' ' + c : ''), role: 'menuitem', href, text: t, onclick: close })),
     h('button', { type: 'button', class: 'tb-item pf-out', role: 'menuitem', text: 'Logout', onclick: () => A.signOut() }));
   const btn = h('button', { type: 'button', class: 'pf-btn', id: 'pfBtn', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Profile menu', title: 'Profile', text: initials(p),
     onclick: e => { e.stopPropagation(); const open = drop.hidden; drop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); } });
@@ -214,7 +214,7 @@ async function start() {
   if (!started) { started = true; window.AvantiBoot.start(); }
   renderMenu();
   if (window.AvantiPortal) window.AvantiPortal.route();
-  const incomplete = p.role === 'student' ? !(p.full_name && p.school && p.class && p.category && p.gender) : !p.full_name;
+  const incomplete = p.avanti_id ? false : p.role === 'student' ? !(p.full_name && p.school && p.class && p.category && p.gender) : !p.full_name;
   if (incomplete && !/^#\/t\//.test(location.hash) && location.hash !== '#/profile') location.hash = '#/profile';
 }
 async function afterSignIn() {
