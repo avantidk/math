@@ -261,24 +261,112 @@ async function pageProfile() {
 }
 
 /* ---------- Membership (Razorpay) ---------- */
+/* ---------- Membership: a pricing page for teachers and for students ---------- */
+const MI = (d) => '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
+const MICON = {
+  pdf: MI('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>'),
+  share: MI('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>'),
+  folder: MI('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M8 13h8"/>'),
+  users: MI('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>'),
+  upload: MI('<path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>'),
+  chart: MI('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
+  chat: MI('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z"/>'),
+  copy: MI('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>'),
+  trophy: MI('<path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M17 5h3a3 3 0 0 1-3 4M7 5H4a3 3 0 0 0 3 4"/>'),
+  target: MI('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6" fill="currentColor"/>'),
+  print: MI('<path d="M7 9V3.5h10V9"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v6.5H7z"/>'),
+  phone: MI('<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/>'),
+  bolt: MI('<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'),
+  lock: MI('<rect x="4" y="10.5" width="16" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>'),
+  cal: MI('<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/>'),
+  upi: MI('<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/>')
+};
+const HERO_ART = `<svg viewBox="0 0 320 240" role="img" aria-label="PDF worksheets, a results chart and a crown" class="mb-art">
+  <defs><linearGradient id="mbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#e1a11c"/></linearGradient></defs>
+  <g transform="rotate(-8 120 130)"><rect x="40" y="46" width="128" height="166" rx="12" fill="#ffffff" opacity=".18"/></g>
+  <g><rect x="62" y="38" width="132" height="172" rx="12" fill="#ffffff"/><rect x="62" y="38" width="132" height="34" rx="12" fill="#1f3f95"/><rect x="62" y="60" width="132" height="12" fill="#1f3f95"/>
+    <text x="78" y="61" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="700" fill="#ffffff">DPP · 12M18</text>
+    <rect x="78" y="86" width="98" height="7" rx="3.5" fill="#d6dcec"/><rect x="78" y="100" width="76" height="7" rx="3.5" fill="#d6dcec"/>
+    <circle cx="84" cy="124" r="5" fill="#1f3f95"/><rect x="95" y="120" width="80" height="7" rx="3.5" fill="#e6eaf4"/>
+    <circle cx="84" cy="142" r="5" fill="#d6dcec"/><rect x="95" y="138" width="64" height="7" rx="3.5" fill="#e6eaf4"/>
+    <circle cx="84" cy="160" r="5" fill="#d6dcec"/><rect x="95" y="156" width="72" height="7" rx="3.5" fill="#e6eaf4"/>
+    <rect x="78" y="182" width="44" height="16" rx="8" fill="#e5484d"/><text x="88" y="194" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="800" fill="#fff">PDF</text></g>
+  <g><rect x="176" y="104" width="118" height="96" rx="12" fill="#ffffff"/>
+    <rect x="194" y="160" width="14" height="26" rx="3" fill="#8aa9ff"/><rect x="214" y="146" width="14" height="40" rx="3" fill="#5b7fe0"/><rect x="234" y="130" width="14" height="56" rx="3" fill="#1f3f95"/><rect x="254" y="118" width="14" height="68" rx="3" fill="url(#mbg)"/>
+    <text x="194" y="124" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#66728b">RANK</text></g>
+  <g transform="translate(232 22)"><circle cx="34" cy="34" r="34" fill="url(#mbg)"/><path d="M14 44l5-20 10 9 5-13 5 13 10-9 5 20z" fill="#fff"/><rect x="14" y="46" width="40" height="5" rx="2.5" fill="#fff"/></g>
+</svg>`;
+function membershipContent(teacher) {
+  return teacher ? {
+    eyebrow: 'Premium for teachers', title: 'Teach more. Prepare less.',
+    lead: 'Every DPP, PYQ paper and handout as a ready-to-print PDF, your whole school\'s students in one place, and results you can act on.',
+    feats: [
+      ['pdf', 'Every PDF, print-ready', 'DPPs, chapterwise and shift-wise PYQ papers, Must Solve lists, handouts and your own Question Bank picks, with answer keys and full explanations.'],
+      ['share', 'Share in one tap', 'Send any PDF to your class on WhatsApp, by email or through any app on your phone.'],
+      ['folder', 'Saved worksheets', 'Keep the question sets you build and reuse them for tests or downloads whenever you need them.'],
+      ['users', 'My Students', 'Every student of your school by class, stream and session, with sign-in status, tests taken, average and last test.'],
+      ['upload', 'Bulk upload', 'Add a whole class from Excel or CSV with a checked preview, and correct details once your school is approved.'],
+      ['chart', 'Deeper results', 'Open any student\'s test history and report, and export your results to CSV.'],
+      ['chat', 'Teachers\' chat', 'Talk live with other Premium and Avanti teachers while you plan and teach.'],
+      ['copy', 'Copy questions', 'Copy question text and IDs straight into your own notes and slides.']
+    ],
+    rows: [['View Question Bank, DPPs, PYQs, Must Solve and handouts', 1, 1], ['Create online tests for your school', 1, 1], ['Add students one by one', 1, 1], ['Results of your own tests', 1, 1],
+      ['Download and print every PDF', 0, 1], ['Share PDFs on WhatsApp and email', 0, 1], ['Copy question text', 0, 1], ['Saved worksheets', 0, 1], ['My Students with performance', 0, 1],
+      ['Bulk upload and edit students', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1], ['Teachers\' chat', 0, 1]],
+    faq: [['Do my students need Premium to take my tests?', 'No. Free students can take your tests and see their reports.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs can be shared straight from the phone.']]
+  } : {
+    eyebrow: 'Premium for students', title: 'Practise anywhere. Know where you stand.',
+    lead: 'Download every DPP, PYQ paper and handout to practise offline, and see your rank among every student who took the test.',
+    feats: [
+      ['pdf', 'Every PDF to keep', 'DPPs, PYQ papers, Must Solve lists and handouts with answer keys and full explanations.'],
+      ['phone', 'Practise offline', 'Keep the PDFs on your phone and practise on the bus, at home or without the internet.'],
+      ['print', 'Print and share', 'Print sheets for your notebook, or share them with friends on WhatsApp.'],
+      ['trophy', 'Rank among all students', 'See where you stand among everyone who took the test, not just your school.'],
+      ['target', 'Compare with the top', 'See the average and the top score of all students on every test you take.'],
+      ['copy', 'Copy questions', 'Copy questions into your own notes for revision.']
+    ],
+    rows: [['View Question Bank, DPPs, PYQs, Must Solve and handouts', 1, 1], ['Take your school\'s tests', 1, 1], ['Question-wise review and topic analysis', 1, 1], ['Rank in your school', 1, 1],
+      ['Rank among all students', 0, 1], ['Average and top score of all students', 0, 1], ['Download and print every PDF', 0, 1], ['Share PDFs', 0, 1], ['Copy question text', 0, 1]],
+    faq: [['I am on the Avanti list. Do I need to pay?', 'No. Students on the Avanti list get Premium free. Sign in with your Avanti ID.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs open in any PDF app.']]
+  };
+}
 async function pageMembership() {
   const p = P(), plan = AU().perm.plan;
   show(loading());
   const { data: pays } = await sb().from('payments').select('order_id,payment_id,amount_paise,status,created_at,paid_at').order('created_at', { ascending: false }).limit(20);
-  const teacher = p.role === 'teacher', price = Math.round((p.price_paise || (teacher ? 59900 : 29900)) / 100);
-  const feats = teacher
-    ? ['Everything in Free: view all material, create tests with a link for your school, add students one by one', 'Download every DPP, PYQ paper, Must Solve list and handout as PDF; print and share', 'Saved worksheets', 'My Students: the list of your school\'s students by class and batch, with their performance', 'Bulk upload students from Excel or CSV, and edit their details', 'Export results as CSV']
-    : ['Everything in Free: view all material, take your school\'s tests, your report with your school rank', 'Download every DPP, PYQ paper, Must Solve list and handout as PDF; print and share', 'Reports with your rank among all students who took the test, not just your school'];
-  const msg = h('p', { class: 'pt-msg', role: 'status' });
-  const payBtn = h('button', { type: 'button', class: 'btn pt-gold pt-big', text: plan === 'premium' ? 'Renew for 1 more year · ₹' + price : 'Get Premium · ₹' + price + ' a year', onclick: () => pay(payBtn, msg) });
-  const status = plan === 'staff' ? card(h('h2', { text: 'Avanti Fellows account' }), h('p', { text: 'Your @avantifellows.org account has full access to everything. No payment is needed.' }))
-    : p.is_avanti ? card(h('h2', { text: 'Avanti student · Premium' }), h('p', { text: 'Premium is included for students on the Avanti list. No payment is needed.' }), h('ul', { class: 'pt-feats' }, feats.map(f => h('li', { text: f }))))
-    : plan === 'premium' ? card(h('h2', { text: 'Premium' }), h('p', { text: 'Your Premium membership is active until ' + day(p.premium_until) + '. After that the account returns to Free unless you renew.' }), h('ul', { class: 'pt-feats' }, feats.map(f => h('li', { text: f }))), payBtn, msg)
-      : card(h('h2', { text: 'Premium for ' + (teacher ? 'teachers' : 'students') }), h('p', { class: 'pt-price' }, h('strong', { text: '₹' + price }), ' for 1 year'), h('ul', { class: 'pt-feats' }, feats.map(f => h('li', { text: f }))), payBtn, msg,
-        h('p', { class: 'pt-hint', text: 'Payment is handled by Razorpay (UPI, cards, net banking). Premium starts as soon as the payment is confirmed.' }));
-  const hist = (pays || []).length ? card(h('h2', { text: 'Payment history' }), h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Date', 'Amount', 'Status', 'Payment ID'].map(t => h('th', { text: t })))),
+  const teacher = p.role === 'teacher', price = Math.round((p.price_paise || (teacher ? 59900 : 29900)) / 100), perDay = (price / 365).toFixed(2).replace(/\.?0+$/, '');
+  const C = membershipContent(teacher);
+  const included = plan === 'staff' || p.is_avanti, active = plan === 'premium' && !p.is_avanti;
+  const daysLeft = active && p.premium_until ? Math.max(0, Math.ceil((Date.parse(p.premium_until) - Date.now()) / 864e5)) : 0;
+  const msg = h('p', { class: 'pt-msg mb-msg', role: 'status' });
+  const payBtn = () => h('button', { type: 'button', class: 'btn pt-gold mb-cta', onclick: e => pay(e.currentTarget, msg) }, active ? 'Renew for 1 more year · ₹' + price : 'Get Premium · ₹' + price);
+  const trust = h('ul', { class: 'mb-trust' }, [['lock', 'Secure payment by Razorpay'], ['upi', 'UPI, cards, net banking'], ['bolt', 'Starts instantly'], ['cal', '1 year · no auto-renewal']].map(([i, t]) => h('li', {}, h('span', { html: MICON[i] }), t)));
+  const heroText = included
+    ? [h('span', { class: 'mb-eyebrow', text: plan === 'staff' ? 'Avanti Fellows' : 'Avanti student' }), h('h1', { text: 'Premium is included for you' }),
+       h('p', { class: 'mb-lead', text: plan === 'staff' ? 'Your @avantifellows.org account has full access to everything. No payment is needed.' : 'Students on the Avanti list get Premium free. Everything below is already yours.' })]
+    : active
+      ? [h('span', { class: 'mb-eyebrow', text: C.eyebrow }), h('h1', { text: 'You are on Premium' }),
+         h('p', { class: 'mb-lead', text: 'Active until ' + day(p.premium_until) + ' (' + daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left). Renewing adds one more year on top of the time you have left.' }), h('div', { class: 'mb-buy' }, payBtn(), msg)]
+      : [h('span', { class: 'mb-eyebrow', text: C.eyebrow }), h('h1', { text: C.title }), h('p', { class: 'mb-lead', text: C.lead }),
+         h('div', { class: 'mb-price' }, h('span', { class: 'mb-cur', text: '₹' }), h('strong', { text: price }), h('span', { class: 'mb-per' }, h('b', { text: 'for 1 year' }), h('small', { text: 'about ₹' + perDay + ' a day' }))),
+         h('div', { class: 'mb-buy' }, payBtn(), msg)];
+  const hero = h('section', { class: 'mb-hero' }, h('div', { class: 'mb-hero-text' }, heroText, included ? null : trust), h('div', { class: 'mb-hero-art', html: HERO_ART }));
+  const feats = h('section', { class: 'mb-sec' }, h('h2', { class: 'mb-h2', text: included || active ? 'What you get with Premium' : 'Everything you get with Premium' }),
+    h('div', { class: 'mb-feats' }, C.feats.map(([i, t, d]) => h('article', { class: 'mb-feat' }, h('span', { class: 'mb-ic', html: MICON[i] }), h('h3', { text: t }), h('p', { text: d })))));
+  const tick = v => h('td', { class: v ? 'mb-yes' : 'mb-no', 'aria-label': v ? 'Included' : 'Not included', text: v ? '✓' : '—' });
+  const compare = h('section', { class: 'mb-sec' }, h('h2', { class: 'mb-h2', text: 'Free and Premium, side by side' }),
+    h('div', { class: 'pt-tw mb-tw' }, h('table', { class: 'mb-table' }, h('thead', {}, h('tr', {}, h('th', { text: '' }), h('th', { text: 'Free' }), h('th', { class: 'mb-prem' }, 'Premium', h('small', { text: '₹' + price + ' / year' })))),
+      h('tbody', {}, C.rows.map(([t, f, pr]) => h('tr', { class: f ? null : 'mb-only' }, h('td', { text: t }), tick(f), tick(pr)))))));
+  const steps = h('section', { class: 'mb-sec mb-steps' }, [['1', 'Pay with UPI or card', 'Razorpay opens. Pay ₹' + price + ' with GPay, PhonePe, Paytm, a card or net banking.'], ['2', 'Premium starts at once', 'The server checks the payment and switches your account to Premium in seconds.'], ['3', 'Use it for a full year', 'Valid for 365 days. It does not renew by itself, and no card details are saved.']]
+    .map(([n, t, d]) => h('div', { class: 'mb-step' }, h('span', { class: 'mb-n', text: n }), h('div', {}, h('h3', { text: t }), h('p', { text: d })))));
+  const faq = h('section', { class: 'mb-sec' }, h('h2', { class: 'mb-h2', text: 'Questions' }), h('div', { class: 'pt-faq' },
+    C.faq.concat([['Will it renew automatically?', 'No. Premium lasts one year from the day you pay. Renew whenever you want; extra time is added on top.'],
+      ['Money was taken but I am still on Free.', 'Wait two minutes and refresh the page. If it is still Free, write to us from Help & Support with the payment ID shown below in Payment history.']])
+      .map(([q, a]) => h('details', {}, h('summary', { text: q }), h('p', { text: a })))));
+  const band = included || active ? null : h('section', { class: 'mb-band' }, h('div', {}, h('h2', { text: teacher ? 'Ready for a better teaching year?' : 'Ready to practise smarter?' }), h('p', { text: '₹' + price + ' for a full year · about ₹' + perDay + ' a day' })), payBtn());
+  const hist = (pays || []).length ? h('section', { class: 'mb-sec' }, h('h2', { class: 'mb-h2', text: 'Payment history' }), h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Date', 'Amount', 'Status', 'Payment ID'].map(t => h('th', { text: t })))),
     h('tbody', {}, pays.map(x => h('tr', {}, h('td', { text: when(x.created_at) }), h('td', { text: '₹' + num(x.amount_paise / 100, 2) }), h('td', {}, badge({ paid: 'Paid', failed: 'Failed', created: 'Not completed' }[x.status], { paid: 'ok', failed: 'bad' }[x.status])), h('td', { class: 'pt-mono', text: x.payment_id || '—' }))))))) : null;
-  show(head('Membership', 'Your plan: ' + (plan === 'staff' ? 'Avanti · Full access' : p.is_avanti ? 'Avanti · Premium' : plan === 'premium' ? 'Premium' : 'Free')), h('div', { class: 'pt-grid2' }, status, hist));
+  show(h('div', { class: 'mb' }, hero, feats, included ? null : compare, included ? null : steps, faq, band, hist));
 }
 let rzpP = null;
 async function callPay(body) {
