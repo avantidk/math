@@ -831,7 +831,7 @@ function runExam(d) {
   function tickQ() {
     const q = qs[X.cur]; if (!q || !X.qtEl) return;
     const s2 = Math.floor(ans[q.id].t + (Date.now() - X.enter) / 1000);
-    X.qtEl.textContent = '\u23f1 ' + Math.floor(s2 / 60) + ':' + String(s2 % 60).padStart(2, '0') + ' on this question';
+    X.qtEl.textContent = '\u23f1 ' + Math.floor(s2 / 60) + ':' + String(s2 % 60).padStart(2, '0');
   }
   function tickTimer() {
     tickQ();
@@ -1145,6 +1145,18 @@ async function pageApprovals() {
     list.length > pend.length ? card(h('h2', { text: 'Approved' }), table(list.filter(x => x.approved))) : null);
 }
 
-window.AvantiPortal = { shareReady, route, leave: () => leave(false), saveWorksheet, createTestFrom, onboard, profileMissing };
+/* Footer: website version → list of updates (changelog.json) */
+async function showChangelog() {
+  const body = h('div', { class: 'pt-chlog' }, loading());
+  modal('What changed on the website', body, [{ text: 'Close', pri: true, onclick: () => {} }]);
+  try {
+    const list = await fetch('changelog.json', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+    const cur = window.AvantiBoot && window.AvantiBoot.build;
+    body.textContent = '';
+    list.forEach(e => body.append(h('section', { class: 'pt-chv' }, h('div', { class: 'pt-ct' }, h('h3', { text: 'Version ' + e.v }), e.v === cur ? badge('You are using this', 'ok') : h('span', { class: 'pt-hint', text: e.date })),
+      e.v === cur ? h('p', { class: 'pt-hint', text: e.date }) : null, h('ul', { class: 'pt-feats' }, e.items.map(t => h('li', { text: t }))))));
+  } catch (x) { body.textContent = ''; body.append(errorBox('Could not load the list of updates. Check your internet connection.')); }
+}
+window.AvantiPortal = { showChangelog, shareReady, route, leave: () => leave(false), saveWorksheet, createTestFrom, onboard, profileMissing };
 if (AU() && AU().profile && TE()) route();
 })();

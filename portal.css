@@ -438,3 +438,12 @@ html body .tb-drop a.pf-up:hover, .pf-up:hover, .pf-up:focus-visible { box-shado
 .pt-sharefile small { color: var(--muted); font-size: 12px; }
 .pt-share .pt-actions .btn { gap: 8px; }
 @media (max-width: 560px) { .ex-qtime { margin-left: 0; } }
+/* footer: only the website version (clickable); the Question Bank version is hidden */
+#appFootVer { display: none !important; }
+.app-foot .af-click { cursor: pointer; border-bottom: 1px dotted currentColor; }
+.app-foot .af-click:hover, .app-foot .af-click:focus-visible { color: var(--ink); outline: none; }
+.pt-chlog { display: flex; flex-direction: column; gap: 14px; }
+.pt-chv { border-bottom: 1px solid var(--rule); padding-bottom: 12px; }
+.pt-chv:last-child { border-bottom: 0; }
+.pt-chv h3 { margin: 0; font-size: 16px; color: var(--ink); }
+.pt-chv .pt-feats { margin-top: 6px; font-size: 14px; }

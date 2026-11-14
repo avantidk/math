@@ -3,7 +3,7 @@
    BUILD must be bumped on every release so returning visitors get the new code on their next visit. */
 (function () {
 'use strict';
-const BUILD = '810';
+const BUILD = '811';
 const RELEASED = '14 Nov 2026';   /* date of this release, shown in the footer */
 const CDN_KATEX = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js';
 const CACHEABLE = /^(qb\/data\/|qb\/qb[.\-]|bank(-meta)?\.json|must\.json|syllabus\.json|handouts\/index\.json|katex\.css|teacher[.\-])/;
@@ -57,7 +57,8 @@ async function start() {
     if (!window.AvantiTeacher) throw new Error('teacher');
   } catch (e) { fail(); return; }
   window.AvantiTeacher.start({});
-  { const f = document.getElementById('appFootSite'); if (f) f.textContent = 'Website v' + BUILD + ' · ' + RELEASED; }
+  { const f = document.getElementById('appFootSite'); if (f) { f.textContent = 'Website v' + BUILD + ' · ' + RELEASED; f.setAttribute('role', 'button'); f.tabIndex = 0; f.title = 'See what changed in each version'; f.classList.add('af-click');
+      const open = () => { if (window.AvantiPortal) window.AvantiPortal.showChangelog(); }; f.addEventListener('click', open); f.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } }); } }
   if (window.AvantiAuth) window.AvantiAuth.renderMenu();
   if (window.AvantiPortal) window.AvantiPortal.route();
   Promise.all(Object.values(data).concat([html, js])).catch(() => {}).then(async () => {
