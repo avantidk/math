@@ -218,8 +218,7 @@ function renderMenu() {
       h('span', { class: 'pf-plan ' + (perm.plan === 'free' ? (teacher ? 'pf-free-t' : 'pf-free-s') : 'pf-gold'), text: perm.isAdmin || perm.plan === 'staff' ? planLabel : planLabel + ' · ' + (teacher ? 'Teacher' : 'Student') })),
     upgrade,
     items.map(([href, t]) => h('a', { class: 'tb-item pf-item', role: 'menuitem', href, 'data-count': COUNT_KEY[href] || null, onclick: close }, h('span', { text: t }), COUNT_KEY[href] ? h('span', { class: 'pf-count' }) : null)),
-    h('button', { type: 'button', class: 'tb-item pf-out', role: 'menuitem', text: 'Logout', onclick: () => A.signOut() }),
-    window.AvantiBoot ? h('div', { class: 'pf-ver', text: 'Website v' + window.AvantiBoot.build + ' · ' + window.AvantiBoot.released }) : null);
+    h('button', { type: 'button', class: 'tb-item pf-out', role: 'menuitem', text: 'Logout', onclick: () => A.signOut() }));
   const btn = h('button', { type: 'button', class: avatarClass(p, perm), id: 'pfBtn', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Profile menu (' + planLabel + ')', title: planLabel, text: initials(p),
     onclick: e => { e.stopPropagation(); const open = drop.hidden; drop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); } });
   function close() { drop.hidden = true; btn.setAttribute('aria-expanded', 'false'); }

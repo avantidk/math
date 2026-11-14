@@ -1303,7 +1303,9 @@ async function pageHelp() {
           wa ? h('a', { class: 'btn', href: 'https://wa.me/' + wa + '?text=' + encodeURIComponent('Hello, I need help with the Mathematics Dashboard. ' + who), target: '_blank', rel: 'noopener', text: 'WhatsApp' }) : null,
           c.phone ? h('a', { class: 'btn', href: 'tel:+' + wa, text: '☎ Call' }) : null),
         h('p', { class: 'pt-hint', text: 'The email opens with your account details filled in, so we can help faster.' })),
-      card(h('h2', { text: 'Common questions' }), h('div', { class: 'pt-faq' }, faq.map(([q, a]) => h('details', {}, h('summary', { text: q }), h('p', { text: a })))))));
+      card(h('h2', { text: 'Common questions' }), h('div', { class: 'pt-faq' }, faq.map(([q, a]) => h('details', {}, h('summary', { text: q }), h('p', { text: a }))))),
+    window.AvantiBoot ? h('p', { class: 'pt-hver' }, h('button', { type: 'button', class: 'pt-hver-b', title: 'See what changed in each version', onclick: showChangelog },
+      'Website v' + window.AvantiBoot.build + ' · ' + window.AvantiBoot.released), h('span', { text: ' · tap to see what changed' })) : null));
 }
 
 /* ---------- Admin: approve teachers' schools ---------- */

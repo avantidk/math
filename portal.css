@@ -609,3 +609,8 @@ html:not(.plan-staff) .qb-results .qb-tools > .qb-reset, html:not(.plan-staff) .
 .btn.pt-wse-b.bad { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, var(--rule)); }
 .btn.pt-wse-b:disabled { opacity: .4; }
 .pt-wse-bar { position: sticky; bottom: 0; z-index: 2; display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; padding: 12px 0; background: linear-gradient(transparent, var(--bg) 30%); }
+
+/* website version on Help & Support */
+.pt-hver { margin: 18px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
+.pt-hver-b { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; border-bottom: 1px dotted currentColor; }
+.pt-hver-b:hover { color: var(--accent); border-bottom-style: solid; }
