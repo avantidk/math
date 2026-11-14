@@ -164,7 +164,7 @@ function loginPage(msg) {
     h('div', { class: 'lgx-float' }, h('span', { class: 'lgx-fic', html: I('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>') }),
       h('div', {}, h('small', { text: 'Report ready · example' }), h('b', { text: 'Score 248 / 300' }), h('span', { text: 'Rank 3 in school · 41 all-India' }))));
   const info = h('section', { class: 'lg-info lgx', 'aria-label': 'What you get' },
-    h('span', { class: 'lgx-pill', text: '★ Free to start · by Avanti Fellows' }),
+    h('span', { class: 'lgx-pill', text: '★ Free to start · by Ankit Kamboj' }),
     h('h2', { class: 'lgx-h' }, 'Practise like the ', h('em', { text: 'real exam.' }), h('br'), 'Improve every week.'),
     h('p', { class: 'lgx-lead', text: 'NTA-style online tests, 15,000+ questions with solutions and every past paper since 1978, in one place for JEE Maths.' }),
     h('div', { class: 'lgx-exams' }, ['JEE Main', 'JEE Advanced', 'KCET', 'NDA', 'IAT', 'AIEEE'].map(t => h('span', { text: t }))),
