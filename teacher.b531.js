@@ -166,7 +166,8 @@ function pyqLabel(q) {
   if (q.e === 'NDA') { const m = /\((NDA[^)]*)\)/.exec(p); return (m ? m[1] : 'NDA') + (y ? ' ' + y : ''); }
   return q.e + (y ? ' ' + y : '');
 }
-function tagText(q) { const lv = q.lvTag ? 'L' + practiceLevel(q) : ''; const ex = q.s === 'P' ? pyqLabel(q) : ''; return lv || ex ? '[' + [lv, ex].filter(Boolean).join(' \u00b7 ') + ']' : ''; }
+function tagText(q) { if (q.s !== 'P') return q.i ? '[' + q.i + ']' : '';   /* practice (non-PYQ) questions: only their question code */
+  const lv = q.lvTag ? 'L' + practiceLevel(q) : ''; const ex = pyqLabel(q); return lv || ex ? '[' + [lv, ex].filter(Boolean).join(' \u00b7 ') + ']' : ''; }
 /* "match the lists" questions: split into intro + two lists so they can be drawn as a table */
 function matchParts(text) {
   const ls = String(text).split('\n'), HA = /^\s*(List|Column)[\s\-]*(I|1)\s*(\([^)]*\))?\s*:\s*(.*)$/i, HB = /^\s*(List|Column)[\s\-]*(II|2)\s*(\([^)]*\))?\s*:\s*(.*)$/i;
