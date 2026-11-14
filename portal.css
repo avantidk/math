@@ -373,3 +373,18 @@ html body .tb-drop a.pf-up:hover, .pf-up:hover, .pf-up:focus-visible { box-shado
 .pt-file { max-width: 100%; margin-top: 8px; font-size: 13px; }
 .pt-bulk { display: flex; flex-direction: column; gap: 10px; }
 .pt-modal:has(.pt-bulk) { width: min(980px, 100%); }
+
+/* ---------- help, approvals ---------- */
+.pt-warnnote { background: color-mix(in srgb, #f2b134 16%, var(--panel)); border: 1px solid color-mix(in srgb, #f2b134 45%, transparent); color: var(--ink); }
+.pt-contact { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--bg); }
+.pt-contact > div { display: flex; flex-direction: column; min-width: 0; }
+.pt-contact a { font-weight: 700; color: var(--accent); overflow-wrap: anywhere; text-decoration: none; font-size: 15px; }
+.pt-cic { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-size: 18px; flex: none; }
+.pt-faq { display: flex; flex-direction: column; gap: 8px; }
+.pt-faq details { border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; background: var(--panel); }
+.pt-faq summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+.pt-faq p { margin: 8px 0 0; color: var(--body); font-size: 14px; }
+.lg-help { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 8px; color: #c9d4ee; font-size: 13.5px; }
+.lg-link { background: none; border: 0; color: #ffd873; font: 600 13.5px var(--font-body, system-ui); text-decoration: underline; cursor: pointer; padding: 0; }
+.lg-helpbox { flex-basis: 100%; display: flex; flex-direction: column; gap: 8px; background: var(--panel, #fff); border-radius: 14px; padding: 14px; }
+.lg-helpbox .lg-btn { margin-top: 0; display: flex; align-items: center; justify-content: center; text-decoration: none; overflow-wrap: anywhere; }

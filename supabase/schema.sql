@@ -10,6 +10,21 @@ create schema if not exists extensions;
 create extension if not exists pgcrypto with schema extensions;
 
 -- -------------------------------------------------------------------------------------
+-- Help & Support contact shown on the website (Edit profile menu → Help & Support, and the login page)
+-- -------------------------------------------------------------------------------------
+create table if not exists public.app_settings (key text primary key, value text);
+alter table public.app_settings enable row level security;
+revoke all on public.app_settings from anon, authenticated;
+insert into public.app_settings (key, value) values ('support_email', 'ankitkamboj@avantifellows.org'), ('support_phone', '')
+  on conflict (key) do nothing;
+do $$
+declare
+  my_mobile text := '';   -- ✏️ TYPE YOUR MOBILE NUMBER BETWEEN THE QUOTES, e.g. '+91 98765 43210' (leave empty to keep the saved one)
+begin
+  if trim(my_mobile) <> '' then update public.app_settings set value = trim(my_mobile) where key = 'support_phone'; end if;
+end $$;
+
+-- -------------------------------------------------------------------------------------
 -- 0. Remove the old design
 --    * tests and test_results (old Tests / Results) are dropped.
 --    * teacher_login() and student_login() (old Teacher Login / AF-ID login) are dropped.
@@ -66,6 +81,18 @@ alter table public.profiles add column if not exists category text check (char_l
 alter table public.profiles add column if not exists gender text check (char_length(gender) <= 30);
 alter table public.profiles add column if not exists batch text check (char_length(batch) <= 60);
 alter table public.profiles add column if not exists is_avanti boolean not null default false;  -- on the Avanti list: Premium included
+-- A teacher's school must be approved by an Avanti admin before the teacher can edit student details
+alter table public.profiles add column if not exists school_approved boolean not null default false;
+alter table public.profiles add column if not exists school_approved_at timestamptz;
+alter table public.profiles add column if not exists school_approved_by text;
+alter table public.profiles add column if not exists school_note text;   -- why a school was not approved (shown to the teacher)
+
+-- Admins approve teachers' schools. Only verified @avantifellows.org Google accounts listed here count as admins.
+create table if not exists public.app_admins (email text primary key);
+insert into public.app_admins (email) values ('ankitkamboj@avantifellows.org') on conflict do nothing;
+alter table public.app_admins enable row level security;
+revoke all on public.app_admins from anon, authenticated;
+
 
 -- The plan that applies right now: Staff (Avanti teachers), Premium (Avanti students, or a paid year), otherwise Free.
 create or replace function public.plan_of(p public.profiles) returns text
@@ -84,6 +111,12 @@ $$;
 create or replace function public.is_staff() returns boolean
 language sql stable security definer set search_path = public as $$
   select coalesce((select p.is_staff from public.profiles p where p.id = auth.uid()), false)
+$$;
+
+create or replace function public.is_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select p.is_staff and exists (select 1 from public.app_admins a where lower(a.email) = lower(p.email))
+                   from public.profiles p where p.id = auth.uid()), false)
 $$;
 
 -- Every teacher (Free or Premium) and all Staff can create tests and add students one by one.
@@ -325,7 +358,11 @@ begin
     'avanti_id', p.avanti_id, 'is_avanti', p.is_avanti,
     'can_create_tests', p.is_staff or p.role = 'teacher',
     'can_manage_students', p.is_staff or (p.role = 'teacher' and public.plan_of(p) = 'premium'),
-    'price_paise', public.price_paise(p.role));
+    'price_paise', public.price_paise(p.role),
+    'school_approved', p.is_staff or p.school_approved, 'school_note', p.school_note,
+    'is_admin', public.is_admin(),
+    'pending_approvals', case when public.is_admin() then (select count(*) from public.profiles t
+        where t.role = 'teacher' and not t.is_staff and not t.school_approved and t.school is not null) end);
 end $$;
 
 -- The Teacher / Student choice is saved once, on the first sign-in. After that only the database owner can change it.
@@ -352,6 +389,8 @@ begin
   update public.profiles set
     full_name = case when v_av and full_name is not null then full_name else left(nullif(trim(p_full_name), ''), 120) end,
     school    = case when school is not null and not is_staff then school else left(nullif(trim(p_school), ''), 160) end,
+    school_approved = case when school is null and not is_staff then false else school_approved end,
+    school_note = case when school is null then null else school_note end,
     class     = case when v_av and class     is not null then class     else left(nullif(trim(p_class), ''), 20) end,
     stream    = case when v_av and stream    is not null then stream    else left(nullif(trim(p_stream), ''), 40) end,
     category  = case when v_av and category  is not null then category  else left(nullif(trim(p_category), ''), 30) end,
@@ -915,9 +954,13 @@ begin
     if v_miss is not null then return json_build_object('ok', false, 'error', 'Missing: ' || v_miss); end if;
     insert into public.student_allowlist (avanti_id, dob_hash, full_name, school, class, stream, category, gender, batch, source, added_by)
     values (v_id, extensions.crypt(to_char(v_dob, 'YYYY-MM-DD'), extensions.gen_salt('bf', 8)), f->>'full_name', v_school,
-            f->>'class', f->>'stream', f->>'category', f->>'gender', f->>'batch', 'teacher', me.id);
+            f->>'class', f->>'stream', f->>'category', f->>'gender', f->>'batch',
+            case when me.is_staff then 'avanti' else 'teacher' end, me.id);   -- added by an Avanti teacher: Premium student
   else
     if not p_update then return json_build_object('ok', false, 'error', 'Student ID ' || v_id || ' is already registered'); end if;
+    if not (me.is_staff or me.school_approved) then
+      return json_build_object('ok', false, 'error', 'Student ID ' || v_id || ' already exists. Editing students is possible after your school is approved.');
+    end if;
     if lower(coalesce(a.school, '')) <> lower(v_school) then return json_build_object('ok', false, 'error', 'Student ID ' || v_id || ' belongs to another school'); end if;
     update public.student_allowlist set
       dob_hash = case when v_dob is not null then extensions.crypt(to_char(v_dob, 'YYYY-MM-DD'), extensions.gen_salt('bf', 8)) else dob_hash end,
@@ -971,6 +1014,7 @@ declare me public.profiles; r json;
 begin
   select * into me from public.profiles where id = auth.uid();
   if not public.is_premium_teacher() then raise exception 'Editing students is for Premium teachers'; end if;
+  if not (me.is_staff or me.school_approved) then raise exception 'Editing students is possible after Avanti Fellows approves your school.'; end if;
   if nullif(trim(p_student_id), '') is not null then
     r := public.save_student(p || jsonb_build_object('student_id', p_student_id), me, true);
     if not (r->>'ok')::boolean then raise exception '%', r->>'error'; end if;
@@ -1036,6 +1080,53 @@ end $$;
 update public.tests t set school = p.school from public.profiles p
  where p.id = t.owner_id and not p.is_staff and p.school is not null and t.school is distinct from p.school;
 
+-- -------------------------------------------------------------------------------------
+-- 11c. Admin: approve teachers' schools
+-- -------------------------------------------------------------------------------------
+create or replace function public.admin_teachers() returns json
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Only Avanti admins can see this'; end if;
+  return (select coalesce(json_agg(json_build_object('id', p.id, 'full_name', p.full_name, 'email', p.email, 'school', p.school,
+            'approved', p.school_approved, 'approved_at', p.school_approved_at, 'approved_by', p.school_approved_by, 'note', p.school_note,
+            'plan', public.plan_of(p), 'created_at', p.created_at,
+            'school_known', exists (select 1 from public.student_allowlist a where lower(a.school) = lower(p.school)),
+            'students', (select count(*) from public.student_allowlist a where lower(a.school) = lower(p.school)),
+            'tests', (select count(*) from public.tests t where t.owner_id = p.id))
+          order by p.school_approved, p.created_at desc), '[]'::json)
+     from public.profiles p where p.role = 'teacher' and not p.is_staff and p.school is not null);
+end $$;
+
+-- p_action: 'approve' (optionally correcting the school name), 'reject' (the teacher chooses the school again), 'revoke'
+create or replace function public.admin_set_teacher_school(p_user uuid, p_action text, p_school text default null, p_note text default null) returns json
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles;
+begin
+  if not public.is_admin() then raise exception 'Only Avanti admins can approve schools'; end if;
+  select * into me from public.profiles where id = auth.uid();
+  if p_action = 'approve' then
+    update public.profiles set school = coalesce(left(nullif(trim(p_school), ''), 160), school), school_approved = true,
+           school_approved_at = now(), school_approved_by = me.email, school_note = null, updated_at = now()
+     where id = p_user and role = 'teacher';
+  elsif p_action = 'reject' then
+    update public.profiles set school = null, school_approved = false, school_approved_at = null, school_approved_by = me.email,
+           school_note = coalesce(nullif(trim(p_note), ''), 'Your school was not approved. Please choose your school again.'), updated_at = now()
+     where id = p_user and role = 'teacher';
+  elsif p_action = 'revoke' then
+    update public.profiles set school_approved = false, school_approved_at = null, school_approved_by = me.email, updated_at = now()
+     where id = p_user and role = 'teacher';
+  else raise exception 'Unknown action'; end if;
+  if not found then raise exception 'Teacher not found'; end if;
+  return json_build_object('ok', true);
+end $$;
+
+-- Help & Support contact (also shown on the login page, so it is readable without signing in).
+create or replace function public.support_contact() returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('email', (select value from public.app_settings where key = 'support_email'),
+                           'phone', nullif((select value from public.app_settings where key = 'support_phone'), ''))
+$$;
+
 -- Used by the weekly GitHub Action that keeps the free Supabase project awake.
 create or replace function public.ping() returns integer language sql stable as $$ select 1 $$;
 
@@ -1043,14 +1134,15 @@ create or replace function public.ping() returns integer language sql stable as 
 -- 12. Who may call which function
 -- -------------------------------------------------------------------------------------
 revoke execute on all functions in schema public from public, anon, authenticated;
-grant execute on function public.ping() to anon, authenticated;
+grant execute on function public.ping(), public.support_contact() to anon, authenticated;
 grant execute on function public.plan_of(public.profiles), public.my_plan(), public.is_staff(), public.can_create_tests(),
   public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text),
   public.list_available_tests(), public.test_info(text), public.start_attempt(text),
   public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer),
   public.my_attempts(), public.my_tests(), public.list_schools(), public.is_premium_teacher(), public.price_paise(text),
   public.teacher_add_student(jsonb), public.teacher_add_students(jsonb), public.teacher_update_student(uuid, text, jsonb),
-  public.school_students(text), public.student_attempts(uuid), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
+  public.school_students(text), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),
+  public.admin_set_teacher_school(uuid, text, text, text), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
   to authenticated;
 -- server only (Edge Functions use the service role)
 grant execute on function public.avanti_verify(text, text, text), public.grant_premium(text, text, integer),

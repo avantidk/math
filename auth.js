@@ -40,7 +40,9 @@ function permsFor(p) {
     createTests: !!p.can_create_tests,                     // every teacher and Staff (decided by the database)
     worksheets: !!p.can_manage_students,                   // Premium teachers and Staff
     manageStudents: !!p.can_manage_students,               // Premium teachers and Staff: student list, bulk upload, edit
-    fullReports: paid                                      // Premium students: comparison with all students
+    fullReports: paid,                                     // Premium students: comparison with all students
+    schoolApproved: !!p.school_approved,                   // teachers: editing students needs an approved school
+    isAdmin: !!p.is_admin                                  // approves teachers' schools
   });
 }
 
@@ -148,8 +150,21 @@ function loginPage(msg) {
         h('p', { class: 'lg-sub', text: 'I am a' }), seg,
         gBtn, err,
         h('p', { class: 'lg-fine', text: 'Your choice of Teacher or Student is saved the first time you sign in. Avanti Fellows staff (@avantifellows.org) get full access automatically.' })),
-      avBox)));
+      avBox,
+      h('section', { class: 'lg-help' }, h('span', { text: 'Trouble signing in?' }), h('button', { type: 'button', class: 'lg-link', text: 'Help & Support', onclick: e => showHelp(e.target) })))));
   paint();
+}
+
+/* Help & Support on the login page: contact read from the database (works without signing in) */
+async function showHelp(btn) {
+  const box = btn.closest('.lg-help'); if (box.querySelector('.lg-helpbox')) return;
+  const inner = h('div', { class: 'lg-helpbox' }, h('p', { class: 'lg-sub', text: 'Loading…' })); box.append(inner);
+  let c = null; try { c = await rpc('support_contact'); } catch (e) { c = null; }
+  inner.textContent = '';
+  if (!c || !c.email) { inner.append(h('p', { class: 'lg-sub', text: 'Contact details could not be loaded. Please try again.' })); return; }
+  const subj = encodeURIComponent('Mathematics Dashboard: help with signing in');
+  inner.append(h('a', { class: 'lg-btn lg-mail', href: 'mailto:' + c.email + '?subject=' + subj, text: '✉ Email ' + c.email }),
+    c.phone ? h('a', { class: 'lg-btn lg-ghost', href: 'tel:' + c.phone.replace(/[^+\d]/g, ''), text: '☎ Call ' + c.phone }) : null);
 }
 
 /* Asked only when the role was never chosen (for example, the very first sign-in came from another tab). */
@@ -187,6 +202,8 @@ function renderMenu() {
     else if (perm.createTests) items.push(['#/add-student', 'Add a student']);
     if (perm.worksheets) items.push(['#/worksheets', 'Saved worksheets']);
   }
+  if (perm.isAdmin) items.push(['#/approvals', 'Teacher approvals' + (p.pending_approvals ? ' (' + p.pending_approvals + ')' : '')]);
+  items.push(['#/help', 'Help & Support']);
   const planLabel = perm.plan === 'staff' ? 'Avanti · Full access' : p.is_avanti ? 'Avanti · Premium' : perm.plan === 'premium' ? 'Premium' : 'Free';
   const upgrade = perm.plan === 'free' ? h('a', { class: 'pf-up', role: 'menuitem', href: '#/membership', onclick: close },
     h('span', { class: 'pf-up-ic', html: CROWN }),

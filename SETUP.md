@@ -115,3 +115,16 @@ Google shows "Sign in to usehxhvzhdbcmnmqaxoo.supabase.co" because that is where
 - Avanti teachers (@avantifellows.org Google accounts) have full access to everything.
 - A teacher's tests are only for students of the teacher's school. The school cannot be changed after it is set (Staff can change it in the SQL Editor: `update public.profiles set school = 'New School' where email = 'name@gmail.com';`).
 - Students added by teachers sign in with "Login with Avanti ID / Student ID" using their Student ID and date of birth.
+
+## Teacher school approval
+
+- New teachers choose their school, then wait for approval. Until then they can do everything except edit existing students.
+- Approve them in the profile menu → **Teacher approvals** (only for admins: verified @avantifellows.org accounts in the `app_admins` table; `ankitkamboj@avantifellows.org` is added by schema.sql). To add another admin: `insert into public.app_admins (email) values ('name@avantifellows.org');`
+- "Not approve" asks the teacher to choose the school again and shows them your message.
+- Students added by an Avanti teacher (@avantifellows.org) are Premium; students added by any other teacher are Free.
+
+## Help & Support contact
+
+Shown in the profile menu → **Help & Support** and on the login page. Change it any time in the SQL Editor:
+`update public.app_settings set value = '+91 98765 43210' where key = 'support_phone';`
+`update public.app_settings set value = 'name@avantifellows.org' where key = 'support_email';`

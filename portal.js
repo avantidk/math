@@ -119,7 +119,7 @@ function route() {
   if (r !== 't') exitExam();
   curRoute = location.hash;
   const pages = { profile: pageProfile, membership: pageMembership, tests: pageAvailable, reports: pageReports, report: pageReport, t: pageTake,
-    create: pageCreate, edit: pageCreate, students: pageStudents, 'add-student': pageAddStudent, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets };
+    create: pageCreate, edit: pageCreate, students: pageStudents, 'add-student': pageAddStudent, help: pageHelp, approvals: pageApprovals, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets };
   const fn = pages[r];
   if (!fn) { leave(); return; }
   Promise.resolve(fn(arg, r)).catch(e => show(errorBox(e.message || String(e), route)));
@@ -203,6 +203,7 @@ function onboard(root, done) {
     h('header', { class: 'lg-head' }, h('img', { src: 'img/avanti-logo.png', alt: 'Avanti Fellows', width: 150, height: 51 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
+      p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
       profileForm(p, { big: true, submitText: 'Continue', onSaved: () => { if (!profileMissing(P()).length) done(); } }),
       h('button', { type: 'button', class: 'lg-btn lg-ghost', text: 'Sign out', onclick: () => AU().signOut() })))));
 }
@@ -212,6 +213,7 @@ async function pageProfile() {
   const account = card(h('h2', { text: 'Account' }),
     ro('Signed in as', avanti ? p.avanti_id : p.email),
     ro('Role', p.role === 'teacher' ? 'Teacher' : 'Student'),
+    p.role === 'teacher' && !p.is_staff ? ro('School approval', p.school_approved ? 'Approved by Avanti Fellows' : 'Waiting for approval by Avanti Fellows') : null,
     ro('Plan', { free: 'Free', premium: 'Premium', staff: 'Staff (full access)' }[plan] + (plan === 'premium' && p.premium_until ? ' · until ' + day(p.premium_until) : '')),
     h('p', { class: 'pt-hint', text: 'Role and plan are set by the server. Contact Avanti Fellows if your role is wrong.' }),
     h('div', { class: 'pt-actions' }, plan === 'free' ? link('#/membership', '★ Purchase membership', 'btn pt-gold') : null, h('button', { type: 'button', class: 'btn', text: 'Logout', onclick: () => AU().signOut() })));
@@ -866,7 +868,7 @@ async function readSheet(file) {
 function bulkUpload(after) {
   const out = h('div', { class: 'pt-bulk' });
   const fileIn = h('input', { type: 'file', accept: '.csv,.xlsx,.xls', id: 'bulkFile', class: 'pt-file' });
-  const body = h('div', {}, h('p', { class: 'pt-hint', text: 'Use the template: one row per student. Columns: ' + COLS.join(', ') + '. Existing Student IDs of your school are updated; new ones are added.' }),
+  const body = h('div', {}, h('p', { class: 'pt-hint', text: 'Use the template: one row per student. Columns: ' + COLS.join(', ') + '. ' + (can('schoolApproved') ? 'Existing Student IDs of your school are updated; new ones are added.' : 'New students are added. Existing students can be updated once your school is approved.') + (can('staff') ? ' Students you add as Avanti staff get Premium.' : '') }),
     h('div', { class: 'pt-actions' }, h('button', { type: 'button', class: 'btn', text: '⬇ Template (Excel)', onclick: () => downloadTemplate('xlsx') }), h('button', { type: 'button', class: 'btn', text: '⬇ Template (CSV)', onclick: () => downloadTemplate('csv') })),
     h('label', { class: 'pt-drop', for: 'bulkFile' }, h('b', { text: 'Choose a .xlsx or .csv file' }), h('span', { text: 'Excel or CSV, up to 2000 students' }), fileIn), out);
   let rows = [];
@@ -943,7 +945,7 @@ async function pageStudents() {
       h('td', {}, x.signed_in ? badge('Signed in', 'ok') : badge('Not yet', 'mute'), x.source === 'avanti' ? h('div', { class: 'pt-hint', text: 'Avanti list' }) : null),
       h('td', { class: 'pt-num', text: x.tests }), h('td', { class: 'pt-num pt-barcell' }, x.avg_pct == null ? '—' : [h('span', { text: pct(x.avg_pct) }), bar(x.avg_pct, x.avg_pct < 40 ? 'bad' : x.avg_pct < 70 ? 'mid' : 'ok')]),
       h('td', { class: 'pt-num', text: x.last_at ? day(x.last_at) : '—' }),
-      h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editStudent(x, reload) }),
+      h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, can('schoolApproved') ? h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editStudent(x, reload) }) : null,
         x.user_id && x.tests ? h('button', { type: 'button', class: 'btn', text: 'Tests', onclick: () => studentTests(x) }) : null)))));
   };
   const mkSel = (label, list, key) => { const s = h('select', { class: 'pt-in', 'aria-label': label, onchange: e => { F[key] = e.target.value; draw(); } }, h('option', { value: '', text: 'All ' + label.toLowerCase() + 'es' }), list.map(v => h('option', { value: v, text: v }))); return s; };
@@ -954,11 +956,72 @@ async function pageStudents() {
       h('button', { type: 'button', class: 'btn', text: '+ Add a student', onclick: () => addStudentFlow(reload) }),
       h('button', { type: 'button', class: 'btn pri', text: 'Bulk upload', onclick: () => bulkUpload(reload) })),
     schoolPick ? card(h('label', { class: 'pt-fld' }, h('span', { text: 'School (Avanti staff)' }), schoolPick)) : null,
+    can('schoolApproved') ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Your school is waiting for approval by Avanti Fellows. ' }), 'You can add students, upload new students and create tests now. Editing existing students unlocks once your school is approved.'),
     h('div', { class: 'pt-stats' }, stat('Students', all.length), stat('Signed in', signed), stat('Took a test', took.length), stat('Average score', avg == null ? '—' : pct(avg), 'of students who took a test')),
     card(h('div', { class: 'pt-frow' }, mkSel('Class', uniq('class'), 'cls'), mkSel('Batch', uniq('batch'), 'batch'),
         h('input', { type: 'search', class: 'pt-in', placeholder: 'Search name, ID or email', 'aria-label': 'Search students', oninput: e => { F.q = e.target.value.trim(); draw(); } })), countEl,
       h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Student', 'Class', 'Batch', 'Category · Gender', 'Sign-in', 'Tests', 'Average', 'Last test', ''].map(x => h('th', { text: x })))), tbody))));
   draw();
+}
+
+/* ---------- Help & Support ---------- */
+async function pageHelp() {
+  show(head('Help & Support', ''), loading());
+  const c = await rpc('support_contact');
+  const p = P(), perm = AU().perm;
+  const who = [p.full_name, p.email || (p.avanti_id ? 'ID ' + p.avanti_id : ''), p.role, perm.plan, p.school].filter(Boolean).join(' · ');
+  const subject = 'Mathematics Dashboard: ';
+  const bodyTxt = 'Hello,\n\nDescribe the problem here (what you did, what you expected, what happened):\n\n\n---\nAccount: ' + who + '\nPage: ' + location.href.replace(/#\/help$/, '') + '\nBrowser: ' + navigator.userAgent;
+  const topic = h('select', { class: 'pt-in', id: 'hpTopic' }, ['Problem with sign-in', 'Payment or membership', 'A test or report', 'Wrong question, answer or figure', 'My school or student details', 'Something else'].map(t => h('option', { value: t, text: t })));
+  const mailto = () => 'mailto:' + c.email + '?subject=' + encodeURIComponent(subject + topic.value) + '&body=' + encodeURIComponent(bodyTxt);
+  const gmail = () => 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(c.email) + '&su=' + encodeURIComponent(subject + topic.value) + '&body=' + encodeURIComponent(bodyTxt);
+  const digits = c.phone ? c.phone.replace(/[^\d]/g, '') : '', wa = digits ? (digits.length === 10 ? '91' + digits : digits) : '';
+  const faq = [
+    ['I cannot sign in with my Student ID.', 'Check the ID and date of birth with your teacher. After 5 wrong tries the ID is locked for 15 minutes.'],
+    ['I paid but I am still on Free.', 'Wait two minutes and refresh the page. If it is still Free, email with the payment ID from Membership → Payment history.'],
+    ['My school, class or name is wrong.', 'Students: ask your teacher to correct it. Teachers: email us and we will change the school.'],
+    ['A question, answer or figure is wrong.', 'Email the question ID (shown in the question menu) and what should be corrected.']];
+  show(head('Help & Support', 'Found a problem or have a question? Write to us and we will get back to you.'),
+    h('div', { class: 'pt-grid2' },
+      card(h('h2', { text: 'Contact' }),
+        h('div', { class: 'pt-contact' }, h('span', { class: 'pt-cic', text: '✉' }), h('div', {}, h('span', { class: 'pt-hint', text: 'Email' }), h('a', { href: 'mailto:' + c.email, text: c.email }))),
+        c.phone ? h('div', { class: 'pt-contact' }, h('span', { class: 'pt-cic', text: '☎' }), h('div', {}, h('span', { class: 'pt-hint', text: 'Mobile' }), h('a', { href: 'tel:+' + wa, text: c.phone }))) : null,
+        h('label', { class: 'pt-fld', for: 'hpTopic' }, h('span', { text: 'What is it about?' }), topic),
+        h('div', { class: 'pt-actions' },
+          h('a', { class: 'btn pri', href: '#', text: '✉ Email me', onclick: e => { e.currentTarget.href = mailto(); } }),
+          h('a', { class: 'btn', href: '#', target: '_blank', rel: 'noopener', text: 'Write in Gmail', onclick: e => { e.currentTarget.href = gmail(); } }),
+          wa ? h('a', { class: 'btn', href: 'https://wa.me/' + wa + '?text=' + encodeURIComponent('Hello, I need help with the Mathematics Dashboard. ' + who), target: '_blank', rel: 'noopener', text: 'WhatsApp' }) : null,
+          c.phone ? h('a', { class: 'btn', href: 'tel:+' + wa, text: '☎ Call' }) : null),
+        h('p', { class: 'pt-hint', text: 'The email opens with your account details filled in, so we can help faster.' })),
+      card(h('h2', { text: 'Common questions' }), h('div', { class: 'pt-faq' }, faq.map(([q, a]) => h('details', {}, h('summary', { text: q }), h('p', { text: a })))))));
+}
+
+/* ---------- Admin: approve teachers' schools ---------- */
+async function pageApprovals() {
+  if (!can('isAdmin')) return show(card(empty('Not available', 'Only Avanti admins can approve schools.')));
+  show(head('Teacher approvals', ''), loading());
+  const list = await rpc('admin_teachers');
+  const pend = list.filter(x => !x.approved);
+  const act = async (t, action) => {
+    let school = null, note = null;
+    if (action === 'approve') { school = await promptBox('Approve ' + (t.full_name || t.email), 'School name (correct it if needed)', t.school); if (!school) return; }
+    if (action === 'reject') { note = await promptBox('Not approve ' + (t.full_name || t.email), 'Message for the teacher', 'Your school could not be verified. Please choose your correct school, or email us.'); if (note == null) return; }
+    if (action === 'revoke' && !await confirmBox('Remove approval?', (t.full_name || t.email) + ' will not be able to edit students until approved again.', 'Remove approval', true)) return;
+    try { await rpc('admin_set_teacher_school', { p_user: t.id, p_action: action, p_school: school, p_note: note }); toast({ approve: 'Approved', reject: 'Teacher will choose the school again', revoke: 'Approval removed' }[action]); await AU().refresh(); pageApprovals(); }
+    catch (e) { toast(e.message); }
+  };
+  const row = t => h('tr', {},
+    h('td', {}, h('b', { text: t.full_name || '—' }), h('div', { class: 'pt-hint', text: t.email || '' })),
+    h('td', {}, h('b', { text: t.school }), h('div', { class: 'pt-hint', text: t.school_known ? 'On the Avanti list · ' + t.students + ' students' : 'New school (not on the Avanti list)' })),
+    h('td', { text: day(t.created_at) }), h('td', {}, badge(t.plan === 'premium' ? 'Premium' : 'Free', t.plan === 'premium' ? 'mid' : null)), h('td', { class: 'pt-num', text: t.tests }),
+    h('td', {}, t.approved ? badge('Approved', 'ok') : badge('Waiting', 'mid'), t.approved && t.approved_by ? h('div', { class: 'pt-hint', text: 'by ' + t.approved_by.split('@')[0] + ' · ' + day(t.approved_at) }) : null),
+    h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, t.approved ? h('button', { type: 'button', class: 'btn pt-danger', text: 'Remove approval', onclick: () => act(t, 'revoke') })
+      : [h('button', { type: 'button', class: 'btn pri', text: 'Approve', onclick: () => act(t, 'approve') }), h('button', { type: 'button', class: 'btn pt-danger', text: 'Not approve', onclick: () => act(t, 'reject') })])));
+  const table = rows => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Teacher', 'School', 'Signed up', 'Plan', 'Tests', 'Status', ''].map(x => h('th', { text: x })))), h('tbody', {}, rows.map(row))));
+  show(head('Teacher approvals', pend.length + ' waiting · ' + (list.length - pend.length) + ' approved'),
+    h('p', { class: 'pt-hint', text: 'Approve a teacher only when you know they teach at that school. Until then they can create tests and add students, but cannot edit students. Not approving asks the teacher to choose the school again.' }),
+    card(h('h2', { text: 'Waiting for approval' }), pend.length ? table(pend) : empty('Nothing waiting', 'New teachers appear here after they choose their school.')),
+    list.length > pend.length ? card(h('h2', { text: 'Approved' }), table(list.filter(x => x.approved))) : null);
 }
 
 window.AvantiPortal = { route, leave: () => leave(false), saveWorksheet, createTestFrom, onboard, profileMissing };
