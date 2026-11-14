@@ -1,5 +1,13 @@
 [
   {
+    "v": "825",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: in 577 questions, variables, points, matrices and equations that were written as plain text now show as proper maths (Cengage, VMC and IIT questions before 2000 not changed).",
+      "Question Bank: fixed 9 more questions with broken maths or typos (for example \"I\\(f\\) …C₄ an\\(d\\)\", \"For x x R\", \"uni t²\")."
+    ]
+  },
+  {
     "v": "824",
     "date": "14 Nov 2026",
     "items": [
