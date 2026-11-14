@@ -1,3 +1,5 @@
+/* Plan permissions (set from the Supabase profile by auth.js): Free views only, Premium gets PDF, Staff gets everything. */
+function QBP(k) { var p = window.AvantiAuth && window.AvantiAuth.perm; return !!(p && p[k] === true); }
 /* Runs the question bank's own code (written for a dashboard page) inside this page. */
 (function () {
   var D = {}, calcs = [], fns = [];
@@ -982,7 +984,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   function toRows(pyqArr, npArr) {
     return pyqArr.map(function (q) { return Object.assign({ source: 'PYQ' }, q); }).concat(npArr.map(function (q) { return Object.assign({}, q, { source: 'Non-PYQ' }); })).map(function (q) {
         var o = q.options; if (typeof o === 'string') { try { o = JSON.parse(o); } catch (e) { o = []; } }
-        return { id: String(q.id), pyq: !!q.pyq, pyq_ref: q.pyq_ref ? String(q.pyq_ref) : '', pyq_exam: q.pyq_exam ? String(q.pyq_exam) : '', pyq_year: q.pyq_year ? Number(q.pyq_year) : null, pyq_paper: q.pyq_paper ? String(q.pyq_paper) : '', source: q.source, publisher: q.publisher ? String(q.publisher) : '', part: q.part ? String(q.part) : '', ref_year: q.ref_year ? Number(q.ref_year) : null, note: q.note ? String(q.note) : '', oos: !!q.oos, exam: q.exam, year: q.year ? Number(q.year) : null, session: q.session, paper: q.paper, qno: Number(q.qno) || 0, type: q.type, class: Number(q.class), chapter_code: q.chapter_code, chapter: q.chapter, topic_code: q.topic_code || '', topic: q.topic || '', sort_date: q.sort_date || '', difficulty: q.difficulty, attention: q.attention ? String(q.attention) : '', figure: normFig(q.figure || (FIGS && FIGS[String(q.id)])), question: q.question || '', options: o || [], answer: q.answer == null ? '' : String(q.answer), source_url: q.source_url || '', solution: q.solution ? String(q.solution) : '' };
+        return { id: String(q.id), pyq: !!q.pyq, pyq_ref: q.pyq_ref ? String(q.pyq_ref) : '', pyq_exam: q.pyq_exam ? String(q.pyq_exam) : '', pyq_year: q.pyq_year ? Number(q.pyq_year) : null, pyq_paper: q.pyq_paper ? String(q.pyq_paper) : '', source: q.source, publisher: q.publisher ? String(q.publisher) : '', part: q.part ? String(q.part) : '', ref_year: q.ref_year ? Number(q.ref_year) : null, note: q.note ? String(q.note) : '', oos: !!q.oos, exam: q.exam, year: q.year ? Number(q.year) : null, session: q.session, paper: q.paper, qno: Number(q.qno) || 0, type: q.type, class: Number(q.class), chapter_code: q.chapter_code, chapter: q.chapter, topic_code: q.topic_code || '', topic: q.topic || '', sort_date: q.sort_date || '', difficulty: q.difficulty, attention: q.attention && QBP('attention') ? String(q.attention) : '', figure: normFig(q.figure || (FIGS && FIGS[String(q.id)])), question: q.question || '', options: o || [], answer: q.answer == null ? '' : String(q.answer), source_url: q.source_url || '', solution: q.solution ? String(q.solution) : '' };
       }
     );
   }
@@ -1202,6 +1204,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     var bId = icoBtn('hash', 'ID: ' + q.id, true); bId.classList.add('idg'); bId.title = 'Tap to copy the question ID';
     bId.addEventListener('click', function () {
       var t = q.id, tip = 'ID: ' + t, ok = function () { flash(bId, 'Copied ' + t); };
+      if (!QBP('copy')) { flash(bId, tip); return; }
       try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(ok, function () { flash(bId, tip); }); return; } } catch (e) { }
       flash(bId, tip);
     });
@@ -1276,7 +1279,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     var bMenu = icoBtn('menu', 'More'); bMenu.setAttribute('aria-haspopup', 'true'); bMenu.setAttribute('aria-expanded', 'false');
     if (!document.getElementById('qb-solfix')) { var sst = document.createElement('style'); sst.id = 'qb-solfix'; sst.textContent = '.qb-sol-b .mx.mxd{display:block;max-width:100%;padding:2px 0}'; document.head.appendChild(sst); } /* display equations in an explanation sit on their own line, like in the question */
     if (!document.getElementById('qb-ownerfix')) { var ost = document.createElement('style'); ost.id = 'qb-ownerfix'; ost.textContent = '.qb-ico.idg{color:var(--color-ok);background:color-mix(in srgb,var(--color-ok) 12%,var(--color-bg))}.qb-ico.idg,.qb-ico.idg *{color:var(--color-ok)!important}.qb-ico.idg:hover{background:color-mix(in srgb,var(--color-ok) 20%,var(--color-bg))}:root:not(.qb-is-owner) .qb-owneronly,:root:not(.qb-is-owner) .qb-flagf,:root:not(.qb-is-owner) .qb-note.mine,:root:not(.qb-is-owner) .qb-tag.rev.mine,:root:not(.qb-is-owner) .qb-fbox{display:none!important}'; document.head.appendChild(ost);
-      try { if (window.claude && window.claude.use) Promise.resolve(window.claude.use('user')).then(function (u) { document.documentElement.classList.toggle('qb-is-owner', !!(u && u.isOwner && u.isOwner())); }).catch(function () { }); } catch (e) { } } /* Flag and Review are for the owner only */
+      document.documentElement.classList.toggle('qb-is-owner', QBP('staff')); } /* Flag and Review are for Staff only */
     if (!document.getElementById('qb-popfix')) { var pst = document.createElement('style'); pst.id = 'qb-popfix'; pst.textContent = '.qb-q.pop-open{z-index:40}'; document.head.appendChild(pst); } /* the open menu must sit above the next cards */
     var pop = el('div', 'qb-pop'); pop.hidden = true;
     [bTop, bTyp, bId, bFlag].forEach(function (b) { if (b) pop.appendChild(b); });
@@ -1337,6 +1340,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     sel.removeAllRanges(); return ok;
   }
   function copyRich(q, body, btn) {
+    if (!QBP('copy')) { flash(btn, 'Copy needs Premium'); return; }
     var html = body.innerHTML, plain = QBX.plainText(q);
     var done = function () { flash(btn, 'Copied'); };
     var fallback = function () { flash(btn, execCopyNode(body) ? 'Copied' : 'Copy blocked'); };
@@ -1347,6 +1351,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     } catch (e) { fallback(); }
   }
   function copyPlain(text, btn) {
+    if (!QBP('copy')) { flash(btn, 'Copy needs Premium'); return; }
     var fallback = function () {
       var ta = el('textarea'); ta.value = text; ta.style.position = 'absolute'; ta.style.left = '-9999px'; root.appendChild(ta); ta.select();
       var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
@@ -1768,7 +1773,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   function updateSelUI() {
     var n = S.sel.size;
     $('.qb-nsel').textContent = String(n);
-    ['.qb-docx', '.qb-pdf', '.qb-ppt', '.qb-print', '.qb-share'].forEach(function (k) { $(k).disabled = busy || !n; });
+    ['.qb-docx', '.qb-pdf', '.qb-ppt', '.qb-print', '.qb-share', '.qb-savews', '.qb-mktest'].forEach(function (k) { var b = $(k); if (b) b.disabled = busy || !n; });
     $('.qb-fname').textContent = n ? 'File name: ' + exportName(selected()) : 'Tick questions to export them.';
     Object.keys(CARDS).forEach(function (id) {
       var c = CARDS[id], on = S.sel.has(id);
@@ -1991,13 +1996,14 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
 
   /* ---------- export ---------- */
   var dl = { save: function (o) { return new Promise(function (res) { var blob = o.data instanceof Blob ? o.data : new Blob([o.data]); var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = o.filename || 'download'; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); res(true); }, 1500); }); } }; /* plain browser download unless the Claude runtime offers its own */
-  try { if (window.claude && typeof window.claude.use === 'function') window.claude.use('downloads').then(function (d) { if (d && d.save) dl = d; }, function () { /* keep the browser download */ }); } catch (e) { /* keep the browser download */ }
   function msg(t, bad) { var m = $('.qb-msg'); m.textContent = t || ''; m.classList.toggle('bad', !!bad); }
   function opts() {
     var ans = $('.qb-o-ans').checked;
     return { answers: ans || $('.qb-o-key').checked, answerKey: $('.qb-o-key').checked, explain: !!($('.qb-o-exp') && $('.qb-o-exp').checked), pptLayout: $('.qb-o-ppt').checked };
   }
   function save(filename, data) {
+    var ext = String(filename).split('.').pop().toLowerCase();
+    if (!QBP(ext === 'pdf' ? 'pdf' : ext === 'pptx' ? 'pptx' : 'docx')) { msg(QBP('pdf') ? 'Your plan includes PDF downloads only.' : 'Downloads need a Premium membership.', true); return Promise.resolve(false); }
     if (!dl) { msg('Downloads are not available in this view. Open the dashboard on claude.ai to export.', true); return Promise.resolve(false); }
     return dl.save({ filename: filename, data: data }).then(function () { msg('Saved ' + filename); return true; }, function (e) {
       var code = e && e.code;
@@ -2025,6 +2031,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   function setBusy(on) { busy = on; ['.qb-docx', '.qb-pdf', '.qb-ppt', '.qb-print', '.qb-share'].forEach(function (k) { $(k).disabled = on || !S.sel.size; }); }
   function exportWith(ext, build) {
     var qs = selected(); if (!qs.length || busy) return;
+    if (!QBP(ext === 'pptx' ? 'pptx' : 'docx')) { msg(QBP('pdf') ? 'Your plan includes PDF downloads only.' : 'Downloads need a Premium membership.', true); return; }
     var name = exportName(qs), o = opts(); o.title = name;
     setBusy(true); msg('Building ' + ext.toUpperCase() + ' (' + qs.length + ' questions)…');
     setTimeout(function () {
@@ -2043,10 +2050,18 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
       .then(function (bytes) { setBusy(false); msg(''); return { blob: new Blob([bytes], { type: 'application/pdf' }), file: name + '.pdf' }; })
       .catch(function (e) { setBusy(false); msg('Could not build the PDF: ' + (e && e.message || e), true); throw e; });
   }
-  $('.qb-print').addEventListener('click', function () { if (!selected().length || busy || !window.__pdfPrint) return; window.__pdfPrint(qbPdfBlob); });
-  $('.qb-share').addEventListener('click', function (e) { if (!selected().length || busy || !window.__pdfShare) return; window.__pdfShare(e.currentTarget, exportName(selected()), qbPdfBlob); });
+  $('.qb-print').addEventListener('click', function () { if (!QBP('print') || !selected().length || busy || !window.__pdfPrint) return; window.__pdfPrint(qbPdfBlob); });
+  $('.qb-share').addEventListener('click', function (e) { if (!QBP('share') || !selected().length || busy || !window.__pdfShare) return; window.__pdfShare(e.currentTarget, exportName(selected()), qbPdfBlob); });
+  /* Premium and Staff teachers: keep the ticked questions as a worksheet, or make a test from them */
+  (function () {
+    var bar = $('.qb-share') && $('.qb-share').parentNode; if (!bar || !QBP('createTests') || $('.qb-savews')) return;
+    function mk(cls, label, fn) { var b = document.createElement('button'); b.type = 'button'; b.className = 'qb-btn ' + cls; b.textContent = label; b.disabled = !S.sel.size; b.addEventListener('click', function () { if (S.sel.size && window.AvantiPortal) fn(selected().map(function (q) { return q.id; }), exportName(selected())); }); bar.appendChild(b); }
+    mk('qb-savews', 'Save as worksheet', function (ids, name) { window.AvantiPortal.saveWorksheet(ids, name); });
+    mk('qb-mktest primary', 'Create test', function (ids, name) { window.AvantiPortal.createTestFrom(ids, name); });
+  })();
   $('.qb-pdf').addEventListener('click', function () {
     var qs = selected(); if (!qs.length || busy) return;
+    if (!QBP('pdf')) { msg('Downloads need a Premium membership.', true); return; }
     var name = exportName(qs), o = opts(); o.title = name;
     setBusy(true); msg('Building PDF…');
     Promise.resolve(figReady).then(function () { return attachExplain(qs, o); }).then(function () { return QBX.buildPdf(qs, o, function (i, n) { msg('Building PDF: page ' + i + ' of ' + n + '…'); }); })

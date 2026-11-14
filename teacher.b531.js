@@ -1,7 +1,7 @@
-/* Avanti Fellows \u00b7 Maths DPP and Test maker. One file, no build step. */
+/* Avanti Fellows \u00b7 Mathematics Dashboard: Question Bank, DPPs, PYQs, Must Solve and Handouts. One file, no build step. Tests and results live in portal.js. */
 (function () {
 'use strict';
-let OPTS = null, TESTS = [];          // set after publish: the page's own share link, so test links can be built
+let OPTS = null;
 const SHEET_W = 794, SHEET_H = 1123, PAD_X = 36, COL_GAP = 22;
 const MAX_FS = 15, MAN_MIN = 13.5, AUTO_MIN = 13.5;
 const CDN = {
@@ -19,7 +19,7 @@ const DIFF = { L1: 'L1', L2: 'L2', L3: 'L3' };
 const RANK = { L1: 0, L2: 1, L3: 2 };
 const TYPES = ['MCQ', 'MSQ', 'Numerical', 'Subjective', 'Comprehension', 'Matching'];
 
-/* Out-of-syllabus questions (bank field oo): include or exclude them from the test maker and the DPP library */
+/* Out-of-syllabus questions (bank field oo): include or exclude them from the DPP library */
 const OOS = { ex: false };
 try { OOS.ex = localStorage.getItem('oosEx2') === '1'; } catch (e) {}
 function oosBox() {
@@ -37,15 +37,21 @@ function applyOos() {
   window.__oosInfo = () => ({ n: BANK.qs.length, all: BANK.all.length, oo: BANK.qs.filter(q => q.oo).length, subs: SUBS.length });
 }
 let KATEX_P = null;
-let IS_OWNER = null; /* null until known; Misc is for the account owner only */
 let BANK = null, BYID = new Map(), CHMAP = new Map(), downloads = { save: o => new Promise(res => { const blob = o.data instanceof Blob ? o.data : new Blob([o.data]); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = o.filename || 'download'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); res(true); }, 1500); }) }; /* plain browser download until (and unless) the Claude runtime offers its own */
-const S = {
-  mode: 'test', pyq: false, pubs: new Set(), exam: { Main: true, Adv: false, KCET: false, IAT: false, NDA: false }, cls: { 11: true, 12: false },
-  ch: new Set(), tp: new Set(), diff: new Set(['L1']), types: new Set(['MCQ']), count: 25, sides: 2, cols: 2, order: true, tag: true,
-  title: '', batch: '', date: new Date().toISOString().slice(0, 10), mins: 60, pos: 4, neg: 1, email: '', key: false,
-  picked: [], chSearch: '', lay: null, code: '', paper: null
-};
 
+/* ---------- permissions ----------
+   The plan (Free, Premium, Staff) and role come from the user's Supabase profile, read by auth.js.
+   Free: view only. Premium: PDF download, print and PDF sharing. Staff: everything, including Word / PowerPoint and Attention flags.
+   Every download, print, share and copy path below checks G() / need() as well as hiding its button. */
+const PERM = () => (window.AvantiAuth && window.AvantiAuth.perm) || {};
+function G(what) { return PERM()[what] === true; }
+function need(what) {
+  if (G(what)) return true;
+  toast(['docx', 'pptx'].includes(what) && G('pdf') ? 'Your plan includes PDF downloads only.' : 'This needs a Premium membership. Open the profile menu and choose Purchase membership.');
+  return false;
+}
+const extPerm = f => { const e = String(f || '').split('.').pop().toLowerCase(); return e === 'pdf' ? 'pdf' : e === 'pptx' ? 'pptx' : 'docx'; };
+function gatedDownloads(d) { return { save: o => need(extPerm(o && o.filename)) ? d.save(o) : Promise.reject(Object.assign(new Error('Not allowed on your plan'), { code: 'declined' })) }; }
 /* ---------- helpers ---------- */
 const $ = (s, r) => (r || document).querySelector(s);
 const _svg = d => '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
@@ -148,81 +154,10 @@ function fitMath(nd) {
 const plain = s => s.replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\()^_]/g, '');
 
 /* ---------- question logic ---------- */
-function numAns(a) {
-  a = (a || '').trim();
-  let m = a.match(/^(-?\d+(?:\.\d+)?)\s*to\s*(-?\d+(?:\.\d+)?)$/i);
-  if (m) return { lo: Math.min(+m[1], +m[2]), hi: Math.max(+m[1], +m[2]) };
-  if (/^-?\d+(?:\.\d+)?$/.test(a)) { const v = +a; return { lo: v, hi: v }; }
-  return null;
-}
-function gradable(q) {
-  if (!q.a || q.t === 'Subjective') return false;
-  if (q.t === 'Numerical') return numAns(q.a) !== null;
-  return q.o.length > 0 && /^[A-D](,[A-D])*$/.test(q.a);
-}
-function grade(q, a, pos, neg) {
-  const empty = a == null || a === '' || (Array.isArray(a) && !a.length);
-  if (empty) return { st: 'skip', m: 0 };
-  if (q.t === 'Numerical') {
-    const r = numAns(q.a), v = parseFloat(a);
-    if (isNaN(v)) return { st: 'skip', m: 0 };
-    const ok = r.lo === r.hi ? Math.abs(v - r.lo) <= 0.01 : (v >= r.lo - 0.005 && v <= r.hi + 0.005);
-    return ok ? { st: 'ok', m: pos } : { st: 'no', m: 0 };
-  }
-  const given = (Array.isArray(a) ? a.slice().sort() : [a]).join(',');
-  if (given === q.a.split(',').sort().join(',')) return { st: 'ok', m: pos };
-  return { st: 'no', m: q.t === 'MSQ' ? 0 : -neg };
-}
 /* a question is in the pool when its source is ticked; the exam choice only matters for PYQs */
-function srcOk(q) { return q.s === 'P' ? (S.pyq && !!S.exam[q.e]) : S.pubs.has(q.pb || 'VMC'); }
-function poolFor(skip) {
-  skip = skip || {};
-  return BANK.qs.filter(q => {
-    if (!srcOk(q)) return false;
-    const c = CHMAP.get(q.cc);
-    if (!S.ch.has(q.cc)) return false;
-    if (!skip.tp && S.tp.size && !S.tp.has(q.cc + '|' + q.tp)) return false;
-    if (!skip.diff && S.diff.size && !S.diff.has(q.d)) return false;
-    if (!skip.types && S.types.size && !S.types.has(q.t)) return false;
-    if (S.mode === 'test' && !gradable(q)) return false;
-    return true;
-  });
-}
-function roundRobin(list, n) {
-  const g = new Map();
-  shuffle(list).forEach(q => { if (!g.has(q.cc)) g.set(q.cc, []); g.get(q.cc).push(q); });
-  const arrs = shuffle([...g.values()]), out = [];
-  for (let i = 0; out.length < n && arrs.some(a => a.length > i); i++) arrs.forEach(a => { if (a[i] && out.length < n) out.push(a[i]); });
-  return out;
-}
-function orderIds(ids) {
-  if (!S.order) return ids;
-  return ids.map((id, i) => ({ id, i, q: BYID.get(id) })).sort((a, b) => RANK[a.q.d] - RANK[b.q.d] || a.i - b.i).map(x => x.id);
-}
-function reconcile() {
-  if (S.paper) { S.picked = S.paper.ids.filter(i => BYID.has(i)); S.count = S.picked.length; return; }
-  const P = poolFor(), ids = new Set(P.map(q => q.i));
-  let picked = S.picked.filter(i => ids.has(i)).slice(0, S.count);
-  if (picked.length < S.count) {
-    const have = new Set(picked);
-    picked = picked.concat(roundRobin(P.filter(q => !have.has(q.i)), S.count - picked.length).map(q => q.i));
-  }
-  S.picked = orderIds(picked);
-}
 
 /* ---------- sheet building ---------- */
 function colWidth(cols) { return Math.floor((SHEET_W - 2 * PAD_X - (cols - 1) * COL_GAP) / cols); }
-function chapterNames() { return [...S.ch].map(c => CHMAP.get(c) && CHMAP.get(c).n).filter(Boolean); }
-function defaultTitle() {
-  const n = chapterNames();
-  const base = n.length === 1 ? n[0] : n.length > 1 ? n.length + ' chapters' : 'Mixed chapters';
-  return base + (S.mode === 'test' ? ' Test' : ' DPP');
-}
-function sheetParams() {
-  const n = chapterNames();
-  return { mode: 'test', kind: 'test', title: S.title.trim() || defaultTitle(), sub: n.length ? (n.length > 2 ? n.length + ' chapters' : n.join(' \u00b7 ')) : 'Maths', batch: S.batch.trim(), date: S.date, mins: S.mins, pos: S.pos, neg: S.neg,
-    cols: S.cols, tag: S.tag, key: S.key, qs: S.picked.map(id => BYID.get(id)).filter(Boolean) };
-}
 /* PYQ section label (chapterwise + question paper, preview and exports): JEE Main = date + shift, JEE ADV = paper + year, NDA = I or II + year, KCET / IAT / AIEEE / IIT = year */
 function pyqLabel(q) {
   const y = q.y ? String(q.y) : '', p = String(q.p || '');
@@ -315,14 +250,6 @@ function pickSplit(hs, gap, avail, cols) {
   return best.m <= avail ? best : null;
 }
 /* Lays the sheet out into `host` so it is exactly full: biggest text that fits, then equal gaps. */
-/* a test is spread over S.sides A4 sides: split the questions evenly, front then back */
-function testPages(p) {
-  p = p || sheetParams();
-  if (!p.qs.length) return [];
-  const groups = S.sides > 1 ? paginate(p.qs, p) : [p.qs];
-  let start = 0;
-  return groups.map((g, i) => { const pg = Object.assign({}, p, { qs: g, start, total: p.qs.length, pageOf: groups.length > 1 ? (i + 1) + ' of ' + groups.length : '' }); start += g.length; return pg; });
-}
 function layoutSheet(p, host, minFs) {
   const sheet = skeleton(p); host.append(sheet);
   const body = $('.sh-body', sheet), cols = p.cols, nCols = [];
@@ -404,12 +331,6 @@ function explSheets(items, base, host) {
   return sheets;
 }
 /* fits at the readable size? used by "Fill page" */
-function fitsAt(qs, fs) {
-  const p = sheetParams(); p.qs = qs;
-  const host = h('div', { style: 'position:absolute;left:-10000px;top:0;width:794px' }); document.body.append(host);
-  const r = layoutSheet(p, host, fs); host.remove();
-  return !r.overflow;
-}
 
 /* ---------- DPP library: build ready-made topic-wise DPPs from the bank ---------- */
 const MIN_Q = 8, TARGET_MIN = 10, MAX_Q = 15;
@@ -562,7 +483,6 @@ function initPubs() {
   const found = [...new Set(BANK.qs.filter(q => q.s === 'N').map(q => q.pb || 'VMC'))], first = ['VMC', 'Cengage', 'Black Book'];
   PUBS.length = 0; first.concat(found.filter(x => !first.includes(x)).sort()).forEach(x => PUBS.push(x));
   LS.pubs = PUBS.slice(); LS.srcs = EXAMS.concat(PUBS);
-  S.pubs = new Set(PUBS);
 }
 const shortList = (a, n) => a.slice(0, n).join(', ') + (a.length > n ? ' +' + (a.length - n) : '');
 const BASE = { mode: 'dpp', kind: 'dpp', big: true, cols: 2, tag: true, date: '', batch: '', mins: 0, pos: 4, neg: 1 };
@@ -906,6 +826,7 @@ function showLibPrev() {
 /* Print and Share, used by every tab that downloads: they all go through the same PDF as "Download PDF" */
 const pdfBlobOf = payload => new Promise((res, rej) => { doExport('pdf', Object.assign({}, payload, { onBlob: (blob, file) => res({ blob, file }), onFail: rej })).catch(rej); });
 async function sendPdf(app, blob, file, title) {
+  if (!need('share')) return;
   const f = new File([blob], file, { type: 'application/pdf' });
   try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title, text: title }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
   await downloads.save({ filename: file, data: blob });
@@ -915,6 +836,7 @@ async function sendPdf(app, blob, file, title) {
   toast('PDF saved. Attach "' + file + '" in ' + nm + '.');
 }
 function shareFrom(btn, title, get) {
+  if (!need('share')) return;
   closeShare();
   const item = (ico, label, app) => h('button', { class: 'smi', type: 'button', onclick: async () => { closeShare(); try { toast('Preparing the PDF…'); const r = await get(); await sendPdf(app, r.blob, r.file, title); } catch (e) { toast('Could not prepare the PDF' + (e && e.message ? ': ' + e.message : '')); } } }, h('span', { class: 'smic', html: ico }), h('span', { text: label }));
   const m = h('div', { id: 'shareMenu', class: 'smenu', role: 'menu' }, h('div', { class: 'smh', text: 'Send the PDF' }),
@@ -927,6 +849,7 @@ function shareFrom(btn, title, get) {
   setTimeout(() => { document.addEventListener('click', closeShareOut, true); document.addEventListener('keydown', closeShareKey, true); }, 0);
 }
 function printFrom(get) {
+  if (!need('print')) return;
   const w = window.open('', '_blank');
   if (!w) { toast('This view does not allow a print window. Use Download PDF, then print the file.'); return; }
   try { w.document.write('<!doctype html><title>Preparing…</title><body style="font-family:sans-serif;padding:24px">Preparing the PDF for printing…</body>'); } catch (e) { /* ignore */ }
@@ -944,11 +867,11 @@ function pdfSource(t) {
     const pages = pdfPages(T, r).map(p => Object.assign({}, p, { key: !!PDFT[T].key, exp: !!PDFT[T].exp }));
     return { title: r.name, get: () => pdfBlobOf({ pages, file: r.file }) };
   }
-  if (src === 'test') { const pages = testPages(); if (!pages.length) { toast('Add some questions first'); return null; } return { title: pages[0].title || 'Test', get: () => pdfBlobOf(Object.assign({}, pages[0], { pages })) }; }
   if (src === 'must') { const m = mustPages(); if (!m) return null; return { title: m.title, get: () => pdfBlobOf({ pages: m.pages, file: m.file }) }; }
   return null;
 }
 function exportLib(kind) {
+  if (!need(kind)) return;
   const pages = currentPages(); if (!pages.length) { toast('No questions here yet'); return; }
   if (pages.length === 1) { doExport(kind, Object.assign({}, pages[0], { file: pages[0].file })); return; }
   doExport(kind, { pages, file: pages[0].file });
@@ -1009,6 +932,7 @@ async function cwPptxData(r) {
   return { logo, chapter: c.n, cl: c.cl, cc, bucket, bucketName: BUCKET_NAME[bucket], bucketLabel: bucket, year: cwYrText(), count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
 }
 async function exportCwPptx(r) {
+  if (!need('pptx')) return;
   if (!downloads) { toast('Downloads are not available in this view'); return; }
   const btns = document.querySelectorAll('[data-act="pdfdl"]'); btns.forEach(b => { b.disabled = true; });
   toast('Preparing PowerPoint…');
@@ -1061,6 +985,7 @@ function loadBank() {
 }
 /* ---------- Question Bank tab "Export PPT": same black Avanti slides as the PYQ ChapterWise PPT, for any selection ---------- */
 window.__qbCwPptx = async function (ids, explain) {
+  if (!need('pptx')) throw new Error('Your plan includes PDF downloads only');
   if (!BANK) { const bank = await loadBank(); BANK = bank; BANK.all = bank.qs.slice(); bank.qs.forEach(q => BYID.set(q.i, q)); bank.chapters.forEach(c => CHMAP.set(c.c, c)); }
   /* KCET questions are kept out of the main bank (a separate exam), so look any id that is not there up in the raw PYQ file */
   let xtra = null; if (ids.some(i => !BYID.has(i))) { xtra = new Map(); (await qbJson('pyq')).forEach(r => { if (r.exam === 'KCET' || r.exam === 'IAT' || r.exam === 'NDA') { const q = qbCompact(r, true); if (q) xtra.set(q.i, q); } }); }
@@ -1328,6 +1253,7 @@ function mustPages() {
   return { flat, title, file, pages };
 }
 async function exportMust(kind) {
+  if (!need(kind)) return;
   const m = mustPages(); if (!m) return;
   if (!downloads) { toast('Downloads are not available in this view'); return; }
   const btns = document.querySelectorAll('[data-mexp]'); btns.forEach(b => { b.disabled = true; });
@@ -1345,7 +1271,6 @@ async function exportMust(kind) {
     if (e && e.code === 'declined') toast('Download cancelled'); else toast('Export failed: ' + (e && e.message ? e.message : 'try again'));
   } finally { btns.forEach(b => { b.disabled = false; }); }
 }
-let makeReady = false;
 let PYQSUB = null;
 function pyqPick() {
   const v = $('#viewPyq'); if (!v) return;
@@ -1355,47 +1280,37 @@ function pyqPick() {
   if (!PYQSUB) v.append(h('p', { class: 'hint', text: 'Pick Question Paper or Chapterwise to see the list.' }));
 }
 function pyqShow() {
-  ['Qb', 'Lib', 'Make', 'Cw', 'Sw', 'Ho', 'Must', 'God', 'Syl', 'Res'].forEach(n => { const e = $('#view' + n); if (e) e.hidden = true; });
+  hideViews();
   if (PYQSUB) setTabInner(PYQSUB);
   document.querySelectorAll('[data-act="tab"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === 'pyq')));
-  { const mb = $('#miscBtn'); if (mb) { mb.setAttribute('aria-pressed', 'false'); mb.firstChild.textContent = 'Misc '; } }
   pyqPick(); $('#viewPyq').hidden = false;
   setTimeout(rescale, 0);
 }
 function setTab(t) {
-  if (IS_OWNER === false && ['make', 'res', 'god'].includes(t)) t = 'qb';
+  if ((t === 'must' || t === 'ho') && !G('view_' + t)) { lockedView(t); return; }
   if (t === 'pyq') { pyqShow(); return; }
   const pv = $('#viewPyq'); if (pv) pv.hidden = true;
   setTabInner(t);
 }
+function hideViews() { ['Qb', 'Lib', 'Cw', 'Sw', 'Ho', 'Must', 'Syl', 'Pyq', 'Lock', 'Portal'].forEach(n => { const e = $('#view' + n); if (e) e.hidden = true; }); }
+/* Must Solve and Handouts are for paid members; free members see an upgrade card instead */
+function lockedView(t) {
+  hideViews(); document.querySelectorAll('[data-act="tab"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === t)));
+  const v = $('#viewLock'); v.textContent = ''; v.hidden = false;
+  v.append(h('div', { class: 'pt-card pt-lock' }, h('h2', { text: (t === 'must' ? 'Must Solve' : 'Handouts') + ' is for Premium members' }),
+    h('p', { class: 'hint', text: 'Free members can view the Question Bank, DPPs and PYQs. Premium members can also use Must Solve, Handouts, PDF downloads and tests.' }),
+    h('a', { class: 'btn pri', href: '#/membership', text: 'See Premium membership' })));
+  if (window.AvantiPortal) window.AvantiPortal.leave();
+}
 function setTabInner(t) {
-  $('#viewQb').hidden = t !== 'qb'; $('#viewLib').hidden = t !== 'lib'; $('#viewMake').hidden = t !== 'make'; $('#viewCw').hidden = t !== 'cw'; $('#viewSw').hidden = t !== 'sw'; $('#viewHo').hidden = t !== 'ho'; $('#viewMust').hidden = t !== 'must'; $('#viewGod').hidden = t !== 'god'; $('#viewSyl').hidden = t !== 'syl'; $('#viewRes').hidden = t !== 'res';
+  hideViews(); const v = $('#view' + ({ qb: 'Qb', lib: 'Lib', cw: 'Cw', sw: 'Sw', ho: 'Ho', must: 'Must', syl: 'Syl' })[t]); if (v) v.hidden = false;
+  if (window.AvantiPortal) window.AvantiPortal.leave();
   document.querySelectorAll('[data-act="tab"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === t)));
-  { const mb = $('#miscBtn'), md = $('#miscDrop'); if (mb) { const inMisc = ['make', 'res', 'god'].includes(t); mb.setAttribute('aria-pressed', String(inMisc)); mb.firstChild.textContent = inMisc ? 'Misc: ' + ({ make: 'Tests', res: 'Results', god: 'God Mode', syl: 'Syllabus Priority' })[t] + ' ' : 'Misc '; mb.setAttribute('aria-expanded', 'false'); if (md) md.hidden = true; } }
-  if (t === 'qb') qbInit(); else if (t === 'syl') renderSyl(); else if (t === 'god') renderGod(); else if (t === 'res') renderResults(); else if (t === 'ho') renderHandouts(); else if (t === 'must') ensureDpp().then(renderMust); else if (t === 'cw' || t === 'sw') ensureDpp().then(() => { renderPdfTab(t); setTimeout(rescale, 0); }); else ensureDpp().then(() => { if (t === 'make') { if (!makeReady) { makeReady = true; refreshRail(); } renderPreview(); } else renderLib(); setTimeout(rescale, 0); });
+  if (t === 'qb') qbInit(); else if (t === 'syl') renderSyl(); else if (t === 'ho') renderHandouts(); else if (t === 'must') ensureDpp().then(renderMust); else if (t === 'cw' || t === 'sw') ensureDpp().then(() => { renderPdfTab(t); setTimeout(rescale, 0); }); else ensureDpp().then(() => { renderLib(); setTimeout(rescale, 0); });
   setTimeout(rescale, 0);
 }
-let MORE_OPEN = false;
 
 /* ---------- preview ---------- */
-function renderPreview() {
-  const wrap = $('#pgwrap'); if (!wrap) return;
-  reconcile();
-  const p = sheetParams();
-  wrap.textContent = '';
-  const box = h('div', { class: 'pgbox' }), scaler = h('div', { class: 'pgscale' }); box.append(scaler); wrap.append(box);
-  if (!p.qs.length) { scaler.remove(); box.append(h('div', { class: 'empty', text: S.ch.size ? 'No questions match these filters. Try more topics, levels or types.' : 'Pick one or more chapters on the left to start.' })); S.lay = null; setMsg(S.ch.size ? 'No questions match.' : 'Pick a chapter to begin.', !!S.ch.size); renderList(); return; }
-  const pgs = testPages(p); scaler.remove(); box.remove();
-  S.lay = pgs.map((pg, i) => { const bx = h('div', { class: 'pgbox' }), sc = h('div', { class: 'pgscale' }); bx.append(sc); wrap.append(bx); return layoutSheet(pg, sc); });
-  rescale();
-  const over = S.lay.some(L => L.overflow) || pgs.length > S.sides, fs0 = Math.min(...S.lay.map(L => L.fs)), pt = (fs0 * 0.75).toFixed(1).replace('.0', '');
-  const sd = pgs.length > 1 ? 'both sides of an A4 sheet' : 'one A4 side';
-  if (over) setMsg('<b>Too many questions for ' + (S.sides > 1 ? S.sides + ' A4 sides' : 'one A4 side') + '.</b> Remove some, or use 2 columns.', true);
-  else if (fs0 < 14) setMsg('<b>' + p.qs.length + ' questions</b> on ' + sd + ' at ' + pt + ' pt text. <b>This is small for print.</b> Remove a few questions, or use 1 column, to get 10.5 pt or more.', true);
-  else setMsg('<b>' + p.qs.length + ' questions</b> on ' + sd + ' at ' + pt + ' pt text.' + (S.lay.every(L => L.slack > 0.15) && fs0 >= MAX_FS - 0.01 ? ' There is room for more. <button type="button" class="btn pri inl" data-act="fill">Fill pages</button>' : ''));
-  const P = poolFor(); const el = $('#poolInfo'); if (el) el.textContent = P.length + ' questions match your filters.';
-  renderList();
-}
 function rescale() {
   ['#pgwrap', '#libPrev', '#cwPrev', '#swPrev'].forEach(id => {
     const wrap = $(id); if (!wrap || !wrap.clientWidth) return;
@@ -1403,88 +1318,20 @@ function rescale() {
     wrap.querySelectorAll('.pgbox').forEach(bx => { const sc = $('.pgscale', bx); if (!sc) return; sc.style.transform = 'scale(' + k + ')'; bx.style.height = Math.ceil(SHEET_H * k) + 'px'; });
   });
 }
-function setMsg(html, warn) { const m = $('#statMsg'); if (m) { m.className = 'msg' + (warn ? ' warn' : ''); m.innerHTML = html; } }
-function renderList() {
-  const box = $('#qList'); if (!box) return; box.textContent = '';
-  S.picked.forEach((id, i) => {
-    const q = BYID.get(id); if (!q) return;
-    const t = q.q.replace(/\\[\(\)\[\]]/g, '').replace(/\s+/g, ' ');
-    box.append(h('div', { class: 'qrow' }, h('div', { class: 'n', text: i + 1 }), h('div', { class: 't', text: t }),
-      h('div', { class: 'm', text: DIFF[q.d] + ' \u00b7 ' + (q.s === 'P' ? 'PYQ ' + q.y : 'Practice') }),
-      h('button', { type: 'button', 'aria-label': 'Swap question ' + (i + 1), title: 'Swap for another', 'data-act': 'swap', 'data-i': i, text: 'Swap' }),
-      h('button', { type: 'button', 'aria-label': 'Remove question ' + (i + 1), title: 'Remove', 'data-act': 'remove', 'data-i': i, text: 'Remove' })));
-  });
-  math(box);
-}
 
 /* ---------- rail (settings) ---------- */
-function chip(label, on, act, data, count, disabled) {
-  return h('button', Object.assign({ type: 'button', class: 'chip', 'aria-pressed': String(!!on), 'data-act': act, disabled }, data || {}), label, count != null ? h('small', { text: count }) : null);
-}
-function refreshRail() {
-  syncOos(); paperUi();
-  const so = $('#chSrc'); so.textContent = '';
-  const sc = { P: 0 }; BANK.qs.forEach(q => { if (q.s === 'P') sc.P++; else { const t = q.pb || 'VMC'; sc[t] = (sc[t] || 0) + 1; } });
-  so.append(chip('Past JEE papers (PYQs)', S.pyq, 'src', { 'data-k': 'P' }, sc.P));
-  PUBS.filter(x => sc[x]).forEach(x => so.append(chip(x, S.pubs.has(x), 'src', { 'data-k': x }, sc[x])));
-  $('#fExam').hidden = !S.pyq; $('#mkOos').hidden = !S.pyq;
-  const ex = $('#chExam'); ex.textContent = '';
-  ex.append(chip('JEE Main', S.exam.Main, 'exam', { 'data-k': 'Main' }), chip('JEE Advanced', S.exam.Adv, 'exam', { 'data-k': 'Adv' }), chip('KCET', S.exam.KCET, 'exam', { 'data-k': 'KCET' }), chip('IAT', S.exam.IAT, 'exam', { 'data-k': 'IAT' }), chip('NDA', S.exam.NDA, 'exam', { 'data-k': 'NDA' }));
-  const cl = $('#chCls'); cl.textContent = '';
-  cl.append(chip('Class 11', S.cls[11], 'cls', { 'data-k': 11 }), chip('Class 12', S.cls[12], 'cls', { 'data-k': 12 }));
-  // chapters (dropdown, tick many)
-  const cnt = {}; BANK.qs.forEach(q => { if (srcOk(q) && (S.mode === 'dpp' || gradable(q))) cnt[q.cc] = (cnt[q.cc] || 0) + 1; });
-  const chItems = BANK.chapters.filter(c => S.cls[c.cl] && cnt[c.c]).sort((a, b) => a.cl - b.cl || a.o - b.o).map(c => [c.c, c.c + ' ' + c.n + ' (' + cnt[c.c] + ')']);
-  S.ch = new Set(mfill('mkCh', chItems, [...S.ch], v => { S.ch = new Set(v); S.tp = new Set([...S.tp].filter(x => S.ch.has(x.split('|')[0]))); update(); }, 'chapters', { empty: 'No chapters for these filters' }));
-  // topics
-  const tc = {};
-  BANK.qs.forEach(q => { if (srcOk(q) && q.tp && S.ch.has(q.cc) && (S.mode === 'dpp' || gradable(q))) { const k = q.cc + '|' + q.tp; tc[k] = (tc[k] || 0) + 1; } });
-  const tpItems = Object.keys(tc).sort((a, b) => (CHMAP.get(a.split('|')[0]).o - CHMAP.get(b.split('|')[0]).o) || a.localeCompare(b)).map(k => [k, (S.ch.size > 1 ? k.split('|')[0] + ' ' + CHMAP.get(k.split('|')[0]).n + ' \u00b7 ' : '') + k.split('|')[1] + ' (' + tc[k] + ')']);
-  S.tp = new Set(mfill('mkTp', tpItems, [...S.tp], v => { S.tp = new Set(v); update(); }, 'topics', { empty: 'Pick a chapter first', none: 'All topics of the chapters (none ticked)' }));
-  // difficulty + types
-  const dc = {}, ty = {};
-  poolFor({ diff: 1 }).forEach(q => { dc[q.d] = (dc[q.d] || 0) + 1; });
-  poolFor({ types: 1 }).forEach(q => { ty[q.t] = (ty[q.t] || 0) + 1; });
-  const df = $('#chDiff'); df.textContent = '';
-  ['L1', 'L2', 'L3'].forEach(d => df.append(chip(DIFF[d], S.diff.has(d), 'diff', { 'data-k': d }, dc[d] || 0)));
-  const tp = $('#chType'); tp.textContent = '';
-  TYPES.forEach(t => tp.append(chip(t, S.types.has(t), 'type', { 'data-k': t }, ty[t] || 0, S.mode === 'test' && t === 'Subjective')));
-  const pn = poolFor().length; $('#poolNote').textContent = !S.ch.size ? 'Next, pick a chapter in step 2.' : pn ? pn + ' question' + (pn === 1 ? '' : 's') + ' match your choices.' : 'No questions match. Loosen a choice above.';
-  $('#fCount').value = S.count;
-  $('#sideSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.k === S.sides)));
-  $('#colSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.k === S.cols)));
-  $('#tOrder').checked = S.order; $('#tTag').checked = S.tag; S.key = false;
-  $('#fTitle').placeholder = defaultTitle();
-  renderMyTests();
-}
-function toggle(set, k) { set.has(k) ? set.delete(k) : set.add(k); }
-function update(rail) { if (rail !== false) refreshRail(); renderPreview(); }
 
 /* ---------- actions ---------- */
 function onAct(e) {
   if (e.type === 'click' && e.target.isConnected && !e.target.closest('.msel')) document.querySelectorAll('.msel.open').forEach(x => { x.classList.remove('open'); x.querySelector('.mbtn').setAttribute('aria-expanded', 'false'); });
   if (e.type === 'click' && !e.target.closest('#qbInfoBtn')) { const pp = $('#qbPop'); if (pp && !pp.hidden) { if (e.target.closest('#qbPop')) { const vq = $('#viewQb'); if (vq && vq.hidden) setTab('qb'); } pp.hidden = true; const ib = $('#qbInfoBtn'); if (ib) ib.setAttribute('aria-expanded', 'false'); } }
-  if (e.type === 'click' && !e.target.closest('.tb-misc')) { const md = $('#miscDrop'); if (md && !md.hidden) { md.hidden = true; $('#miscBtn').setAttribute('aria-expanded', 'false'); } }
   const t = e.target.closest('[data-act]'); if (!t) return;
   const a = t.dataset.act, k = t.dataset.k;
   if (e.type === 'change' && t.tagName !== 'INPUT' && t.tagName !== 'SELECT') return;
   if (e.type === 'click' && t.tagName === 'INPUT') return;
+  const gate = { lexp: k, pdfdl: t.dataset.f || 'pdf', xprint: 'print', xshare: 'share', pdfshare: 'share' }[a];
+  if (gate && !need(gate)) return;
   switch (a) {
-    case 'src': { const on = k === 'P' ? S.pyq : S.pubs.has(k); if (on && (S.pyq ? 1 : 0) + S.pubs.size <= 1) { toast('Keep at least one source'); break; } if (k === 'P') S.pyq = !S.pyq; else if (on) S.pubs.delete(k); else S.pubs.add(k); S.picked = []; update(); break; }
-    case 'exam': S.exam[k] = !S.exam[k]; if (!S.exam.Main && !S.exam.Adv && !S.exam.KCET && !S.exam.IAT && !S.exam.NDA) S.exam[k] = true; update(); break;
-    case 'cls': S.cls[k] = !S.cls[k]; if (!S.cls[11] && !S.cls[12]) S.cls[k] = true; update(); break;
-    case 'ch': toggle(S.ch, k); S.tp = new Set([...S.tp].filter(x => !S.ch.size || S.ch.has(x.split('|')[0]))); update(); break;
-    case 'tp': toggle(S.tp, k); update(); break;
-    case 'diff': toggle(S.diff, k); update(); break;
-    case 'type': toggle(S.types, k); update(); break;
-    case 'cols': S.cols = +k; renderPreview(); refreshRail(); break;
-    case 'sides': S.sides = +k; renderPreview(); refreshRail(); break;
-    case 'clearch': S.ch.clear(); S.tp.clear(); update(); break;
-    case 'shuffle': S.picked = []; update(false); toast('Shuffled'); break;
-    case 'fill': fillPage(); break;
-    case 'swap': swapQ(+t.dataset.i); break;
-    case 'remove': S.picked.splice(+t.dataset.i, 1); if (S.paper) S.paper.ids = S.picked.slice(); S.count = Math.max(1, S.picked.length); $('#fCount').value = S.count; renderPreview(); break;
-    case 'exp': doExport(k); break;
     case 'lexp': exportLib(k); break;
     case 'theme': themeToggle(); break;
     case 'guide': guideOpen(); break;
@@ -1493,9 +1340,8 @@ function onAct(e) {
     case 'qbinfo': { const pp = $('#qbPop'), op = pp.hidden; pp.hidden = !op; t.setAttribute('aria-expanded', String(op)); break; }
     case 'tab': setTab(k); break;
     case 'pyqsub': PYQSUB = k; pyqShow(); break;
-    case 'misc': { const md = $('#miscDrop'), open = md.hidden; md.hidden = !open; t.setAttribute('aria-expanded', String(open)); break; }
     case 'libkind': LS.kind = k; LS.idk = ''; LS.chTouched = false; renderLib(); break;
-    case 'oos': { OOS.ex = k === 'ex'; try { localStorage.setItem('oosEx2', OOS.ex ? '1' : '0'); } catch (e) {} applyOos(); S.picked = []; LS.idk = ''; syncOos(); renderLib(); if (typeof refreshRail === 'function') { refreshRail(); renderPreview(); } toast(OOS.ex ? 'Out-of-syllabus questions excluded' : 'Out-of-syllabus questions included'); break; }
+    case 'oos': { OOS.ex = k === 'ex'; try { localStorage.setItem('oosEx2', OOS.ex ? '1' : '0'); } catch (e) {} applyOos(); LS.idk = ''; syncOos(); renderLib(); toast(OOS.ex ? 'Out-of-syllabus questions excluded' : 'Out-of-syllabus questions included'); break; }
     case 'pdfex': { const T = t.dataset.t; PDFT[T].bucket = k; PDFT[T].sel = null; PDFT[T].page = 0; renderPdfTab(T); break; }
     case 'pdfrow': { const T = t.dataset.t; PDFT[T].sel = k; PDFT[T].page = 0; markPdfRows(T); showPdfPrev(T); break; }
     case 'max': toggleMax(t); break;
@@ -1511,47 +1357,16 @@ function onAct(e) {
     case 'libshuffle': { LS.seed = 1 + Math.floor(Math.random() * 2147483000); showLibPrev(); toast('New set of questions'); break; }
     case 'libswap': { const r = dppCur(); if (dppSwap(r, k)) showLibPrev(); else toast('No other question can replace this one'); break; }
     case 'libpage': LS.page = +k; showLibPrev(); break;
-    case 'lexpall': exportAllPyq(k); break;
     case 'pdfkey': PDFT[t.dataset.t].key = t.checked; if (PDFT[t.dataset.t].sel) showPdfPrev(t.dataset.t); break;
     case 'mkey': MS.key = t.checked; if (MS.redraw) MS.redraw(); break;
     case 'mexp': MS.exp = t.checked; break;
     case 'pdfexp': PDFT[t.dataset.t].exp = t.checked; if (PDFT[t.dataset.t].sel) showPdfPrev(t.dataset.t); break;
     case 'libexp': LS.exp = $('#libExpl').checked; if (LS.shown) showLibPrev(); break;
     case 'libkey': LS.key = $('#libKey').checked; if (LS.shown) showLibPrev(); break;
-    case 'mklink': makeLink(); break;
-    case 'distest': { const on = TESTS.find(x => x.code === t.dataset.code); publishTests(TESTS.map(x => x.code === t.dataset.code ? (x.off ? Object.assign({}, x, { off: undefined }) : Object.assign({}, x, { off: true })) : x), on && on.off ? 'Test enabled again: students can see it.' : 'Test disabled: hidden from students and from your results.'); break; }
-    case 'paperuse': usePaper($('#paperSel').value); break;
-    case 'paperoff': S.paper = null; S.picked = []; paperUi(); update(); toast('Back to normal picking'); break;
-    case 'deltest': DELASK = t.dataset.code; BACKED = ''; renderMyTests(); break;
-    case 'delno': DELASK = ''; renderMyTests(); break;
-    case 'delxls': exportTestExcel(t.dataset.code, t); break;
-    case 'delyes': { DELASK = ''; BACKED = ''; publishTests(TESTS.filter(x => x.code !== t.dataset.code), 'Removed from saved tests.'); break; }
-    case 'flip': if (k === 'order') S.order = $('#tOrder').checked; if (k === 'tag') S.tag = $('#tTag').checked; if (k === 'order') S.picked = orderIds(S.picked); renderPreview(); break;
   }
 }
-function swapQ(i) {
-  const cur = BYID.get(S.picked[i]); if (!cur) return;
-  const have = new Set(S.picked), P = poolFor().filter(q => !have.has(q.i));
-  if (!P.length) { toast('No other matching question to swap in.'); return; }
-  const same = P.filter(q => q.cc === cur.cc && q.d === cur.d), pickFrom = same.length ? same : P;
-  S.picked[i] = pickFrom[Math.floor(Math.random() * pickFrom.length)].i;
-  renderPreview();
-}
-function fillPage() {
-  try {
-    reconcile();
-    const P = poolFor(); if (!P.length) { toast('No questions match your filters'); return; }
-    const p0 = sheetParams();
-    const cand = S.picked.map(id => BYID.get(id)).filter(Boolean), have = new Set(cand.map(q => q.i));
-    const all = cand.concat(roundRobin(P.filter(q => !have.has(q.i)), Math.min(P.length, 90))).slice(0, 90);
-    const fits = n => { const q = Object.assign({}, p0, { qs: all.slice(0, n) }); return paginate(q.qs, q).length <= S.sides; };
-    let lo = 1, hi = all.length; if (!fits(1)) { toast('Could not fit a question'); return; }
-    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (fits(mid)) lo = mid; else hi = mid - 1; }
-    S.picked = orderIds(all.slice(0, lo).map(q => q.i)); S.count = lo; $('#fCount').value = lo;
-    renderPreview(); toast(lo + ' questions fit ' + (S.sides > 1 ? 'both sides' : 'this page'));
-  } catch (e) { toast('Fill failed: ' + (e && e.message ? e.message : 'try again')); }
-}
 async function copyText(txt) {
+  if (!need('copy')) return;
   try { await navigator.clipboard.writeText(txt); toast('Copied'); }
   catch (e) { toast('Select the text and copy it'); }
 }
@@ -1567,6 +1382,7 @@ const ansText = q => (q.a || '\u2014').replace(/\\[()\[\]]/g, '');
 const fname = (p, ext) => (p.file || p.title || 'sheet').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') + ext;
 /* ---------- Print handouts and share menu ---------- */
 async function printHandout(x, bw) {
+  if (!need('print')) return;
   const w = window.open('', '_blank');
   if (!w) { toast('This view does not allow a print window. Use Download PDF, then print the file.'); return; }
   try { w.document.write('<!doctype html><title>Preparing\u2026</title><body style="font-family:sans-serif;padding:24px">Preparing pages for printing\u2026</body>'); } catch (e) { toast('This view does not allow printing. Use Download PDF, then print the file.'); return; }
@@ -1580,13 +1396,14 @@ async function printHandout(x, bw) {
     w.focus(); w.print();
   } catch (e) { try { w.close(); } catch (x2) {} toast('Could not open the print view. Use Download PDF, then print the file.'); }
 }
-const DASH_URL = 'https://claude.ai/artifact/UgXUYU8es1bDbPrckV3Cn8';
+const DASH_URL = location.origin + location.pathname;
 function closeShare() { const m = document.getElementById('shareMenu'); if (m) m.remove(); document.removeEventListener('click', closeShareOut, true); document.removeEventListener('keydown', closeShareKey, true); }
 function closeShareOut(e) { const m = document.getElementById('shareMenu'); if (m && !m.contains(e.target)) closeShare(); }
 function closeShareKey(e) { if (e.key === 'Escape') closeShare(); }
 function shareMenu(btn, o) {
+  if (!need('share')) return;
   closeShare();
-  const text = o.title + ' (Avanti Fellows Math Teacher Dashboard)', link = o.url || DASH_URL, full = text + '\n' + link;
+  const text = o.title + ' (Avanti Fellows Mathematics Dashboard)', link = o.url || DASH_URL, full = text + '\n' + link;
   const item = (ico, label, attrs) => h(attrs.href ? 'a' : 'button', Object.assign({ class: 'smi', type: attrs.href ? undefined : 'button' }, attrs), h('span', { class: 'smic', html: ico }), h('span', { text: label }));
   const m = h('div', { id: 'shareMenu', class: 'smenu', role: 'menu' },
     h('div', { class: 'smh', text: 'Share ' + o.title }),
@@ -1610,7 +1427,9 @@ function toggleMax(btn) {
 }
 function closeMax() { const st = document.querySelector('.stage.maxed'); if (!st) return; const b = st.querySelector('[data-act="max"]'); if (b) toggleMax(b); }
 async function doExport(kind, p0) {
-  const pages = p0 && p0.pages ? p0.pages : p0 ? [p0] : testPages(), pk = p0 && p0.pages ? p0 : pages[0];
+  if (!need(kind)) return;
+  if (!p0) return;
+  const pages = p0.pages ? p0.pages : [p0], pk = p0 && p0.pages ? p0 : pages[0];
   if (!pages.length || !pages[0].qs.length) { toast('Add some questions first'); return; }
   if (!downloads) { toast('Downloads are not available in this view'); return; }
   const btns = document.querySelectorAll('[data-act="exp"],[data-act="lexp"],[data-act="lexpall"],[data-act="pdfdl"],[data-act="xprint"],[data-act="xshare"]'); btns.forEach(b => { b.disabled = true; });
@@ -1645,7 +1464,7 @@ async function doExport(kind, p0) {
       const ep = pages.filter(p => p.exp);
       if (ep.length) { const items = await explItems(ep); if (!items.length) toast('None of these questions has an explanation yet'); else for (const es of explSheets(items, ep[0], hst)) { const c3 = await shot(es, 2); pdf.addPage(); pdf.addImage(c3.toDataURL('image/jpeg', 0.93), 'JPEG', 0, 0, 210, 297); es.remove(); } }
       blob = pdf.output('blob');
-    } else blob = kind === 'docx' ? await buildDocx(items, pk) : await buildPptx(items, pk);
+    }
     if (pk.onBlob) await pk.onBlob(blob, file); else { await downloads.save({ filename: file, data: blob }); toast('Saved ' + file); }
   } catch (e) {
     if (pk.onFail) pk.onFail(e);
@@ -1689,109 +1508,6 @@ async function buildEditable(kind, pages) {
   return kind === 'docx' ? window.OfficeDoc.buildDocx(window.docx, window.JSZip, pages, H) : window.OfficeDoc.buildPptx(window.PptxGenJS, window.JSZip, pages, H);
 }
 
-/* ---------- test links ---------- */
-function makeCode() {
-  const p = sheetParams();
-  const meta = { t: p.title, m: p.mins, p: p.pos, n: p.neg, e: S.email.trim() };
-  return 'T~' + b64(JSON.stringify(meta)) + '~' + p.qs.map(q => q.i).join('~');
-}
-function pubMsg(t, warn) { const m = $('#pubMsg'); if (m) { m.textContent = t; m.className = 'hint' + (warn ? ' warnt' : ''); } }
-/* Student page sync: a short Claude run copies this page's saved tests to the student dashboard. */
-const STUDENT_URL = 'https://claude.ai/artifact/JrF7haaQnwBT8Jh5QPCMcF';   /* public student dashboard */
-const SYNC_TRIGGER = 'trig_011QnFtarL5S8UPypzb1TkSq';   /* "Sync tests to student dashboard": runs when a test is saved */
-const BLOCK_TRIGGER = 'trig_01YAuUFUtg3Jrg8jcDTWfHPy';  /* "Block IDs on student dashboard": runs from the Results tab */
-function syncFlag(v) { try { if (v) sessionStorage.setItem('avanti_sync', '1'); else sessionStorage.removeItem('avanti_sync'); } catch (e) { /* ignore */ } }
-async function syncStudents(trig) {
-  try {
-    const mcp = window.claude && window.claude.use ? await window.claude.use('mcp') : null;
-    if (!mcp) return 'off';
-    await mcp.callTool('Claude Code Remote', 'fire_trigger', { trigger_id: trig || SYNC_TRIGGER }, { cache: false });
-    if (!trig) syncFlag(false); return 'ok';
-  } catch (e) { return (e && e.code) || 'error'; }
-}
-function syncNote(r) {
-  if (r === 'ok') return 'Student page update started. It shows there in a few minutes.';
-  return 'Could not start the student page update (' + r + '). Open the Tests tab again to retry.';
-}
-async function publishTests(list, okMsg) {
-  if (!OPTS || !OPTS.artifact) { pubMsg('Publishing is not available in this view. Open this page from your own account.', true); return false; }
-  pubMsg('Publishing\u2026');
-  try { try { sessionStorage.setItem('avanti_tab', 'make'); } catch (e) { /* ignore */ } syncFlag(true); await OPTS.artifact.publish(OPTS.pageHtml(list)); TESTS = list; renderMyTests(); const r = await syncStudents(); pubMsg((okMsg || 'Saved.') + ' ' + syncNote(r), r !== 'ok'); return true; }
-  catch (e) {
-    const c = e && e.code;
-    if (c === 'conflict') pubMsg('Someone published at the same moment. The page is reloading. Try again.', true);
-    else if (c === 'not_writer' || c === 'not_granted') pubMsg('This account cannot edit the page.', true);
-    else pubMsg('Publishing from the page did not work (' + (c || 'error') + '). Send this to Claude and ask it to publish: ' + JSON.stringify(list.map(t => t.code)).slice(0, 3000), true);
-    return false;
-  }
-}
-async function makeLink() {
-  if (!S.picked.length) { toast('Add some questions first'); return; }
-  const bad = S.picked.filter(id => !gradable(BYID.get(id)));
-  if (bad.length) { toast('Some questions have no auto-gradable answer. Remove them.'); return; }
-  const code = makeCode(), p = sheetParams();
-  const btn = $('[data-act="mklink"]'); if (btn) btn.disabled = true;
-  const ok = await publishTests([{ code, title: p.title, n: S.picked.length, at: Date.now() }].concat(TESTS.filter(t => t.code !== code)).slice(0, 30), 'Saved to your tests. It is being sent to the student page.');
-  if (btn) btn.disabled = false;
-}
-let DELASK = '', BACKED = '';
-function renderMyTests() {
-  const box = $('#myTests'); if (!box) return; box.textContent = '';
-  if (!TESTS.length) { box.append(h('p', { class: 'hint', text: 'No saved tests yet.' })); return; }
-  TESTS.forEach(t => {
-    if (t.code === DELASK) {
-      box.append(h('div', { class: 'delbox', role: 'alertdialog', 'aria-label': 'Confirm removing ' + t.title },
-        h('b', { text: 'Remove \u201c' + t.title + '\u201d?' }),
-        h('p', { text: 'The test disappears from your saved tests and from the student page, and students can no longer open it. Results students already sent stay in the Google Sheet, but this cannot be undone. Download a backup first.' }),
-        BACKED === t.code ? h('p', { class: 'delok', text: 'Backup downloaded. You can remove the test now.' }) : null,
-        h('div', { class: 'btns' },
-          h('button', { type: 'button', class: 'btn', 'data-act': 'delxls', 'data-code': t.code, text: 'Export marks to Excel' }),
-          h('button', { type: 'button', class: 'btn danger', 'data-act': 'delyes', 'data-code': t.code, text: 'Yes, remove this test' }),
-          h('button', { type: 'button', class: 'btn', 'data-act': 'delno', text: 'Cancel' }))));
-      return;
-    }
-    box.append(h('div', { class: t.off ? 'toff' : null }, h('span', { text: t.title + ' \u00b7 ' + t.n + ' Qs' + (t.off ? ' \u00b7 Disabled: hidden from students and from results' : '') }),
-      h('span', { class: 'btns' },
-        h('button', { type: 'button', class: 'btn sm', 'data-act': 'distest', 'data-code': t.code, 'aria-label': (t.off ? 'Enable ' : 'Disable ') + t.title, text: t.off ? 'Enable' : 'Disable' }),
-        h('button', { type: 'button', class: 'btn sm', 'data-act': 'deltest', 'data-code': t.code, 'aria-label': 'Remove ' + t.title + ' from saved tests', text: 'Remove' }))));
-  });
-}
-/* Backup of one test's marks as an Excel file, read from the Google Form response sheet */
-async function exportTestExcel(code, btn) {
-  const t = TESTS.find(x => x.code === code); if (!t) return;
-  if (!downloads) { toast('Downloads are not available in this view'); return; }
-  if (btn) { btn.disabled = true; btn.textContent = 'Preparing\u2026'; }
-  const done = () => { if (btn) { btn.disabled = false; btn.textContent = 'Export marks to Excel'; } };
-  try {
-    await ensureDpp().catch(() => {});
-    if (!RES.data || Date.now() - RES.at > 60000) { RES.data = resParse(await resFetch()); RES.at = Date.now(); }
-    const g = RES.data[testKeyOf(code)];
-    if (!g || !g.rows.size) { toast('No submitted results found for this test, so there is nothing to export.'); done(); return; }
-    await loadScript(CDN.xlsx); const X = window.XLSX; if (!X) throw new Error('Excel library did not load');
-    const rows = [...g.rows.values()].sort((a, b) => (b.pct == null ? -1 : b.pct) - (a.pct == null ? -1 : a.pct)), ids = String(t.code).split('~').slice(2), nq = Math.max(ids.length, ...rows.map(r => r.n || 0));
-    const mins = s => s == null ? '' : Math.round(s / 6) / 10;
-    const marks = [['Rank', 'Avanti ID', 'Submitted at', 'Score', 'Out of', 'Percent', 'Correct', 'Wrong', 'Skipped', 'Attempted', 'Time on questions (min)', 'Times left the test page', 'Minutes away', 'Screenshot key presses']]
-      .concat(rows.map((r, i) => [i + 1, r.afid, r.ts, r.score == null ? '' : r.score, r.max == null ? '' : r.max, r.pct == null ? '' : Math.round(r.pct * 1000) / 10, r.ok, r.no, r.sk, r.att, mins(r.secs), r.sw == null ? '' : r.sw, r.away == null ? '' : Math.round(r.away / 6) / 10, r.ps || 0]));
-    const qn = n => { const bq = BYID.get(ids[n - 1]); return bq ? bq.a : ''; };
-    const qh = []; for (let i = 1; i <= nq; i++) qh.push('Q' + i);
-    const ans = [['Avanti ID'].concat(qh), ['Correct answer'].concat(qh.map((_, i) => qn(i + 1)))].concat(rows.map(r => [r.afid].concat(qh.map((_, i) => { const q = r.qs.find(x => x.n === i + 1); return q && q.st !== 's' ? q.a : ''; }))));
-    const rw = [['Avanti ID'].concat(qh)].concat(rows.map(r => [r.afid].concat(qh.map((_, i) => { const q = r.qs.find(x => x.n === i + 1); return !q ? '' : q.st === 'o' ? 'Right' : q.st === 'x' ? 'Wrong' : 'Skipped'; }))));
-    const byq = [['Question', 'Question ID', 'Correct answer', 'Students', 'Attempted %', 'Accuracy %', 'Average seconds']].concat(qh.map((_, i) => {
-      const c = rows.map(r => r.qs.find(x => x.n === i + 1)).filter(Boolean), at = c.filter(x => x.st !== 's'), ok = c.filter(x => x.st === 'o');
-      return ['Q' + (i + 1), ids[i] || '', qn(i + 1), c.length, c.length ? Math.round(at.length / c.length * 100) : '', at.length ? Math.round(ok.length / at.length * 100) : '', c.length ? Math.round(c.reduce((s, x) => s + x.t, 0) / c.length) : ''];
-    }));
-    const wb = X.utils.book_new(), add = (n, a, w) => { const ws = X.utils.aoa_to_sheet(a); ws['!cols'] = a[0].map((_, i) => ({ wch: i === 0 ? w : Math.max(8, Math.min(24, String(a[0][i]).length + 3)) })); X.utils.book_append_sheet(wb, ws, n); };
-    add('Marks', marks, 6); add('Answers', ans, 16); add('Right-Wrong', rw, 14); add('By question', byq, 10);
-    const out = X.write(wb, { type: 'array', bookType: 'xlsx' }), blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const file = (t.title || 'Test').replace(/[\\/:*?"<>|]+/g, ' ').trim() + ' marks ' + new Date().toISOString().slice(0, 10) + '.xlsx';
-    await downloads.save({ filename: file, data: blob }); toast('Saved ' + file + ' (' + rows.length + ' students)');
-    BACKED = code; if (DELASK === code) renderMyTests(); else done();
-  } catch (e) {
-    done();
-    const c = e && e.code;
-    toast(c === 'declined' ? 'Download cancelled' : c === 'not_in_manifest' || c === 'consent_required' || c === 'approval_required' ? 'Allow this dashboard to read your Google Sheet, then try again.' : 'Export failed: ' + (e && e.message ? e.message : 'try again'));
-  }
-}
 
 /* ---------- Syllabus Priority tab: all 24 chapters and subtopics with JEE Main / Advanced priority (from syllabus.json) ---------- */
 async function renderSyl() {
@@ -1895,10 +1611,10 @@ const THEME_ICONS = {
 };
 function themeInit() { let m = null; try { m = localStorage.getItem(THEME_KEY); } catch (e) { m = null; } if (m === 'dark' || m === 'light') document.documentElement.setAttribute('data-theme', m); themeApply(themeNow()); }
 function themeToggle() { const m = themeNow() === 'dark' ? 'light' : 'dark'; themeApply(m); try { localStorage.setItem(THEME_KEY, m); } catch (e) { /* optional */ } }
-const GUIDE_HTML = (owner) => `
+const GUIDE_HTML = () => `
 <p class="gd-note">Questions and solutions for exams before 2000 are in working mode and will take time to update.</p>
 <p class="gd-lead">The Mathematics Dashboard is Avanti Fellows' one place for JEE Maths teaching material: a searchable question bank, ready-made DPPs, past-year papers, must-solve lists and revision handouts. Everything can be downloaded as Word, PDF or PowerPoint.</p>
-<nav class="gd-toc" aria-label="Guide sections"><a href="#gd-qb">Question Bank</a><a href="#gd-dpp">DPPs</a><a href="#gd-pyq">PYQs</a><a href="#gd-must">Must Solve</a><a href="#gd-ho">Handouts</a><a href="#gd-dates">Exam dates</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a>${owner ? '<a href="#gd-misc">Owner tools</a>' : ''}</nav>
+<nav class="gd-toc" aria-label="Guide sections"><a href="#gd-qb">Question Bank</a><a href="#gd-dpp">DPPs</a><a href="#gd-pyq">PYQs</a><a href="#gd-must">Must Solve</a><a href="#gd-ho">Handouts</a><a href="#gd-dates">Exam dates</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a></nav>
 <h3 id="gd-qb">1. Question Bank</h3>
 <p>Every question in one list: JEE Main, JEE Advanced, AIEEE and IIT-JEE previous-year questions (PYQs) plus practice questions from different sources.</p>
 <ul>
@@ -1938,13 +1654,7 @@ const GUIDE_HTML = (owner) => `
 <li>Seen a wrong question, answer or figure? Open the ≡ menu and press <b>Flag</b>.</li>
 <li>Maths is written in proper notation; if a formula looks broken, refresh the page once.</li>
 </ul>
-${owner ? `<h3 id="gd-misc">Owner tools (Misc menu – beta, visible only to the owner)</h3>
-<p>These are still being refined and are not shown to other teachers.</p>
-<ul>
-<li><b>Tests</b> – build a timed test from chapters, topics or a whole past shift paper (180 minutes, +4 / −1), save it, and it appears on the student page.</li>
-<li><b>Results</b> – student scores read live from the Google Sheet that collects test submissions.</li>
-<li><b>God Mode</b> – type or upload a question, solve it and draw its graph, then save the answer as an explanation.</li>
-</ul>` : ''}
+
 <p class="gd-foot">Built by Ankit for the Avanti Fellows teaching team.</p>`;
 
 function guideOpen() {
@@ -1953,7 +1663,7 @@ function guideOpen() {
   m = h('div', { class: 'gd-back', id: 'guideModal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Site guide', 'data-act': 'guideback' },
     h('div', { class: 'gd-card' },
       h('div', { class: 'gd-top' }, h('h2', { text: 'How to use this dashboard' }), h('button', { type: 'button', class: 'gd-x', 'data-act': 'guideclose', 'aria-label': 'Close guide', html: '&times;' })),
-      h('div', { class: 'gd-body', html: GUIDE_HTML(IS_OWNER === true) })));
+      h('div', { class: 'gd-body', html: GUIDE_HTML() })));
   document.body.append(m);
   m.querySelectorAll('.gd-toc a').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); const t = m.querySelector(a.getAttribute('href')); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }));
   guideDates(m);
@@ -1991,9 +1701,6 @@ function buildShell() {
   const root = $('#app');
   root.innerHTML = '';
   const tb = (k, text, on) => h('button', { type: 'button', class: 'tb', 'data-act': 'tab', 'data-k': k, 'aria-pressed': String(!!on), text });
-  const miscMenu = () => h('div', { class: 'tb-misc', hidden: true },
-    h('button', { type: 'button', class: 'tb tb-miscbtn', id: 'miscBtn', 'data-act': 'misc', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-pressed': 'false' }, 'Misc ', h('span', { class: 'tb-caret', text: '\u25be' })),
-    h('div', { class: 'tb-drop', id: 'miscDrop', hidden: true, role: 'menu' }, [['make', 'Tests'], ['res', 'Results'], ['god', 'God Mode']].map(([k, t]) => h('button', { type: 'button', class: 'tb-item', role: 'menuitem', 'data-act': 'tab', 'data-k': k, 'aria-pressed': 'false', text: t }))));
   root.append(
     h('div', { class: 'shell' },
       h('header', { class: 'topbar' },
@@ -2002,19 +1709,18 @@ function buildShell() {
         h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
         h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),
         h('div', { class: 'tb-pop', id: 'qbPop', hidden: true, role: 'menu' }, [['heroov', 'Mathematics Bank: Question Counts'], ['overview', 'Chapter-wise Count'], ['syl', 'Syllabus Priority'], ['wchart', 'Chapter Weightage']].map(([k, t]) => k === 'syl' ? h('button', { type: 'button', class: 'tb-item', role: 'menuitem', 'data-act': 'tab', 'data-k': 'syl', text: t }) : h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-qbpanel': k, text: t }))),
-        h('nav', { class: 'tb-menu' }, tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), miscMenu())),
+        h('nav', { class: 'tb-menu' }, tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), h('div', { class: 'tb-prof', id: 'tbProfile' }))),
       h('main', { class: 'main' },
         h('div', { id: 'viewQb', class: 'qbhost' }),
         h('div', { id: 'viewLib', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
-        h('div', { id: 'viewMake', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewPyq', class: 'pyqpick', hidden: true }),
         h('div', { id: 'viewCw', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewSw', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewHo', class: 'hoview', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewMust', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
-        h('div', { id: 'viewGod', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
-        h('div', { id: 'viewRes', class: 'resview', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
-        h('div', { id: 'viewSyl', class: 'sy-wrap', hidden: true })),
+        h('div', { id: 'viewSyl', class: 'sy-wrap', hidden: true }),
+        h('div', { id: 'viewLock', class: 'pt-wrap', hidden: true }),
+        h('div', { id: 'viewPortal', class: 'pt-wrap', hidden: true })),
       h('footer', { class: 'app-foot', id: 'appFoot' },
         h('span', { class: 'af-brand' }, 'Made with ', h('span', { class: 'af-heart', style: 'color:#e11d48', 'aria-label': 'love', text: '\u2665' }), ' by Ankit'),
         h('span', { class: 'af-ver', id: 'appFootVer' }),
@@ -2053,96 +1759,7 @@ function buildLib() {
         h('div', { class: 'pgbtns', id: 'libPages', hidden: true })),
         h('div', { class: 'pgwrap', id: 'libPrev' }))));
 }
-function field(label, id, input) { return h('div', { class: 'fld' }, h('label', { class: 'lbl', for: id, text: label }), input); }
-function step(n, title, help, ...kids) {
-  return h('section', { class: 'step' }, h('div', { class: 'stephead' }, h('span', { class: 'stepn', text: String(n) }), h('div', {}, h('strong', { text: title }), h('p', { class: 'hint', text: help }))), ...kids);
-}
 /* Whole shift paper: take every question of one past paper, in paper order, as a 3 hour test */
-function paperList() {
-  const m = new Map();
-  (BANK && BANK.all || []).forEach(q => { if (q.s !== 'P' || !q.p || !(/shift/i.test(q.p) || q.e === 'KCET' || q.e === 'IAT' || q.e === 'NDA')) return; const g = m.get(q.p) || { p: q.p, e: q.e, ids: [] }; g.ids.push(q.i); m.set(q.p, g); });
-  const dt = p => { const d = Date.parse(p.replace(/\s*shift.*$/i, '').replace(/\s*(Screening|Mains|Paper\s*\d)\s*$/i, '').replace(/\s*\(NDA[^)]*\)\s*$/, '')); return isNaN(d) ? 0 : d; };
-  return [...m.values()].filter(g => g.ids.length >= 5).sort((a, b) => dt(b.p) - dt(a.p) || (/shift\s*(\d)/i.exec(b.p) || [])[1] - (/shift\s*(\d)/i.exec(a.p) || [])[1]);
-}
-const qnoOf = id => { const m = /^NDA\d{8}(\d{3})$/.exec(id) || /P(\d+)$/.exec(id) || /(\d\d)$/.exec(id); return m ? +m[1] : 0; };
-function paperUi() {
-  const sel = $('#paperSel'); if (!sel) return;
-  if (!sel.dataset.ready && BANK) {
-    sel.dataset.ready = '1'; sel.textContent = '';
-    [['Main', 'JEE Main / AIEEE'], ['Adv', 'JEE Advanced / IIT-JEE'], ['KCET', 'KCET'], ['IAT', 'IAT'], ['NDA', 'NDA']].forEach(([e, lab]) => {
-      const og = h('optgroup', { label: lab }); paperList().filter(g => g.e === e).forEach(g => og.append(h('option', { value: g.p, text: g.p + ' \u00b7 ' + g.ids.length + ' Qs' }))); if (og.children.length) sel.append(og);
-    });
-  }
-  const on = $('#paperOn'); if (on) { on.hidden = !S.paper; on.textContent = S.paper ? 'Using the whole paper: ' + S.paper.label + ' (' + S.picked.length + ' questions). The filters below are ignored until you switch this off.' : ''; }
-  const off = $('#paperOff'); if (off) off.hidden = !S.paper;
-}
-function usePaper(label) {
-  const g = paperList().find(x => x.p === label); if (!g) { toast('Pick a paper first'); return; }
-  const ids = g.ids.slice().sort((a, b) => qnoOf(a) - qnoOf(b)).filter(i => BYID.has(i));
-  if (!ids.length) { toast('No questions found for this paper'); return; }
-  S.paper = { label, ids }; S.picked = ids.slice(); S.count = ids.length; S.order = false;
-  const kc = g.e === 'KCET', ia = g.e === 'IAT', nd = g.e === 'NDA'; S.title = (nd ? '' : ia ? 'IAT ' : kc ? 'KCET ' : g.e === 'Adv' ? 'JEE Advanced ' : 'JEE Main ') + (nd ? label.replace(/^(.*?)\s*\((NDA[^)]*)\)\s*$/, '$2 $1') : label); S.mins = nd ? 150 : ia ? 45 : kc ? 80 : 180; S.pos = nd ? 2.5 : ia ? 4 : kc ? 1 : 4; S.neg = nd ? 0.83 : ia ? 1 : kc ? 0 : 1;
-  [['fTitle', S.title], ['fMins', S.mins], ['fPos', S.pos], ['fNeg', S.neg], ['fCount', S.count]].forEach(([id, v]) => { const el = $('#' + id); if (el) el.value = v; });
-  const o = $('#tOrder'); if (o) o.checked = false;
-  paperUi(); renderPreview();
-  const bad = ids.filter(i => !gradable(BYID.get(i))).length;
-  toast(label + ': ' + ids.length + ' questions, ' + S.mins + ' minutes' + (bad ? '. ' + bad + ' cannot be auto-marked, remove them before saving.' : ''));
-}
-function buildRail() {
-  const num = (id, key, min, max, step) => h('input', { type: 'number', id, min, max, step: step || 1, value: S[key], oninput: e => { const v = parseFloat(e.target.value); if (!isNaN(v)) { S[key] = v; if (key === 'mins' || key === 'pos' || key === 'neg') renderPreview(); } } });
-  return h('div', { class: 'rail' },
-    h('div', { class: 'card' }, h('h3', { text: 'Or use a whole shift paper' }), h('p', { class: 'hint', text: 'Pick a past paper by date and shift. All its questions come in paper order with 180 minutes, +4 and \u22121 (KCET, IAT and NDA use their own time and marking: NDA is 150 minutes, +2.5 and \u22120.83). Change anything below, then press Save test.' }),
-      h('div', { class: 'row' }, h('select', { id: 'paperSel', class: 'rs-sel', 'aria-label': 'Shift paper' }), h('button', { type: 'button', class: 'btn pri', 'data-act': 'paperuse', text: 'Use this paper' })),
-      h('p', { class: 'hint papon', id: 'paperOn', hidden: true }), h('button', { type: 'button', class: 'btn sm', id: 'paperOff', 'data-act': 'paperoff', hidden: true, text: 'Switch off, pick questions normally' })),
-    h('div', { class: 'card' }, h('h3', { text: 'Pick your questions' }), h('p', { class: 'hint lead', text: 'Work down the steps. The number on each chip shows how many questions it has.' }),
-      step(1, 'Where from?', 'Tick one or more. PYQs are real questions from past JEE papers; the others are practice sheets.',
-        h('div', { class: 'chips', id: 'chSrc' }),
-        h('div', { class: 'fld sub', id: 'fExam' }, h('span', { class: 'lbl', text: 'Which JEE paper? (only for PYQs)' }), h('div', { class: 'chips', id: 'chExam' })),
-        h('div', { id: 'mkOos' }, oosBox())),
-      step(2, 'Which chapters?', 'Leave topics unticked to use the whole chapter.',
-        h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Class' }), h('div', { class: 'chips', id: 'chCls' })),
-        h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Chapters' }), msel('mkCh', 'chapters')),
-        h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Topics' }), msel('mkTp', 'topics'))),
-      step(3, 'How hard?', 'L1 is easy, L2 is medium, L3 is hard. Tick any mix.', h('div', { class: 'chips', id: 'chDiff' })),
-      step(4, 'What kind of questions?', 'Nothing ticked means all types. Tests use only types that can be marked automatically.', h('div', { class: 'chips', id: 'chType' })),
-      h('p', { class: 'poolnote', id: 'poolNote' })),
-    h('div', { class: 'card' },
-      field('Title', 'fTitle', h('input', { type: 'text', id: 'fTitle', value: S.title, oninput: e => { S.title = e.target.value; renderPreview(); } })),
-      h('div', { class: 'row' },
-        field('Date', 'fDate', h('input', { type: 'date', id: 'fDate', value: S.date, oninput: e => { S.date = e.target.value; renderPreview(); } })),
-        field('Batch', 'fBatch', h('input', { type: 'text', id: 'fBatch', placeholder: 'e.g. JEE 2027 \u00b7 Batch A', value: S.batch, oninput: e => { S.batch = e.target.value; renderPreview(); } }))),
-      h('div', { 'data-testonly': '', class: 'row' },
-        field('Time (minutes)', 'fMins', num('fMins', 'mins', 1, 300)), field('Marks per correct', 'fPos', num('fPos', 'pos', 1, 10, 'any')), field('Marks lost if wrong', 'fNeg', num('fNeg', 'neg', 0, 10, 'any'))),
-      null),
-    h('div', { class: 'card' }, h('h3', { text: 'Page' }),
-      h('div', { class: 'row' }, field('Number of questions', 'fCount', h('input', { type: 'number', id: 'fCount', min: 1, max: 100, value: S.count, oninput: e => { const v = parseInt(e.target.value, 10); if (v >= 1 && v <= 100) { S.count = v; renderPreview(); } } }))),
-      h('div', { class: 'btns' }, h('button', { type: 'button', class: 'btn pri', 'data-act': 'fill', text: 'Fill pages' }), h('button', { type: 'button', class: 'btn', 'data-act': 'shuffle', text: 'Shuffle questions' })),
-      h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Paper' }), h('div', { class: 'seg', id: 'sideSeg' }, h('button', { type: 'button', 'data-act': 'sides', 'data-k': '1', text: '1 side' }), h('button', { type: 'button', 'data-act': 'sides', 'data-k': '2', text: '2 sides (front and back)' }))),
-      h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Columns' }), h('div', { class: 'seg', id: 'colSeg' }, h('button', { type: 'button', 'data-act': 'cols', 'data-k': '1', text: '1 column' }), h('button', { type: 'button', 'data-act': 'cols', 'data-k': '2', text: '2 columns' }))),
-      h('div', { class: 'pick' },
-        h('label', {}, h('input', { type: 'checkbox', id: 'tOrder', 'data-act': 'flip', 'data-k': 'order' }), h('span', { text: 'Order easy to hard' })),
-        h('label', {}, h('input', { type: 'checkbox', id: 'tTag', 'data-act': 'flip', 'data-k': 'tag' }), h('span', { text: 'Show exam and year after PYQs' }))),
-      h('p', { class: 'hint', id: 'poolInfo' })));
-}
-function buildStage() {
-  return h('div', { class: 'rail' },
-    h('div', { class: 'exp' }, h('span', { class: 'lbl', text: 'Download' }),
-      h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'exp', 'data-k': 'docx', title: 'Download Word (editable)', 'aria-label': 'Download Word (editable)', html: FIMG.docx }),
-      h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'exp', 'data-k': 'pdf', title: 'Download PDF', 'aria-label': 'Download PDF', html: FIMG.pdf }),
-      h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'exp', 'data-k': 'pptx', title: 'Download PowerPoint (editable)', 'aria-label': 'Download PowerPoint (editable)', html: FIMG.pptx }),
-      prtBtn('test'), shrBtn('test'),
-      h('span', { class: 'hint', text: 'PDF is a print-ready copy. Word and PowerPoint are fully editable: text is text, and every formula is a native equation you can click and change.' })),
-    h('div', { class: 'testbox' },
-      h('h3', { text: 'Save this test' }),
-      h('p', { class: 'hint', text: 'Save this test to keep it in your list below. It then appears on the student page by itself.' }),
-      h('div', { class: 'btns' }, h('button', { type: 'button', class: 'btn pri', 'data-act': 'mklink', text: 'Save test' }), h('a', { class: 'btn', href: STUDENT_URL, target: '_blank', rel: 'noopener noreferrer', text: 'Open student dashboard \u2197' })),
-      h('p', { class: 'hint', id: 'pubMsg', 'aria-live': 'polite' }),
-      h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Saved tests' }), h('div', { class: 'mytests', id: 'myTests' })),),
-    h('div', { class: 'stage' },
-      h('div', { class: 'statbar' }, h('div', { class: 'msg', id: 'statMsg', 'aria-live': 'polite' })),
-      h('div', { class: 'pgwrap', id: 'pgwrap' })),
-    h('div', { class: 'card' }, h('h3', { text: 'Questions on this sheet' }), h('div', { class: 'qlist', id: 'qList' })));
-}
 
 let dppP = null, listeners = false;
 function ensureDpp() {
@@ -2152,24 +1769,20 @@ function ensureDpp() {
     if (css) { const st = h('style', { text: css }); st.id = 'kcss'; document.head.append(st); }
     BANK = bank; BANK.all = bank.qs.slice(); bank.qs.forEach(q => BYID.set(q.i, q)); bank.chapters.forEach(c => CHMAP.set(c.c, c));
     initPubs(); applyOos();
-    KATEX_P = loadScript(CDN.katex).then(() => loadScript(CDN.auto)).then(() => { if (LS.shown) showLibPrev(); PDFT.cw.v++; PDFT.sw.v++; ['cw', 'sw'].forEach(t => { if ($('#' + t + 'List') && !$('#view' + (t === 'cw' ? 'Cw' : 'Sw')).hidden) renderPdfTab(t); }); if (makeReady && !$('#viewMake').hidden) renderPreview(); }).catch(() => {});
-    const lib = $('#viewLib'), mk = $('#viewMake'); const wasLib = lib.hidden, wasMk = mk.hidden;
-    const nl = buildLib(), nm = h('div', { id: 'viewMake', class: 'make', hidden: wasMk }, buildRail(), buildStage());
-    nl.hidden = wasLib; lib.replaceWith(nl); mk.replaceWith(nm);
-    if (window.ResizeObserver) { const ro = new ResizeObserver(rescale); ro.observe($('#pgwrap')); ro.observe($('#libPrev')); }
-    renderLib(); renderMyTests();
+    KATEX_P = loadScript(CDN.katex).then(() => loadScript(CDN.auto)).then(() => { if (LS.shown) showLibPrev(); PDFT.cw.v++; PDFT.sw.v++; ['cw', 'sw'].forEach(t => { if ($('#' + t + 'List') && !$('#view' + (t === 'cw' ? 'Cw' : 'Sw')).hidden) renderPdfTab(t); }); }).catch(() => {});
+    const lib = $('#viewLib'); const wasLib = lib.hidden;
+    const nl = buildLib();
+    nl.hidden = wasLib; lib.replaceWith(nl);
+    if (window.ResizeObserver) { const ro = new ResizeObserver(rescale); ro.observe($('#libPrev')); }
+    renderLib();
   })().catch(e => { dppP = null; const m = $('#viewLib'); if (m) { m.textContent = ''; m.append(h('p', { class: 'hint', text: 'The library did not load. Refresh the page.' })); } throw e; }));
 }
 function boot() {
-  TESTS = (OPTS && OPTS.tests) || [];
   buildShell(); themeInit();
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMax(); }); document.addEventListener('click', onAct); document.addEventListener('change', onAct);
   window.addEventListener('resize', rescale);
-  try { if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { if (d && d.save) downloads = d; }).catch(() => {}); } catch (e) { /* no runtime */ }
-  try { const up = (window.claude && window.claude.use) ? Promise.resolve(window.claude.use('user')) : Promise.resolve(null); up.then(u => { IS_OWNER = !!(u && u.isOwner && u.isOwner()); const m = $('.tb-misc'); if (m) m.hidden = !IS_OWNER; if (!IS_OWNER && ['make', 'res', 'god'].some(k => { const v = $('#view' + k[0].toUpperCase() + k.slice(1)); return v && !v.hidden; })) setTab('qb'); }).catch(() => { IS_OWNER = false; }); } catch (e) { IS_OWNER = false; }
+  downloads = gatedDownloads(downloads);
   qbInit();
-  try { if (sessionStorage.getItem('avanti_tab') === 'make') { sessionStorage.removeItem('avanti_tab'); setTab('make'); } } catch (e) { /* ignore */ }
-  try { if (sessionStorage.getItem('avanti_sync') === '1') syncStudents().then(r => { toast(syncNote(r)); }); } catch (e) { /* ignore */ }
 }
 /* ---------- Question bank tab: the question bank's own page and code, loaded on first use ---------- */
 let qbLoaded = false;
@@ -2178,358 +1791,21 @@ async function qbInit() {
   const host = $('#viewQb'); host.textContent = ''; host.append(h('div', { class: 'qbload' }, h('div', { class: 'spin' }), h('p', { text: 'Loading the question bank\u2026' })));
   try {
     const pre = window.__qbPre || {};
-    const html = await (pre.html || fetch('qb/qb.b491.html').then(r => r.text()));
-    const js = await (pre.js || fetch('qb/qb-all.b491.js').then(r => r.text()));
+    const html = await (pre.html || fetch('qb/qb.b525.html').then(r => r.text()));
+    const js = await (pre.js || fetch('qb/qb-all.b537.js').then(r => r.text()));
     await Promise.all([document.getElementById('kcss') ? null : fetch('katex.css').then(r => r.text()).then(c => { if (!document.getElementById('kcss')) { const st = h('style', { text: c }); st.id = 'kcss'; document.head.append(st); } }), loadScript(CDN.katex)]).catch(() => {});
     host.innerHTML = '<div id="dash-root">' + html + '</div>';
     const sc = document.createElement('script'); sc.textContent = js; document.head.append(sc);
     await window.__qbStart();
   } catch (e) { qbLoaded = false; host.textContent = 'The question bank did not load. Refresh the page.'; }
 }
-// Question Bank "Full explanation": use the explanation saved from God Mode, when there is one.
-window.__qbSavedSolution = async id => {
-  let db = null; try { db = await window.claude.use('db'); } catch (e) { db = null; }
-  if (!db) return null;
-  try {
-    const snap = await db.collection('explanations').doc(id).get();
-    const d = snap.exists ? snap.data() : null;
-    if (!d || !d.spec) return null;
-    // Break each step at its top-level "=" and "\Rightarrow", so every line is short enough to fit the box.
-    const splitLatexLines = src => {
-      const out = []; let depth = 0, cur = '';
-      for (let i = 0; i < src.length; i++) {
-        const c = src[i];
-        if (c === '{') depth++; else if (c === '}') depth--;
-        if (depth === 0 && cur.trim() && (c === '=' || src.startsWith('\\Rightarrow', i))) {
-          out.push(cur.trim());
-          if (c === '=') cur = '= ';
-          else { i += '\\Rightarrow'.length - 1; cur = '\\Rightarrow '; }
-          continue;
-        }
-        cur += c;
-      }
-      if (cur.trim()) out.push(cur.trim());
-      return out;
-    };
-    const parts = [];
-    (d.spec.solution || []).forEach(s => {
-      if (s.title) parts.push(s.title);
-      splitLatexLines(String(s.latex || '').replace(/^\$\$|\$\$$/g, '')).forEach(seg => parts.push('\\[' + seg + '\\]'));
-    });
-    const ans = d.answer || d.spec.answer;
-    if (ans) parts.push('Answer: ' + ans);
-    return parts.join('\n');
-  } catch (e) { return null; }
+window.AvantiTeacher = {
+  start: o => { OPTS = o; boot(); },
+  setTab: t => setTab(t), hideViews: () => hideViews(), toast: m => toast(m),
+  /* the question bank (same data as the Question Bank, DPPs and PYQs tabs), for the test maker */
+  bank: () => ensureDpp().then(() => ({ qs: BANK.all, byId: BYID, chapters: CHMAP })),
+  math: node => math(node)
 };
-window.AvantiTeacher = { start: o => { OPTS = o; boot(); } };
-/* ---------- God Mode tab: a question -> interactive graph, sliders and solution (Claude solves inside the page) ---------- */
-const SIM = { spec: null, vals: {}, cache: new Map(), file: null, busy: false, mathP: null };
-const SIM_COLORS = ['#e8573e', '#2a9d8f', '#7a3fd1', '#d98200', '#0a86c2', '#16a06a'];
-const SIM_HELP = [
-  'You are helping a JEE maths teacher. Solve the question below and build an interactive graph that helps a student see the idea.',
-  'Reply with ONLY one JSON object (no markdown, no code fence) of this shape:',
-  '{',
-  '  "title": "short title",',
-  '  "params": [ {"name": "h", "label": "vertical line x = h", "min": 0.5, "max": 1, "step": 0.01, "value": 0.75} ],',
-  '  "view": {"x": [-4, 4], "y": [-3, 3]},',
-  '  "curves": [',
-  '    {"type": "fn", "fn": "expression in x and the params", "range": [-2, 2], "color": "#e8573e", "label": ""},',
-  '    {"type": "param", "xt": "expression in t", "yt": "expression in t", "t": [0, 6.2832], "color": "#2a9d8f", "label": ""},',
-  '    {"type": "seg", "from": ["expr", "expr"], "to": ["expr", "expr"], "color": "#7a3fd1", "label": ""}',
-  '  ],',
-  '  "points": [ {"x": "expr", "y": "expr", "label": "P", "color": "#d98200"} ],',
-  '  "polygons": [ {"points": ["P", "Q", "R"], "color": "#e8573e"} ],',
-  '  "plots": [ {"title": "graph of a quantity", "var": "h", "fn": "expression in h and the params", "range": [0.5, 1], "xlabel": "h", "ylabel": "", "marker": true} ],',
-  '  "readouts": [ {"label": "area", "expr": "expression in the params", "digits": 3} ],',
-  '  "solution": [ {"title": "step title", "latex": "LaTeX for the step"} ],',
-  '  "answer": "final answer as text"',
-  '}',
-  'Expressions use math.js syntax: ^ for powers, sqrt(), abs(), sin(), cos(), tan(), log() for natural log, pi, e.',
-  'Use only the parameter names and the variables named above. Keep only the parameters a student should change, so the sliders show the idea.',
-  'Make the solution short and correct: check the final number before you reply. Use the exact value the question asks for.',
-  '',
-  'QUESTION:'
-].join('\n');
-const simEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const simMsg = (t, warn) => { const m = $('#simMsg'); if (m) { m.className = 'msg' + (warn ? ' warn' : ''); m.textContent = t; } };
-function simLoadMath() {
-  if (SIM.mathP) return SIM.mathP;
-  return (SIM.mathP = (window.math ? Promise.resolve() : loadScript(CDN.math)).then(() => { if (!window.math) throw new Error('math library missing'); return true; }).catch(e => { SIM.mathP = null; throw e; }));
-}
-function simC(expr) {
-  const k = String(expr);
-  if (!SIM.cache.has(k)) { let c = null; try { c = window.math.compile(k); } catch (e) { c = null; } SIM.cache.set(k, c); }
-  return SIM.cache.get(k);
-}
-function simEv(expr, scope) {
-  const c = simC(expr); if (!c) return NaN;
-  try { let v = c.evaluate(Object.assign({}, SIM.vals, scope || {})); if (v && typeof v === 'object' && 're' in v) { if (Math.abs(v.im) > 1e-9) return NaN; v = v.re; } return typeof v === 'number' && isFinite(v) ? v : NaN; } catch (e) { return NaN; }
-}
-function simNice(span) { const raw = span / 6, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p; }
-function simAxes(vx, vy, X, Y, W, H, P) {
-  let g = ''; const sx = simNice(vx[1] - vx[0]), sy = simNice(vy[1] - vy[0]);
-  for (let x = Math.ceil(vx[0] / sx) * sx; x <= vx[1] + 1e-9; x += sx) { g += '<line x1="' + X(x) + '" y1="' + P + '" x2="' + X(x) + '" y2="' + (H - P) + '" stroke="var(--rule)" stroke-width="1"/><text x="' + X(x) + '" y="' + (H - P + 14) + '" text-anchor="middle" font-size="11" fill="var(--muted)">' + (+x.toFixed(4)) + '</text>'; }
-  for (let y = Math.ceil(vy[0] / sy) * sy; y <= vy[1] + 1e-9; y += sy) { g += '<line x1="' + P + '" y1="' + Y(y) + '" x2="' + (W - P) + '" y2="' + Y(y) + '" stroke="var(--rule)" stroke-width="1"/><text x="' + (P - 6) + '" y="' + (Y(y) + 4) + '" text-anchor="end" font-size="11" fill="var(--muted)">' + (+y.toFixed(4)) + '</text>'; }
-  if (vy[0] < 0 && vy[1] > 0) g += '<line x1="' + P + '" y1="' + Y(0) + '" x2="' + (W - P) + '" y2="' + Y(0) + '" stroke="var(--ink)" stroke-width="1.5"/>';
-  if (vx[0] < 0 && vx[1] > 0) g += '<line x1="' + X(0) + '" y1="' + P + '" x2="' + X(0) + '" y2="' + (H - P) + '" stroke="var(--ink)" stroke-width="1.5"/>';
-  return g;
-}
-function simPath(pts, X, Y) {
-  let d = '', open = false;
-  pts.forEach(p => { if (!p || !isFinite(p[0]) || !isFinite(p[1]) || Math.abs(p[1]) > 1e6 || Math.abs(p[0]) > 1e6) { open = false; return; } d += (open ? ' L ' : ' M ') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1); open = true; });
-  return d;
-}
-function simDraw() {
-  const S = SIM.spec, host = $('#simGraph'); if (!S || !host || !window.math) return;
-  const vx = (S.view && S.view.x) || [-3, 3], vy = (S.view && S.view.y) || [-3, 3];
-  const W = 640, H = 460, P = 40;
-  const X = x => P + (x - vx[0]) / (vx[1] - vx[0]) * (W - 2 * P), Y = y => H - P - (y - vy[0]) / (vy[1] - vy[0]) * (H - 2 * P);
-  let g = simAxes(vx, vy, X, Y, W, H, P);
-  (S.curves || []).forEach((cv, i) => {
-    const col = cv.color || SIM_COLORS[i % SIM_COLORS.length]; let pts = [];
-    if (cv.type === 'fn') { const r = cv.range || vx, N = 500; for (let k = 0; k <= N; k++) { const x = r[0] + (r[1] - r[0]) * k / N; pts.push([x, simEv(cv.fn, { x })]); } }
-    else if (cv.type === 'param') { const r = cv.t || [0, 1], N = 500; for (let k = 0; k <= N; k++) { const t = r[0] + (r[1] - r[0]) * k / N; pts.push([simEv(cv.xt, { t }), simEv(cv.yt, { t })]); } }
-    else if (cv.type === 'seg') { pts = [[simEv(cv.from[0]), simEv(cv.from[1])], [simEv(cv.to[0]), simEv(cv.to[1])]]; }
-    const d = simPath(pts, X, Y); if (d) g += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="2.4" stroke-linejoin="round"/>';
-  });
-  const pts = {};
-  (S.points || []).forEach(p => { const x = simEv(p.x), y = simEv(p.y); if (p.label) pts[p.label] = [x, y]; });
-  (S.polygons || []).forEach((pg, i) => { const q = (pg.points || []).map(l => pts[l]).filter(v => v && isFinite(v[0]) && isFinite(v[1])); if (q.length >= 3) { const col = pg.color || SIM_COLORS[i % SIM_COLORS.length]; g += '<polygon points="' + q.map(v => X(v[0]).toFixed(1) + ',' + Y(v[1]).toFixed(1)).join(' ') + '" fill="' + col + '" fill-opacity="0.16" stroke="' + col + '" stroke-width="1.6"/>'; } });
-  (S.points || []).forEach((p, i) => { const v = p.label ? pts[p.label] : [simEv(p.x), simEv(p.y)]; if (!v || !isFinite(v[0]) || !isFinite(v[1])) return; const col = p.color || '#1b1b2f'; g += '<circle cx="' + X(v[0]).toFixed(1) + '" cy="' + Y(v[1]).toFixed(1) + '" r="4.2" fill="' + col + '" stroke="#fff" stroke-width="1"/>' + (p.label ? '<text x="' + (X(v[0]) + 7).toFixed(1) + '" y="' + (Y(v[1]) - 7).toFixed(1) + '" font-size="14" font-weight="700" fill="' + col + '">' + simEsc(p.label) + '</text>' : ''); });
-  host.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="' + simEsc(S.title || 'Graph') + '">' + g + '</svg>';
-  const pl = $('#simPlots'); pl.textContent = '';
-  (S.plots || []).forEach(p => {
-    const r = p.range || [0, 1], N = 200, vals = [];
-    for (let k = 0; k <= N; k++) { const x = r[0] + (r[1] - r[0]) * k / N; vals.push([x, simEv(p.fn, { [p.var || 'x']: x })]); }
-    const fin = vals.map(v => v[1]).filter(isFinite); if (!fin.length) return;
-    const y0 = Math.min.apply(null, fin), y1 = Math.max.apply(null, fin), pad = (y1 - y0) * 0.08 || 1, ya = [y0 - pad, y1 + pad];
-    const pw = 360, ph = 230, m = 36;
-    const PX = x => m + (x - r[0]) / (r[1] - r[0]) * (pw - m - 10), PY = y => ph - m + 10 - (y - ya[0]) / (ya[1] - ya[0]) * (ph - m - 10);
-    let s = simAxes(r, ya, PX, PY, pw, ph, m).replace(/font-size="11"/g, 'font-size="10"');
-    s += '<path d="' + simPath(vals, PX, PY) + '" fill="none" stroke="#7a3fd1" stroke-width="2.2"/>';
-    const cur = p.var && SIM.vals[p.var] !== undefined ? SIM.vals[p.var] : null, cy = cur !== null ? simEv(p.fn, { [p.var || 'x']: cur }) : NaN;
-    if (p.marker && cur !== null && isFinite(cy)) s += '<line x1="' + PX(cur) + '" y1="' + PY(ya[0]) + '" x2="' + PX(cur) + '" y2="' + PY(ya[1]) + '" stroke="#e8573e" stroke-dasharray="4 3"/><circle cx="' + PX(cur) + '" cy="' + PY(cy) + '" r="4.5" fill="#e8573e"/>';
-    const box = h('div', { class: 'simplot' }, h('div', { class: 'simptitle', text: p.title || '' }), h('div', { html: '<svg viewBox="0 0 ' + pw + ' ' + ph + '" width="100%">' + s + (p.xlabel ? '<text x="' + (pw / 2) + '" y="' + (ph - 4) + '" text-anchor="middle" font-size="11" fill="var(--muted)">' + simEsc(p.xlabel) + '</text>' : '') + '</svg>' }));
-    pl.append(box);
-  });
-  const ro = $('#simRead'); ro.textContent = '';
-  (S.readouts || []).forEach(r => { const v = simEv(r.expr); ro.append(h('div', { class: 'simread' }, h('span', { text: r.label || '' }), h('b', { text: isFinite(v) ? (+v.toFixed(r.digits == null ? 4 : r.digits)).toString() : '—' }))); });
-}
-function simBuildControls(S) {
-  const pr = $('#simParams'); pr.textContent = '';
-  (S.params || []).forEach(p => {
-    const out = h('span', { class: 'simval', text: String(p.value) });
-    const inp = h('input', { type: 'range', min: String(p.min), max: String(p.max), step: String(p.step || 0.01), value: String(p.value) });
-    inp.addEventListener('input', () => { SIM.vals[p.name] = +inp.value; out.textContent = inp.value; simDraw(); });
-    pr.append(h('div', { class: 'simparam' }, h('label', { text: p.label || p.name }), inp, out));
-  });
-  const sol = $('#simSol'); sol.textContent = '';
-  (S.solution || []).forEach(st => {
-    let tex = String(st.latex || ''); if (!/\\\(|\$\$|\\\[/.test(tex)) tex = '\\(' + tex + '\\)';
-    const body = h('div', { class: 'simtex', text: tex });
-    sol.append(h('div', { class: 'simstep' }, st.title ? h('h4', { text: st.title }) : null, body));
-  });
-  (window.katex ? Promise.resolve() : loadScript(CDN.katex)).catch(() => {}).then(() => {
-    if (!window.katex) return;
-    sol.querySelectorAll('.simtex').forEach(el => {
-      const s = el.textContent.trim().replace(/^\$\$|\$\$$|^\\\[|\\\]$|^\\\(|\\\)$/g, '').trim();
-      try { window.katex.render(s, el, { throwOnError: false, displayMode: false }); } catch (e) { /* keep the raw text */ }
-    });
-  });
-  $('#simAns').textContent = S.answer ? 'Answer: ' + S.answer : '';
-  $('#simTitle').textContent = S.title || 'God Mode';
-}
-async function simLoad(spec) {
-  if (!spec || typeof spec !== 'object' || (!Array.isArray(spec.curves) && !Array.isArray(spec.plots) && !Array.isArray(spec.points))) throw new Error('The answer had no graph spec. Try again, or paste a spec below.');
-  await simLoadMath();
-  SIM.spec = spec; SIM.cache = new Map(); SIM.vals = {};
-  (spec.params || []).forEach(p => { SIM.vals[p.name] = +p.value || 0; });
-  simBuildControls(spec); simDraw();
-}
-function simErr(e) {
-  const c = e && e.code;
-  if (c === 'not_granted') return 'Claude is not allowed in this view. Paste a spec below to draw it.';
-  if (c === 'rate_limited') return 'Too many requests. Wait a minute and try again.';
-  if (c === 'images_unavailable') return 'This view cannot send images. Type the question instead.';
-  return 'Could not solve it: ' + ((e && e.message) || 'try again') + '.';
-}
-function simParse(raw) {
-  let s = String(raw == null ? '' : raw).trim();
-  s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-  const a = s.indexOf('{'), b = s.lastIndexOf('}');
-  if (a < 0 || b <= a) return null;
-  try { return JSON.parse(s.slice(a, b + 1)); } catch (e) { return null; }
-}
-async function simAsk(sample, text, opts) {
-  const prompt = SIM_HELP + '\n' + (text || '(see the attached image)');
-  const o = Object.assign({ modelTier: 'complex' }, opts);
-  let r = await sample(prompt, o);
-  let spec = simParse(r && r.text);
-  if (!spec) {
-    r = await sample(prompt + '\n\nYour last reply was not a valid JSON object. Reply with ONLY the JSON object, starting with { and ending with }, with no other words.', o);
-    spec = simParse(r && r.text);
-  }
-  if (!spec) throw { message: 'Claude did not return a graph this time. Press Solve again, or try a shorter question' };
-  return spec;
-}
-async function simSolve() {
-  if (SIM.busy) return;
-  const text = $('#simText').value.trim(), file = SIM.file;
-  if (!text && !file) { simMsg('Pick a bank question, type it, or upload its image first.', true); return; }
-  let sample = null; try { sample = await window.claude.use('sample'); } catch (e) { sample = null; }
-  if (!sample) { simMsg('Claude is not available in this view. Paste a spec below to draw it.', true); return; }
-  SIM.busy = true; simMsg('Thinking… this can take up to a minute.');
-  try {
-    const opts = {};
-    if (file) { let ok = false; try { ok = !!(await sample.limits()).images; } catch (e) { ok = false; } if (!ok) throw { code: 'images_unavailable' }; opts.images = [file]; }
-    const spec = await simAsk(sample, text, opts);
-    await simLoad(spec);
-    simMsg('Done. Move the sliders to explore.');
-  } catch (e) { simMsg(simErr(e), true); }
-  finally { SIM.busy = false; }
-}
-function simSearch() {
-  const q = ($('#simQ').value || '').trim().toLowerCase(), list = $('#simList'); list.textContent = '';
-  if (!BANK || !BANK.qs) { ensureDpp().then(() => { if (BANK && BANK.qs) simSearch(); }).catch(() => {}); return; }
-  const words =q.split(/\s+/).filter(Boolean);
-  BANK.qs.filter(x => (x.s === 'P' || x.s === 'N') && (!words.length || (() => { const hay = (x.i + ' ' + (x.tp || '') + ' ' + x.q).toLowerCase(); return words.every(w => hay.includes(w)); })())).slice(0, 25).forEach(x => {
-    list.append(h('button', { type: 'button', class: 'simpick', title: x.i, onclick: () => simPick(x) }, h('b', { text: x.i }), h('span', { text: ' ' + String(x.q).replace(/\\\(|\\\)|\\\[|\\\]/g, '').slice(0, 90) })));
-  });
-}
-function simHash(s) { let x = 0; for (let i = 0; i < s.length; i++) x = (x * 31 + s.charCodeAt(i)) | 0; return (x >>> 0).toString(36); }
-async function simSave() {
-  if (!SIM.spec) { simMsg('Solve or draw a question first.', true); return; }
-  const text = $('#simText').value.trim();
-  const id = SIM.qid || 'typed-' + simHash(text || JSON.stringify(SIM.spec));
-  let db = null; try { db = await window.claude.use('db'); } catch (e) { db = null; }
-  if (!db) { simMsg('Saving is not available in this view.', true); return; }
-  try {
-    await db.collection('explanations').doc(id).set({ question: text, spec: SIM.spec, answer: SIM.spec.answer || '', savedAt: new Date().toISOString() });
-    simMsg('Saved as the explanation for ' + id + '.');
-  } catch (e) { simMsg('Could not save: ' + ((e && e.message) || 'try again') + '.', true); }
-}
-async function simLoadSaved(id) {
-  let db = null; try { db = await window.claude.use('db'); } catch (e) { db = null; }
-  if (!db) return false;
-  try {
-    const snap = await db.collection('explanations').doc(id).get();
-    const d = snap.exists ? snap.data() : null;
-    if (d && d.spec) { await simLoad(d.spec); simMsg('Loaded the saved explanation for ' + id + '.'); return true; }
-  } catch (e) { /* nothing saved for this question */ }
-  return false;
-}
-function simPick(x) {
-  $('#simText').value = x.q + ((x.o && x.o.length) ? '\n' + x.o.map((o, i) => '(' + 'ABCD'[i] + ') ' + o).join('\n') : '');
-  SIM.file = null; SIM.qid = x.i; const f = $('#simImg'); if (f) f.value = ''; const pv = $('#simPrev'); if (pv) { pv.hidden = true; pv.removeAttribute('src'); }
-  simMsg('Question loaded: ' + x.i + '. Press Solve and draw.');
-  simLoadSaved(x.i);
-}
-function renderGod() {
-  const view = $('#viewGod'); if (!view || view.dataset.ready) return;
-  view.dataset.ready = '1';
-  const src = h('div', { class: 'card' }, h('h3', { text: 'Question' }),
-    h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Find a bank question' }), h('input', { id: 'simQ', type: 'search', placeholder: 'Type words or a question id', oninput: simSearch })),
-    h('div', { class: 'simlist', id: 'simList' }),
-    h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Question text' }), h('textarea', { id: 'simText', rows: '7', placeholder: 'Type or paste the question. Use \\( \\) for maths.' })),
-    h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Or upload its image' }), h('input', { id: 'simImg', type: 'file', accept: 'image/*', onchange: e => { const f = e.target.files && e.target.files[0]; SIM.file = f || null; const pv = $('#simPrev'); if (f) { pv.src = URL.createObjectURL(f); pv.hidden = false; } else { pv.hidden = true; } } }), h('img', { id: 'simPrev', hidden: true, alt: 'Uploaded question', class: 'simprev' })),
-    h('div', { class: 'btns' }, h('button', { type: 'button', class: 'btn pri', onclick: simSolve, text: 'Solve and draw' }), h('button', { type: 'button', class: 'btn', onclick: simSave, text: 'Save this answer as explanation' })),
-    h('p', { class: 'msg', id: 'simMsg', 'aria-live': 'polite' }),
-    h('details', { class: 'simspec' }, h('summary', { text: 'Paste a spec (JSON) instead' }),
-      h('textarea', { id: 'simSpec', rows: '8', placeholder: '{ "title": "...", "params": [...], "curves": [...] }' }),
-      h('div', { class: 'btns' }, h('button', { type: 'button', class: 'btn', text: 'Draw from spec', onclick: async () => { try { await simLoad(JSON.parse($('#simSpec').value)); simMsg('Drawn from the spec.'); } catch (e) { simMsg('That spec did not load: ' + (e.message || 'check the JSON.'), true); } } }))));
-  const stage = h('div', { class: 'stage' },
-    h('div', { class: 'statbar' }, h('h3', { id: 'simTitle', text: 'God Mode' })),
-    h('div', { class: 'simgraph', id: 'simGraph' }, h('p', { class: 'hint', text: 'Solve a question or paste a spec to see the graph here.' })),
-    h('div', { class: 'simparams', id: 'simParams' }),
-    h('div', { class: 'simread-box', id: 'simRead' }),
-    h('div', { class: 'simplots', id: 'simPlots' }),
-    h('div', { class: 'simans', id: 'simAns' }),
-    h('div', { class: 'simsol', id: 'simSol' }));
-  view.textContent = ''; view.append(h('div', { class: 'rail' }, src), stage);
-  simSearch();
-}
 
-/* ---------- Results tab: students' answers, from the Google Form's response sheet ---------- */
-const RES = { sheet: '18NqW5aYWm-SBTeF3GSpBo_Y9xl1u2YxPteLAqwPI4To', tab: 'Form Responses 1', data: null, at: 0, sel: '', sort: 'pct', dir: -1, open: '' };
-function testKeyOf(code) { let x = 5381; const c = String(code).replace(/^#/, ''); for (let i = 0; i < c.length; i++) x = ((x << 5) + x + c.charCodeAt(i)) >>> 0; return 'k' + x.toString(36); }
-const resMean = a => { const v = a.filter(x => x != null && !isNaN(x)); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
-const resPct = v => v == null ? '—' : Math.round(v * 100) + '%';
-const resTime = s => s == null ? '—' : Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0');
-function resParse(vals) {
-  const out = {};
-  (vals || []).slice(1).forEach(r => {
-    const afid = String(r[1] || '').replace(/\s+/g, ''), key = String(r[2] || '').trim(); if (!/^\d{6,12}$/.test(afid) || !key) return;
-    const g = out[key] || (out[key] = { key, name: String(r[3] || ''), rows: new Map() }); if (g.rows.has(afid)) return;
-    const m = /(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/.exec(String(r[4] || ''));
-    const segs = String(r[5] || '').split(';').filter(Boolean), wseg = segs.find(x => x.slice(0, 2) === 'W:'), wp = wseg ? wseg.split(':') : null, qs = segs.filter(x => x.slice(0, 2) !== 'W:').map(x => { const p = x.split(':'); return { n: +p[0], a: p[1] || '', st: p[2] || 's', t: +p[3] || 0 }; });
-    const ok = qs.filter(q => q.st === 'o').length, no = qs.filter(q => q.st === 'x').length, sk = qs.filter(q => q.st === 's').length, att = ok + no, n = qs.length, secs = qs.reduce((s, q) => s + q.t, 0);
-    g.rows.set(afid, { sw: wp ? +wp[1] || 0 : null, away: wp ? +wp[2] || 0 : null, ps: wp ? +wp[3] || 0 : 0, afid, ts: String(r[0] || ''), score: m ? +m[1] : null, max: m ? +m[2] : null, pct: m && +m[2] ? +m[1] / +m[2] : null, qs, ok, no, sk, att, n, rate: n ? att / n : null, acc: att ? ok / att : null, secs, avg: n ? secs / n : null });
-  });
-  return out;
-}
-function resTests() { const o = {}; TESTS.forEach(t => { o[testKeyOf(t.code)] = { title: t.title, off: !!t.off, ids: String(t.code).split('~').slice(2) }; }); return o; }
-async function resFetch() {
-  const mcp = window.claude && window.claude.use ? await window.claude.use('mcp') : null;
-  if (!mcp) throw { code: 'off' };
-  const r = await mcp.callTool('Google Sheets', 'get_values', { spreadsheetId: RES.sheet, range: "'" + RES.tab + "'!A:F" }, { cache: false });
-  let p = r && (r.structuredContent || r.payload); if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = null; } }
-  return (p && p.values) || [];
-}
-function resMsg(t, bad) { const m = $('#resMsg'); if (m) { m.textContent = t; m.className = 'hint' + (bad ? ' warnt' : ''); } }
-async function resLoad() {
-  resMsg('Reading the result sheet…');
-  try {
-    await ensureDpp().catch(() => {});
-    RES.data = resParse(await resFetch()); RES.at = Date.now();
-    const names = resTests(), keys = Object.keys(RES.data).filter(k => RES.showOld ? !(names[k] && names[k].off) : (names[k] && !names[k].off)), sel = $('#resTest'); sel.textContent = '';
-    keys.sort((a, b) => RES.data[b].rows.size - RES.data[a].rows.size).forEach(k => sel.append(h('option', { value: k, text: ((names[k] && names[k].title) || RES.data[k].name || k) + ' · ' + RES.data[k].rows.size + (RES.data[k].rows.size === 1 ? ' student' : ' students') })));
-    if (!keys.includes(RES.sel)) RES.sel = keys[0] || ''; sel.value = RES.sel;
-    resMsg('Updated ' + new Date(RES.at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + '. Only students who pressed Submit in the form appear here.'); resDraw();
-  } catch (e) {
-    const c = e && e.code;
-    resMsg(c === 'not_in_manifest' || c === 'consent_required' || c === 'approval_required' ? 'Allow this dashboard to read your Google Sheet when asked, then press Refresh.' : c === 'server_not_connected' || c === 'needs_reauth' ? 'Connect or reconnect Google Sheets in your Claude connector settings, then press Refresh.' : c === 'off' ? 'This view cannot reach Google Sheets. Open the dashboard from your own account.' : 'Could not read the sheet (' + (c || 'error') + '). Press Refresh to try again.', true);
-  }
-}
-async function resSync() { resMsg('Starting the block list update…'); const r = await syncStudents(BLOCK_TRIGGER); resMsg(r === 'ok' ? 'Update started. The block list on the student page refreshes in a few minutes.' : 'Could not start the update (' + r + ').', r !== 'ok'); }
-function resDraw() {
-  const body = $('#resBody'); if (!body) return; body.textContent = '';
-  const g = RES.data && RES.data[RES.sel];
-  if (!g) { body.append(h('div', { class: 'card' }, h('p', { class: 'hint', text: 'No results yet. A student appears here after pressing Submit in the Google Form that opens when they finish a test.' }))); return; }
-  const rows = [...g.rows.values()], T = resTests()[RES.sel], q0 = rows[0] ? rows[0].n : 0;
-  const tiles = h('div', { class: 'rs-tiles' }, [['Students', rows.length], ['Average score', resPct(resMean(rows.map(r => r.pct)))], ['Attempt rate', resPct(resMean(rows.map(r => r.rate)))], ['Accuracy', resPct(resMean(rows.map(r => r.acc)))], ['Average time', resTime(resMean(rows.map(r => r.secs)))], ['Seconds per question', resMean(rows.map(r => r.avg)) == null ? '—' : Math.round(resMean(rows.map(r => r.avg)))]]
-    .map(x => h('div', { class: 'rs-tile' }, h('b', { text: String(x[1]) }), h('span', { text: x[0] }))));
-  const cols = [['afid', 'Avanti ID', r => r.afid], ['score', 'Score', r => r.score == null ? '—' : r.score + ' / ' + r.max], ['pct', '%', r => resPct(r.pct)], ['att', 'Attempted', r => r.att + ' / ' + r.n], ['rate', 'Attempt rate', r => resPct(r.rate)], ['acc', 'Accuracy', r => resPct(r.acc)], ['ok', 'Correct', r => r.ok], ['no', 'Wrong', r => r.no], ['sk', 'Skipped', r => r.sk], ['secs', 'Time', r => resTime(r.secs)], ['avg', 'Sec / Q', r => r.avg == null ? '—' : Math.round(r.avg)], ['sw', 'Left the test page', r => r.sw == null ? '—' : (r.sw === 0 ? 'Never' : r.sw + (r.sw === 1 ? ' time' : ' times') + ', ' + resTime(r.away)) + (r.ps ? ' · screenshot key ' + r.ps + 'x' : '')]];
-  const srt = RES.sort, dir = RES.dir, val = r => srt === 'afid' ? r.afid : (r[srt] == null ? -1 : r[srt]);
-  rows.sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : 0) * dir; });
-  const tb = h('tbody', null);
-  rows.forEach(r => {
-    tb.append(h('tr', { class: 'rs-row', 'data-open': RES.open === r.afid ? '1' : '', onclick: () => { RES.open = RES.open === r.afid ? '' : r.afid; resDraw(); } }, cols.map(c => h('td', { text: String(c[2](r)) }))));
-    if (RES.open === r.afid) tb.append(h('tr', { class: 'rs-det' }, h('td', { colspan: String(cols.length) }, h('div', { class: 'rs-chips' }, r.qs.map(q => h('span', { class: 'rs-chip ' + q.st, title: 'Q' + q.n + ' answer ' + (q.a || 'none') + ', ' + q.t + ' s', text: 'Q' + q.n + ' · ' + (q.a ? q.a.replace(/\+/g, ',') : '–') + ' · ' + q.t + 's' }))))));
-  });
-  const stud = h('div', { class: 'card' }, h('h3', { text: 'By student' }), h('p', { class: 'hint', text: 'Click a heading to sort. Click a student to see every question with their answer and time.' }),
-    h('div', { class: 'rs-tw' }, h('table', { class: 'rs-t' }, h('thead', null, h('tr', null, cols.map(c => h('th', { 'aria-sort': srt === c[0] ? (dir < 0 ? 'descending' : 'ascending') : 'none' }, h('button', { type: 'button', class: 'rs-sb', text: c[1] + (srt === c[0] ? (dir < 0 ? ' ▼' : ' ▲') : ''), onclick: () => { if (RES.sort === c[0]) RES.dir = -RES.dir; else { RES.sort = c[0]; RES.dir = c[0] === 'afid' ? 1 : -1; } resDraw(); } }))))), tb)));
-  const qa = [];
-  for (let i = 1; i <= q0; i++) {
-    const cells = rows.map(r => r.qs.find(q => q.n === i)).filter(Boolean), att = cells.filter(c => c.st !== 's'), ok = cells.filter(c => c.st === 'o'), wr = {};
-    cells.filter(c => c.st === 'x' && c.a).forEach(c => { wr[c.a] = (wr[c.a] || 0) + 1; });
-    const top = Object.entries(wr).sort((a, b) => b[1] - a[1])[0], id = T && T.ids[i - 1], bq = id && BYID.get(id);
-    qa.push({ i, id, txt: bq ? String(bq.q).replace(/\s+/g, ' ').slice(0, 90) : (id || ''), ans: bq ? bq.a : '', att: cells.length ? att.length / cells.length : null, acc: att.length ? ok.length / att.length : null, cor: cells.length ? ok.length / cells.length : null, time: resMean(cells.map(c => c.t)), wrong: top ? top[0].replace(/\+/g, ',') + ' (' + top[1] + ')' : '—' });
-  }
-  const bar = v => h('div', { class: 'rs-bar2' }, h('i', { style: 'width:' + Math.round((v || 0) * 100) + '%' }));
-  const qcard = h('div', { class: 'card' }, h('h3', { text: 'By question' }), h('p', { class: 'hint', text: 'Which questions the class found hard, which they skipped, and where they spent the most time.' }),
-    h('div', { class: 'rs-tw' }, h('table', { class: 'rs-t' }, h('thead', null, h('tr', null, ['Q', 'Answer', 'Attempted', 'Accuracy', 'Correct overall', 'Avg time', 'Common wrong'].map(x => h('th', { text: x })))),
-      h('tbody', null, qa.map(x => h('tr', null, h('td', { text: 'Q' + x.i, title: x.id || '' }), h('td', { text: x.ans }), h('td', { text: resPct(x.att) }), h('td', null, resPct(x.acc), bar(x.acc)), h('td', null, resPct(x.cor), bar(x.cor)), h('td', { text: x.time == null ? '—' : Math.round(x.time) + ' s' }), h('td', { text: x.wrong })))))));
-  body.append(tiles, stud, qcard);
-}
-function renderResults() {
-  const view = $('#viewRes'); if (!view) return;
-  if (!view.dataset.ready) {
-    view.dataset.ready = '1'; view.textContent = '';
-    view.append(h('div', { class: 'rs' }, h('div', { class: 'card' }, h('h3', { text: 'Student results' }), h('p', { class: 'hint', text: 'Read live from the Google Sheet that collects the test result form.' }),
-      h('div', { class: 'rs-bar' }, h('select', { id: 'resTest', class: 'rs-sel', 'aria-label': 'Test', onchange: e => { RES.sel = e.target.value; RES.open = ''; resDraw(); } }), h('button', { type: 'button', class: 'btn pri', text: 'Refresh', onclick: resLoad }), h('button', { type: 'button', class: 'btn', text: 'Update student page block list', onclick: resSync }), h('label', { class: 'rs-old' }, h('input', { type: 'checkbox', onchange: e => { RES.showOld = e.target.checked; RES.open = ''; if (RES.data) resLoad(); } }), h('span', { text: ' Show removed tests' }))),
-      h('p', { class: 'hint', id: 'resMsg', 'aria-live': 'polite' })), h('div', { id: 'resBody' })));
-    resLoad();
-  }
-}
 
 })();

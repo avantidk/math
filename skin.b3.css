@@ -48,8 +48,7 @@ html body .tb-menu .tb:hover{background:rgba(255,255,255,.1);color:#fff;transfor
 html body .tb-menu .tb[aria-pressed="true"]{background:linear-gradient(180deg,#ffd36d,var(--gold));color:#1a2340;font-weight:700;box-shadow:0 4px 14px rgba(242,177,52,.35)}
 html body .tb-menu .tb:focus-visible{outline:2px solid #ffd873;outline-offset:2px}
 
-/* Misc dropdown (owner only) */
-html body .tb-misc{position:relative}
+/* dropdown menus (profile menu) */
 html body .tb-drop{left:auto;right:0;top:calc(100% + 10px);z-index:200;min-width:210px;padding:8px;background:var(--panel);border:1px solid var(--rule);border-radius:14px;box-shadow:0 18px 44px rgba(5,12,32,.35)}
 html body .tb-drop button,html body .tb-drop a{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--ink);font:600 14px/1.2 var(--font-body);padding:11px 14px;border-radius:10px}
 html body .tb-drop button:hover,html body .tb-drop a:hover{background:var(--accent-soft);color:var(--accent)}
@@ -154,9 +153,7 @@ html body *{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--muted) 
   html body .tb-menu{display:grid;grid-template-columns:repeat(6,1fr);justify-content:stretch;width:100%}
   html body .tb-menu>:nth-child(-n+3){grid-column:span 2}
   html body .tb-menu>:nth-child(n+4){grid-column:span 3}
-  html body .tb-menu:has(.tb-misc:not([hidden]))>:nth-child(n+4){grid-column:span 2}
   html body .tb-menu .tb{padding:10px 8px;font-size:13.5px;text-align:center;width:100%;white-space:nowrap}
-  html body .tb-menu .tb-misc{width:100%}
   html body .qb-pbar{border-radius:20px;width:100%}
   html body .qb-ptab{flex:1 1 100%;padding:9px 14px}
   html body .qb-qt{font-size:15px}

@@ -19,9 +19,9 @@ jobs:
     steps:
       - name: Ping the database
         run: |
-          code=$(curl -sS -o "$RUNNER_TEMP/ping.json" -w "%{http_code}" \
-            -H "apikey: $SUPABASE_KEY" \
-            "$SUPABASE_URL/rest/v1/teachers?select=afid&limit=1")
+          code=$(curl -sS -o "$RUNNER_TEMP/ping.json" -w "%{http_code}" -X POST \
+            -H "apikey: $SUPABASE_KEY" -H "Content-Type: application/json" -d '{}' \
+            "$SUPABASE_URL/rest/v1/rpc/ping")
           echo "Supabase responded with HTTP $code"
           if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
             echo "Ping failed. Check that the project is running (Restore project in the Supabase dashboard) and that the key is correct."
