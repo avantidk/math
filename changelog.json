@@ -1,5 +1,12 @@
 [
   {
+    "v": "837",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: fixed 12 questions with broken maths (for example \"1\\(0^{th}\\)\" now 10th, (x₁ − 4)², a permutation series) and turned a garbled frequency table into a proper table."
+    ]
+  },
+  {
     "v": "836",
     "date": "14 Nov 2026",
     "items": [
