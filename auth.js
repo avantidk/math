@@ -164,7 +164,6 @@ function loginPage(msg) {
     h('div', { class: 'lgx-float' }, h('span', { class: 'lgx-fic', html: I('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>') }),
       h('div', {}, h('small', { text: 'Report ready · example' }), h('b', { text: 'Score 248 / 300' }), h('span', { text: 'Rank 3 in school · 41 all-India' }))));
   const info = h('section', { class: 'lg-info lgx', 'aria-label': 'What you get' },
-    h('span', { class: 'lgx-pill', text: '★ Free to start · by Ankit Kamboj' }),
     h('h2', { class: 'lgx-h' }, 'Practise like the ', h('em', { text: 'real exam.' }), h('br'), 'Improve every week.'),
     h('p', { class: 'lgx-lead', text: 'NTA-style online tests, 15,000+ questions with solutions and every past paper since 1978, in one place for JEE Maths.' }),
     h('div', { class: 'lgx-exams' }, ['JEE Main', 'JEE Advanced', 'KCET', 'NDA', 'IAT', 'AIEEE'].map(t => h('span', { text: t }))),
@@ -174,9 +173,9 @@ function loginPage(msg) {
     h('ul', { class: 'lgx-feats' }, FEATS.map(([c, ic, t, d]) => h('li', { class: 'c-' + c }, h('span', { class: 'lgx-fic', html: ic }), h('div', {}, h('b', { text: t }), h('span', { text: d }))))),
     h('p', { class: 'lgx-free' }, h('b', { text: 'Start free. ' }), 'Premium from ₹299 a year adds PDF downloads, all-India ranks and more. Avanti students get Premium free.'));
   root.append(h('div', { class: 'lg lg-split' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/avanti-logo.png', alt: 'Avanti Fellows', width: 150, height: 51 }),
-      h('h1', { text: 'Mathematics Dashboard' }), h('p', { text: "JEE, CET, NDA, IAT · PYQ's, DPP's, Handouts and tests" })),
     h('main', { class: 'lg-main' },
+      h('header', { class: 'lg-head' }, h('img', { src: 'img/avanti-logo.png', alt: 'Avanti Fellows', width: 150, height: 51 }),
+        h('h1', { text: 'Mathematics Dashboard' }), h('p', { text: "JEE, CET, NDA, IAT · PYQ's, DPP's, Handouts and tests" })),
       testLink ? h('p', { class: 'lg-note', text: 'Sign in to open your test.' }) : null,
       h('section', { class: 'lg-card' },
         h('h2', { text: 'Sign in or create an account' }),
@@ -184,6 +183,7 @@ function loginPage(msg) {
         gBtn, err,
         h('p', { class: 'lg-fine', text: 'Your choice of Teacher or Student is saved the first time you sign in. Avanti Fellows staff (@avantifellows.org) get full access automatically.' })),
       avBox,
+      h('p', { class: 'lgx-pillrow' }, h('span', { class: 'lgx-pill', text: '★ Free to start · by Ankit Kamboj' })),
       h('section', { class: 'lg-help' }, h('span', { text: 'Trouble signing in?' }), h('button', { type: 'button', class: 'lg-link', text: 'Help & Support', onclick: e => showHelp(e.target) }))),
     info));
   paint();

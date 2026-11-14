@@ -796,3 +796,16 @@ html:not(.plan-staff) .qb-results .qb-tools > .qb-reset, html:not(.plan-staff) .
   .lg-split .lg-head img { width: 110px; }
   .lg-split .lg-head h1 { margin: 0; }
 }
+
+/* v829: brand block on top of the right column (as before), "Free to start" under the sign-in box */
+.lg.lg-split { grid-template-areas: "main" "info"; }
+.lg-split .lg-main > .lg-head { padding: 8px 0 6px; margin: 0; border: 0; width: auto; display: block; text-align: left; }
+.lg-split .lg-main > .lg-head img { width: 130px; }
+.lg-split .lg-main > .lg-head h1 { font-size: clamp(26px, 3vw, 34px); margin: 12px 0 6px; }
+.lg-split .lg-main > .lg-head p { font-size: 14px; }
+.lgx-pillrow { margin: 0; text-align: center; }
+@media (max-width: 979px) { .lg-split .lg-main { margin-top: 24px; } .lg-split .lg-main > .lg-head { text-align: center; } }
+@media (min-width: 980px) {
+  .lg.lg-split { grid-template-areas: "info main"; }
+  .lg-split .lg-main { margin-top: 0; }
+}
