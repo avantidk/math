@@ -53,6 +53,7 @@ function applyGuards(perm) {
   root.classList.add('plan-' + perm.plan);
   root.classList.toggle('role-student', perm.role === 'student');
   root.classList.toggle('role-teacher', perm.role === 'teacher');
+  root.classList.toggle('is-admin', !!perm.isAdmin);
   if (perm.copy && perm.print && perm.share) return;
   const stop = e => { if (e.target && e.target.closest && e.target.closest('input,textarea,[contenteditable]')) return; e.preventDefault(); };
   if (!perm.copy) {

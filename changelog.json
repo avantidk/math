@@ -1,5 +1,15 @@
 [
   {
+    "v": "815",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: quick filter buttons in two neat rows (4 on top, 3 below).",
+      "Solutions status link in the footer is shown only to the admin.",
+      "Membership questions in bigger, easier-to-read text.",
+      "Teachers' chat: if it cannot connect it now says why, with a Try again button."
+    ]
+  },
+  {
     "v": "814",
     "date": "14 Nov 2026",
     "items": [

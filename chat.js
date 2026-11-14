@@ -22,7 +22,8 @@ const time = t => new Date(t).toLocaleTimeString('en-IN', { hour: '2-digit', min
 const initials = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(x => x[0].toUpperCase()).join('') || '?';
 
 let started = false, ch = null, me = null, isOpen = false, unread = 0, status = 'connecting', people = [];
-let fab, badge, dot, panel, list, peopleBox, peopleBtn, input, sendBtn, note;
+let errText = '';
+let fab, badge, retryBtn, dot, panel, list, peopleBox, peopleBtn, input, sendBtn, note;
 
 function render() {
   const n = people.filter(p => p.id !== me.id).length;
@@ -34,7 +35,8 @@ function render() {
     h('span', { class: 'ch-pn' }, h('b', { text: p.name + (p.id === me.id ? ' (you)' : '') }), h('small', { text: [p.role, p.school].filter(Boolean).join(' · ') })))));
   const can = status === 'live';
   input.disabled = !can; sendBtn.disabled = !can || !input.value.trim();
-  note.textContent = status === 'off' ? 'The chat could not connect. Refresh the page to try again.' : 'Temporary chat: messages are not saved and disappear when you reload.';
+  note.textContent = status === 'off' ? 'The chat could not connect' + (errText ? ' (' + errText + ')' : '') + '.' : 'Temporary chat: messages are not saved and disappear when you reload.';
+  retryBtn.hidden = status !== 'off';
 }
 function addMessage(m) {
   const mine = m.from === me.id;
@@ -73,26 +75,40 @@ function build() {
     onkeydown: e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } if (e.key === 'Escape') { toggle(false); fab.focus(); } } });
   sendBtn = h('button', { type: 'button', class: 'ch-send', 'aria-label': 'Send', title: 'Send (Enter)', html: SEND, onclick: send });
   note = h('p', { class: 'ch-note' });
+  retryBtn = h('button', { type: 'button', class: 'ch-retry', hidden: true, text: 'Try again', onclick: () => { status = 'connecting'; errText = ''; render(); connect(); } });
   panel = h('section', { class: 'ch-panel', hidden: true, role: 'dialog', 'aria-label': "Teachers' chat" },
     h('header', { class: 'ch-head' }, h('div', { class: 'ch-title' }, h('b', { text: "Teachers' chat" }), peopleBtn),
       h('button', { type: 'button', class: 'ch-x', 'aria-label': 'Close chat', html: '&times;', onclick: () => { toggle(false); fab.focus(); } })),
-    peopleBox, list, h('div', { class: 'ch-compose' }, input, sendBtn), note);
+    peopleBox, list, h('div', { class: 'ch-compose' }, input, sendBtn), note, retryBtn);
   document.body.append(panel, fab);
 }
 async function connect() {
   const sb = AU().sb;
-  try { const { data } = await sb.auth.getSession(); if (data.session) sb.realtime.setAuth(data.session.access_token); } catch (e) { /* the client sets it too */ }
-  ch = sb.channel(TOPIC, { config: { private: true, broadcast: { self: true }, presence: { key: me.id } } });
-  ch.on('presence', { event: 'sync' }, () => {
-    const st = ch.presenceState(), seen = new Map();
+  if (ch) { try { await sb.removeChannel(ch); } catch (e) { /* already gone */ } ch = null; }
+  try {
+    const { data } = await sb.auth.getSession();
+    if (!data.session) { status = 'off'; errText = 'you are not signed in'; render(); return; }
+    await sb.realtime.setAuth(data.session.access_token);
+  } catch (e) { /* the client sets it too */ }
+  const mine = sb.channel(TOPIC, { config: { private: true, broadcast: { self: true }, presence: { key: me.id } } });
+  ch = mine;
+  mine.on('presence', { event: 'sync' }, () => {
+    const st = mine.presenceState(), seen = new Map();
     Object.values(st).flat().forEach(p => { if (p && p.id && !seen.has(p.id)) seen.set(p.id, p); });
     people = [...seen.values()].sort((a, b) => (a.id === me.id) - (b.id === me.id) || String(a.name).localeCompare(String(b.name)));
     render();
   });
-  ch.on('broadcast', { event: 'msg' }, ({ payload }) => { if (payload && payload.text && payload.from) addMessage(payload); });
-  ch.subscribe(async s => {
-    if (s === 'SUBSCRIBED') { status = 'live'; render(); await ch.track({ id: me.id, name: me.name, school: me.school, role: me.role }); }
-    else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') { status = 'off'; render(); }
+  mine.on('broadcast', { event: 'msg' }, ({ payload }) => { if (payload && payload.text && payload.from) addMessage(payload); });
+  mine.subscribe(async (s, err) => {
+    if (ch !== mine) return;
+    if (s === 'SUBSCRIBED') { status = 'live'; errText = ''; render(); await mine.track({ id: me.id, name: me.name, school: me.school, role: me.role }); }
+    else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' || s === 'CLOSED') {
+      status = 'off';
+      const m = String((err && err.message) || s);
+      errText = /permission|unauthori/i.test(m) ? 'the server did not allow this account to join: ' + m : s === 'TIMED_OUT' ? 'no answer from the server' : m;
+      if (window.console) console.warn("Teachers' chat:", s, m);
+      render();
+    }
   });
 }
 function start() {
