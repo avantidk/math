@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
   if (!data || !data.ok) {
     return json({ error: data && data.reason === 'too_many'
       ? 'Too many wrong tries. Please wait 15 minutes and try again.'
-      : 'That Avanti ID and date of birth do not match our list. Check both and try again.' }, 401);
+      : 'That ID and date of birth do not match. Check both and try again.' }, 401);
   }
 
   // Make sure the student's account exists (the sign-up trigger links it to the Avanti ID), then issue a one-time token.

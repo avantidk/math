@@ -105,7 +105,7 @@ async function copy(text, okMsg) {
   try { await navigator.clipboard.writeText(text); toast(okMsg || 'Copied'); }
   catch (e) { promptBox('Copy this link', 'Select and copy', text); }
 }
-function nope(title, text) { show(card(empty(title, text, link('#/profile', 'Edit profile', 'btn'), link('#/membership', 'Membership', 'btn pri')))); }
+function nope(title, text) { show(card(empty(title, text, link('#/membership', 'Upgrade to Premium', 'btn pt-gold')))); }
 const P = () => AU().profile || {};
 const can = k => !!(AU().perm && AU().perm[k]);
 
@@ -119,7 +119,7 @@ function route() {
   if (r !== 't') exitExam();
   curRoute = location.hash;
   const pages = { profile: pageProfile, membership: pageMembership, tests: pageAvailable, reports: pageReports, report: pageReport, t: pageTake,
-    create: pageCreate, edit: pageCreate, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets };
+    create: pageCreate, edit: pageCreate, students: pageStudents, 'add-student': pageAddStudent, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets };
   const fn = pages[r];
   if (!fn) { leave(); return; }
   Promise.resolve(fn(arg, r)).catch(e => show(errorBox(e.message || String(e), route)));
@@ -224,16 +224,20 @@ async function pageMembership() {
   const p = P(), plan = AU().perm.plan;
   show(loading());
   const { data: pays } = await sb().from('payments').select('order_id,payment_id,amount_paise,status,created_at,paid_at').order('created_at', { ascending: false }).limit(20);
-  const feats = ['Every handout (free members see only the first chapter of each class)', 'Download every DPP, PYQ paper, Must Solve list and handout as PDF', 'Print and share PDFs', 'Create online tests with a share link (teachers)', 'Results, ranks and CSV export (teachers)'];
+  const teacher = p.role === 'teacher', price = Math.round((p.price_paise || (teacher ? 59900 : 29900)) / 100);
+  const feats = teacher
+    ? ['Everything in Free: view all material, create tests with a link for your school, add students one by one', 'Download every DPP, PYQ paper, Must Solve list and handout as PDF; print and share', 'Saved worksheets', 'My Students: the list of your school\'s students by class and batch, with their performance', 'Bulk upload students from Excel or CSV, and edit their details', 'Export results as CSV']
+    : ['Everything in Free: view all material, take your school\'s tests, your report with your school rank', 'Download every DPP, PYQ paper, Must Solve list and handout as PDF; print and share', 'Reports with your rank among all students who took the test, not just your school'];
   const msg = h('p', { class: 'pt-msg', role: 'status' });
-  const payBtn = h('button', { type: 'button', class: 'btn pt-gold pt-big', text: plan === 'premium' ? 'Renew for 1 more year · ₹1' : 'Pay ₹1 · Get Premium for 1 year', onclick: () => pay(payBtn, msg) });
-  const status = plan === 'staff' ? card(h('h2', { text: 'Staff account' }), h('p', { text: 'Your @avantifellows.org account has full access to everything. No payment is needed.' }))
-    : plan === 'premium' ? card(h('h2', { text: 'Premium' }), h('p', { text: 'Your Premium membership is active until ' + day(p.premium_until) + '. After that the account returns to Free unless you renew.' }), payBtn, msg)
-      : card(h('h2', { text: 'Premium membership' }), h('p', { class: 'pt-price' }, h('strong', { text: '₹1' }), ' for 1 year'), h('ul', { class: 'pt-feats' }, feats.map(f => h('li', { text: f }))), payBtn, msg,
+  const payBtn = h('button', { type: 'button', class: 'btn pt-gold pt-big', text: plan === 'premium' ? 'Renew for 1 more year · ₹' + price : 'Get Premium · ₹' + price + ' a year', onclick: () => pay(payBtn, msg) });
+  const status = plan === 'staff' ? card(h('h2', { text: 'Avanti Fellows account' }), h('p', { text: 'Your @avantifellows.org account has full access to everything. No payment is needed.' }))
+    : p.is_avanti ? card(h('h2', { text: 'Avanti student · Premium' }), h('p', { text: 'Premium is included for students on the Avanti list. No payment is needed.' }), h('ul', { class: 'pt-feats' }, feats.map(f => h('li', { text: f }))))
+    : plan === 'premium' ? card(h('h2', { text: 'Premium' }), h('p', { text: 'Your Premium membership is active until ' + day(p.premium_until) + '. After that the account returns to Free unless you renew.' }), h('ul', { class: 'pt-feats' }, feats.map(f => h('li', { text: f }))), payBtn, msg)
+      : card(h('h2', { text: 'Premium for ' + (teacher ? 'teachers' : 'students') }), h('p', { class: 'pt-price' }, h('strong', { text: '₹' + price }), ' for 1 year'), h('ul', { class: 'pt-feats' }, feats.map(f => h('li', { text: f }))), payBtn, msg,
         h('p', { class: 'pt-hint', text: 'Payment is handled by Razorpay (UPI, cards, net banking). Premium starts as soon as the payment is confirmed.' }));
   const hist = (pays || []).length ? card(h('h2', { text: 'Payment history' }), h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Date', 'Amount', 'Status', 'Payment ID'].map(t => h('th', { text: t })))),
     h('tbody', {}, pays.map(x => h('tr', {}, h('td', { text: when(x.created_at) }), h('td', { text: '₹' + num(x.amount_paise / 100, 2) }), h('td', {}, badge({ paid: 'Paid', failed: 'Failed', created: 'Not completed' }[x.status], { paid: 'ok', failed: 'bad' }[x.status])), h('td', { class: 'pt-mono', text: x.payment_id || '—' }))))))) : null;
-  show(head('Membership', 'Your plan: ' + { free: 'Free', premium: 'Premium', staff: 'Staff' }[plan]), h('div', { class: 'pt-grid2' }, status, hist));
+  show(head('Membership', 'Your plan: ' + (plan === 'staff' ? 'Avanti · Full access' : p.is_avanti ? 'Avanti · Premium' : plan === 'premium' ? 'Premium' : 'Free')), h('div', { class: 'pt-grid2' }, status, hist));
 }
 let rzpP = null;
 async function callPay(body) {
@@ -281,7 +285,7 @@ async function myWorksheets() {
   return data || [];
 }
 async function pageWorksheets() {
-  if (!can('createTests')) return nope('Saved worksheets are for Premium teachers', 'Buy a membership to save worksheets and create tests.');
+  if (!can('worksheets')) return nope('Saved worksheets are for Premium teachers', 'Upgrade to keep question lists as worksheets and reuse them in tests.');
   show(head('Saved worksheets', 'Question lists you kept from the Question Bank or the test maker.'), loading());
   const list = await myWorksheets();
   const body = list.length ? h('div', { class: 'pt-cards' }, list.map(w => card(
@@ -296,7 +300,7 @@ async function pageWorksheets() {
   show(head('Saved worksheets', 'Question lists you kept from the Question Bank or the test maker.', link('#/create', 'Create Test', 'btn pri')), body);
 }
 async function saveWorksheet(ids, name) {
-  if (!can('createTests')) { toast('Saving worksheets needs a Premium teacher membership.'); return; }
+  if (!can('worksheets')) { toast('Saved worksheets are for Premium teachers.'); return; }
   const t = await promptBox('Save as worksheet', 'Worksheet title', name || 'Worksheet');
   if (!t) return;
   const { error } = await sb().from('worksheets').insert({ title: t, question_ids: ids.slice(0, 300) });
@@ -349,7 +353,7 @@ const gradable = q => { if (!q || !q.a) return false; if (q.t === 'Numerical') r
 let CHN = new Map();
 function snap(q) { const ch = CHN.get(q.cc); return { id: q.i, type: q.t, q: q.q, o: q.o || [], a: q.a, ch: q.cc, chn: ch ? ch.n : q.cc, tp: q.tp || '', f: q.f && q.f.svg ? { svg: q.f.svg } : null, d: q.d, src: q.s === 'P' ? (q.e === 'Main' ? 'JEE Main' : q.e === 'Adv' ? 'JEE Advanced' : q.e) + (q.y ? ' ' + q.y : '') : 'Practice' }; }
 async function pageCreate(arg, r) {
-  if (!can('createTests')) return nope('Creating tests is for Premium teachers', 'Buy a membership to create tests, share links and see results.');
+  if (!can('createTests')) return nope('Creating tests is for teachers', 'Sign in as a teacher to create tests.');
   show(head(r === 'edit' ? 'Edit test' : 'Create Test', 'Loading the question bank…'), loading('Loading the question bank…'));
   const B = await TE().bank(); CHN = B.chapters;
   const all = B.qs.filter(gradable);
@@ -371,7 +375,7 @@ async function pageCreate(arg, r) {
   const fMins = inp('ctMins', 'number', S.mins, { min: 1, max: 600 }), fPos = inp('ctPos', 'number', S.pos, { min: 0.5, max: 100, step: 'any' }), fNeg = inp('ctNeg', 'number', S.neg, { min: 0, max: 100, step: 'any' });
   const mkSel = (id, first, list, val) => { const s = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: first }), list.map(x => h('option', { value: x, text: x }))); s.value = val; return s; };
   const fCls = mkSel('ctCls', 'Any class', CLASSES, S.cls), fStr = mkSel('ctStr', 'Any stream', STREAMS, S.stream);
-  const fSchool = schoolSelect('ctSchool', S.school, 'All schools');
+  const fSchool = can('staff') ? schoolSelect('ctSchool', S.school, 'All schools') : (() => { const d = h('div', { class: 'pt-ro', id: 'ctSchool', text: P().school || '—' }); d.value = () => P().school; return d; })();
   const fAct = h('input', { type: 'checkbox', id: 'ctAct', role: 'switch' }); fAct.checked = S.active;
   const fld = (label, el, hint) => h('label', { class: 'pt-fld', for: el.id }, h('span', { text: label }), el, hint ? h('small', { text: hint }) : null);
   const msg = h('p', { class: 'pt-msg', role: 'status' });
@@ -487,7 +491,7 @@ async function pageCreate(arg, r) {
       h('div', { class: 'pt-col' },
         card(h('h2', { text: 'Test details' }), fld('Title', fTitle),
           h('div', { class: 'pt-row3' }, fld('Duration (minutes)', fMins), fld('Marks if correct', fPos), fld('Negative marks', fNeg, 'Taken off for a wrong MCQ answer')),
-          h('div', { class: 'pt-row2' }, fld('Class', fCls), fld('Stream', fStr)), fld('School (optional)', fSchool, 'Only students of this school see it in Available tests. Anyone with the link can still open it.'),
+          h('div', { class: 'pt-row2' }, fld('Class', fCls), fld('Stream', fStr)), fld(can('staff') ? 'School (optional)' : 'School', fSchool, can('staff') ? 'Only students of this school can take it. Leave blank for every school.' : 'Only students of your school can see and take this test.'),
           h('label', { class: 'pt-switch', for: 'ctAct' }, fAct, h('span', { text: 'Active: students can open the test now' })),
           S.locked ? h('p', { class: 'pt-note', text: 'Students have already submitted this test, so the questions and marks are locked. You can still change the title, class, school and on/off.' }) : null),
         card(selHead, selBox, h('div', { class: 'pt-actions' }, saveBtn,
@@ -499,7 +503,7 @@ async function pageCreate(arg, r) {
 
 /* ---------- My Tests ---------- */
 async function pageMyTests() {
-  if (!can('createTests') && !can('staff')) return nope('My Tests is for Premium teachers', 'Buy a membership to create tests and see results.');
+  if (!can('createTests')) return nope('My Tests is for teachers', 'Sign in as a teacher to create tests.');
   show(head('My Tests and Results', ''), loading());
   const list = await rpc('my_tests');
   const top = head('My Tests and Results', list.length ? list.length + ' test' + (list.length === 1 ? '' : 's') : '', link('#/create', '+ Create Test', 'btn pri'));
@@ -542,7 +546,7 @@ async function pageResults(id) {
     .concat((R.questions || []).map(q => [q.pos, q.qid, q.chapter, q.topic, q.total, q.correct, q.wrong, q.skipped, q.correct_pct, q.avg_time_sec])));
   const top = head(t.title, t.n_questions + ' questions · ' + t.duration_min + ' min · max ' + num(t.max_score, 2) + ' marks' + (t.is_active ? '' : ' · inactive'),
     h('button', { type: 'button', class: 'btn', text: 'Copy link', onclick: () => copy(testLink(t.code), 'Link copied') }),
-    h('button', { type: 'button', class: 'btn pri', text: 'Export CSV', disabled: !st.length, onclick: exportStudents }),
+    can('pdf') ? h('button', { type: 'button', class: 'btn pri', text: 'Export CSV', disabled: !st.length, onclick: exportStudents }) : link('#/membership', 'Export CSV (Premium)', 'btn'),
     link('#/my-tests', 'My Tests', 'btn'));
   if (!st.length) { show(top, card(empty('No results yet', (s.in_progress ? s.in_progress + ' student(s) are writing the test now. ' : '') + 'Results appear here when students submit. Share the link: ' + testLink(t.code)))); return; }
   const maxD = Math.max(1, ...R.distribution.map(d => d.count));
@@ -563,7 +567,7 @@ async function pageResults(id) {
     h('p', { class: 'pt-hint', text: 'Rank: higher score first, then less time. Click a student to open their report.' }),
     h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Rank', 'Student', 'School', 'Class / category', 'Score', 'C / W / S', 'Accuracy', 'Time', 'Tab switches'].map(x => h('th', { text: x })))), tbody)));
   drawRows();
-  const qs = card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Question-wise correctness' }), h('button', { type: 'button', class: 'btn', text: 'Export CSV', onclick: exportQs })),
+  const qs = card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Question-wise correctness' }), can('pdf') ? h('button', { type: 'button', class: 'btn', text: 'Export CSV', onclick: exportQs }) : null),
     h('div', { class: 'pt-legend' }, h('span', { class: 'lg-c', text: 'Correct' }), h('span', { class: 'lg-w', text: 'Wrong' }), h('span', { class: 'lg-s', text: 'Skipped' })),
     h('div', { class: 'pt-qbars' }, (R.questions || []).map(q => h('div', { class: 'pt-qbar' }, h('b', { text: 'Q' + q.pos }),
       h('span', { class: 'pt-stack', title: q.correct + ' correct, ' + q.wrong + ' wrong, ' + q.skipped + ' skipped' },
@@ -625,9 +629,10 @@ async function pageReport(id) {
   let only = 'all';
   const filt = h('div', { class: 'seg pt-seg' }, [['all', 'All'], ['wrong', 'Wrong'], ['skipped', 'Not answered'], ['correct', 'Correct']].map(([k, tx]) => h('button', { type: 'button', 'aria-pressed': String(k === only), text: tx, onclick: e => { only = k; filt.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === e.target))); review.querySelectorAll('.pt-q').forEach(q => { q.hidden = only !== 'all' && !q.classList.contains('st-' + only); }); } })));
   show(top,
-    h('div', { class: 'pt-stats' }, stat('Score', num(a.score, 2) + ' / ' + num(a.max_score, 2), 'Average ' + num(R.stats && R.stats.average, 2) + ' · Top ' + num(R.stats && R.stats.top, 2)),
+    !R.full ? h('div', { class: 'pt-upsell' }, h('span', { text: 'You see how you did within your school. Premium students also see their rank among all students who took this test.' }), link('#/membership', 'Upgrade to Premium', 'btn pt-gold')) : null,
+    h('div', { class: 'pt-stats' }, stat('Score', num(a.score, 2) + ' / ' + num(a.max_score, 2), R.full && R.stats ? 'Average ' + num(R.stats.average, 2) + ' · Top ' + num(R.stats.top, 2) : 'School average ' + num(R.school_stats && R.school_stats.average, 2) + ' · Top ' + num(R.school_stats && R.school_stats.top, 2)),
       stat('Accuracy', pct(acc), a.correct + ' correct of ' + att + ' attempted'), stat('Time taken', mmss(a.time_taken_sec), 'of ' + t.duration_min + ' min'),
-      stat('Rank (all students)', rk.overall ? rk.overall + ' of ' + rk.overall_of : '—'), stat('Rank in school', rk.school ? rk.school + ' of ' + rk.school_of : '—', a.school || ''),
+      R.full ? stat('Rank (all students)', rk.overall ? rk.overall + ' of ' + rk.overall_of : '—') : null, stat('Rank in school', rk.school ? rk.school + ' of ' + rk.school_of : '—', a.school || ''),
       stat('Answers', a.correct + ' / ' + a.wrong + ' / ' + a.skipped, 'correct / wrong / not answered')),
     card(h('h2', { text: 'Topic-wise performance' }), h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Topic', 'Questions', 'Correct', 'Wrong', 'Not answered', 'Marks', 'Accuracy', ''].map(x => h('th', { text: x })))),
       h('tbody', {}, (R.topics || []).map(x => h('tr', {}, h('td', {}, h('b', { text: x.topic }), x.chapter ? h('div', { class: 'pt-hint', text: x.chapter }) : null), h('td', { class: 'pt-num', text: x.total }), h('td', { class: 'pt-num', text: x.correct }), h('td', { class: 'pt-num', text: x.wrong }), h('td', { class: 'pt-num', text: x.skipped }), h('td', { class: 'pt-num', text: num(x.marks, 2) }), h('td', { class: 'pt-num', text: pct(x.accuracy) }), h('td', { class: 'pt-barcell' }, bar(x.accuracy, x.accuracy == null ? '' : x.accuracy < 40 ? 'bad' : x.accuracy < 70 ? 'mid' : 'ok')))))))),
@@ -643,6 +648,7 @@ async function pageTake(code) {
   if (!info) { show(card(empty('Test not found', 'This test link is not valid. Ask your teacher for the link again.', link('#/tests', 'Available tests', 'btn')))); return; }
   if (info.is_owner) { show(card(empty('This is your own test', 'Students open this link to take it. You can preview it and see results from My Tests.', link('#/my-tests', 'My Tests', 'btn pri')))); return; }
   if (info.attempt_status === 'submitted') { location.replace('#/report/' + info.attempt_id); return; }
+  if (!info.for_me && !info.attempt_id) { show(card(empty(info.title, 'This test is only for students of ' + info.school + '. Ask your teacher if you think this is wrong.', link('#/tests', 'Available tests', 'btn')))); return; }
   if (!info.is_active && !info.attempt_id) { show(card(empty(info.title, 'This test is not open right now. Ask your teacher.', link('#/tests', 'Available tests', 'btn')))); return; }
   const startBtn = h('button', { type: 'button', class: 'btn pri pt-big', text: info.attempt_status === 'in_progress' ? 'Resume test' : 'Start test', onclick: async () => {
     startBtn.disabled = true; startBtn.textContent = 'Starting…';
@@ -763,6 +769,196 @@ function runExam(d) {
   window.addEventListener('beforeunload', X.onUnload);
   X.tick = setInterval(tickTimer, 1000); X.auto = setInterval(() => save(), 15000);
   tickTimer(); draw();
+}
+
+/* ---------- Teachers: students of their school ---------- */
+const COLS = ['student_id', 'dob', 'full_name', 'class', 'stream', 'category', 'gender', 'batch'];
+const COL_LBL = { student_id: 'Student ID', dob: 'Date of birth', full_name: 'Full name', class: 'Class', stream: 'Stream', category: 'Category', gender: 'Gender', batch: 'Batch' };
+const pickFrom = (list, v) => { const t = String(v == null ? '' : v).trim(); return list.find(x => x.toLowerCase() === t.toLowerCase()) || t; };
+function studentForm(o) {
+  o = o || {}; const v = o.values || {}, edit = !!o.edit;
+  const sel = (id, list, val) => { const x = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: 'Choose…' }), list.map(z => h('option', { value: z, text: z }))); x.value = val || ''; return x; };
+  const F = {
+    student_id: h('input', { id: 'sfId', class: 'pt-in', type: 'text', maxlength: 40, value: v.student_id || '', placeholder: 'e.g. Avanti ID or roll number', disabled: edit, autocomplete: 'off' }),
+    dob: h('input', { id: 'sfDob', class: 'pt-in', type: 'date', max: new Date().toISOString().slice(0, 10) }),
+    full_name: h('input', { id: 'sfName', class: 'pt-in', type: 'text', maxlength: 120, value: v.full_name || '' }),
+    class: sel('sfClass', CLASSES, v.class), stream: sel('sfStream', STREAMS, v.stream),
+    category: sel('sfCat', CATEGORIES, v.category), gender: sel('sfGender', GENDERS, v.gender),
+    batch: h('input', { id: 'sfBatch', class: 'pt-in', type: 'text', maxlength: 60, value: v.batch || '', placeholder: 'e.g. Morning batch (optional)' })
+  };
+  const req = k => k !== 'batch' && !(edit && k === 'dob');
+  const fld = (k, hint) => h('label', { class: 'pt-fld', for: F[k].id }, h('span', {}, COL_LBL[k], req(k) ? h('b', { class: 'pt-req', text: ' *' }) : null), F[k], hint ? h('small', { text: hint }) : null);
+  const node = h('div', { class: 'pt-form' },
+    o.hideId ? null : h('div', { class: 'pt-row2' }, fld('student_id', edit ? 'The ID cannot be changed.' : 'The student signs in with this ID.'), fld('dob', edit ? 'Leave blank to keep the current date of birth.' : 'Used as the password with the ID.')),
+    fld('full_name'), h('div', { class: 'pt-row2' }, fld('class'), fld('stream')), h('div', { class: 'pt-row2' }, fld('category'), fld('gender')), fld('batch'));
+  node.values = () => { const r = {}; COLS.forEach(k => { r[k] = (F[k].value || '').trim(); }); return r; };
+  node.missing = () => COLS.filter(k => req(k) && !(o.hideId && (k === 'student_id' || k === 'dob')) && !node.values()[k]).map(k => COL_LBL[k]);
+  return node;
+}
+async function addStudentFlow(after) {
+  const f = studentForm(); const msg = h('p', { class: 'pt-msg', role: 'status' });
+  modal('Add a student', h('div', {}, h('p', { class: 'pt-hint', text: 'Adds the student to ' + (P().school || 'your school') + '. They sign in with "Login with Student ID" using this ID and date of birth.' }), f, msg),
+    [{ text: 'Cancel', onclick: () => {} }, { text: 'Add student', pri: true, onclick: close => {
+      const miss = f.missing(); if (miss.length) { msg.textContent = 'Please fill in: ' + miss.join(', '); msg.className = 'pt-msg bad'; return false; }
+      msg.textContent = 'Saving…'; msg.className = 'pt-msg';
+      rpc('teacher_add_student', { p: f.values() }).then(r => { close(); toast('Added ' + f.values().full_name + ' (ID ' + r.student_id + ')'); if (after) after(); })
+        .catch(e => { msg.textContent = e.message; msg.className = 'pt-msg bad'; });
+      return false;
+    } }]);
+}
+function pageAddStudent() {
+  if (!can('createTests')) return nope('Adding students is for teachers', '');
+  if (can('manageStudents')) { location.replace('#/students'); return; }
+  let f = studentForm(); const holder = h('div', {}, f), msg = h('p', { class: 'pt-msg', role: 'status' }), done = h('div', { class: 'pt-plist' });
+  const btn = h('button', { type: 'button', class: 'btn pri pt-big', text: 'Add student', onclick: async () => {
+    const miss = f.missing(); if (miss.length) { msg.textContent = 'Please fill in: ' + miss.join(', '); msg.className = 'pt-msg bad'; return; }
+    btn.disabled = true; msg.textContent = 'Saving…'; msg.className = 'pt-msg';
+    try {
+      const v = f.values(), r = await rpc('teacher_add_student', { p: v });
+      msg.textContent = 'Added. ' + v.full_name + ' can now sign in with Student ID ' + r.student_id + ' and their date of birth.'; msg.className = 'pt-msg ok';
+      done.prepend(h('div', { class: 'pt-si' }, h('b', { text: '✓' }), h('span', { class: 'pt-si-t', text: v.full_name + ' · ' + r.student_id }), h('span', { class: 'pt-hint', text: 'Class ' + v.class + ' · ' + v.stream + (v.batch ? ' · ' + v.batch : '') })));
+      f = studentForm(); holder.textContent = ''; holder.append(f);
+    } catch (e) { msg.textContent = e.message; msg.className = 'pt-msg bad'; }
+    btn.disabled = false;
+  } });
+  show(head('Add a student', 'Students of ' + (P().school || 'your school') + ' sign in with their Student ID and date of birth.'),
+    h('div', { class: 'pt-grid2' }, card(h('h2', { text: 'Student details' }), holder, h('div', { class: 'pt-actions' }, btn), msg),
+      h('div', { class: 'pt-col' }, card(h('h2', { text: 'Added just now' }), done, h('p', { class: 'pt-hint', text: 'Students you add here appear in this list until you leave the page.' })),
+        card(h('h2', { text: 'Premium for teachers' }), h('ul', { class: 'pt-feats' }, ['See every student of your school by class and batch, with their test performance', 'Upload a whole class at once from Excel or CSV', 'Edit any student\'s details'].map(x => h('li', { text: x }))), link('#/membership', 'Upgrade to Premium', 'btn pt-gold')))));
+}
+
+let XLSX_P = null;
+function loadXlsx() { if (!XLSX_P) XLSX_P = new Promise((res, rej) => { if (window.XLSX) return res(); const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = res; sc.onerror = () => { XLSX_P = null; rej(new Error('Could not load the Excel reader. Check your internet connection.')); }; document.head.append(sc); }); return XLSX_P; }
+const TEMPLATE = [COLS, ['2401234567', '2008-05-14', 'Priya Sharma', '11', 'PCM', 'OBC-NCL', 'Female', 'Morning batch'], ['ROLL-1102', '2009-01-02', 'Rohan Kumar', '12', 'PCB', 'General', 'Male', '']];
+async function downloadTemplate(kind) {
+  if (kind === 'csv') { saveCsv('students_template.csv', TEMPLATE); return; }
+  try {
+    await loadXlsx();
+    const ws = window.XLSX.utils.aoa_to_sheet(TEMPLATE); ws['!cols'] = COLS.map(() => ({ wch: 18 }));
+    const help = window.XLSX.utils.aoa_to_sheet([['Column', 'What to write'], ['student_id', 'Avanti ID or roll number. Letters, numbers, . _ / - (3 to 40). Must be unique.'], ['dob', 'Date of birth, YYYY-MM-DD or DD-MM-YYYY. The student signs in with the ID and this date.'], ['full_name', 'Full name'], ['class', CLASSES.join(', ')], ['stream', STREAMS.join(', ')], ['category', CATEGORIES.join(', ')], ['gender', GENDERS.join(', ')], ['batch', 'Optional, e.g. Morning batch']]);
+    help['!cols'] = [{ wch: 14 }, { wch: 90 }];
+    const wb = window.XLSX.utils.book_new(); window.XLSX.utils.book_append_sheet(wb, ws, 'Students'); window.XLSX.utils.book_append_sheet(wb, help, 'How to fill');
+    window.XLSX.writeFile(wb, 'students_template.xlsx');
+  } catch (e) { toast(e.message); }
+}
+const HDR = { 'student id': 'student_id', studentid: 'student_id', id: 'student_id', 'avanti id': 'student_id', avanti_id: 'student_id', 'date of birth': 'dob', 'date_of_birth': 'dob', birthdate: 'dob', name: 'full_name', 'full name': 'full_name', 'student name': 'full_name', 'class': 'class', grade: 'class' };
+function normRow(o) {
+  const r = {};
+  Object.keys(o).forEach(k => { const key = String(k).trim().toLowerCase(); const c = HDR[key] || key.replace(/\s+/g, '_'); if (COLS.includes(c)) r[c] = o[k]; });
+  let d = r.dob;
+  if (d instanceof Date && !isNaN(d)) { const x = new Date(d.getTime() + 12 * 3600e3); d = x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); }
+  else if (typeof d === 'number' && window.XLSX) { const p = window.XLSX.SSF.parse_date_code(d); d = p ? p.y + '-' + String(p.m).padStart(2, '0') + '-' + String(p.d).padStart(2, '0') : String(d); }
+  const out = {}; COLS.forEach(k => { out[k] = String((k === 'dob' ? d : r[k]) == null ? '' : (k === 'dob' ? d : r[k])).trim(); });
+  out.class = pickFrom(CLASSES, out.class); out.stream = pickFrom(STREAMS, out.stream); out.category = pickFrom(CATEGORIES, out.category); out.gender = pickFrom(GENDERS, out.gender);
+  const err = [];
+  if (!out.student_id) err.push('Student ID missing');
+  if (out.dob && !/^\d{4}-\d{1,2}-\d{1,2}$|^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$/.test(out.dob)) err.push('date of birth not understood');
+  [['class', CLASSES], ['stream', STREAMS], ['category', CATEGORIES], ['gender', GENDERS]].forEach(([k, L]) => { if (out[k] && !L.includes(out[k])) err.push(COL_LBL[k] + ' must be one of ' + L.join(', ')); });
+  out._err = err.join('; ');
+  return out;
+}
+async function readSheet(file) {
+  await loadXlsx();
+  const wb = window.XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  return window.XLSX.utils.sheet_to_json(ws, { defval: '', raw: true }).map(normRow).filter(r => COLS.some(k => r[k]));
+}
+function bulkUpload(after) {
+  const out = h('div', { class: 'pt-bulk' });
+  const fileIn = h('input', { type: 'file', accept: '.csv,.xlsx,.xls', id: 'bulkFile', class: 'pt-file' });
+  const body = h('div', {}, h('p', { class: 'pt-hint', text: 'Use the template: one row per student. Columns: ' + COLS.join(', ') + '. Existing Student IDs of your school are updated; new ones are added.' }),
+    h('div', { class: 'pt-actions' }, h('button', { type: 'button', class: 'btn', text: '⬇ Template (Excel)', onclick: () => downloadTemplate('xlsx') }), h('button', { type: 'button', class: 'btn', text: '⬇ Template (CSV)', onclick: () => downloadTemplate('csv') })),
+    h('label', { class: 'pt-drop', for: 'bulkFile' }, h('b', { text: 'Choose a .xlsx or .csv file' }), h('span', { text: 'Excel or CSV, up to 2000 students' }), fileIn), out);
+  let rows = [];
+  fileIn.addEventListener('change', async () => {
+    const f = fileIn.files[0]; out.textContent = ''; if (!f) return;
+    out.append(loading('Reading ' + f.name + '…'));
+    try { rows = await readSheet(f); } catch (e) { out.textContent = ''; out.append(errorBox('Could not read the file: ' + e.message)); return; }
+    out.textContent = '';
+    if (!rows.length) { out.append(empty('No students found', 'The first sheet has no rows under the headings. Use the template.')); return; }
+    if (rows.length > 2000) { out.append(errorBox('This file has ' + rows.length + ' rows. Upload up to 2000 at a time.')); return; }
+    const bad = rows.filter(r => r._err).length;
+    out.append(h('p', { class: 'pt-meta' }, h('b', { text: rows.length + ' students found' }), bad ? ' · ' + bad + ' with problems (these rows will not be saved; fix them in the file and upload again)' : ''),
+      h('div', { class: 'pt-tw pt-tw-s' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['#'].concat(COLS.map(k => COL_LBL[k]), ['Check']).map(x => h('th', { text: x })))),
+        h('tbody', {}, rows.slice(0, 200).map((r, i) => h('tr', { class: r._err ? 'pt-badrow' : null }, h('td', { text: i + 1 }), COLS.map(k => h('td', { text: r[k] || '—' })), h('td', { text: r._err || 'OK' })))))),
+      rows.length > 200 ? h('p', { class: 'pt-hint', text: 'Showing the first 200 rows.' }) : null);
+  });
+  const close = modal('Bulk upload students', body, [{ text: 'Close', onclick: () => {} }, { text: 'Upload students', pri: true, onclick: () => {
+    if (!rows.length) { toast('Choose a file first'); return false; }
+    out.prepend(loading('Uploading ' + rows.length + ' students…'));
+    rpc('teacher_add_students', { p_rows: rows.map(r => { const o = Object.assign({}, r); delete o._err; return o; }) }).then(res => {
+      const ok = res.filter(x => x.ok), added = ok.filter(x => x.action === 'added').length, upd = ok.length - added, fail = res.filter(x => !x.ok);
+      out.textContent = '';
+      out.append(h('div', { class: 'pt-stats' }, stat('Added', added), stat('Updated', upd), stat('Not saved', fail.length)),
+        fail.length ? h('div', { class: 'pt-tw pt-tw-s' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Row', 'Student ID', 'Problem'].map(x => h('th', { text: x })))),
+          h('tbody', {}, fail.map(x => h('tr', { class: 'pt-badrow' }, h('td', { text: x.row }), h('td', { text: (rows[x.row - 1] || {}).student_id || '—' }), h('td', { text: x.error })))))) : h('p', { class: 'pt-msg ok', text: 'All students saved.' }));
+      rows = []; fileIn.value = ''; if (after) after();
+    }).catch(e => { out.querySelector('.pt-state') && out.querySelector('.pt-state').remove(); out.prepend(errorBox(e.message)); });
+    return false;
+  } }]);
+  return close;
+}
+function editStudent(st, after) {
+  const f = studentForm({ edit: true, values: st, hideId: !st.student_id }); const msg = h('p', { class: 'pt-msg', role: 'status' });
+  modal('Edit ' + (st.full_name || 'student'), h('div', {}, st.student_id ? null : h('p', { class: 'pt-hint', text: 'Signs in with Google: ' + (st.email || '') }), f, msg),
+    [{ text: 'Cancel', onclick: () => {} }, { text: 'Save changes', pri: true, onclick: close => {
+      const miss = f.missing(); if (miss.length) { msg.textContent = 'Please fill in: ' + miss.join(', '); msg.className = 'pt-msg bad'; return false; }
+      const v = f.values(); delete v.student_id; if (!v.dob) delete v.dob;
+      rpc('teacher_update_student', { p_user: st.student_id ? null : st.user_id, p_student_id: st.student_id || null, p: v })
+        .then(() => { close(); toast('Saved'); if (after) after(); }).catch(e => { msg.textContent = e.message; msg.className = 'pt-msg bad'; });
+      return false;
+    } }]);
+}
+async function studentTests(st) {
+  const body = h('div', {}, loading());
+  modal((st.full_name || 'Student') + ' · tests', body, [{ text: 'Close', pri: true, onclick: () => {} }]);
+  try {
+    const list = await rpc('student_attempts', { p_user: st.user_id });
+    body.textContent = '';
+    body.append(list.length ? h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Test', 'Date', 'Score', 'C / W / S', ''].map(x => h('th', { text: x })))),
+      h('tbody', {}, list.map(a => h('tr', {}, h('td', {}, h('b', { text: a.title })), h('td', { text: day(a.submitted_at) }), h('td', { class: 'pt-num', text: num(a.score, 2) + ' / ' + num(a.max_score, 2) }),
+        h('td', { class: 'pt-num', text: a.correct + ' / ' + a.wrong + ' / ' + a.skipped }), h('td', {}, h('a', { class: 'btn', href: '#/report/' + a.id, text: 'Report', onclick: () => { const m = document.querySelector('.pt-modal-back'); if (m) m.remove(); } }))))))) : empty('No tests yet', 'This student has not submitted a test.'));
+  } catch (e) { body.textContent = ''; body.append(errorBox(e.message)); }
+}
+let STU_SCHOOL = '';
+async function pageStudents() {
+  if (!can('manageStudents')) { if (can('createTests')) { location.replace('#/add-student'); return; } return nope('My Students is for teachers', ''); }
+  show(head('My Students', ''), loading('Loading your students…'));
+  const R = await rpc('school_students', { p_school: STU_SCHOOL || null });
+  const all = R.students || [];
+  const F = { cls: '', batch: '', q: '' };
+  const reload = () => pageStudents();
+  const uniq = k => [...new Set(all.map(x => x[k]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'en', { numeric: true }));
+  const tbody = h('tbody', {}), countEl = h('span', { class: 'pt-meta' });
+  const draw = () => {
+    const q = F.q.toLowerCase();
+    const rows = all.filter(x => (!F.cls || x.class === F.cls) && (!F.batch || (x.batch || '') === F.batch) && (!q || [x.full_name, x.student_id, x.email].some(v => String(v || '').toLowerCase().includes(q))));
+    countEl.textContent = rows.length + ' of ' + all.length + ' students';
+    tbody.textContent = '';
+    if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: 9 }, empty('No students match', all.length ? 'Change the filters above.' : 'Add students one by one, or upload a whole class from Excel.'))));
+    rows.forEach(x => tbody.append(h('tr', {},
+      h('td', {}, h('b', { text: x.full_name || '—' }), h('div', { class: 'pt-hint', text: x.student_id ? 'ID ' + x.student_id : (x.email || 'Google sign-in') })),
+      h('td', { text: [x.class && 'Class ' + x.class, x.stream].filter(Boolean).join(' · ') || '—' }), h('td', { text: x.batch || '—' }),
+      h('td', { text: [x.category, x.gender].filter(Boolean).join(' · ') || '—' }),
+      h('td', {}, x.signed_in ? badge('Signed in', 'ok') : badge('Not yet', 'mute'), x.source === 'avanti' ? h('div', { class: 'pt-hint', text: 'Avanti list' }) : null),
+      h('td', { class: 'pt-num', text: x.tests }), h('td', { class: 'pt-num pt-barcell' }, x.avg_pct == null ? '—' : [h('span', { text: pct(x.avg_pct) }), bar(x.avg_pct, x.avg_pct < 40 ? 'bad' : x.avg_pct < 70 ? 'mid' : 'ok')]),
+      h('td', { class: 'pt-num', text: x.last_at ? day(x.last_at) : '—' }),
+      h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editStudent(x, reload) }),
+        x.user_id && x.tests ? h('button', { type: 'button', class: 'btn', text: 'Tests', onclick: () => studentTests(x) }) : null)))));
+  };
+  const mkSel = (label, list, key) => { const s = h('select', { class: 'pt-in', 'aria-label': label, onchange: e => { F[key] = e.target.value; draw(); } }, h('option', { value: '', text: 'All ' + label.toLowerCase() + 'es' }), list.map(v => h('option', { value: v, text: v }))); return s; };
+  const signed = all.filter(x => x.signed_in).length, took = all.filter(x => x.tests > 0), avg = took.length ? took.reduce((a, x) => a + (+x.avg_pct || 0), 0) / took.length : null;
+  let schoolPick = null;
+  if (can('staff')) { schoolPick = schoolSelect('stuSchool', R.school, 'Choose a school'); schoolPick.sel.addEventListener('change', () => { STU_SCHOOL = schoolPick.value(); pageStudents(); }); }
+  show(head('My Students', R.school + ' · ' + all.length + ' student' + (all.length === 1 ? '' : 's'),
+      h('button', { type: 'button', class: 'btn', text: '+ Add a student', onclick: () => addStudentFlow(reload) }),
+      h('button', { type: 'button', class: 'btn pri', text: 'Bulk upload', onclick: () => bulkUpload(reload) })),
+    schoolPick ? card(h('label', { class: 'pt-fld' }, h('span', { text: 'School (Avanti staff)' }), schoolPick)) : null,
+    h('div', { class: 'pt-stats' }, stat('Students', all.length), stat('Signed in', signed), stat('Took a test', took.length), stat('Average score', avg == null ? '—' : pct(avg), 'of students who took a test')),
+    card(h('div', { class: 'pt-frow' }, mkSel('Class', uniq('class'), 'cls'), mkSel('Batch', uniq('batch'), 'batch'),
+        h('input', { type: 'search', class: 'pt-in', placeholder: 'Search name, ID or email', 'aria-label': 'Search students', oninput: e => { F.q = e.target.value.trim(); draw(); } })), countEl,
+      h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Student', 'Class', 'Batch', 'Category · Gender', 'Sign-in', 'Tests', 'Average', 'Last test', ''].map(x => h('th', { text: x })))), tbody))));
+  draw();
 }
 
 window.AvantiPortal = { route, leave: () => leave(false), saveWorksheet, createTestFrom, onboard, profileMissing };

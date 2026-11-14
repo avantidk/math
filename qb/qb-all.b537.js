@@ -2058,7 +2058,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     var ICO = { save: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>', test: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>' };
     var row = document.createElement('div'); row.className = 'qb-wsrow wsrow';
     function mk(cls, ico, label, title, fn) { var b = document.createElement('button'); b.type = 'button'; b.className = 'btn wsbtn ' + cls; b.title = title; b.innerHTML = ico + '<span>' + label + '</span>'; b.disabled = !S.sel.size; b.addEventListener('click', function () { if (S.sel.size && window.AvantiPortal) fn(selected().map(function (q) { return q.id; }), exportName(selected())); }); row.appendChild(b); }
-    mk('qb-savews', ICO.save, 'Save as worksheet', 'Keep the ticked questions in Saved worksheets', function (ids, name) { window.AvantiPortal.saveWorksheet(ids, name); });
+    if (QBP('worksheets')) mk('qb-savews', ICO.save, 'Save as worksheet', 'Keep the ticked questions in Saved worksheets', function (ids, name) { window.AvantiPortal.saveWorksheet(ids, name); });
     mk('qb-mktest pri', ICO.test, 'Create test', 'Make an online test from the ticked questions', function (ids, name) { window.AvantiPortal.createTestFrom(ids, name); });
     exp.parentNode.insertBefore(row, exp.nextSibling);
   })();

@@ -11,7 +11,8 @@
 //         Then open the function → Details → turn OFF "Verify JWT" (Razorpay cannot send a Supabase login) → Save.
 // Secrets (Supabase → Edge Functions → Secrets):
 //   RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET
-//   PREMIUM_PRICE_PAISE   optional, default 100 (= Rs. 1)
+//   PRICE_STUDENT_PAISE   optional, default 29900 (= Rs. 299 a year)
+//   PRICE_TEACHER_PAISE   optional, default 59900 (= Rs. 599 a year)
 
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
@@ -20,7 +21,8 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const KEY_ID = Deno.env.get('RAZORPAY_KEY_ID') ?? '';
 const KEY_SECRET = Deno.env.get('RAZORPAY_KEY_SECRET') ?? '';
 const WEBHOOK_SECRET = Deno.env.get('RAZORPAY_WEBHOOK_SECRET') ?? '';
-const PRICE = Number(Deno.env.get('PREMIUM_PRICE_PAISE') ?? '100') || 100;
+const PRICE_STUDENT = Number(Deno.env.get('PRICE_STUDENT_PAISE') ?? '29900') || 29900;
+const PRICE_TEACHER = Number(Deno.env.get('PRICE_TEACHER_PAISE') ?? '59900') || 59900;
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
@@ -113,11 +115,13 @@ Deno.serve(async (req) => {
 
   try {
     if (body.action === 'create-order') {
-      const { data: prof } = await admin.from('profiles').select('id, email, full_name, is_staff').eq('id', user.id).single();
+      const { data: prof } = await admin.from('profiles').select('id, email, full_name, is_staff, is_avanti, role').eq('id', user.id).single();
       if (!prof) return json({ error: 'Profile not found.' }, 404);
-      if (prof.is_staff) return json({ error: 'Staff accounts already have full access.' }, 400);
+      if (prof.is_staff) return json({ error: 'Avanti staff accounts already have full access.' }, 400);
+      if (prof.is_avanti) return json({ error: 'Avanti students already have Premium.' }, 400);
+      const PRICE = prof.role === 'teacher' ? PRICE_TEACHER : PRICE_STUDENT;
       const order = await razorpay('/orders', { method: 'POST', body: JSON.stringify({
-        amount: PRICE, currency: 'INR', receipt: 'md-' + Date.now(), notes: { user_id: user.id, product: 'Premium 1 year' } }) });
+        amount: PRICE, currency: 'INR', receipt: 'md-' + Date.now(), notes: { user_id: user.id, product: 'Premium 1 year (' + (prof.role || 'student') + ')' } }) });
       const { error } = await admin.from('payments').insert({ user_id: user.id, order_id: order.id, amount_paise: order.amount, currency: order.currency });
       if (error) throw new Error(error.message);
       return json({ order_id: order.id, amount: order.amount, currency: order.currency, key_id: KEY_ID, name: prof.full_name ?? '', email: prof.email ?? '' });

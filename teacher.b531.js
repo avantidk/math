@@ -867,7 +867,7 @@ const WS_ICO = {
 function wsRow(src) {
   if (!G('createTests')) return null;
   return h('div', { class: 'wsrow' },
-    h('button', { type: 'button', class: 'btn wsbtn', 'data-act': 'wssave', 'data-src': src, title: 'Keep these questions in Saved worksheets', html: WS_ICO.save + '<span>Save as worksheet</span>' }),
+    G('worksheets') ? h('button', { type: 'button', class: 'btn wsbtn', 'data-act': 'wssave', 'data-src': src, title: 'Keep these questions in Saved worksheets', html: WS_ICO.save + '<span>Save as worksheet</span>' }) : null,
     h('button', { type: 'button', class: 'btn pri wsbtn', 'data-act': 'wstest', 'data-src': src, title: 'Make an online test from these questions', html: WS_ICO.test + '<span>Create test</span>' }));
 }
 function wsSource(src) {
@@ -1084,18 +1084,13 @@ function showPdfPrev(T) {
 }
 /* ---------- Handouts tab: compact PDF list ---------- */
 let HO = null;
-const HO_FREE = new Set();
-const hoNum = x => { const m = /M(\d+)/.exec(x.code); return m ? +m[1] : 999; };
-const hoFree = x => HO_FREE.has(x.code);
-const hoOpen = x => G('pdf') || hoFree(x);
-/* In-page handout viewer (PDF.js draws the pages; no download or print button). Free members may open only the free handouts. */
+/* In-page handout viewer (PDF.js draws the pages; no download or print button). Everyone can view; downloads need Premium. */
 let PDFJS_P = null;
 function loadPdfJs() {
   if (!PDFJS_P) PDFJS_P = loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js').then(() => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; return window.pdfjsLib; }).catch(e => { PDFJS_P = null; throw e; });
   return PDFJS_P;
 }
 async function viewHandout(x, url) {
-  if (!hoOpen(x)) { toast('This handout is for Premium members.'); return; }
   const close = () => { m.remove(); document.removeEventListener('keydown', onKey); document.body.classList.remove('hv-on'); if (io) io.disconnect(); };
   const onKey = e => { if (e.key === 'Escape') close(); };
   const pages = h('div', { class: 'hv-pages' }, h('p', { class: 'hv-msg', text: 'Loading the handout\u2026' }));
@@ -1151,8 +1146,6 @@ async function renderHandouts() {
     document.head.append(st);
   }
   const list = (HO || []).filter(Boolean);
-  /* free to everyone: the first chapter's handout of Class 11 and of Class 12 (lowest chapter number in each class) */
-  HO_FREE.clear(); ['11', '12'].forEach(c => { const L = list.filter(x => x.code.startsWith(c)).sort((a, b) => hoNum(a) - hoNum(b)); if (L.length) HO_FREE.add(L[0].code); });
   if (!list.length) { view.append(h('p', { class: 'hint', text: 'No handouts yet.' })); return; }
   const base = x => x.file.replace(/\.pdf$/, '');
   const path = (x, bw) => 'handouts/' + (bw ? x.dir + '/bw/' + base(x) + '_BW.pdf' : x.file);
@@ -1166,14 +1159,13 @@ async function renderHandouts() {
   const btn = (x, bw) => h('button', { type: 'button', class: 'hp-btn' + (bw ? ' bw' : ''), title: bw ? 'Download PDF (black and white, for printing)' : 'Download PDF', 'aria-label': 'Download ' + x.title + (bw ? ' PDF, black and white' : ' PDF'), html: ICON + (bw ? 'PDF · B&W' : 'PDF'), onclick: () => dl(x, bw) });
   const ACC = ['#e0197a', '#0a86c2', '#16a06a', '#d98200', '#7a3fd1', '#e8590c', '#5a9a00'];
   const EYE = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg>';
-  const LOCK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
   const viewBtn = x => h('button', { type: 'button', class: 'hp-btn hp-view', title: 'Open in the viewer', 'aria-label': 'View ' + x.title, html: EYE + 'View', onclick: () => viewHandout(x, path(x, false)) });
   const card = (x, k) => h('article', { class: 'hp-card', style: '--ac:' + ACC[k % ACC.length] },
     h('span', { class: 'hp-code', text: x.code }),
     h('div', { class: 'hp-main' }, h('h3', { class: 'hp-title', text: x.title }), h('p', { class: 'hp-meta', text: [x.pages ? x.pages + ' pages' : '', x.orient || 'A4'].filter(Boolean).join(' · ') })),
-    h('div', { class: 'hp-act' }, hoOpen(x) ? viewBtn(x) : null, G('pdf') ? [btn(x, false), x.nobw ? null : btn(x, true)] : hoFree(x) ? h('span', { class: 'hp-free', text: 'Free' }) : h('a', { class: 'hp-btn bw hp-lock', href: '#/membership', title: 'Premium members can open every handout', html: LOCK + 'Premium' })));
+    h('div', { class: 'hp-act' }, viewBtn(x), G('pdf') ? [btn(x, false), x.nobw ? null : btn(x, true)] : null));
   const secs = [['11', 'Class 11'], ['12', 'Class 12']].map(([c, t]) => { const L = list.filter(x => x.code.startsWith(c)); return L.length ? h('section', { class: 'hp-sec' }, h('h2', { class: 'hp-sech', text: t }), h('div', { class: 'hp-list' }, L.map((x, k) => card(x, k)))) : null; }).filter(Boolean);
-  view.append(h('div', { class: 'hp-head' }, h('h1', { text: 'Handouts' }), h('p', { text: G('pdf') ? 'Handwritten revision notes · view or download as PDF' : 'Handwritten revision notes · the first chapter of each class is free to view' })), ...secs);
+  view.append(h('div', { class: 'hp-head' }, h('h1', { text: 'Handouts' }), h('p', { text: G('pdf') ? 'Handwritten revision notes · view or download as PDF' : 'Handwritten revision notes · view online (PDF download with Premium)' })), ...secs);
 }
 
 /* ---------- Must Solve tab: questions that repeat in JEE (exact or very similar) and sure-shot picks, by chapter and topic ---------- */

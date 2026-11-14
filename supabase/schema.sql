@@ -64,11 +64,14 @@ create table if not exists public.profiles (
 -- Added after the first release (safe to run again)
 alter table public.profiles add column if not exists category text check (char_length(category) <= 30);
 alter table public.profiles add column if not exists gender text check (char_length(gender) <= 30);
+alter table public.profiles add column if not exists batch text check (char_length(batch) <= 60);
+alter table public.profiles add column if not exists is_avanti boolean not null default false;  -- on the Avanti list: Premium included
 
--- The plan that applies right now: Staff, or Premium while the paid year lasts, otherwise Free.
+-- The plan that applies right now: Staff (Avanti teachers), Premium (Avanti students, or a paid year), otherwise Free.
 create or replace function public.plan_of(p public.profiles) returns text
 language sql stable set search_path = public as $$
   select case when p.is_staff then 'staff'
+              when p.is_avanti then 'premium'
               when p.premium_until is not null and p.premium_until > now() then 'premium'
               else 'free' end
 $$;
@@ -83,12 +86,22 @@ language sql stable security definer set search_path = public as $$
   select coalesce((select p.is_staff from public.profiles p where p.id = auth.uid()), false)
 $$;
 
--- Premium or Staff teachers (and all Staff) can create tests and save worksheets.
+-- Every teacher (Free or Premium) and all Staff can create tests and add students one by one.
 create or replace function public.can_create_tests() returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select p.is_staff or p.role = 'teacher' from public.profiles p where p.id = auth.uid()), false)
+$$;
+
+-- Premium teachers and Staff: saved worksheets, the student list with performance, bulk upload and editing students.
+create or replace function public.is_premium_teacher() returns boolean
 language sql stable security definer set search_path = public as $$
   select coalesce((select p.is_staff or (p.role = 'teacher' and public.plan_of(p) = 'premium')
                    from public.profiles p where p.id = auth.uid()), false)
 $$;
+
+-- Yearly price in paise: students Rs. 299, teachers Rs. 599 (the razorpay Edge Function uses the same numbers).
+create or replace function public.price_paise(p_role text) returns integer
+language sql immutable as $$ select case when p_role = 'teacher' then 59900 else 29900 end $$;
 
 -- -------------------------------------------------------------------------------------
 -- 2. Avanti ID allow-list (students who may sign in with Avanti ID + date of birth)
@@ -118,6 +131,12 @@ alter table public.student_allowlist add column if not exists category text;
 alter table public.student_allowlist add column if not exists gender text;
 alter table public.student_allowlist_import add column if not exists category text;
 alter table public.student_allowlist_import add column if not exists gender text;
+alter table public.student_allowlist_import add column if not exists batch text;
+-- 'avanti' = from the Avanti list (Premium included); 'teacher' = added by a school teacher (Free unless they pay)
+alter table public.student_allowlist add column if not exists source text not null default 'avanti' check (source in ('avanti', 'teacher'));
+alter table public.student_allowlist add column if not exists added_by uuid references public.profiles(id) on delete set null;
+alter table public.student_allowlist add column if not exists batch text;
+alter table public.student_allowlist add column if not exists updated_at timestamptz not null default now();
 
 create table if not exists public.login_attempts (
   id        bigserial primary key,
@@ -152,26 +171,29 @@ language sql immutable set search_path = public as $$
 $$;
 
 drop function if exists public.allowlist_add(text, text, text, text, text, text);
+drop function if exists public.allowlist_add(text, text, text, text, text, text, text, text);
 create or replace function public.allowlist_add(p_avanti_id text, p_dob text, p_full_name text default null,
   p_school text default null, p_class text default null, p_stream text default null,
-  p_category text default null, p_gender text default null) returns void
+  p_category text default null, p_gender text default null, p_batch text default null) returns void
 language plpgsql security definer set search_path = public, extensions as $$
 declare v_id text := public.norm_avanti_id(p_avanti_id); v_dob date := public.norm_dob(p_dob);
 begin
   if v_id is null then raise exception 'Avanti ID is empty'; end if;
   if v_dob is null then raise exception 'Date of birth "%" for % is not a date. Use YYYY-MM-DD or DD-MM-YYYY.', p_dob, v_id; end if;
-  insert into public.student_allowlist (avanti_id, dob_hash, full_name, school, class, stream, category, gender)
+  insert into public.student_allowlist (avanti_id, dob_hash, full_name, school, class, stream, category, gender, batch, source)
   values (v_id, extensions.crypt(to_char(v_dob, 'YYYY-MM-DD'), extensions.gen_salt('bf', 8)),
           nullif(trim(p_full_name), ''), nullif(trim(p_school), ''), nullif(trim(p_class), ''), nullif(trim(p_stream), ''),
-          nullif(trim(p_category), ''), nullif(trim(p_gender), ''))
+          nullif(trim(p_category), ''), nullif(trim(p_gender), ''), nullif(trim(p_batch), ''), 'avanti')
   on conflict (avanti_id) do update set dob_hash = excluded.dob_hash, full_name = excluded.full_name, school = excluded.school,
     class = excluded.class, stream = excluded.stream, category = excluded.category, gender = excluded.gender,
+    batch = coalesce(excluded.batch, student_allowlist.batch), source = 'avanti', updated_at = now(),
     failed_attempts = 0, locked_until = null;
   -- the student's profile always follows the Avanti list
-  update public.profiles p set full_name = coalesce(a.full_name, p.full_name), school = coalesce(a.school, p.school),
-         class = coalesce(a.class, p.class), stream = coalesce(a.stream, p.stream),
-         category = coalesce(a.category, p.category), gender = coalesce(a.gender, p.gender), updated_at = now()
-    from public.student_allowlist a where a.avanti_id = v_id and p.avanti_id = a.avanti_id;
+  update public.profiles p set full_name = coalesce(al.full_name, p.full_name), school = coalesce(al.school, p.school),
+         class = coalesce(al.class, p.class), stream = coalesce(al.stream, p.stream),
+         category = coalesce(al.category, p.category), gender = coalesce(al.gender, p.gender),
+         batch = coalesce(al.batch, p.batch), is_avanti = (al.source = 'avanti'), updated_at = now()
+    from public.student_allowlist al where al.avanti_id = v_id and p.avanti_id = al.avanti_id;
 end $$;
 
 create or replace function public.allowlist_load_import() returns integer
@@ -179,7 +201,7 @@ language plpgsql security definer set search_path = public as $$
 declare r record; n integer := 0;
 begin
   for r in select * from public.student_allowlist_import loop
-    perform public.allowlist_add(r.avanti_id, r.dob, r.full_name, r.school, r.class, r.stream, r.category, r.gender);
+    perform public.allowlist_add(r.avanti_id, r.dob, r.full_name, r.school, r.class, r.stream, r.category, r.gender, r.batch);
     n := n + 1;
   end loop;
   delete from public.student_allowlist_import;
@@ -217,10 +239,11 @@ begin
     return json_build_object('ok', false, 'reason', 'wrong');
   end if;
   update public.student_allowlist set failed_attempts = 0, locked_until = null where avanti_id = v_id;
-  update public.profiles p set full_name = coalesce(a.full_name, p.full_name), school = coalesce(a.school, p.school),
-         class = coalesce(a.class, p.class), stream = coalesce(a.stream, p.stream),
-         category = coalesce(a.category, p.category), gender = coalesce(a.gender, p.gender), updated_at = now()
-    from public.student_allowlist a where a.avanti_id = v_id and p.avanti_id = a.avanti_id;
+  update public.profiles p set full_name = coalesce(al.full_name, p.full_name), school = coalesce(al.school, p.school),
+         class = coalesce(al.class, p.class), stream = coalesce(al.stream, p.stream),
+         category = coalesce(al.category, p.category), gender = coalesce(al.gender, p.gender),
+         batch = coalesce(al.batch, p.batch), is_avanti = (al.source = 'avanti'), updated_at = now()
+    from public.student_allowlist al where al.avanti_id = v_id and p.avanti_id = al.avanti_id;
   insert into public.login_attempts (ip, avanti_id, ok) values (p_ip, v_id, true);
   delete from public.login_attempts where at < now() - interval '30 days';
   v_email := 'avanti-' || lower(regexp_replace(v_id, '[^A-Za-z0-9]', '', 'g')) || '@students.avanti-id.local';
@@ -249,8 +272,8 @@ begin
   end if;
   if v_av is not null then
     select * into a from public.student_allowlist where avanti_id = v_av;
-    insert into public.profiles (id, email, role, full_name, school, class, stream, category, gender, avanti_id)
-    values (new.id, null, 'student', a.full_name, a.school, a.class, a.stream, a.category, a.gender, v_av)
+    insert into public.profiles (id, email, role, full_name, school, class, stream, category, gender, batch, avanti_id, is_avanti)
+    values (new.id, null, 'student', a.full_name, a.school, a.class, a.stream, a.category, a.gender, a.batch, v_av, a.source = 'avanti')
     on conflict (id) do nothing;
     delete from public.pending_avanti where email = lower(new.email);
   else
@@ -298,8 +321,11 @@ begin
   end if;
   return json_build_object('id', p.id, 'email', p.email, 'role', p.role, 'plan', public.plan_of(p),
     'premium_until', p.premium_until, 'is_staff', p.is_staff, 'full_name', p.full_name, 'school', p.school,
-    'class', p.class, 'stream', p.stream, 'category', p.category, 'gender', p.gender, 'avanti_id', p.avanti_id,
-    'can_create_tests', p.is_staff or (p.role = 'teacher' and public.plan_of(p) = 'premium'));
+    'class', p.class, 'stream', p.stream, 'category', p.category, 'gender', p.gender, 'batch', p.batch,
+    'avanti_id', p.avanti_id, 'is_avanti', p.is_avanti,
+    'can_create_tests', p.is_staff or p.role = 'teacher',
+    'can_manage_students', p.is_staff or (p.role = 'teacher' and public.plan_of(p) = 'premium'),
+    'price_paise', public.price_paise(p.role));
 end $$;
 
 -- The Teacher / Student choice is saved once, on the first sign-in. After that only the database owner can change it.
@@ -313,7 +339,8 @@ end $$;
 
 drop function if exists public.update_my_profile(text, text, text, text);
 -- Saves the signed-in user's details. Every field is required (teachers: name and school).
--- Avanti ID students can only fill details that are missing from the Avanti list; the rest stay as on the list.
+-- The school cannot be changed once it is set (only Staff can change their own). Students added through a list
+-- (Avanti or a teacher) can only fill details that are missing; teachers correct the rest from My Students.
 create or replace function public.update_my_profile(p_full_name text, p_school text, p_class text, p_stream text,
   p_category text default null, p_gender text default null) returns json
 language plpgsql security definer set search_path = public as $$
@@ -324,7 +351,7 @@ begin
   v_av := me.avanti_id is not null;
   update public.profiles set
     full_name = case when v_av and full_name is not null then full_name else left(nullif(trim(p_full_name), ''), 120) end,
-    school    = case when v_av and school    is not null then school    else left(nullif(trim(p_school), ''), 160) end,
+    school    = case when school is not null and not is_staff then school else left(nullif(trim(p_school), ''), 160) end,
     class     = case when v_av and class     is not null then class     else left(nullif(trim(p_class), ''), 20) end,
     stream    = case when v_av and stream    is not null then stream    else left(nullif(trim(p_stream), ''), 40) end,
     category  = case when v_av and category  is not null then category  else left(nullif(trim(p_category), ''), 30) end,
@@ -437,6 +464,19 @@ begin
   return new;
 end $$;
 
+-- A teacher's test is always for the teacher's own school (Staff can choose any school, or all schools).
+create or replace function public.tests_school() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare o public.profiles;
+begin
+  select * into o from public.profiles where id = new.owner_id;
+  if not coalesce(o.is_staff, false) then
+    if o.school is null then raise exception 'Add your school in Edit profile before creating a test.'; end if;
+    new.school := o.school;
+  end if;
+  return new;
+end $$;
+
 -- -------------------------------------------------------------------------------------
 -- 8. Attempts and per-question results (written only by the functions below)
 -- -------------------------------------------------------------------------------------
@@ -486,6 +526,8 @@ create table if not exists public.attempt_items (
 
 drop trigger if exists tests_guard on public.tests;
 create trigger tests_guard before update on public.tests for each row execute function public.tests_guard();
+drop trigger if exists tests_school on public.tests;
+create trigger tests_school before insert or update on public.tests for each row execute function public.tests_school();
 
 -- -------------------------------------------------------------------------------------
 -- 9. Row-level security: on for every table. Browsers can read only their own rows.
@@ -530,8 +572,8 @@ drop policy if exists worksheets_insert on public.worksheets;
 drop policy if exists worksheets_update on public.worksheets;
 drop policy if exists worksheets_delete on public.worksheets;
 create policy worksheets_select on public.worksheets for select to authenticated using (owner_id = auth.uid());
-create policy worksheets_insert on public.worksheets for insert to authenticated with check (owner_id = auth.uid() and public.can_create_tests());
-create policy worksheets_update on public.worksheets for update to authenticated using (owner_id = auth.uid()) with check (owner_id = auth.uid() and public.can_create_tests());
+create policy worksheets_insert on public.worksheets for insert to authenticated with check (owner_id = auth.uid() and public.is_premium_teacher());
+create policy worksheets_update on public.worksheets for update to authenticated using (owner_id = auth.uid()) with check (owner_id = auth.uid() and public.is_premium_teacher());
 create policy worksheets_delete on public.worksheets for delete to authenticated using (owner_id = auth.uid());
 
 drop policy if exists tests_select on public.tests;
@@ -571,8 +613,10 @@ language sql stable security definer set search_path = public as $$
   select json_build_object('title', t.title, 'duration_min', t.duration_min, 'n_questions', t.n_questions,
            'marks_correct', t.marks_correct, 'marks_wrong', t.marks_wrong, 'is_active', t.is_active,
            'is_owner', t.owner_id = auth.uid(), 'teacher', coalesce(o.full_name, 'Teacher'),
-           'attempt_id', a.id, 'attempt_status', a.status)
+           'attempt_id', a.id, 'attempt_status', a.status, 'school', t.school,
+           'for_me', t.school is null or me.is_staff or lower(t.school) = lower(coalesce(me.school, '')))
     from public.tests t
+    join public.profiles me on me.id = auth.uid()
     left join public.profiles o on o.id = t.owner_id
     left join public.attempts a on a.test_id = t.id and a.user_id = auth.uid()
    where t.code = lower(trim(p_code)) and auth.uid() is not null
@@ -644,6 +688,9 @@ begin
   select * into a from public.attempts where test_id = t.id and user_id = me.id;
   if a.id is null then
     if not t.is_active then raise exception 'This test is not open right now.'; end if;
+    if t.school is not null and not me.is_staff and lower(t.school) <> lower(coalesce(me.school, '')) then
+      raise exception 'This test is only for students of %.', t.school;
+    end if;
     insert into public.attempts (test_id, user_id, student_name, school, class, stream, category, gender)
     values (t.id, me.id, me.full_name, me.school, me.class, me.stream, me.category, me.gender)
     on conflict (test_id, user_id) do nothing;
@@ -714,12 +761,18 @@ $$;
 
 create or replace function public.attempt_report(p_attempt uuid) returns json
 language plpgsql stable security definer set search_path = public as $$
-declare a public.attempts; t public.tests; res json;
+declare a public.attempts; t public.tests; me public.profiles; res json; v_full boolean;
 begin
   select * into a from public.attempts where id = p_attempt;
   if a.id is null then raise exception 'Report not found'; end if;
   select * into t from public.tests where id = a.test_id;
-  if not (a.user_id = auth.uid() or t.owner_id = auth.uid() or public.is_staff()) then raise exception 'Report not found'; end if;
+  select * into me from public.profiles where id = auth.uid();
+  if not (a.user_id = me.id or t.owner_id = me.id or me.is_staff
+          or (public.is_premium_teacher() and lower(coalesce(me.school, '')) = lower(coalesce(a.school, '')))) then
+    raise exception 'Report not found';
+  end if;
+  -- Free students see their school only; Premium students, teachers and Staff also see the comparison with all students
+  v_full := a.user_id <> me.id or public.plan_of(me) in ('premium', 'staff');
   if a.status <> 'submitted' then raise exception 'This test has not been submitted yet'; end if;
   with ranked as (
     select x.id, x.score,
@@ -734,8 +787,12 @@ begin
                  'tab_switches', a.tab_switches, 'student_name', a.student_name, 'school', a.school),
     'test', json_build_object('title', t.title, 'code', t.code, 'duration_min', t.duration_min, 'n_questions', t.n_questions,
                  'marks_correct', t.marks_correct, 'marks_wrong', t.marks_wrong),
-    'rank', (select json_build_object('overall', r.r_all, 'overall_of', r.n_all, 'school', r.r_school, 'school_of', r.n_school) from ranked r where r.id = a.id),
-    'stats', (select json_build_object('average', round(avg(score), 2), 'top', max(score)) from public.attempts where test_id = t.id and status = 'submitted'),
+    'full', v_full,
+    'rank', (select json_build_object('overall', case when v_full then r.r_all end, 'overall_of', case when v_full then r.n_all end,
+                    'school', r.r_school, 'school_of', r.n_school) from ranked r where r.id = a.id),
+    'stats', case when v_full then (select json_build_object('average', round(avg(score), 2), 'top', max(score)) from public.attempts where test_id = t.id and status = 'submitted') end,
+    'school_stats', (select json_build_object('average', round(avg(score), 2), 'top', max(score)) from public.attempts
+                      where test_id = t.id and status = 'submitted' and lower(coalesce(school, '')) = lower(coalesce(a.school, ''))),
     'items', (select json_agg(json_build_object('pos', it.pos, 'qid', it.qid, 'type', it.qtype, 'response', it.response,
                  'correct_answer', it.correct_answer, 'status', it.status, 'marks', it.marks, 'time_sec', it.time_sec,
                  'chapter', it.chapter, 'topic', it.topic, 'q', q.e->'q', 'o', q.e->'o', 'f', q.e->'f') order by it.pos)
@@ -821,10 +878,163 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- Students who sign in with Avanti ID: copy their details from the Avanti list (runs every time this file is run).
-update public.profiles p set full_name = coalesce(a.full_name, p.full_name), school = coalesce(a.school, p.school),
-         class = coalesce(a.class, p.class), stream = coalesce(a.stream, p.stream),
-         category = coalesce(a.category, p.category), gender = coalesce(a.gender, p.gender), updated_at = now()
-    from public.student_allowlist a where a.avanti_id = p.avanti_id and p.avanti_id = a.avanti_id;
+update public.profiles p set full_name = coalesce(al.full_name, p.full_name), school = coalesce(al.school, p.school),
+         class = coalesce(al.class, p.class), stream = coalesce(al.stream, p.stream),
+         category = coalesce(al.category, p.category), gender = coalesce(al.gender, p.gender),
+         batch = coalesce(al.batch, p.batch), is_avanti = (al.source = 'avanti'), updated_at = now()
+    from public.student_allowlist al where al.avanti_id = p.avanti_id and p.avanti_id = al.avanti_id;
+
+-- -------------------------------------------------------------------------------------
+-- 11b. Teachers and their students
+--   Every teacher can add students one by one. Premium teachers (and Staff) also see the list of students of their
+--   school with performance, upload many at once and edit details. Added students sign in with Student ID + date of birth.
+-- -------------------------------------------------------------------------------------
+create or replace function public.save_student(r jsonb, me public.profiles, p_update boolean) returns json
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_id text := public.norm_avanti_id(r->>'student_id');
+  v_dob date := public.norm_dob(r->>'dob');
+  v_school text := case when me.is_staff and nullif(trim(r->>'school'), '') is not null then trim(r->>'school') else me.school end;
+  f jsonb := jsonb_build_object('full_name', left(nullif(trim(r->>'full_name'), ''), 120), 'class', left(nullif(trim(r->>'class'), ''), 20),
+               'stream', left(nullif(trim(r->>'stream'), ''), 40), 'category', left(nullif(trim(r->>'category'), ''), 30),
+               'gender', left(nullif(trim(r->>'gender'), ''), 30), 'batch', left(nullif(trim(r->>'batch'), ''), 60));
+  a public.student_allowlist; v_miss text;
+begin
+  if v_school is null then return json_build_object('ok', false, 'error', 'Add your school in Edit profile first'); end if;
+  if v_id is null then return json_build_object('ok', false, 'error', 'Student ID is missing'); end if;
+  if v_id !~ '^[A-Z0-9._/-]{3,40}$' then return json_build_object('ok', false, 'error', 'Student ID can use letters, numbers, . _ / - (3 to 40)'); end if;
+  if nullif(trim(r->>'dob'), '') is not null and v_dob is null then return json_build_object('ok', false, 'error', 'Date of birth is not a date (use YYYY-MM-DD or DD-MM-YYYY)'); end if;
+  if f->>'class' is not null and f->>'class' not in ('9', '10', '11', '12', 'Dropper') then return json_build_object('ok', false, 'error', 'Class must be 9, 10, 11, 12 or Dropper'); end if;
+  if f->>'stream' is not null and f->>'stream' not in ('PCM', 'PCB', 'PCMB', 'Commerce', 'Arts', 'Other') then return json_build_object('ok', false, 'error', 'Stream must be PCM, PCB, PCMB, Commerce, Arts or Other'); end if;
+  if f->>'category' is not null and f->>'category' not in ('General', 'EWS', 'OBC-NCL', 'SC', 'ST') then return json_build_object('ok', false, 'error', 'Category must be General, EWS, OBC-NCL, SC or ST'); end if;
+  if f->>'gender' is not null and f->>'gender' not in ('Female', 'Male', 'Other', 'Prefer not to say') then return json_build_object('ok', false, 'error', 'Gender must be Female, Male, Other or Prefer not to say'); end if;
+  select * into a from public.student_allowlist where avanti_id = v_id for update;
+  if a.avanti_id is null then
+    select string_agg(k, ', ') into v_miss from unnest(array['full_name', 'class', 'stream', 'category', 'gender']) k where f->>k is null;
+    if v_dob is null then v_miss := concat_ws(', ', 'dob', v_miss); end if;
+    if v_miss is not null then return json_build_object('ok', false, 'error', 'Missing: ' || v_miss); end if;
+    insert into public.student_allowlist (avanti_id, dob_hash, full_name, school, class, stream, category, gender, batch, source, added_by)
+    values (v_id, extensions.crypt(to_char(v_dob, 'YYYY-MM-DD'), extensions.gen_salt('bf', 8)), f->>'full_name', v_school,
+            f->>'class', f->>'stream', f->>'category', f->>'gender', f->>'batch', 'teacher', me.id);
+  else
+    if not p_update then return json_build_object('ok', false, 'error', 'Student ID ' || v_id || ' is already registered'); end if;
+    if lower(coalesce(a.school, '')) <> lower(v_school) then return json_build_object('ok', false, 'error', 'Student ID ' || v_id || ' belongs to another school'); end if;
+    update public.student_allowlist set
+      dob_hash = case when v_dob is not null then extensions.crypt(to_char(v_dob, 'YYYY-MM-DD'), extensions.gen_salt('bf', 8)) else dob_hash end,
+      full_name = coalesce(f->>'full_name', full_name), class = coalesce(f->>'class', class), stream = coalesce(f->>'stream', stream),
+      category = coalesce(f->>'category', category), gender = coalesce(f->>'gender', gender), batch = coalesce(f->>'batch', batch),
+      failed_attempts = 0, locked_until = null, updated_at = now()
+    where avanti_id = v_id;
+  end if;
+  update public.profiles p set full_name = coalesce(a2.full_name, p.full_name), school = coalesce(a2.school, p.school),
+         class = coalesce(a2.class, p.class), stream = coalesce(a2.stream, p.stream), category = coalesce(a2.category, p.category),
+         gender = coalesce(a2.gender, p.gender), batch = coalesce(a2.batch, p.batch), is_avanti = (a2.source = 'avanti'), updated_at = now()
+    from public.student_allowlist a2 where a2.avanti_id = v_id and p.avanti_id = a2.avanti_id;
+  return json_build_object('ok', true, 'student_id', v_id, 'action', case when a.avanti_id is null then 'added' else 'updated' end);
+end $$;
+
+-- Any teacher: add one student.
+create or replace function public.teacher_add_student(p jsonb) returns json
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles; r json;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if not public.can_create_tests() then raise exception 'Only teachers can add students'; end if;
+  r := public.save_student(p, me, false);
+  if not (r->>'ok')::boolean then raise exception '%', r->>'error'; end if;
+  return r;
+end $$;
+
+-- Premium teachers: add or update many students at once (CSV / Excel upload). One result per row.
+create or replace function public.teacher_add_students(p_rows jsonb) returns json
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles; v_out jsonb := '[]'::jsonb; r jsonb; i integer := 0;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if not public.is_premium_teacher() then raise exception 'Bulk upload is for Premium teachers'; end if;
+  if jsonb_typeof(p_rows) <> 'array' or jsonb_array_length(p_rows) > 2000 then raise exception 'Upload up to 2000 students at a time'; end if;
+  for r in select * from jsonb_array_elements(p_rows) loop
+    i := i + 1;
+    begin
+      v_out := v_out || jsonb_build_array(jsonb_build_object('row', i) || public.save_student(r, me, true)::jsonb);
+    exception when others then
+      v_out := v_out || jsonb_build_array(jsonb_build_object('row', i, 'ok', false, 'error', sqlerrm));
+    end;
+  end loop;
+  return v_out::json;
+end $$;
+
+-- Premium teachers: edit a student of their school (by Student ID, or a Google-sign-in student by account).
+create or replace function public.teacher_update_student(p_user uuid, p_student_id text, p jsonb) returns json
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles; r json;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if not public.is_premium_teacher() then raise exception 'Editing students is for Premium teachers'; end if;
+  if nullif(trim(p_student_id), '') is not null then
+    r := public.save_student(p || jsonb_build_object('student_id', p_student_id), me, true);
+    if not (r->>'ok')::boolean then raise exception '%', r->>'error'; end if;
+    return r;
+  end if;
+  update public.profiles set
+    full_name = coalesce(left(nullif(trim(p->>'full_name'), ''), 120), full_name), class = coalesce(left(nullif(trim(p->>'class'), ''), 20), class),
+    stream = coalesce(left(nullif(trim(p->>'stream'), ''), 40), stream), category = coalesce(left(nullif(trim(p->>'category'), ''), 30), category),
+    gender = coalesce(left(nullif(trim(p->>'gender'), ''), 30), gender), batch = left(nullif(trim(p->>'batch'), ''), 60), updated_at = now()
+  where id = p_user and role = 'student' and avanti_id is null and (me.is_staff or lower(school) = lower(coalesce(me.school, '')));
+  if not found then raise exception 'Student not found in your school'; end if;
+  return json_build_object('ok', true, 'action', 'updated');
+end $$;
+
+-- Premium teachers: every student of their school (Staff: any school) with test performance.
+create or replace function public.school_students(p_school text default null) returns json
+language plpgsql stable security definer set search_path = public as $$
+declare me public.profiles; v_school text; res json;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if not public.is_premium_teacher() then raise exception 'The student list is for Premium teachers'; end if;
+  v_school := case when me.is_staff and nullif(trim(p_school), '') is not null then trim(p_school) else me.school end;
+  if v_school is null then raise exception 'Add your school in Edit profile first'; end if;
+  with st as (
+    select a.avanti_id as student_id, coalesce(p.full_name, a.full_name) as full_name, a.class, a.stream, a.category, a.gender, a.batch,
+           a.source, p.id as user_id, null::text as email
+      from public.student_allowlist a left join public.profiles p on p.avanti_id = a.avanti_id
+     where lower(a.school) = lower(v_school)
+    union all
+    select null, p.full_name, p.class, p.stream, p.category, p.gender, p.batch, 'google', p.id, p.email
+      from public.profiles p where p.role = 'student' and p.avanti_id is null and lower(p.school) = lower(v_school)),
+  perf as (
+    select user_id, count(*) as tests, round(avg(100.0 * score / nullif(max_score, 0)), 1) as avg_pct,
+           round(max(100.0 * score / nullif(max_score, 0)), 1) as best_pct,
+           round(100.0 * sum(correct) / nullif(sum(correct + wrong), 0), 1) as accuracy, max(submitted_at) as last_at
+      from public.attempts where status = 'submitted' and user_id in (select user_id from st where user_id is not null) group by user_id)
+  select json_build_object('school', v_school, 'students', coalesce(json_agg(json_build_object(
+           'student_id', st.student_id, 'full_name', st.full_name, 'class', st.class, 'stream', st.stream, 'category', st.category,
+           'gender', st.gender, 'batch', st.batch, 'source', st.source, 'user_id', st.user_id, 'email', st.email,
+           'signed_in', st.user_id is not null, 'tests', coalesce(pf.tests, 0), 'avg_pct', pf.avg_pct, 'best_pct', pf.best_pct,
+           'accuracy', pf.accuracy, 'last_at', pf.last_at) order by st.class, st.batch, st.full_name), '[]'::json))
+    into res from st left join perf pf on pf.user_id = st.user_id;
+  return res;
+end $$;
+
+-- Premium teachers: the tests one student of their school has taken.
+create or replace function public.student_attempts(p_user uuid) returns json
+language plpgsql stable security definer set search_path = public as $$
+declare me public.profiles; s public.profiles;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  select * into s from public.profiles where id = p_user;
+  if not public.is_premium_teacher() or s.id is null or not (me.is_staff or lower(coalesce(s.school, '')) = lower(coalesce(me.school, ''))) then
+    raise exception 'Student not found in your school';
+  end if;
+  return (select coalesce(json_agg(json_build_object('id', a.id, 'title', t.title, 'submitted_at', a.submitted_at, 'score', a.score,
+            'max_score', a.max_score, 'correct', a.correct, 'wrong', a.wrong, 'skipped', a.skipped, 'time_taken_sec', a.time_taken_sec)
+            order by a.submitted_at desc), '[]'::json)
+            from public.attempts a join public.tests t on t.id = a.test_id where a.user_id = p_user and a.status = 'submitted');
+end $$;
+
+-- Older teacher tests: tie them to the teacher's school (runs every time this file is run).
+update public.tests t set school = p.school from public.profiles p
+ where p.id = t.owner_id and not p.is_staff and p.school is not null and t.school is distinct from p.school;
 
 -- Used by the weekly GitHub Action that keeps the free Supabase project awake.
 create or replace function public.ping() returns integer language sql stable as $$ select 1 $$;
@@ -838,7 +1048,9 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text),
   public.list_available_tests(), public.test_info(text), public.start_attempt(text),
   public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer),
-  public.my_attempts(), public.my_tests(), public.list_schools(), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
+  public.my_attempts(), public.my_tests(), public.list_schools(), public.is_premium_teacher(), public.price_paise(text),
+  public.teacher_add_student(jsonb), public.teacher_add_students(jsonb), public.teacher_update_student(uuid, text, jsonb),
+  public.school_students(text), public.student_attempts(uuid), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
   to authenticated;
 -- server only (Edge Functions use the service role)
 grant execute on function public.avanti_verify(text, text, text), public.grant_premium(text, text, integer),

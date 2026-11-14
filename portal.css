@@ -332,3 +332,44 @@ body.hv-on { overflow: hidden; }
 .pt-req { color: var(--bad); font-weight: 700; }
 .pt-school { display: flex; flex-direction: column; gap: 8px; }
 .pt-onb .btn.pt-big { align-self: stretch; }
+
+/* ---------- profile icon colours by plan ---------- */
+.pf-btn.av-free-s { background: linear-gradient(140deg, #22b573, #148a55); color: #fff; border-color: rgba(255,255,255,.6); }
+.pf-btn.av-free-t { background: linear-gradient(140deg, #4c8dff, #2459d3); color: #fff; border-color: rgba(255,255,255,.6); }
+.pf-btn.av-gold { background: linear-gradient(140deg, #ffe08a, #f2b134 55%, #d9961a); color: #3a2600; }
+.pf-btn.av-ring-s { border: 0; box-shadow: 0 0 0 3px #22c27a, 0 0 0 5px rgba(255,255,255,.25); }
+.pf-btn.av-ring-t { border: 0; box-shadow: 0 0 0 3px #e5484d, 0 0 0 5px rgba(255,255,255,.25); }
+.pf-btn.av-ring-s:hover, .pf-btn.av-ring-s[aria-expanded="true"] { box-shadow: 0 0 0 3px #22c27a, 0 0 0 6px rgba(255,216,115,.45); }
+.pf-btn.av-ring-t:hover, .pf-btn.av-ring-t[aria-expanded="true"] { box-shadow: 0 0 0 3px #e5484d, 0 0 0 6px rgba(255,216,115,.45); }
+.pf-who .pf-plan.pf-free-s { background: color-mix(in srgb, #22b573 16%, transparent); color: #128350; }
+.pf-who .pf-plan.pf-free-t { background: color-mix(in srgb, #2f6fe4 14%, transparent); color: #2459d3; }
+.pf-who .pf-plan.pf-gold { background: linear-gradient(135deg, #fff1c7, #ffe08a); color: #7a5200; border: 1px solid #f0cd6a; }
+:root[data-theme="dark"] .pf-who .pf-plan.pf-free-s { color: #6fe0a6; }
+:root[data-theme="dark"] .pf-who .pf-plan.pf-free-t { color: #8fb4ff; }
+:root[data-theme="dark"] .pf-who .pf-plan.pf-gold { background: color-mix(in srgb, #f2b134 22%, transparent); color: #ffd27a; border-color: #8a6a1f; }
+
+/* ---------- "Upgrade to Premium" in the profile menu ---------- */
+html body .tb-drop a.pf-up, .pf-up { display: grid !important; width: auto !important; text-align: left !important; font: inherit !important; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; margin: 6px 4px 8px; padding: 11px 12px !important;
+  border-radius: 12px !important; border: 1px solid #ecd28f !important; background: linear-gradient(135deg, #fffaf0 0%, #fff1cf 100%) !important; color: #4a3300 !important; text-decoration: none; transition: box-shadow .15s, transform .15s; }
+html body .tb-drop a.pf-up:hover, .pf-up:hover, .pf-up:focus-visible { box-shadow: 0 6px 18px rgba(217,150,26,.25); transform: translateY(-1px); outline: none; }
+.pf-up-ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: #fff; background: linear-gradient(140deg, #f6c445, #d9961a); box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
+.pf-up-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pf-up-t b { font: 700 14px/1.2 var(--font-body); color: #3a2600; }
+.pf-up-t small { font-size: 12px; color: #8a6420; line-height: 1.3; }
+.pf-up-go { font-size: 22px; color: #b98318; line-height: 1; }
+:root[data-theme="dark"] html body .tb-drop a.pf-up, :root[data-theme="dark"] .pf-up { background: linear-gradient(135deg, #2a2210, #33280f) !important; border-color: #6b5520 !important; color: #ffe2a3 !important; }
+:root[data-theme="dark"] .pf-up-t b { color: #ffe2a3; } :root[data-theme="dark"] .pf-up-t small { color: #d9b56a; }
+.btn.pt-gold::after { display: none !important; }
+
+/* ---------- reports, students, bulk upload ---------- */
+.pt-upsell { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 12px 16px; border-radius: 12px; border: 1px solid #ecd28f; background: linear-gradient(135deg, #fffaf0, #fff1cf); color: #4a3300; font-size: 14px; }
+:root[data-theme="dark"] .pt-upsell { background: #2a2210; border-color: #6b5520; color: #ffe2a3; }
+.pt-nowrap { flex-wrap: nowrap; }
+.pt-tw-s { max-height: 320px; overflow: auto; }
+.pt-badrow td { background: color-mix(in srgb, var(--bad) 8%, transparent); }
+.pt-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 22px 16px; border: 2px dashed var(--rule); border-radius: 12px; background: var(--bg); cursor: pointer; text-align: center; color: var(--muted); margin: 12px 0; }
+.pt-drop:hover { border-color: var(--accent); color: var(--accent); }
+.pt-drop b { color: var(--ink); }
+.pt-file { max-width: 100%; margin-top: 8px; font-size: 13px; }
+.pt-bulk { display: flex; flex-direction: column; gap: 10px; }
+.pt-modal:has(.pt-bulk) { width: min(980px, 100%); }

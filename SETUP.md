@@ -60,7 +60,7 @@ Google is already switched on in your Supabase project. Check that it has your o
 
 Staff: anyone who signs in with a verified Google account ending in `@avantifellows.org` becomes Staff (full access) automatically.
 
-## 5. Razorpay (Rs. 1 for one year of Premium)
+## 5. Razorpay (Premium for one year: students Rs. 299, teachers Rs. 599)
 
 Razorpay is the simplest choice for Indian payments (UPI, cards, net banking). Cashfree works the same way if you prefer it, but the code here is for Razorpay.
 
@@ -70,7 +70,7 @@ Razorpay is the simplest choice for Indian payments (UPI, cards, net banking). C
    - `RAZORPAY_KEY_ID` = your Key Id
    - `RAZORPAY_KEY_SECRET` = your Key Secret
    - `RAZORPAY_WEBHOOK_SECRET` = make up a long password (letters and numbers) and keep it for the next step
-   - (optional) `PREMIUM_PRICE_PAISE` = `100` (Rs. 1; change only if the price changes)
+   - (optional) `PRICE_STUDENT_PAISE` = `29900` (Rs. 299) and `PRICE_TEACHER_PAISE` = `59900` (Rs. 599). Leave them out to use these prices.
 4. In Razorpay: **Account & Settings** → **Webhooks** → **+ Add New Webhook**:
    - Webhook URL: `https://usehxhvzhdbcmnmqaxoo.supabase.co/functions/v1/razorpay`
    - Secret: the same made-up password as `RAZORPAY_WEBHOOK_SECRET`
@@ -103,3 +103,15 @@ Google shows "Sign in to usehxhvzhdbcmnmqaxoo.supabase.co" because that is where
 1. Supabase → **Project Settings** → **Custom Domains** (needs the paid Pro plan plus the custom-domain add-on): add e.g. `auth.avantifellows.org`, add the DNS records it shows, and activate it.
 2. In Google Cloud → **Google Auth Platform** → **Branding**: App name "Math Dashboard", add the logo, add `avantifellows.org` under **Authorized domains**, then **Verify branding**. In **Clients**, add `https://auth.avantifellows.org/auth/v1/callback` as a redirect URI.
 3. Tell Claude the new address so the website uses it.
+
+## Plans
+
+| | Free | Premium (paid, 1 year) |
+|---|---|---|
+| Students | View everything, take their school's tests, report with their school rank | Rs. 299: + PDF downloads, rank among all students |
+| Teachers | View everything, create tests for their school, add students one by one, results of their own tests | Rs. 599: + PDF downloads, saved worksheets, My Students (list by class/batch with performance), bulk upload from Excel/CSV, edit students, CSV export |
+
+- Students on the Avanti list (Avanti ID login) are Premium automatically. Students a teacher adds are Free unless they pay.
+- Avanti teachers (@avantifellows.org Google accounts) have full access to everything.
+- A teacher's tests are only for students of the teacher's school. The school cannot be changed after it is set (Staff can change it in the SQL Editor: `update public.profiles set school = 'New School' where email = 'name@gmail.com';`).
+- Students added by teachers sign in with "Login with Avanti ID / Student ID" using their Student ID and date of birth.

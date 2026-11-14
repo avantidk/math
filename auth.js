@@ -37,7 +37,10 @@ function permsFor(p) {
     pdf: paid, print: paid, share: paid, copy: paid,      // Premium: PDF download, print, share in PDF mode
     docx: staff, pptx: staff,                              // editable Word / PowerPoint: Staff only
     attention: staff,                                      // Attention flags: Staff only
-    createTests: !!p.can_create_tests                      // decided by the database
+    createTests: !!p.can_create_tests,                     // every teacher and Staff (decided by the database)
+    worksheets: !!p.can_manage_students,                   // Premium teachers and Staff
+    manageStudents: !!p.can_manage_students,               // Premium teachers and Staff: student list, bulk upload, edit
+    fullReports: paid                                      // Premium students: comparison with all students
   });
 }
 
@@ -125,16 +128,16 @@ function loginPage(msg) {
   const idIn = h('input', { type: 'text', id: 'lgId', autocomplete: 'username', placeholder: 'e.g. 2401234567', required: true, maxlength: 40 });
   const dobIn = h('input', { type: 'date', id: 'lgDob', autocomplete: 'bday', required: true, max: new Date().toISOString().slice(0, 10) });
   const avErr = h('p', { class: 'lg-err', role: 'alert', hidden: true });
-  const avBtn = h('button', { type: 'submit', class: 'lg-btn', text: 'Login with Avanti ID' });
-  avBox.append(h('h2', { text: 'Login with Avanti ID' }), h('p', { class: 'lg-sub', text: 'Only for students on the Avanti list. Use the date of birth given to Avanti.' }),
+  const avBtn = h('button', { type: 'submit', class: 'lg-btn', text: 'Login with Student ID' });
+  avBox.append(h('h2', { text: 'Login with Avanti ID / Student ID' }), h('p', { class: 'lg-sub', text: 'For students added by Avanti or by their school teacher. Use your ID and date of birth.' }),
     h('form', { class: 'lg-form', onsubmit: async e => {
       e.preventDefault(); avErr.hidden = true;
       if (!idIn.value.trim() || !dobIn.value) { avErr.textContent = 'Enter your Avanti ID and date of birth.'; avErr.hidden = false; return; }
       avBtn.disabled = true; avBtn.textContent = 'Checking…';
       try { rememberNext(); await A.signInWithAvantiId(idIn.value.trim(), dobIn.value); await afterSignIn(); }
-      catch (x) { avErr.textContent = x.message || String(x); avErr.hidden = false; avBtn.disabled = false; avBtn.textContent = 'Login with Avanti ID'; }
+      catch (x) { avErr.textContent = x.message || String(x); avErr.hidden = false; avBtn.disabled = false; avBtn.textContent = 'Login with Student ID'; }
     } },
-      h('label', { for: 'lgId', text: 'Avanti ID' }), idIn, h('label', { for: 'lgDob', text: 'Date of birth' }), dobIn, avErr, avBtn));
+      h('label', { for: 'lgId', text: 'Avanti ID or Student ID' }), idIn, h('label', { for: 'lgDob', text: 'Date of birth' }), dobIn, avErr, avBtn));
   root.append(h('div', { class: 'lg' },
     h('header', { class: 'lg-head' }, h('img', { src: 'img/avanti-logo.png', alt: 'Avanti Fellows', width: 150, height: 51 }),
       h('h1', { text: 'Mathematics Dashboard' }), h('p', { text: "JEE, CET, NDA, IAT · PYQ's, DPP's, Handouts and tests" })),
@@ -167,23 +170,36 @@ function fatal(msg) {
 
 /* ---------- profile icon and menu (top bar, after sign-in only) ---------- */
 function initials(p) { const n = (p.full_name || p.email || p.avanti_id || '?').trim(); return n.split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map(x => x[0].toUpperCase()).join('') || '?'; }
+const CROWN = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 11H5L3 7zm2 13h14v2H5v-2z"/></svg>';
+const rupees = p => '₹' + Math.round((p || 0) / 100);
+/* Avatar colour: Free student green, Free teacher blue, Premium (and Staff) golden with a green ring for students and a red ring for teachers. */
+function avatarClass(p, perm) { return 'pf-btn ' + (perm.plan === 'free' ? (p.role === 'teacher' ? 'av-free-t' : 'av-free-s') : 'av-gold ' + (p.role === 'teacher' ? 'av-ring-t' : 'av-ring-s')); }
 function renderMenu() {
   const slot = $('#tbProfile'); const p = A.profile; if (!slot || !p) return;
   slot.textContent = '';
   const perm = A.perm, student = p.role === 'student', teacher = p.role === 'teacher';
   const items = [['#/profile', 'Edit profile']];
-  if (perm.plan === 'free') items.push(['#/membership', '★ Purchase membership', 'pf-buy']);
-  else items.push(['#/membership', 'Membership']);
+  if (perm.plan === 'premium' && !p.is_avanti) items.push(['#/membership', 'Membership']);
   if (student) items.push(['#/tests', 'Available tests'], ['#/reports', 'My Reports']);
-  if (teacher && perm.createTests) items.push(['#/create', 'Create Test'], ['#/my-tests', 'My Tests and Results'], ['#/worksheets', 'Saved worksheets']);
-  const planLabel = { free: 'Free', premium: 'Premium', staff: 'Staff' }[perm.plan];
+  if (teacher || perm.staff) {
+    if (perm.createTests) items.push(['#/create', 'Create Test'], ['#/my-tests', 'My Tests and Results']);
+    if (perm.manageStudents) items.push(['#/students', 'My Students']);
+    else if (perm.createTests) items.push(['#/add-student', 'Add a student']);
+    if (perm.worksheets) items.push(['#/worksheets', 'Saved worksheets']);
+  }
+  const planLabel = perm.plan === 'staff' ? 'Avanti · Full access' : p.is_avanti ? 'Avanti · Premium' : perm.plan === 'premium' ? 'Premium' : 'Free';
+  const upgrade = perm.plan === 'free' ? h('a', { class: 'pf-up', role: 'menuitem', href: '#/membership', onclick: close },
+    h('span', { class: 'pf-up-ic', html: CROWN }),
+    h('span', { class: 'pf-up-t' }, h('b', { text: 'Upgrade to Premium' }), h('small', { text: rupees(p.price_paise) + ' a year · ' + (teacher ? 'PDFs, student list & bulk upload' : 'PDFs & all-India comparison') })),
+    h('span', { class: 'pf-up-go', 'aria-hidden': 'true', text: '›' })) : null;
   const drop = h('div', { class: 'tb-drop pf-drop', id: 'pfDrop', role: 'menu', hidden: true },
     h('div', { class: 'pf-who' }, h('strong', { text: p.full_name || p.avanti_id || 'Your account' }),
       h('span', { class: 'pf-mail', title: p.email || p.avanti_id || '', text: p.email || p.avanti_id || '' }),
-      h('span', { class: 'pf-plan pf-' + perm.plan, text: planLabel + (p.role ? ' · ' + (teacher ? 'Teacher' : 'Student') : '') })),
-    items.map(([href, t, c]) => h('a', { class: 'tb-item' + (c ? ' ' + c : ''), role: 'menuitem', href, text: t, onclick: close })),
+      h('span', { class: 'pf-plan ' + (perm.plan === 'free' ? (teacher ? 'pf-free-t' : 'pf-free-s') : 'pf-gold'), text: planLabel + ' · ' + (teacher ? 'Teacher' : 'Student') })),
+    upgrade,
+    items.map(([href, t]) => h('a', { class: 'tb-item', role: 'menuitem', href, text: t, onclick: close })),
     h('button', { type: 'button', class: 'tb-item pf-out', role: 'menuitem', text: 'Logout', onclick: () => A.signOut() }));
-  const btn = h('button', { type: 'button', class: 'pf-btn', id: 'pfBtn', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Profile menu', title: 'Profile', text: initials(p),
+  const btn = h('button', { type: 'button', class: avatarClass(p, perm), id: 'pfBtn', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Profile menu (' + planLabel + ')', title: planLabel, text: initials(p),
     onclick: e => { e.stopPropagation(); const open = drop.hidden; drop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); } });
   function close() { drop.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
   slot.append(btn, drop);
