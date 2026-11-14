@@ -147,6 +147,29 @@ language sql immutable as $$
     when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('kcetpcb', 'cetpcb', 'kcetmedical') then 'KCET (PCB)'
     else trim(p) end
 $$;
+-- Category and gender: understands short forms (GEN, UR, OBC, F, M ...).
+create or replace function public.norm_category(p text) returns text
+language sql immutable as $$
+  select case
+    when p is null or trim(p) = '' then null
+    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('general', 'gen', 'gn', 'ur', 'open', 'oc', 'unreserved') then 'General'
+    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('ews', 'genews', 'generalews') then 'EWS'
+    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('obc', 'obcncl', 'obcnoncreamylayer', 'bc', 'obcn') then 'OBC-NCL'
+    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('sc', 'scheduledcaste') then 'SC'
+    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('st', 'scheduledtribe') then 'ST'
+    else trim(p) end
+$$;
+create or replace function public.norm_gender(p text) returns text
+language sql immutable as $$
+  select case
+    when p is null or trim(p) = '' then null
+    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('female', 'f', 'girl', 'woman') then 'Female'
+    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('male', 'm', 'boy', 'man') then 'Male'
+    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('other', 'o', 'transgender', 'thirdgender') then 'Other'
+    when lower(regexp_replace(p, '[^A-Za-z]', '', 'g')) in ('prefernottosay', 'notsay', 'na') then 'Prefer not to say'
+    else trim(p) end
+$$;
+
 -- Academic session from the class, for the year starting in April: Class 11 → 2026-28, Class 12 and Dropper → 2026-27.
 create or replace function public.session_for(p_class text, p_at timestamptz default now()) returns text
 language sql stable as $$
@@ -995,9 +1018,14 @@ declare
   v_dob date := public.norm_dob(r->>'dob');
   v_school text := case when public.admin_of(me) and nullif(trim(r->>'school'), '') is not null then trim(r->>'school') else me.school end;
   f jsonb := jsonb_build_object('full_name', left(nullif(trim(r->>'full_name'), ''), 120), 'class', public.norm_class(left(r->>'class', 20)),
-               'stream', public.norm_stream(left(r->>'stream', 40)), 'category', left(nullif(trim(r->>'category'), ''), 30),
+               'stream', public.norm_stream(left(r->>'stream', 40)), 'category',
+                 -- a file with the Category and Gender columns swapped is read the right way round
+                 case when public.norm_category(r->>'category') not in ('General', 'EWS', 'OBC-NCL', 'SC', 'ST') and public.norm_gender(r->>'category') in ('Female', 'Male', 'Other', 'Prefer not to say')
+                      then public.norm_category(left(r->>'gender', 30)) else public.norm_category(left(r->>'category', 30)) end,
                'session', case when coalesce(r->>'session', '') ~ '^\d{4}-\d{2}$' then r->>'session' end,
-               'gender', left(nullif(trim(r->>'gender'), ''), 30), 'batch', left(nullif(trim(r->>'batch'), ''), 60));
+               'gender',
+                 case when public.norm_category(r->>'category') not in ('General', 'EWS', 'OBC-NCL', 'SC', 'ST') and public.norm_gender(r->>'category') in ('Female', 'Male', 'Other', 'Prefer not to say')
+                      then public.norm_gender(left(r->>'category', 30)) else public.norm_gender(left(r->>'gender', 30)) end, 'batch', left(nullif(trim(r->>'batch'), ''), 60));
   a public.student_allowlist; v_miss text;
 begin
   if v_school is null then return json_build_object('ok', false, 'error', 'Add your school in Edit profile first'); end if;
@@ -1053,7 +1081,7 @@ begin
   return r;
 end $$;
 
--- Premium teachers: add or update many students at once (CSV / Excel upload). One result per row.
+-- Premium teachers: add many students at once (CSV / Excel upload). IDs already in the database are skipped. One result per row.
 create or replace function public.teacher_add_students(p_rows jsonb) returns json
 language plpgsql security definer set search_path = public as $$
 declare me public.profiles; v_out jsonb := '[]'::jsonb; r jsonb; i integer := 0;
@@ -1064,7 +1092,11 @@ begin
   for r in select * from jsonb_array_elements(p_rows) loop
     i := i + 1;
     begin
-      v_out := v_out || jsonb_build_array(jsonb_build_object('row', i) || public.save_student(r, me, true)::jsonb);
+      if exists (select 1 from public.student_allowlist where avanti_id = public.norm_avanti_id(r->>'student_id')) then
+        v_out := v_out || jsonb_build_array(jsonb_build_object('row', i, 'ok', true, 'action', 'exists', 'student_id', public.norm_avanti_id(r->>'student_id')));
+      else
+        v_out := v_out || jsonb_build_array(jsonb_build_object('row', i) || public.save_student(r, me, false)::jsonb);
+      end if;
     exception when others then
       v_out := v_out || jsonb_build_array(jsonb_build_object('row', i, 'ok', false, 'error', sqlerrm));
     end;
@@ -1155,6 +1187,15 @@ update public.profiles set stream = case when public.norm_stream(stream) in ('JE
  where stream is distinct from case when public.norm_stream(stream) in ('JEE', 'NEET', 'KCET (PCM)', 'KCET (PCB)') then public.norm_stream(stream) end;
 update public.profiles p set session = coalesce((select a.session from public.student_allowlist a where a.avanti_id = p.avanti_id), public.session_for(p.class, p.created_at))
  where p.role = 'student' and p.session is null and p.class is not null;
+-- Category / gender: short forms, and rows where the two were swapped
+update public.student_allowlist set category = public.norm_category(gender), gender = public.norm_gender(category)
+ where public.norm_gender(category) in ('Female', 'Male', 'Other', 'Prefer not to say') and public.norm_category(gender) in ('General', 'EWS', 'OBC-NCL', 'SC', 'ST');
+update public.student_allowlist set category = public.norm_category(category), gender = public.norm_gender(gender)
+ where category is distinct from public.norm_category(category) or gender is distinct from public.norm_gender(gender);
+update public.profiles set category = public.norm_category(gender), gender = public.norm_gender(category)
+ where public.norm_gender(category) in ('Female', 'Male', 'Other', 'Prefer not to say') and public.norm_category(gender) in ('General', 'EWS', 'OBC-NCL', 'SC', 'ST');
+update public.profiles set category = public.norm_category(category), gender = public.norm_gender(gender)
+ where category is distinct from public.norm_category(category) or gender is distinct from public.norm_gender(gender);
 update public.attempts set class = public.norm_class(class), stream = public.norm_stream(stream) where class is distinct from public.norm_class(class) or stream is distinct from public.norm_stream(stream);
 -- Older tests: every class / stream when none was chosen
 update public.tests set
@@ -1222,7 +1263,7 @@ create or replace function public.ping() returns integer language sql stable as 
 revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function public.ping(), public.support_contact() to anon, authenticated;
 grant execute on function public.plan_of(public.profiles), public.my_plan(), public.is_staff(), public.can_create_tests(),
-  public.admin_of(public.profiles), public.norm_class(text), public.norm_stream(text), public.session_for(text, timestamptz),
+  public.admin_of(public.profiles), public.norm_class(text), public.norm_stream(text), public.norm_category(text), public.norm_gender(text), public.session_for(text, timestamptz),
   public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text),
   public.list_available_tests(), public.test_info(text), public.start_attempt(text),
   public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer),

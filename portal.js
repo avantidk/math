@@ -34,6 +34,8 @@ const sessionFor = c => { const d = new Date(); d.setMonth(d.getMonth() - 3); co
 const SESSIONS = (() => { const d = new Date(); d.setMonth(d.getMonth() - 3); const y = d.getFullYear(), out = []; for (let k = y - 2; k <= y + 1; k++) { out.push(k + '-' + String((k + 1) % 100).padStart(2, '0'), k + '-' + String((k + 2) % 100).padStart(2, '0')); } return [...new Set(out)].sort().reverse(); })();
 /* common spellings in uploads: 11th, XI, Class 12, PCM, NEET ... */
 const normClass = v => { const t = String(v || '').toLowerCase().replace(/[^a-z0-9]/g, ''); return /^(11|11th|xi|class11|class11th|classxi|eleven|eleventh)$/.test(t) ? '11' : /^(12|12th|xii|class12|class12th|classxii|twelve|twelfth)$/.test(t) ? '12' : /^(dropper|drop|droppers|repeater|repeaters)$/.test(t.replace(/[0-9]/g, '')) ? 'Dropper' : String(v || '').trim(); };
+const normCategory = v => { const t = String(v || '').toLowerCase().replace(/[^a-z]/g, ''); return /^(general|gen|gn|ur|open|oc|unreserved)$/.test(t) ? 'General' : /^(ews|genews|generalews)$/.test(t) ? 'EWS' : /^(obc|obcncl|obcnoncreamylayer|bc|obcn)$/.test(t) ? 'OBC-NCL' : /^(sc|scheduledcaste)$/.test(t) ? 'SC' : /^(st|scheduledtribe)$/.test(t) ? 'ST' : String(v || '').trim(); };
+const normGender = v => { const t = String(v || '').toLowerCase().replace(/[^a-z]/g, ''); return /^(female|f|girl|woman)$/.test(t) ? 'Female' : /^(male|m|boy|man)$/.test(t) ? 'Male' : /^(other|o|transgender|thirdgender)$/.test(t) ? 'Other' : /^(prefernottosay|notsay|na)$/.test(t) ? 'Prefer not to say' : String(v || '').trim(); };
 const normStream = v => { const t = String(v || '').toLowerCase().replace(/[^a-z]/g, ''); return /^(jee|pcm|pcmb|jeemain|jeemains|jeeadvanced|engineering|iit|iitjee)$/.test(t) ? 'JEE' : /^(neet|pcb|medical|neetug)$/.test(t) ? 'NEET' : /^(kcetpcm|kcet|cetpcm|kcetengineering)$/.test(t) ? 'KCET (PCM)' : /^(kcetpcb|cetpcb|kcetmedical)$/.test(t) ? 'KCET (PCB)' : String(v || '').trim(); };
 const CATEGORIES = ['General', 'EWS', 'OBC-NCL', 'SC', 'ST'];
 const GENDERS = ['Female', 'Male', 'Other', 'Prefer not to say'];
@@ -868,7 +870,7 @@ async function downloadTemplate(kind) {
     window.XLSX.writeFile(wb, 'students_template.xlsx');
   } catch (e) { toast(e.message); }
 }
-const HDR = { 'student id': 'student_id', studentid: 'student_id', id: 'student_id', 'avanti id': 'student_id', avanti_id: 'student_id', 'date of birth': 'dob', 'date_of_birth': 'dob', birthdate: 'dob', name: 'full_name', 'full name': 'full_name', 'student name': 'full_name', 'class': 'class', grade: 'class' };
+const HDR = { caste: 'category', 'caste category': 'category', 'social category': 'category', 'category ': 'category', sex: 'gender', 'roll no': 'student_id', 'roll number': 'student_id', 'student name': 'full_name', 'student id': 'student_id', studentid: 'student_id', id: 'student_id', 'avanti id': 'student_id', avanti_id: 'student_id', 'date of birth': 'dob', 'date_of_birth': 'dob', birthdate: 'dob', name: 'full_name', 'full name': 'full_name', 'student name': 'full_name', 'class': 'class', grade: 'class' };
 function normRow(o) {
   const r = {};
   Object.keys(o).forEach(k => { const key = String(k).trim().toLowerCase(); const c = HDR[key] || key.replace(/\s+/g, '_'); if (COLS.includes(c)) r[c] = o[k]; });
@@ -876,7 +878,8 @@ function normRow(o) {
   if (d instanceof Date && !isNaN(d)) { const x = new Date(d.getTime() + 12 * 3600e3); d = x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); }
   else if (typeof d === 'number' && window.XLSX) { const p = window.XLSX.SSF.parse_date_code(d); d = p ? p.y + '-' + String(p.m).padStart(2, '0') + '-' + String(p.d).padStart(2, '0') : String(d); }
   const out = {}; COLS.forEach(k => { out[k] = String((k === 'dob' ? d : r[k]) == null ? '' : (k === 'dob' ? d : r[k])).trim(); });
-  out.class = pickFrom(CLASSES, normClass(out.class)); out.stream = pickFrom(STREAMS, normStream(out.stream)); if (!out.session && CLASSES.includes(out.class)) out.session = sessionFor(out.class); out.category = pickFrom(CATEGORIES, out.category); out.gender = pickFrom(GENDERS, out.gender);
+  out.class = pickFrom(CLASSES, normClass(out.class)); out.stream = pickFrom(STREAMS, normStream(out.stream)); if (!out.session && CLASSES.includes(out.class)) out.session = sessionFor(out.class); out.category = normCategory(out.category); out.gender = normGender(out.gender);
+  if (!CATEGORIES.includes(out.category) && GENDERS.includes(out.category) && (CATEGORIES.includes(out.gender) || !out.gender)) { const c = out.category; out.category = out.gender; out.gender = c; }   /* Category and Gender columns swapped in the file */
   const err = [];
   if (!out.student_id) err.push('Student ID missing');
   if (out.dob && !/^\d{4}-\d{1,2}-\d{1,2}$|^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$/.test(out.dob)) err.push('date of birth not understood');
@@ -895,7 +898,7 @@ async function readSheet(file) {
 function bulkUpload(after) {
   const out = h('div', { class: 'pt-bulk' });
   const fileIn = h('input', { type: 'file', accept: '.csv,.xlsx,.xls', id: 'bulkFile', class: 'pt-file' });
-  const body = h('div', {}, h('p', { class: 'pt-hint', text: 'Use the template: one row per student. Columns: ' + COLS.join(', ') + '. ' + (can('schoolApproved') ? 'Existing Student IDs of your school are updated; new ones are added.' : 'New students are added. Existing students can be updated once your school is approved.') + (can('staff') ? ' Students you add as Avanti staff get Premium.' : '') }),
+  const body = h('div', {}, h('p', { class: 'pt-hint', text: 'Use the template: one row per student. Columns: ' + COLS.join(', ') + '. ' + 'New students are added. Student IDs already in the database are skipped (to change one, use Edit in the list).' + (can('staff') ? ' Students you add as Avanti staff get Premium.' : '') }),
     h('div', { class: 'pt-actions' }, h('button', { type: 'button', class: 'btn', text: '⬇ Template (Excel)', onclick: () => downloadTemplate('xlsx') }), h('button', { type: 'button', class: 'btn', text: '⬇ Template (CSV)', onclick: () => downloadTemplate('csv') })),
     h('label', { class: 'pt-drop', for: 'bulkFile' }, h('b', { text: 'Choose a .xlsx or .csv file' }), h('span', { text: 'Excel or CSV, up to 2000 students' }), fileIn), out);
   let rows = [];
@@ -916,9 +919,9 @@ function bulkUpload(after) {
     if (!rows.length) { toast('Choose a file first'); return false; }
     out.prepend(loading('Uploading ' + rows.length + ' students…'));
     rpc('teacher_add_students', { p_rows: rows.map(r => { const o = Object.assign({}, r); delete o._err; return o; }) }).then(res => {
-      const ok = res.filter(x => x.ok), added = ok.filter(x => x.action === 'added').length, upd = ok.length - added, fail = res.filter(x => !x.ok);
+      const ok = res.filter(x => x.ok), added = ok.filter(x => x.action === 'added').length, upd = ok.filter(x => x.action === 'exists').length, fail = res.filter(x => !x.ok);
       out.textContent = '';
-      out.append(h('div', { class: 'pt-stats' }, stat('Added', added), stat('Updated', upd), stat('Not saved', fail.length)),
+      out.append(h('div', { class: 'pt-stats' }, stat('Added', added), stat('Already registered', upd, 'skipped, not uploaded again'), stat('Not saved', fail.length)),
         fail.length ? h('div', { class: 'pt-tw pt-tw-s' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Row', 'Student ID', 'Problem'].map(x => h('th', { text: x })))),
           h('tbody', {}, fail.map(x => h('tr', { class: 'pt-badrow' }, h('td', { text: x.row }), h('td', { text: (rows[x.row - 1] || {}).student_id || '—' }), h('td', { text: x.error })))))) : h('p', { class: 'pt-msg ok', text: 'All students saved.' }));
       rows = []; fileIn.value = ''; if (after) after();
@@ -985,7 +988,7 @@ async function pageStudents() {
     schoolPick ? card(h('label', { class: 'pt-fld' }, h('span', { text: 'School (admin: every school)' }), schoolPick)) : null,
     can('schoolApproved') ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Your school is waiting for approval by Avanti Fellows. ' }), 'You can add students, upload new students and create tests now. Editing existing students unlocks once your school is approved.'),
     h('div', { class: 'pt-stats' }, stat('Students', all.length), stat('Signed in', signed), stat('Took a test', took.length), stat('Average score', avg == null ? '—' : pct(avg), 'of students who took a test')),
-    card(h('div', { class: 'pt-frow' }, mkSel('Class', 'All classes', uniq('class'), 'cls'), mkSel('Stream', 'All streams', uniq('stream'), 'stream'), mkSel('Session', 'All sessions', uniq('session'), 'session'),
+    card(h('div', { class: 'pt-frow' }, mkSel('Class', 'All classes', CLASSES, 'cls'), mkSel('Stream', 'All streams', STREAMS, 'stream'), mkSel('Session', 'All sessions', uniq('session'), 'session'),
         h('input', { type: 'search', class: 'pt-in', placeholder: 'Search name, ID or email', 'aria-label': 'Search students', oninput: e => { F.q = e.target.value.trim(); draw(); } })), countEl,
       h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Student', 'Class · Stream', 'Session', 'Category · Gender', 'Sign-in', 'Tests', 'Average', 'Last test', ''].map(x => h('th', { text: x })))), tbody))));
   draw();

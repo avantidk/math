@@ -9,7 +9,8 @@ tests and results. It replaced an older Claude artifact.
   and syncing it would wipe out the current site. Ignore any old instruction or scheduled task that says "Sync dashboard to build".
 - Never bring back `app.js`, `db.js`, `teacher.js`, the `startup-patch` / `tests-data` index page, `STUDENT_URL` or the old
   student dashboard link.
-- Never push straight to `main`. Work on a branch, let the **guard** check pass, then merge.
+- Do not create new branches. Commit and push directly to `main`, but only after `bash .github/scripts/guard.sh` passes
+  (the owner allows this). Never force-push `main`.
 - Never put the Supabase service role key, the database password or Razorpay secrets in the repository.
 
 ## How the site is built

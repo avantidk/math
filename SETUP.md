@@ -133,15 +133,13 @@ Shown in the profile menu → **Help & Support** and on the login page. Change i
 
 The old Claude artifact is retired. Its page only says the dashboard has moved. Three layers stop old code reaching the live site:
 
-1. **CLAUDE.md** tells every Claude session never to sync from the old artifact and never to push to `main`.
+1. **CLAUDE.md** tells every Claude session never to sync from the old artifact, and to push to `main` only after the guard passes.
 2. **The guard** (`.github/scripts/guard.sh`) runs on every push. It fails if the code looks like the old artifact version.
 3. **Deploy only through the guard:** GitHub → repository **Settings** → **Pages** → *Build and deployment* → **Source: GitHub Actions**.
    From then on the site is published by the "Deploy site" workflow, which stops if the guard fails.
-4. **Block direct pushes to main:** GitHub → **Settings** → **Rules** → **Rulesets** → **New ruleset** → *New branch ruleset*:
-   name `Protect main`, Enforcement **Active**, Target branches → **Add target** → **Include default branch**, tick
-   **Restrict deletions**, **Block force pushes**, **Require a pull request before merging** (0 approvals is fine) and
-   **Require status checks to pass** → **Add checks** → `guard`. Click **Create**.
-   After this, changes reach `main` only through a pull request whose guard check passed.
+4. **Optional, protect main from being wiped:** GitHub → **Settings** → **Rules** → **Rulesets** → **New branch ruleset**:
+   name `Protect main`, Enforcement **Active**, Target branches → **Include default branch**, tick **Restrict deletions** and
+   **Block force pushes** → **Create**. Direct pushes stay allowed; anything that fails the guard is simply never published.
 
 ## Classes, streams and sessions
 
