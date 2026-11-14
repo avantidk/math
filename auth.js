@@ -174,7 +174,7 @@ function loginPage(msg) {
     h('p', { class: 'lgx-free' }, h('b', { text: 'Start free. ' }), 'Premium from ₹299 a year adds PDF downloads, all-India ranks and more. Avanti students get Premium free.'));
   root.append(h('div', { class: 'lg lg-split' },
     h('main', { class: 'lg-main' },
-      h('header', { class: 'lg-head' }, h('img', { src: 'img/avanti-logo.png', alt: 'Avanti Fellows', width: 150, height: 51 }),
+      h('header', { class: 'lg-head' }, h('img', { src: 'img/avanti-logo-dark.png', alt: 'Avanti Fellows', width: 150, height: 51 }),
         h('h1', { text: 'Mathematics Dashboard' }), h('p', { text: "JEE, CET, NDA, IAT · PYQ's, DPP's, Handouts and tests" })),
       testLink ? h('p', { class: 'lg-note', text: 'Sign in to open your test.' }) : null,
       h('section', { class: 'lg-card' },
