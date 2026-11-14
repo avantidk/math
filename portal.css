@@ -614,3 +614,8 @@ html:not(.plan-staff) .qb-results .qb-tools > .qb-reset, html:not(.plan-staff) .
 .pt-hver { margin: 18px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
 .pt-hver-b { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; border-bottom: 1px dotted currentColor; }
 .pt-hver-b:hover { color: var(--accent); border-bottom-style: solid; }
+
+/* school change request */
+.pt-schreq { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); color: var(--ink); font-size: 14px; }
+.btn.pt-mini { min-height: 32px; padding: 4px 12px; font-size: 13px; }
+.pt-linkbtn { font: inherit; font-weight: 600; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }

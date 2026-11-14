@@ -195,7 +195,8 @@ function schoolSelect(id, val, first, allowOther) {
 /* The profile form: every field is required. Teachers give name and school; students give name, school, class, stream, category and gender.
    For Avanti ID students, details that come from the Avanti list are shown but cannot be changed; only missing ones can be filled. */
 function profileForm(p, o) {
-  const student = p.role === 'student', avanti = !!p.avanti_id, locked = k => (student || avanti) && !!p[k];
+  const student = p.role === 'student', avanti = !!p.avanti_id, staff = !!(AU().perm && AU().perm.staff);
+  const locked = k => ((student || avanti) && !!p[k]) || (k === 'school' && !!p.school && !staff);
   const msg = h('p', { class: 'pt-msg', role: 'status' });
   const ro = (label, value) => h('div', { class: 'pt-fld' }, h('span', { text: label }), h('div', { class: 'pt-ro', text: value || '—' }));
   const fld = (label, input, hint) => h(input.focusId ? 'div' : 'label', { class: 'pt-fld', for: input.focusId ? null : input.id }, h('span', {}, label, h('b', { class: 'pt-req', text: ' *' })), input, hint ? h('small', { text: hint }) : null);
@@ -209,7 +210,7 @@ function profileForm(p, o) {
   const val = k => (locked(k) ? p[k] : k === 'school' ? F.school.value() : F[k].value.trim());
   const LBL = { full_name: 'Full name', school: 'School', class: 'Class', stream: 'Stream', category: 'Category', gender: 'Gender' };
   const keys = student ? ['full_name', 'school', 'class', 'stream', 'category', 'gender'] : ['full_name', 'school'];
-  const box = k => (locked(k) ? ro(LBL[k], p[k]) : fld(LBL[k], F[k], k === 'school' ? (student ? 'Used for your rank within your school.' : 'Not in the list? Choose "Other" and type it.') : null));
+  const box = k => (k === 'school' && locked(k) ? schoolBox(p) : locked(k) ? ro(LBL[k], p[k]) : fld(LBL[k], F[k], k === 'school' ? (student ? 'Used for your rank within your school.' : 'Not in the list? Choose "Other" and type it.') : null));
   const btn = h('button', { type: 'submit', class: 'btn pri' + (o.big ? ' pt-big' : ''), text: o.submitText || 'Save profile' });
   return h('form', { class: 'pt-form', onsubmit: async e => {
     e.preventDefault(); msg.textContent = ''; msg.className = 'pt-msg';
@@ -229,6 +230,36 @@ function profileForm(p, o) {
     student && keys.some(k => locked(k)) ? h('p', { class: 'pt-hint', text: 'Saved details cannot be changed here. Ask your teacher if something is wrong.' }) : null,
     student && keys.some(k => !locked(k)) ? h('div', { class: 'pt-note pt-warnnote', role: 'note' }, h('b', { text: 'Please check carefully before you continue. ' }), 'Once saved, you cannot change these details yourself. Only your teacher can correct them.') : null,
     keys.some(k => !locked(k)) || !student ? h('div', { class: 'pt-actions' }, btn) : null, msg);
+}
+/* School once chosen: read-only, with a request to change it (approved by the admin). Staff change it directly. */
+function schoolBox(p) {
+  const wrap = h('div', { class: 'pt-fld' }, h('span', { text: 'School' }), h('div', { class: 'pt-ro', text: p.school }));
+  if (p.school_request) {
+    wrap.append(h('div', { class: 'pt-schreq' }, h('span', {}, 'Change requested to ', h('b', { text: p.school_request }), ' · waiting for approval by Avanti Fellows.'),
+      h('button', { type: 'button', class: 'btn pt-mini', text: 'Cancel request', onclick: async e => {
+        e.currentTarget.disabled = true;
+        try { await rpc('request_school_change', { p_school: null }); await AU().refresh(); toast('Request cancelled'); pageProfile(); } catch (x) { toast(x.message); e.currentTarget.disabled = false; } } })));
+  } else {
+    if (p.school_note) wrap.append(h('p', { class: 'pt-note pt-warnnote', text: p.school_note }));
+    wrap.append(h('small', {}, 'Your school can be changed only with approval. ',
+      h('button', { type: 'button', class: 'pt-linkbtn', text: 'Request a school change', onclick: () => requestSchoolChange(p) })));
+  }
+  return wrap;
+}
+function requestSchoolChange(p) {
+  const pick = schoolSelect('rqSchool', '', 'Choose the new school…', true);
+  const msg = h('p', { class: 'pt-msg', role: 'status' });
+  modal('Request a school change', h('div', { class: 'pt-form' },
+    h('p', {}, 'Your school now: ', h('b', { text: p.school })),
+    h('div', { class: 'pt-fld' }, h('span', { text: 'New school' }), pick),
+    h('p', { class: 'pt-hint', text: 'Avanti Fellows will check and approve the change. Until then your school stays the same.' + (p.role === 'teacher' ? ' After the change, your new school needs approval like before.' : '') }), msg),
+    [{ text: 'Cancel', onclick: () => {} }, { text: 'Send request', pri: true, onclick: close => {
+      const v = pick.value(); msg.className = 'pt-msg';
+      if (!v) { msg.textContent = 'Choose the new school.'; msg.classList.add('bad'); return false; }
+      rpc('request_school_change', { p_school: v }).then(async () => { close(); await AU().refresh(); toast('Request sent. You will see the new school after approval.'); pageProfile(); })
+        .catch(x => { msg.textContent = x.message; msg.classList.add('bad'); });
+      return false;
+    } }]);
 }
 function profileMissing(p) {
   const keys = p.role === 'student' ? ['full_name', 'school', 'class', 'stream', 'category', 'gender'] : ['full_name', 'school'];
@@ -252,7 +283,7 @@ async function pageProfile() {
   const account = card(h('h2', { text: 'Account' }),
     ro('Signed in as', avanti ? p.avanti_id : p.email),
     ro('Role', p.role === 'teacher' ? 'Teacher' : 'Student'),
-    p.role === 'teacher' && !p.is_staff ? ro('School approval', p.school_approved ? 'Approved by Avanti Fellows' : 'Waiting for approval by Avanti Fellows') : null,
+    p.role === 'teacher' && !AU().perm.staff ? ro('School approval', p.school_approved ? 'Approved by Avanti Fellows' : 'Waiting for approval by Avanti Fellows') : null,
     ro('Plan', { free: 'Free', premium: 'Premium', staff: 'Staff (full access)' }[plan] + (plan === 'premium' && p.premium_until ? ' · until ' + day(p.premium_until) : '')),
     h('p', { class: 'pt-hint', text: 'Role and plan are set by the server. Contact Avanti Fellows if your role is wrong.' }),
     h('div', { class: 'pt-actions' }, plan === 'free' ? link('#/membership', '★ Purchase membership', 'btn pt-gold') : null, h('button', { type: 'button', class: 'btn', text: 'Logout', onclick: () => AU().signOut() })));
@@ -1330,7 +1361,25 @@ async function pageApprovals() {
     h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, t.approved ? h('button', { type: 'button', class: 'btn pt-danger', text: 'Remove approval', onclick: () => act(t, 'revoke') })
       : [h('button', { type: 'button', class: 'btn pri', text: 'Approve', onclick: () => act(t, 'approve') }), h('button', { type: 'button', class: 'btn pt-danger', text: 'Not approve', onclick: () => act(t, 'reject') })])));
   const table = rows => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Teacher', 'School', 'Signed up', 'Plan', 'Tests', 'Status', ''].map(x => h('th', { text: x })))), h('tbody', {}, rows.map(row))));
-  show(head('Teacher approvals', pend.length + ' waiting · ' + (list.length - pend.length) + ' approved'),
+  const reqAct = async (r, action) => {
+    let school = null, note = null;
+    if (action === 'approve') { school = await promptBox('Approve the change for ' + (r.full_name || r.email || r.avanti_id), 'New school (correct it if needed)', r.request); if (!school) return; }
+    else { note = await promptBox('Reject the change for ' + (r.full_name || r.email || r.avanti_id), 'Message for them', 'Your request to change your school was not approved. Email us if you think this is wrong.'); if (note == null) return; }
+    try { await rpc('admin_school_request', { p_user: r.id, p_action: action, p_school: school, p_note: note }); toast(action === 'approve' ? 'School changed' : 'Request rejected'); await AU().refresh(); AU().renderMenu(); pageApprovals(); }
+    catch (e) { toast(e.message); }
+  };
+  const reqTable = rows => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Name', 'Role', 'School now', 'New school', 'Asked on', ''].map(x => h('th', { text: x })))),
+    h('tbody', {}, rows.map(r => h('tr', {},
+      h('td', {}, h('b', { text: r.full_name || '—' }), h('div', { class: 'pt-hint', text: r.email || (r.avanti_id ? 'ID ' + r.avanti_id : '') })),
+      h('td', { text: (r.role === 'teacher' ? 'Teacher' : 'Student') + ' · ' + (r.plan === 'premium' ? 'Premium' : 'Free') }),
+      h('td', { text: r.school }),
+      h('td', {}, h('b', { text: r.request }), h('div', { class: 'pt-hint', text: r.school_known ? 'On the Avanti list' : 'New school (not on the Avanti list)' })),
+      h('td', { text: day(r.requested_at) }),
+      h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, h('button', { type: 'button', class: 'btn pri', text: 'Approve', onclick: () => reqAct(r, 'approve') }),
+        h('button', { type: 'button', class: 'btn pt-danger', text: 'Reject', onclick: () => reqAct(r, 'reject') }))))))));
+  const reqs = await rpc('admin_school_requests').catch(() => []);
+  show(head('Teacher approvals', pend.length + ' waiting · ' + (list.length - pend.length) + ' approved' + (reqs.length ? ' · ' + reqs.length + ' school change' + (reqs.length === 1 ? '' : 's') : '')),
+    reqs.length ? card(h('h2', { text: 'School change requests' }), h('p', { class: 'pt-hint', text: 'Teachers and students cannot change their school themselves. Approving moves them to the new school; for teachers this also approves the new school.' }), reqTable(reqs)) : null,
     h('p', { class: 'pt-hint', text: 'Approve a teacher only when you know they teach at that school. Until then they can create tests and add students, but cannot edit students. Not approving asks the teacher to choose the school again.' }),
     card(h('h2', { text: 'Waiting for approval' }), pend.length ? table(pend) : empty('Nothing waiting', 'New teachers appear here after they choose their school.')),
     list.length > pend.length ? card(h('h2', { text: 'Approved' }), table(list.filter(x => x.approved))) : null);

@@ -85,7 +85,9 @@ alter table public.profiles add column if not exists is_avanti boolean not null 
 alter table public.profiles add column if not exists school_approved boolean not null default false;
 alter table public.profiles add column if not exists school_approved_at timestamptz;
 alter table public.profiles add column if not exists school_approved_by text;
-alter table public.profiles add column if not exists school_note text;   -- why a school was not approved (shown to the teacher)
+alter table public.profiles add column if not exists school_note text;
+alter table public.profiles add column if not exists school_request text;      -- school the user asked to move to (admin approves)
+alter table public.profiles add column if not exists school_request_at timestamptz;   -- why a school was not approved (shown to the teacher)
 
 alter table public.profiles add column if not exists session text check (char_length(session) <= 20);
 
@@ -441,6 +443,7 @@ begin
     'can_manage_students', p.is_staff or (p.role = 'teacher' and public.plan_of(p) = 'premium'),
     'price_paise', public.price_paise(p.role),
     'school_approved', p.is_staff or p.school_approved, 'school_note', p.school_note,
+    'school_request', p.school_request, 'school_request_at', p.school_request_at,
     'is_admin', public.is_admin(),
     'pending_approvals', case when public.is_admin() then (select count(*) from public.profiles t
         where t.role = 'teacher' and not t.is_staff and not t.school_approved and t.school is not null) end);
@@ -1295,6 +1298,57 @@ begin
   return json_build_object('ok', true);
 end $$;
 
+-- School changes. Only Staff (@avantifellows.org) change their school themselves (Edit profile).
+-- Everyone else asks here; the admin approves or rejects the request in Teacher approvals.
+create or replace function public.request_school_change(p_school text) returns json
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles; v text := left(nullif(trim(p_school), ''), 160);
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if me.id is null then raise exception 'Please sign in again'; end if;
+  if me.is_staff then raise exception 'Avanti staff can change the school in Edit profile'; end if;
+  if me.school is null then raise exception 'Choose your school in Edit profile first'; end if;
+  if v is not null and lower(v) = lower(me.school) then raise exception 'That is already your school'; end if;
+  update public.profiles set school_request = v, school_request_at = case when v is null then null else now() end, updated_at = now() where id = me.id;
+  return public.my_profile();
+end $$;
+
+create or replace function public.admin_school_requests() returns json
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Only Avanti admins can see this'; end if;
+  return (select coalesce(json_agg(json_build_object('id', p.id, 'full_name', p.full_name, 'email', p.email, 'avanti_id', p.avanti_id,
+            'role', p.role, 'school', p.school, 'request', p.school_request, 'requested_at', p.school_request_at, 'plan', public.plan_of(p),
+            'school_known', exists (select 1 from public.student_allowlist a where lower(a.school) = lower(p.school_request)))
+          order by p.school_request_at), '[]'::json)
+     from public.profiles p where p.school_request is not null);
+end $$;
+
+-- p_action: 'approve' (optionally correcting the new school name) or 'reject'
+create or replace function public.admin_school_request(p_user uuid, p_action text, p_school text default null, p_note text default null) returns json
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles; u public.profiles; v text;
+begin
+  if not public.is_admin() then raise exception 'Only Avanti admins can approve school changes'; end if;
+  select * into me from public.profiles where id = auth.uid();
+  select * into u from public.profiles where id = p_user for update;
+  if u.id is null or u.school_request is null then raise exception 'Request not found'; end if;
+  if p_action = 'approve' then
+    v := coalesce(left(nullif(trim(p_school), ''), 160), u.school_request);
+    update public.profiles set school = v, school_request = null, school_request_at = null, school_note = null,
+           school_approved = (role = 'teacher'), school_approved_at = case when role = 'teacher' then now() end,
+           school_approved_by = case when role = 'teacher' then me.email end, updated_at = now()
+     where id = u.id;
+    -- Avanti ID students: their school comes from the Avanti list, so change it there too
+    if u.avanti_id is not null then update public.student_allowlist set school = v, updated_at = now() where avanti_id = u.avanti_id; end if;
+  elsif p_action = 'reject' then
+    update public.profiles set school_request = null, school_request_at = null,
+           school_note = coalesce(nullif(trim(p_note), ''), 'Your request to change your school was not approved.'), updated_at = now()
+     where id = u.id;
+  else raise exception 'Unknown action'; end if;
+  return json_build_object('ok', true);
+end $$;
+
 -- Numbers shown next to the profile-menu items.
 create or replace function public.menu_counts() returns json
 language plpgsql stable security definer set search_path = public as $$
@@ -1315,7 +1369,8 @@ begin
                          and not exists (select 1 from public.attempts a where a.test_id = t.id and a.user_id = me.id and a.status = 'submitted')) end,
     'reports', (select count(*) from public.attempts a where a.user_id = me.id and a.status = 'submitted'),
     'approvals', case when public.admin_of(me) then (select count(*) from public.profiles t
-                       where t.role = 'teacher' and not t.is_staff and not t.school_approved and t.school is not null) end);
+                       where (t.role = 'teacher' and not t.is_staff and not t.school_approved and t.school is not null)
+                          or t.school_request is not null) end);
 end $$;
 
 -- Help & Support contact (also shown on the login page, so it is readable without signing in).
@@ -1354,6 +1409,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.my_attempts(), public.my_tests(), public.list_schools(), public.is_premium_teacher(), public.price_paise(text),
   public.teacher_add_student(jsonb), public.teacher_add_students(jsonb), public.teacher_update_student(uuid, text, jsonb),
   public.school_students(text), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),
+  public.request_school_change(text), public.admin_school_requests(), public.admin_school_request(uuid, text, text, text),
   public.admin_set_teacher_school(uuid, text, text, text), public.menu_counts(), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
   to authenticated;
 -- server only (Edge Functions use the service role)
