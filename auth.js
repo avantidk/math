@@ -141,7 +141,27 @@ function loginPage(msg) {
       catch (x) { avErr.textContent = x.message || String(x); avErr.hidden = false; avBtn.disabled = false; avBtn.textContent = 'Login with Student ID'; }
     } },
       h('label', { for: 'lgId', text: 'Avanti ID or Student ID' }), idIn, h('label', { for: 'lgDob', text: 'Date of birth' }), dobIn, avErr, avBtn));
-  root.append(h('div', { class: 'lg' },
+  const I = d => '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
+  const FEATS = [
+    [I('<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 9h4M7 12h7"/><circle cx="16.5" cy="9.5" r="1.5"/>'), 'Online tests like the real NTA exam',
+      'Full-screen test with a timer, question panel (answered, not answered, marked, not visited), Mark for review, auto-save and auto-submit. Tab switches are recorded.'],
+    [I('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), 'Instant reports and ranks',
+      'Score, rank in your school and among all students, question-wise review with answers, topic-wise analysis and time spent on each question.'],
+    [I('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'), 'Question Bank of 15,000+ questions',
+      'Filter by chapter, topic, level, exam and year. Every question with its answer, and full solutions for most.'],
+    [I('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>'), 'Previous year papers, 1978 to 2026',
+      'JEE Main, JEE Advanced (IIT), AIEEE, KCET, NDA and IAT, paper-wise and chapter-wise, with answer keys.'],
+    [I('<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>'), 'DPPs, Must Solve lists and handouts',
+      'Ready-made daily practice sheets, the must-solve questions of every chapter and revision handouts.'],
+    [I('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>'), 'For teachers',
+      'Make a test from the Question Bank in minutes, share one link with your class, see every student’s result, and download worksheets as PDF, Word or PowerPoint.']
+  ];
+  const info = h('section', { class: 'lg-info', 'aria-label': 'What you get' },
+    h('p', { class: 'lg-tag', text: 'Everything for JEE Maths in one place' }),
+    h('div', { class: 'lg-stats' }, [['15,000+', 'questions'], ['1978–2026', 'past papers'], ['28', 'chapters']].map(([b, t]) => h('div', { class: 'lg-stat' }, h('b', { text: b }), h('span', { text: t })))),
+    h('ul', { class: 'lg-feats' }, FEATS.map(([ic, t, d]) => h('li', {}, h('span', { class: 'lg-fic', html: ic }), h('div', {}, h('h3', { text: t }), h('p', { text: d }))))),
+    h('p', { class: 'lg-free', text: 'Start free. Premium from ₹299 a year adds downloads, all-India ranks and more. Avanti students get Premium free.' }));
+  root.append(h('div', { class: 'lg lg-split' },
     h('header', { class: 'lg-head' }, h('img', { src: 'img/avanti-logo.png', alt: 'Avanti Fellows', width: 150, height: 51 }),
       h('h1', { text: 'Mathematics Dashboard' }), h('p', { text: "JEE, CET, NDA, IAT · PYQ's, DPP's, Handouts and tests" })),
     h('main', { class: 'lg-main' },
@@ -152,7 +172,8 @@ function loginPage(msg) {
         gBtn, err,
         h('p', { class: 'lg-fine', text: 'Your choice of Teacher or Student is saved the first time you sign in. Avanti Fellows staff (@avantifellows.org) get full access automatically.' })),
       avBox,
-      h('section', { class: 'lg-help' }, h('span', { text: 'Trouble signing in?' }), h('button', { type: 'button', class: 'lg-link', text: 'Help & Support', onclick: e => showHelp(e.target) })))));
+      h('section', { class: 'lg-help' }, h('span', { text: 'Trouble signing in?' }), h('button', { type: 'button', class: 'lg-link', text: 'Help & Support', onclick: e => showHelp(e.target) }))),
+    info));
   paint();
 }
 
