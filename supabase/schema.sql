@@ -1301,6 +1301,19 @@ language sql stable security definer set search_path = public as $$
                            'phone', nullif((select value from public.app_settings where key = 'support_phone'), ''))
 $$;
 
+-- Teachers' chat: a private Supabase Realtime channel. Nothing is stored; only Premium teachers and Staff may join it.
+do $$
+begin
+  if to_regclass('realtime.messages') is not null then
+    execute 'drop policy if exists teachers_chat_read on realtime.messages';
+    execute 'drop policy if exists teachers_chat_write on realtime.messages';
+    execute $p$create policy teachers_chat_read on realtime.messages for select to authenticated
+             using (realtime.topic() = 'teachers-room' and public.is_premium_teacher())$p$;
+    execute $p$create policy teachers_chat_write on realtime.messages for insert to authenticated
+             with check (realtime.topic() = 'teachers-room' and public.is_premium_teacher())$p$;
+  end if;
+end $$;
+
 -- Used by the weekly GitHub Action that keeps the free Supabase project awake.
 create or replace function public.ping() returns integer language sql stable as $$ select 1 $$;
 

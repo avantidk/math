@@ -1032,16 +1032,16 @@ function renderPdfTab(T) {
     view.textContent = '';
     view.append(
       h('div', { class: 'rail' }, h('div', { class: 'card' },
-        h('div', { class: 'row pyqsel' },
-          h('div', { class: 'fld' }, h('label', { class: 'lbl', for: T + 'Kind', text: 'PYQs' }), h('select', { id: T + 'Kind', onchange: e => { PYQSUB = e.target.value; pyqShow(); } }, h('option', { value: 'sw', text: 'Question Paper' }), h('option', { value: 'cw', text: 'Chapterwise' }))),
-          h('div', { class: 'fld' }, h('label', { class: 'lbl', for: T + 'Ex', text: 'Exam' }), h('select', { id: T + 'Ex', onchange: e => { PDFT[T].bucket = e.target.value; PDFT[T].sel = null; PDFT[T].page = 0; renderPdfTab(T); } }, ['Main', 'Adv', 'KCET', 'IAT', 'NDA'].map(k => h('option', { value: k, text: BUCKET_NAME[k] }))))),
-        T === 'cw' ? h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Years (tick one or many)' }), msel('cwYr', 'years')) : h('div', { class: 'fld' }, h('label', { class: 'lbl', for: T + 'Year', text: 'Year' }), h('select', { id: T + 'Year', onchange: e => { PDFT[T].year = e.target.value; PDFT[T].sel = null; PDFT[T].page = 0; renderPdfTab(T); } })),
         h('div', { class: 'tglrow' }, keySwitch(T + 'Key', 'pdfkey', { 'data-t': T }), expSwitch(T + 'Expl', 'pdfexp', { 'data-t': T })),
+        h('div', { class: 'pyqkind', role: 'group', 'aria-label': 'PYQs' }, [['sw', 'Question Paper', 'A whole shift paper'], ['cw', 'Chapterwise', 'Every chapter, all topics']].map(([k, t, d]) =>
+          h('button', { type: 'button', class: 'pyqk', 'aria-pressed': String(T === k), onclick: () => { if (PYQSUB !== k) { PYQSUB = k; pyqShow(); } } }, h('strong', { text: t }), h('span', { text: d })))),
+        h('div', { class: 'fld' }, h('label', { class: 'lbl', for: T + 'Ex', text: 'Exam' }), h('select', { id: T + 'Ex', onchange: e => { PDFT[T].bucket = e.target.value; PDFT[T].sel = null; PDFT[T].page = 0; renderPdfTab(T); } }, ['Main', 'Adv', 'KCET', 'IAT', 'NDA'].map(k => h('option', { value: k, text: BUCKET_NAME[k] })))),
+        T === 'cw' ? h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Years (tick one or many)' }), msel('cwYr', 'years')) : h('div', { class: 'fld' }, h('label', { class: 'lbl', for: T + 'Year', text: 'Year' }), h('select', { id: T + 'Year', onchange: e => { PDFT[T].year = e.target.value; PDFT[T].sel = null; PDFT[T].page = 0; renderPdfTab(T); } })),
         h('div', { class: 'pdflist', id: T + 'List' }, h('div', { class: 'fld' }, h('span', { class: 'lbl', text: T === 'cw' ? 'Chapter' : 'Question paper (date and shift)' }), ssel(T + 'Pick', T === 'cw' ? 'a chapter' : 'a shift'))))),
       h('div', { class: 'stage' }, h('div', { class: 'statbar' }, h('div', { class: 'msg', id: T + 'Msg', 'aria-live': 'polite' }), h('div', { class: 'pgbtns', id: T + 'Pages', hidden: true }), h('div', { class: 'rowbtns', id: T + 'Exp', hidden: true }, ...[['docx', 'Word (editable)'], ['pdf', 'PDF'], ['pptx', 'PowerPoint (editable)']].map(([f, nm]) => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'pdfdl', 'data-t': T, 'data-k': '', 'data-f': f, title: 'Download ' + nm, 'aria-label': 'Download ' + nm, html: FIMG[f] })), ...['xprint', 'xshare'].map(a => { const b = a === 'xprint' ? prtBtn('pyq') : shrBtn('pyq'); b.dataset.t = T; b.dataset.k = ''; return b; }), wsRow(T)), h('button', { type: 'button', class: 'btn ibtn maxbtn', 'data-act': 'max', 'aria-pressed': 'false', title: 'Maximize', 'aria-label': 'Maximize', html: ICO.max })), h('div', { class: 'pgwrap', id: T + 'Prev' })));
     if (window.ResizeObserver) new ResizeObserver(rescale).observe($('#' + T + 'Prev'));
   }
-  $('#' + T + 'Ex').value = P.bucket; $('#' + T + 'Kind').value = T;
+  $('#' + T + 'Ex').value = P.bucket;
   const list = $('#' + T + 'List'); list.querySelectorAll('.hint').forEach(e => e.remove());
   let rows = pdfRows(T); const my = ++P.v;
   if (T === 'cw') {

@@ -256,6 +256,7 @@ async function start() {
   $('#auth').hidden = true; $('#auth').textContent = ''; $('#app').hidden = false;
   if (!started) { started = true; window.AvantiBoot.start(); }
   renderMenu();
+  if (window.AvantiChat) window.AvantiChat.start();
   if (window.AvantiPortal) window.AvantiPortal.route();
 }
 async function afterSignIn() {
