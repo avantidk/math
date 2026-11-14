@@ -1,5 +1,14 @@
 [
   {
+    "v": "816",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: one Export menu (PDF, Word, PowerPoint, Print, Share) next to Create test; Save as worksheet, Create test and Export are white with a blue border.",
+      "Saved worksheets: new Edit button to change the title, reorder or remove questions, and add questions by ID.",
+      "Save as worksheet can now add the ticked questions to an existing worksheet."
+    ]
+  },
+  {
     "v": "815",
     "date": "14 Nov 2026",
     "items": [

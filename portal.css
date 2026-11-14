@@ -593,3 +593,19 @@ html:not(.plan-staff) .qb-results .qb-tools > .qb-reset, html:not(.plan-staff) .
 .ch-retry { margin: 0 12px 12px; align-self: flex-start; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); font: 600 13px/1.2 var(--font-body); cursor: pointer; }
 .ch-retry[hidden] { display: none; }
 .ch-retry:hover { border-color: var(--accent); color: var(--accent); }
+/* Question Bank: one row with Save as worksheet, Create test and Export, all white with a blue border */
+.qb-exp { display: none !important; }
+.qb-wsrow.wsrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
+.qb-wsrow.wsrow.n3 { grid-template-columns: 1fr 1fr; }
+.qb-wsrow.wsrow.n3 .qb-savews { grid-column: 1 / -1; }
+.qb-wsrow .wsbtn, .qb-wsrow .wsbtn.pri { flex: none; width: 100%; padding: 8px 8px; white-space: nowrap; background: var(--panel) !important; color: var(--accent) !important; border: 1.5px solid var(--accent) !important; filter: none !important; }
+.qb-wsrow .wsbtn:hover:not(:disabled), .qb-wsrow .wsbtn[aria-expanded="true"] { background: var(--accent-soft) !important; }
+.qb-wsrow .wsbtn .pt-caret { margin-left: 0; }
+/* edit a saved worksheet */
+.pt-wse-add { display: flex; gap: 8px; } .pt-wse-add .pt-in { flex: 1; min-width: 0; }
+.pt-wse-head { display: flex; align-items: baseline; gap: 10px; margin: 18px 0 8px; } .pt-wse-head h3 { margin: 0; font-size: 17px; color: var(--head); } .pt-wse-count { color: var(--muted); font-size: 14px; }
+.pt-wse-tools { margin-left: auto; display: inline-flex; gap: 6px; }
+.btn.pt-wse-b { min-height: 32px; padding: 4px 10px; font-size: 13px; }
+.btn.pt-wse-b.bad { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, var(--rule)); }
+.btn.pt-wse-b:disabled { opacity: .4; }
+.pt-wse-bar { position: sticky; bottom: 0; z-index: 2; display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; padding: 12px 0; background: linear-gradient(transparent, var(--bg) 30%); }

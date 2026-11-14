@@ -1773,7 +1773,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   function updateSelUI() {
     var n = S.sel.size;
     $('.qb-nsel').textContent = String(n);
-    ['.qb-docx', '.qb-pdf', '.qb-ppt', '.qb-print', '.qb-share', '.qb-savews', '.qb-mktest'].forEach(function (k) { var b = $(k); if (b) b.disabled = busy || !n; });
+    ['.qb-docx', '.qb-pdf', '.qb-ppt', '.qb-print', '.qb-share', '.qb-savews', '.qb-mktest', '.qb-expbtn'].forEach(function (k) { var b = $(k); if (b) b.disabled = busy || !n; });
     $('.qb-fname').textContent = n ? 'File name: ' + exportName(selected()) : 'Tick questions to export them.';
     Object.keys(CARDS).forEach(function (id) {
       var c = CARDS[id], on = S.sel.has(id);
@@ -2028,7 +2028,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     });
   }
   var busy = false;
-  function setBusy(on) { busy = on; ['.qb-docx', '.qb-pdf', '.qb-ppt', '.qb-print', '.qb-share'].forEach(function (k) { $(k).disabled = on || !S.sel.size; }); }
+  function setBusy(on) { busy = on; ['.qb-docx', '.qb-pdf', '.qb-ppt', '.qb-print', '.qb-share', '.qb-expbtn'].forEach(function (k) { var b = $(k); if (b) b.disabled = on || !S.sel.size; }); }
   function exportWith(ext, build) {
     var qs = selected(); if (!qs.length || busy) return;
     if (!QBP(ext === 'pptx' ? 'pptx' : 'docx')) { msg(QBP('pdf') ? 'Your plan includes PDF downloads only.' : 'Downloads need a Premium membership.', true); return; }
@@ -2052,14 +2052,35 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   }
   $('.qb-print').addEventListener('click', function () { if (!QBP('print') || !selected().length || busy || !window.__pdfPrint) return; window.__pdfPrint(qbPdfBlob); });
   $('.qb-share').addEventListener('click', function (e) { if (!QBP('share') || !selected().length || busy || !window.__pdfShare) return; window.__pdfShare(e.currentTarget, exportName(selected()), qbPdfBlob); });
-  /* Premium and Staff teachers: keep the ticked questions as a worksheet, or make a test from them (own row under the export icons) */
+  /* One row under the Answer Key / Explanation switches: Save as worksheet, Create test (teachers) and one Export menu
+     (Word, PDF, PowerPoint, Print, Share). The old icon buttons stay hidden in .qb-exp and do the actual work. */
   (function () {
-    var exp = $('.qb-exp'); if (!exp || !QBP('createTests') || $('.qb-wsrow')) return;
-    var ICO = { save: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>', test: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>' };
+    var exp = $('.qb-exp'); if (!exp || $('.qb-wsrow')) return;
+    var ICO = { save: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>', test: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>',
+      down: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>',
+      print: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3.5h10V9"/><rect x="3.5" y="9" width="17" height="8" rx="2"/><path d="M7 14h10v6.5H7z"/></svg>' };
     var row = document.createElement('div'); row.className = 'qb-wsrow wsrow';
-    function mk(cls, ico, label, title, fn) { var b = document.createElement('button'); b.type = 'button'; b.className = 'btn wsbtn ' + cls; b.title = title; b.innerHTML = ico + '<span>' + label + '</span>'; b.disabled = !S.sel.size; b.addEventListener('click', function () { if (S.sel.size && window.AvantiPortal) fn(selected().map(function (q) { return q.id; }), exportName(selected())); }); row.appendChild(b); }
-    if (QBP('worksheets')) mk('qb-savews', ICO.save, 'Save as worksheet', 'Keep the ticked questions in Saved worksheets', function (ids, name) { window.AvantiPortal.saveWorksheet(ids, name); });
-    mk('qb-mktest pri', ICO.test, 'Create test', 'Make an online test from the ticked questions', function (ids, name) { window.AvantiPortal.createTestFrom(ids, name); });
+    function mk(cls, ico, label, title, fn) { var b = document.createElement('button'); b.type = 'button'; b.className = 'btn wsbtn ' + cls; b.title = title; b.innerHTML = ico + '<span>' + label + '</span>'; b.disabled = !S.sel.size; b.addEventListener('click', fn); row.appendChild(b); return b; }
+    var ids = function () { return selected().map(function (q) { return q.id; }); };
+    if (QBP('createTests') && QBP('worksheets')) mk('qb-savews', ICO.save, 'Save as worksheet', 'Keep the ticked questions in Saved worksheets', function () { if (S.sel.size && window.AvantiPortal) window.AvantiPortal.saveWorksheet(ids(), exportName(selected())); });
+    if (QBP('createTests')) mk('qb-mktest', ICO.test, 'Create test', 'Make an online test from the ticked questions', function () { if (S.sel.size && window.AvantiPortal) window.AvantiPortal.createTestFrom(ids(), exportName(selected())); });
+    if (QBP('pdf')) {
+      var eb = mk('qb-expbtn', ICO.down, 'Export', 'Download, print or share the ticked questions', function (e) {
+        var P = window.AvantiPortal, IC = P && P.icons; if (!P || !P.dropMenu || !S.sel.size) return;
+        var go = function (k) { return function () { var b = $(k); if (b) b.click(); }; };
+        P.dropMenu(e.currentTarget, [
+          { icon: IC.pdf, text: 'Download PDF', sub: 'Print-ready, with the Avanti header', onclick: go('.qb-pdf') },
+          QBP('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable document', onclick: go('.qb-docx') } : null,
+          QBP('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: go('.qb-ppt') } : null,
+          '-',
+          QBP('print') ? { icon: ICO.print, text: 'Print', sub: 'Opens the PDF to print', onclick: go('.qb-print') } : null,
+          QBP('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: go('.qb-share') } : null]);
+      });
+      eb.setAttribute('aria-haspopup', 'menu'); eb.setAttribute('aria-expanded', 'false');
+      eb.insertAdjacentHTML('beforeend', '<span class="pt-caret" aria-hidden="true">▾</span>');
+    }
+    if (!row.children.length) return;
+    row.classList.add('n' + row.children.length);
     exp.parentNode.insertBefore(row, exp.nextSibling);
   })();
   $('.qb-pdf').addEventListener('click', function () {

@@ -126,7 +126,7 @@ function route() {
   if (r !== 't') exitExam();
   curRoute = location.hash;
   const pages = { profile: pageProfile, membership: pageMembership, tests: pageAvailable, reports: pageReports, report: pageReport, t: pageTake,
-    create: pageCreate, edit: pageCreate, students: pageStudents, 'add-student': pageAddStudent, help: pageHelp, approvals: pageApprovals, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets };
+    create: pageCreate, edit: pageCreate, students: pageStudents, 'add-student': pageAddStudent, help: pageHelp, approvals: pageApprovals, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets, 'ws-edit': pageWsEdit };
   const fn = pages[r];
   if (!fn) { leave(); return; }
   Promise.resolve(fn(arg, r)).catch(e => show(errorBox(e.message || String(e), route)));
@@ -474,22 +474,98 @@ async function pageWorksheets() {
       can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: () => shareWorksheet(w) } : null]) },
     h('span', { html: IC.down }), 'Export', h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' })) : null;
   const moreBtn = w => h('button', { type: 'button', class: 'btn pt-iconbtn', title: 'More', 'aria-label': 'More actions for ' + w.title, 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: IC.more,
-    onclick: e => dropMenu(e.currentTarget, [{ icon: IC.edit, text: 'Rename', onclick: () => rename(w) }, { icon: IC.del, text: 'Delete', bad: true, onclick: () => del(w) }]) });
+    onclick: e => dropMenu(e.currentTarget, [{ icon: IC.edit, text: 'Edit questions', onclick: () => { location.hash = '#/ws-edit/' + w.id; } }, { icon: IC.edit, text: 'Rename', onclick: () => rename(w) }, { icon: IC.del, text: 'Delete', bad: true, onclick: () => del(w) }]) });
   const body = list.length ? h('div', { class: 'pt-cards' }, list.map(w => card(
     h('div', { class: 'pt-ct' }, h('h3', { text: w.title }), moreBtn(w)),
     h('p', { class: 'pt-meta' }, h('b', { text: w.question_ids.length }), ' questions · updated ' + when(w.updated_at)),
     h('div', { class: 'pt-actions pt-wsact' },
       h('button', { type: 'button', class: 'btn', text: 'View questions', onclick: () => previewIds(w.title, w.question_ids) }),
+      h('button', { type: 'button', class: 'btn pt-split', onclick: () => { location.hash = '#/ws-edit/' + w.id; } }, h('span', { html: IC.edit }), 'Edit'),
       exportBtn(w))))) :
     empty('No saved worksheets yet', 'In the Question Bank, tick questions and press "Save as worksheet". You can also save the questions of a test while creating it.', h('button', { type: 'button', class: 'btn pri', text: 'Open Question Bank', onclick: () => { leave(); TE().setTab('qb'); } }));
   show(head('Saved worksheets', list.length + ' worksheet' + (list.length === 1 ? '' : 's') + ' · question lists you kept from the Question Bank or the test maker'), body);
 }
 async function saveWorksheet(ids, name) {
   if (!can('worksheets')) { toast('Saved worksheets are for Premium teachers.'); return; }
-  const t = await promptBox('Save as worksheet', 'Worksheet title', name || 'Worksheet');
-  if (!t) return;
-  const { error } = await sb().from('worksheets').insert({ title: t, question_ids: ids.slice(0, 300) });
-  if (error) toast('Could not save the worksheet: ' + error.message); else toast('Saved "' + t + '" (' + Math.min(ids.length, 300) + ' questions' + (ids.length > 300 ? ', the first 300 of ' + ids.length : '') + ') in Saved worksheets.');
+  let list = []; try { list = await myWorksheets(); } catch (e) { /* save as new */ }
+  const title = h('input', { type: 'text', class: 'pt-in', value: name || 'Worksheet', maxlength: 200 });
+  const pick = h('select', { class: 'pt-in' }, h('option', { value: '', text: 'A new worksheet' }), list.map(w => h('option', { value: w.id, text: 'Add to: ' + w.title + ' (' + w.question_ids.length + ')' })));
+  const tf = h('label', { class: 'pt-fld' }, h('span', { text: 'Worksheet title' }), title);
+  pick.addEventListener('change', () => { tf.hidden = !!pick.value; });
+  const body = h('div', { class: 'pt-form' }, list.length ? h('label', { class: 'pt-fld' }, h('span', { text: 'Save in' }), pick) : null, tf,
+    h('p', { class: 'pt-hint', text: ids.length + ' question' + (ids.length === 1 ? '' : 's') + ' ticked. A worksheet can hold up to 300 questions.' }));
+  modal('Save as worksheet', body, [{ text: 'Cancel', onclick: () => {} }, { text: 'Save', pri: true, onclick: () => {
+    if (pick.value) {
+      const w = list.find(x => x.id === pick.value); if (!w) return false;
+      const merged = w.question_ids.concat(ids.filter(i => !w.question_ids.includes(i)));
+      const added = Math.min(merged.length, 300) - w.question_ids.length;
+      sb().from('worksheets').update({ question_ids: merged.slice(0, 300), updated_at: new Date().toISOString() }).eq('id', w.id)
+        .then(({ error }) => toast(error ? 'Could not save: ' + error.message : added > 0 ? 'Added ' + added + ' question' + (added === 1 ? '' : 's') + ' to "' + w.title + '".' + (merged.length > 300 ? ' (Limit of 300 reached.)' : '') : 'These questions are already in "' + w.title + '".'));
+      return;
+    }
+    const t = title.value.trim(); if (!t) { title.focus(); return false; }
+    sb().from('worksheets').insert({ title: t, question_ids: ids.slice(0, 300) }).then(({ error }) => {
+      if (error) toast('Could not save the worksheet: ' + error.message); else { toast('Saved "' + t + '" (' + Math.min(ids.length, 300) + ' questions' + (ids.length > 300 ? ', the first 300 of ' + ids.length : '') + ') in Saved worksheets.'); AU().renderMenu(); }
+    });
+  } }]);
+}
+/* Edit a saved worksheet: title, order of questions, remove questions, add questions by ID */
+async function pageWsEdit(id) {
+  if (!can('worksheets')) return nope('Saved worksheets are for Premium teachers', 'Upgrade to keep question lists as worksheets and reuse them in tests.');
+  show(head('Edit worksheet', ''), loading());
+  const { data: w, error } = await sb().from('worksheets').select('id,title,question_ids,updated_at').eq('id', id).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!w) return show(head('Edit worksheet', ''), empty('Worksheet not found', 'It may have been deleted.', h('button', { type: 'button', class: 'btn pri', text: 'Back to Saved worksheets', onclick: () => { location.hash = '#/worksheets'; } })));
+  const B = await TE().bank();
+  let ids = w.question_ids.slice(), dirty = false;
+  const title = h('input', { type: 'text', class: 'pt-in', value: w.title, maxlength: 200, oninput: () => { dirty = true; } });
+  const count = h('span', { class: 'pt-wse-count' });
+  const list = h('div', { class: 'pt-plist pt-wse-list' });
+  const addIn = h('input', { type: 'text', class: 'pt-in', placeholder: 'Question IDs, separated by commas or spaces' });
+  const addMsg = h('p', { class: 'pt-hint' });
+  const ctl = (label, text, fn, dis, bad) => h('button', { type: 'button', class: 'btn pt-wse-b' + (bad ? ' bad' : ''), title: label, 'aria-label': label, text, disabled: dis || null, onclick: fn });
+  const move = (i, d) => { const j = i + d; if (j < 0 || j >= ids.length) return; [ids[i], ids[j]] = [ids[j], ids[i]]; dirty = true; draw(); };
+  function draw() {
+    count.textContent = ids.length + ' question' + (ids.length === 1 ? '' : 's');
+    list.textContent = '';
+    if (!ids.length) list.append(h('p', { class: 'pt-hint', text: 'No questions left. Add some by ID below, or from the Question Bank.' }));
+    ids.forEach((qid, i) => {
+      const q = B.byId.get(qid);
+      const tools = h('span', { class: 'pt-wse-tools' }, ctl('Move up', '↑', () => move(i, -1), i === 0), ctl('Move down', '↓', () => move(i, 1), i === ids.length - 1),
+        ctl('Remove question ' + (i + 1), 'Remove', () => { ids.splice(i, 1); dirty = true; draw(); }, false, true));
+      list.append(q ? qCard(snap(q), i, { right: tools, answer: q.a, extra: h('p', { class: 'pt-hint', text: 'ID ' + qid }) })
+        : h('article', { class: 'pt-q' }, h('div', { class: 'pt-qh' }, h('strong', { text: 'Q' + (i + 1) }), h('span', { class: 'pt-hint', text: 'Question ' + qid + ' is no longer in the Question Bank' }), tools)));
+    });
+    mathIn(list);
+  }
+  const add = () => {
+    const want = addIn.value.split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
+    const ok = [], bad = [], dup = [];
+    want.forEach(x => { const q = B.byId.get(x) || B.byId.get(x.toUpperCase()); const k = q ? q.i : null; if (!k) bad.push(x); else if (ids.includes(k) || ok.includes(k)) dup.push(x); else ok.push(k); });
+    const room = 300 - ids.length, take = ok.slice(0, Math.max(0, room));
+    ids = ids.concat(take); if (take.length) dirty = true;
+    addMsg.textContent = [take.length ? 'Added ' + take.length + '.' : '', dup.length ? 'Already in the worksheet: ' + dup.join(', ') + '.' : '', bad.length ? 'Not found: ' + bad.join(', ') + '.' : '', ok.length > take.length ? 'The limit is 300 questions.' : ''].filter(Boolean).join(' ');
+    if (take.length) addIn.value = bad.join(', ');
+    draw();
+  };
+  addIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+  const save = async btn => {
+    const t = title.value.trim(); if (!t) { title.focus(); toast('Give the worksheet a title'); return; }
+    if (!ids.length) { toast('A worksheet needs at least one question. Delete it from Saved worksheets instead.'); return; }
+    btn.disabled = true;
+    const { error: e } = await sb().from('worksheets').update({ title: t, question_ids: ids, updated_at: new Date().toISOString() }).eq('id', w.id);
+    btn.disabled = false;
+    if (e) { toast('Could not save: ' + e.message); return; }
+    dirty = false; toast('Worksheet saved'); location.hash = '#/worksheets';
+  };
+  const cancel = async () => { if (dirty && !await confirmBox('Discard changes?', 'Your changes to this worksheet will be lost.', 'Discard', true)) return; location.hash = '#/worksheets'; };
+  show(head('Edit worksheet', 'Change the title, reorder or remove questions, or add more.'),
+    card(h('label', { class: 'pt-fld' }, h('span', { text: 'Title' }), title),
+      h('div', { class: 'pt-fld' }, h('span', { text: 'Add questions by ID' }), h('div', { class: 'pt-wse-add' }, addIn, h('button', { type: 'button', class: 'btn', text: 'Add', onclick: add })), addMsg),
+      h('p', { class: 'pt-hint', text: 'To add questions from the Question Bank, tick them there and press "Save as worksheet", then choose this worksheet.' })),
+    h('div', { class: 'pt-wse-head' }, h('h3', { text: 'Questions' }), count), list,
+    h('div', { class: 'pt-wse-bar' }, h('button', { type: 'button', class: 'btn', text: 'Cancel', onclick: cancel }), h('button', { type: 'button', class: 'btn pri', text: 'Save changes', onclick: e => save(e.currentTarget) })));
+  draw();
 }
 let PREFILL = null;
 function createTestFrom(ids, name) {
@@ -1268,6 +1344,6 @@ async function showChangelog() {
       e.v === cur ? h('p', { class: 'pt-hint', text: e.date }) : null, h('ul', { class: 'pt-feats' }, e.items.map(t => h('li', { text: t }))))));
   } catch (x) { body.textContent = ''; body.append(errorBox('Could not load the list of updates. Check your internet connection.')); }
 }
-window.AvantiPortal = { showChangelog, shareReady, route, leave: () => leave(false), saveWorksheet, createTestFrom, onboard, profileMissing };
+window.AvantiPortal = { dropMenu, icons: IC, showChangelog, shareReady, route, leave: () => leave(false), saveWorksheet, createTestFrom, onboard, profileMissing };
 if (AU() && AU().profile && TE()) route();
 })();
