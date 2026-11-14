@@ -227,7 +227,7 @@ function profileForm(p, o) {
     box('full_name'), box('school'),
     student ? h('div', { class: 'pt-row2' }, box('class'), box('stream')) : null,
     student ? h('div', { class: 'pt-row2' }, box('category'), box('gender')) : null,
-    student && keys.some(k => locked(k)) ? h('p', { class: 'pt-hint', text: 'Saved details cannot be changed here. Ask your teacher if something is wrong.' }) : null,
+    student && keys.some(k => locked(k)) ? h('p', { class: 'pt-hint', text: 'Saved details cannot be changed here. To move to another school, use "Request a school change" above. For other details, ask your teacher.' }) : null,
     student && keys.some(k => !locked(k)) ? h('div', { class: 'pt-note pt-warnnote', role: 'note' }, h('b', { text: 'Please check carefully before you continue. ' }), 'Once saved, you cannot change these details yourself. Only your teacher can correct them.') : null,
     keys.some(k => !locked(k)) || !student ? h('div', { class: 'pt-actions' }, btn) : null, msg);
 }
