@@ -837,3 +837,4 @@ html:not(.plan-staff) .qb-results .qb-tools > .qb-reset, html:not(.plan-staff) .
   .lg-split .lg-info.lgx { justify-self: start; width: 100%; max-width: 900px; padding: 56px clamp(32px, 4vw, 64px) 56px clamp(32px, 5vw, 80px); }
   .lgx-lead { max-width: 64ch; }
 }
+@media (min-width: 980px) { .lg-split .lg-info.lgx { max-width: 1040px; padding-right: clamp(32px, 3.5vw, 56px); } }
