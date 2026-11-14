@@ -1,5 +1,14 @@
 [
   {
+    "v": "824",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: fixed the maths in 19 questions that showed wrongly (for example \"se c²θ\", \"o f ¹⁹C\", \"c m²\", variables and equations typed as plain text).",
+      "Question Bank: 4 Black Book questions had two identical options; one option in each was replaced and the answers were checked (all four answer keys are correct).",
+      "Question Bank: removed extra spaces and blank lines in 1,093 questions (maths unchanged)."
+    ]
+  },
+  {
     "v": "823",
     "date": "14 Nov 2026",
     "items": [
