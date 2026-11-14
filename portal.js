@@ -480,7 +480,6 @@ async function pageWorksheets() {
     h('p', { class: 'pt-meta' }, h('b', { text: w.question_ids.length }), ' questions · updated ' + when(w.updated_at)),
     h('div', { class: 'pt-actions pt-wsact' },
       h('button', { type: 'button', class: 'btn', text: 'View questions', onclick: () => previewIds(w.title, w.question_ids) }),
-      h('button', { type: 'button', class: 'btn pt-split', onclick: () => { location.hash = '#/ws-edit/' + w.id; } }, h('span', { html: IC.edit }), 'Edit'),
       exportBtn(w))))) :
     empty('No saved worksheets yet', 'In the Question Bank, tick questions and press "Save as worksheet". You can also save the questions of a test while creating it.', h('button', { type: 'button', class: 'btn pri', text: 'Open Question Bank', onclick: () => { leave(); TE().setTab('qb'); } }));
   show(head('Saved worksheets', list.length + ' worksheet' + (list.length === 1 ? '' : 's') + ' · question lists you kept from the Question Bank or the test maker'), body);
