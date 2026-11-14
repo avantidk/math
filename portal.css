@@ -4,7 +4,7 @@
 /* ---------- plan rules: what each plan can see (the code checks again on every action) ---------- */
 html.plan-free [data-act="lexp"], html.plan-free [data-act="pdfdl"], html.plan-free [data-act="pdfshare"],
 html.plan-free [data-act="xprint"], html.plan-free [data-act="xshare"], html.plan-free .mexp, html.plan-free .mexpb,
-html.plan-free #libDl, html.plan-free .exp, html.plan-free .rowbtns[id$="Exp"], html.plan-free .hp-act,
+html.plan-free #libDl, html.plan-free .exp, html.plan-free .rowbtns[id$="Exp"],
 html.plan-free .qb-exp, html.plan-free .qb-tglrow, html.plan-free .qb-fname { display: none !important; }
 html.plan-premium [data-act="lexp"][data-k="docx"], html.plan-premium [data-act="lexp"][data-k="pptx"],
 html.plan-premium [data-f="docx"], html.plan-premium [data-f="pptx"], html.plan-premium [data-mexp="docx"], html.plan-premium [data-mexp="pptx"],
@@ -281,3 +281,23 @@ body.ex-on { overflow: hidden; }
   .pt-stat strong { font-size: 20px; }
   .pf-drop { position: fixed; left: 12px; right: 12px; top: 70px; min-width: 0; }
 }
+
+/* ---------- handouts: free badge, Premium lock and the in-page viewer ---------- */
+.hp-free { display: inline-flex; align-items: center; font: 700 11.5px var(--font-body); letter-spacing: .04em; text-transform: uppercase; color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); border-radius: 999px; padding: 4px 10px; }
+.hp-btn.hp-lock { text-decoration: none; color: var(--muted); }
+.hp-btn.hp-lock:hover { color: var(--accent); background: var(--accent-soft); }
+.hp-btn.hp-view { background: transparent; color: var(--ac); }
+.hp-btn.hp-view:hover { background: color-mix(in srgb, var(--ac) 12%, transparent); filter: none; }
+body.hv-on { overflow: hidden; }
+.hv { position: fixed; inset: 0; z-index: 1100; display: flex; flex-direction: column; background: rgba(5,12,32,.92); }
+.hv-bar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: linear-gradient(170deg, var(--navy, #0c1a3d), var(--navy-2, #14295c)); color: #fff; }
+.hv-code { font: 700 12px ui-monospace, SFMono-Regular, Menlo, monospace; background: rgba(255,255,255,.14); border-radius: 6px; padding: 5px 8px; }
+.hv-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.hv-n { color: #c9d4ee; font-size: 12.5px; white-space: nowrap; }
+.hv-x { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,255,255,.3); background: transparent; color: #fff; font-size: 24px; line-height: 1; cursor: pointer; }
+.hv-x:hover, .hv-x:focus-visible { background: rgba(255,255,255,.15); outline: none; }
+.hv-pages { flex: 1; overflow: auto; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 16px 12px 40px; -webkit-user-select: none; user-select: none; }
+.hv-slot { max-width: 100%; background: #fff; border-radius: 4px; box-shadow: 0 6px 24px rgba(0,0,0,.4); flex: none; }
+.hv-page { display: block; max-width: 100%; height: auto; border-radius: 4px; }
+.hv-msg { color: #e9eefb; margin: 40px 0; text-align: center; }
+@media print { body.hv-on .hv { display: none !important; } }

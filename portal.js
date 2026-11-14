@@ -30,6 +30,8 @@ const day = d => (d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', 
 const testLink = code => location.origin + location.pathname + '#/t/' + code;
 const CLASSES = ['9', '10', '11', '12', 'Dropper'];
 const STREAMS = ['PCM', 'PCB', 'PCMB', 'Commerce', 'Arts', 'Other'];
+const CATEGORIES = ['General', 'EWS', 'OBC-NCL', 'SC', 'ST'];
+const GENDERS = ['Female', 'Male', 'Other', 'Prefer not to say'];
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 /* ---------- maths ---------- */
@@ -137,24 +139,26 @@ function pageProfile() {
   const fName = h('input', { id: 'pfName', class: 'pt-in', type: 'text', maxlength: 120, value: p.full_name || '', required: true, autocomplete: 'name' });
   const fSchool = h('input', { id: 'pfSchool', class: 'pt-in', type: 'text', maxlength: 160, value: p.school || '', placeholder: student ? 'e.g. JNV Pune' : 'School or centre (optional)' });
   const fClass = sel('pfClass', CLASSES, p.class), fStream = sel('pfStream', STREAMS, p.stream);
+  const fCat = sel('pfCat', CATEGORIES, p.category), fGender = sel('pfGender', GENDERS, p.gender);
   const msg = h('p', { class: 'pt-msg', role: 'status' });
   const fld = (label, input, hint) => h('label', { class: 'pt-fld', for: input.id }, h('span', { text: label }), input, hint ? h('small', { text: hint }) : null);
   const ro = (label, value) => h('div', { class: 'pt-fld' }, h('span', { text: label }), h('div', { class: 'pt-ro', text: value || '—' }));
-  const incomplete = student ? !(p.full_name && p.school && p.class) : !p.full_name;
+  const incomplete = student ? !(p.full_name && p.school && p.class && p.category && p.gender) : !p.full_name;
   show(head('Edit profile', incomplete ? 'Please complete your profile to continue.' : 'Your name and school appear on test results.'),
     h('div', { class: 'pt-grid2' },
       card(h('h2', { text: 'Your details' }),
         h('form', { class: 'pt-form', onsubmit: async e => {
           e.preventDefault(); msg.textContent = ''; msg.className = 'pt-msg';
           if (!fName.value.trim()) { msg.textContent = 'Please enter your name.'; msg.classList.add('bad'); fName.focus(); return; }
-          if (student && (!fSchool.value.trim() || !fClass.value)) { msg.textContent = 'Students need a school and a class.'; msg.classList.add('bad'); return; }
+          if (student && (!fSchool.value.trim() || !fClass.value || !fCat.value || !fGender.value)) { msg.textContent = 'Students need a school, class, category and gender.'; msg.classList.add('bad'); return; }
           const b = e.target.querySelector('button[type=submit]'); b.disabled = true; b.textContent = 'Saving…';
-          try { await rpc('update_my_profile', { p_full_name: fName.value, p_school: fSchool.value, p_class: student ? fClass.value : (fClass.value || null), p_stream: student ? fStream.value : (fStream.value || null) }); await AU().refresh(); msg.textContent = 'Saved.'; msg.classList.add('ok'); }
+          try { await rpc('update_my_profile', { p_full_name: fName.value, p_school: fSchool.value, p_class: student ? fClass.value : (fClass.value || null), p_stream: student ? fStream.value : (fStream.value || null), p_category: student ? fCat.value : null, p_gender: student ? fGender.value : null }); await AU().refresh(); msg.textContent = 'Saved.'; msg.classList.add('ok'); }
           catch (x) { msg.textContent = 'Could not save: ' + x.message; msg.classList.add('bad'); }
           b.disabled = false; b.textContent = 'Save profile';
         } },
           fld('Full name', fName), fld('School', fSchool, student ? 'Used for your rank within your school.' : null),
           student ? h('div', { class: 'pt-row2' }, fld('Class', fClass), fld('Stream', fStream)) : null,
+          student ? h('div', { class: 'pt-row2' }, fld('Category', fCat), fld('Gender', fGender)) : null,
           h('div', { class: 'pt-actions' }, h('button', { type: 'submit', class: 'btn pri', text: 'Save profile' })), msg)),
       card(h('h2', { text: 'Account' }),
         ro('Signed in as', p.email || (p.avanti_id ? 'Avanti ID ' + p.avanti_id : '')),
@@ -170,7 +174,7 @@ async function pageMembership() {
   const p = P(), plan = AU().perm.plan;
   show(loading());
   const { data: pays } = await sb().from('payments').select('order_id,payment_id,amount_paise,status,created_at,paid_at').order('created_at', { ascending: false }).limit(20);
-  const feats = ['Must Solve and Handouts', 'Download every DPP, PYQ paper and handout as PDF', 'Print and share PDFs', 'Create online tests with a share link (teachers)', 'Results, ranks and CSV export (teachers)'];
+  const feats = ['Every handout (free members see only the first chapter of each class)', 'Download every DPP, PYQ paper, Must Solve list and handout as PDF', 'Print and share PDFs', 'Create online tests with a share link (teachers)', 'Results, ranks and CSV export (teachers)'];
   const msg = h('p', { class: 'pt-msg', role: 'status' });
   const payBtn = h('button', { type: 'button', class: 'btn pri pt-big', text: plan === 'premium' ? 'Renew for 1 more year · ₹1' : 'Pay ₹1 · Get Premium for 1 year', onclick: () => pay(payBtn, msg) });
   const status = plan === 'staff' ? card(h('h2', { text: 'Staff account' }), h('p', { text: 'Your @avantifellows.org account has full access to everything. No payment is needed.' }))
@@ -471,8 +475,8 @@ async function pageResults(id) {
   const R = await rpc('test_results', { p_test: id });
   const t = R.test, s = R.summary || {}, st = R.students || [];
   const fname = t.title.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '');
-  const exportStudents = () => saveCsv(fname + '_results.csv', [['Rank', 'School rank', 'Name', 'Avanti ID', 'School', 'Class', 'Stream', 'Score', 'Max score', 'Correct', 'Wrong', 'Skipped', 'Accuracy %', 'Time (min:sec)', 'Tab switches', 'Submitted at']]
-    .concat(st.map(x => [x.rank, x.school_rank, x.name, x.avanti_id, x.school, x.class, x.stream, x.score, x.max_score, x.correct, x.wrong, x.skipped, x.accuracy, mmss(x.time_taken_sec), x.tab_switches, when(x.submitted_at)])));
+  const exportStudents = () => saveCsv(fname + '_results.csv', [['Rank', 'School rank', 'Name', 'Avanti ID', 'School', 'Class', 'Stream', 'Category', 'Gender', 'Score', 'Max score', 'Correct', 'Wrong', 'Skipped', 'Accuracy %', 'Time (min:sec)', 'Tab switches', 'Submitted at']]
+    .concat(st.map(x => [x.rank, x.school_rank, x.name, x.avanti_id, x.school, x.class, x.stream, x.category, x.gender, x.score, x.max_score, x.correct, x.wrong, x.skipped, x.accuracy, mmss(x.time_taken_sec), x.tab_switches, when(x.submitted_at)])));
   const exportQs = () => saveCsv(fname + '_questions.csv', [['Q', 'Question ID', 'Chapter', 'Topic', 'Students', 'Correct', 'Wrong', 'Skipped', 'Correct %', 'Average seconds']]
     .concat((R.questions || []).map(q => [q.pos, q.qid, q.chapter, q.topic, q.total, q.correct, q.wrong, q.skipped, q.correct_pct, q.avg_time_sec])));
   const top = head(t.title, t.n_questions + ' questions · ' + t.duration_min + ' min · max ' + num(t.max_score, 2) + ' marks' + (t.is_active ? '' : ' · inactive'),
@@ -490,13 +494,13 @@ async function pageResults(id) {
     tbody.textContent = '';
     st.filter(x => !filter || (String(x.name || '') + ' ' + (x.school || '') + ' ' + (x.avanti_id || '')).toLowerCase().includes(filter)).forEach(x => tbody.append(h('tr', { class: 'pt-click', tabindex: '0', onclick: () => { location.hash = '#/report/' + x.attempt_id; }, onkeydown: e => { if (e.key === 'Enter') location.hash = '#/report/' + x.attempt_id; } },
       h('td', { class: 'pt-num', text: x.rank }), h('td', {}, h('b', { text: x.name || 'Unnamed' }), x.avanti_id ? h('div', { class: 'pt-hint', text: x.avanti_id }) : null),
-      h('td', {}, x.school || '—', h('div', { class: 'pt-hint', text: '#' + x.school_rank + ' in school' })), h('td', { text: [x.class, x.stream].filter(Boolean).join(' · ') || '—' }),
+      h('td', {}, x.school || '—', h('div', { class: 'pt-hint', text: '#' + x.school_rank + ' in school' })), h('td', {}, [x.class, x.stream].filter(Boolean).join(' · ') || '—', h('div', { class: 'pt-hint', text: [x.category, x.gender].filter(Boolean).join(' · ') })),
       h('td', { class: 'pt-num' }, h('b', { text: num(x.score, 2) }), ' / ' + num(x.max_score, 2)), h('td', { class: 'pt-num', text: x.correct + ' / ' + x.wrong + ' / ' + x.skipped }),
       h('td', { class: 'pt-num', text: pct(x.accuracy) }), h('td', { class: 'pt-num', text: mmss(x.time_taken_sec) }), h('td', { class: 'pt-num' + (x.tab_switches > 2 ? ' pt-warnc' : ''), text: x.tab_switches }))));
   };
   const table = card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Students (ranked)' }), h('input', { type: 'search', class: 'pt-in pt-search', placeholder: 'Search name, school or Avanti ID', 'aria-label': 'Search students', oninput: e => { filter = e.target.value.trim().toLowerCase(); drawRows(); } })),
     h('p', { class: 'pt-hint', text: 'Rank: higher score first, then less time. Click a student to open their report.' }),
-    h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Rank', 'Student', 'School', 'Class', 'Score', 'C / W / S', 'Accuracy', 'Time', 'Tab switches'].map(x => h('th', { text: x })))), tbody)));
+    h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Rank', 'Student', 'School', 'Class / category', 'Score', 'C / W / S', 'Accuracy', 'Time', 'Tab switches'].map(x => h('th', { text: x })))), tbody)));
   drawRows();
   const qs = card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Question-wise correctness' }), h('button', { type: 'button', class: 'btn', text: 'Export CSV', onclick: exportQs })),
     h('div', { class: 'pt-legend' }, h('span', { class: 'lg-c', text: 'Correct' }), h('span', { class: 'lg-w', text: 'Wrong' }), h('span', { class: 'lg-s', text: 'Skipped' })),

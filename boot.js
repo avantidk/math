@@ -3,7 +3,7 @@
    BUILD must be bumped on every release so returning visitors get the new code on their next visit. */
 (function () {
 'use strict';
-const BUILD = '800';
+const BUILD = '801';
 const CDN_KATEX = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js';
 const CACHEABLE = /^(qb\/data\/|qb\/qb[.\-]|bank(-meta)?\.json|must\.json|syllabus\.json|handouts\/index\.json|katex\.css|teacher[.\-])/;
 const origFetch = window.fetch.bind(window);

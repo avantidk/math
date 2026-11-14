@@ -54,10 +54,16 @@ create table if not exists public.profiles (
   school        text check (char_length(school) <= 160),
   class         text check (char_length(class) <= 20),
   stream        text check (char_length(stream) <= 40),
+  category      text check (char_length(category) <= 30),
+  gender        text check (char_length(gender) <= 30),
   avanti_id     text unique,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+-- Added after the first release (safe to run again)
+alter table public.profiles add column if not exists category text check (char_length(category) <= 30);
+alter table public.profiles add column if not exists gender text check (char_length(gender) <= 30);
 
 -- The plan that applies right now: Staff, or Premium while the paid year lasts, otherwise Free.
 create or replace function public.plan_of(p public.profiles) returns text
@@ -96,6 +102,8 @@ create table if not exists public.student_allowlist (
   school          text,
   class           text,
   stream          text,
+  category        text,
+  gender          text,
   failed_attempts integer not null default 0,
   locked_until    timestamptz,
   created_at      timestamptz not null default now()
@@ -104,8 +112,12 @@ create table if not exists public.student_allowlist (
 -- Paste or import your list here (Table Editor → student_allowlist_import → Insert → Import data from CSV),
 -- then run:  select public.allowlist_load_import();   It hashes the dates and empties this table.
 create table if not exists public.student_allowlist_import (
-  avanti_id text, dob text, full_name text, school text, class text, stream text
+  avanti_id text, dob text, full_name text, school text, class text, stream text, category text, gender text
 );
+alter table public.student_allowlist add column if not exists category text;
+alter table public.student_allowlist add column if not exists gender text;
+alter table public.student_allowlist_import add column if not exists category text;
+alter table public.student_allowlist_import add column if not exists gender text;
 
 create table if not exists public.login_attempts (
   id        bigserial primary key,
@@ -139,18 +151,22 @@ language sql immutable set search_path = public as $$
   select nullif(upper(regexp_replace(coalesce(p, ''), '\s+', '', 'g')), '')
 $$;
 
+drop function if exists public.allowlist_add(text, text, text, text, text, text);
 create or replace function public.allowlist_add(p_avanti_id text, p_dob text, p_full_name text default null,
-  p_school text default null, p_class text default null, p_stream text default null) returns void
+  p_school text default null, p_class text default null, p_stream text default null,
+  p_category text default null, p_gender text default null) returns void
 language plpgsql security definer set search_path = public, extensions as $$
 declare v_id text := public.norm_avanti_id(p_avanti_id); v_dob date := public.norm_dob(p_dob);
 begin
   if v_id is null then raise exception 'Avanti ID is empty'; end if;
   if v_dob is null then raise exception 'Date of birth "%" for % is not a date. Use YYYY-MM-DD or DD-MM-YYYY.', p_dob, v_id; end if;
-  insert into public.student_allowlist (avanti_id, dob_hash, full_name, school, class, stream)
+  insert into public.student_allowlist (avanti_id, dob_hash, full_name, school, class, stream, category, gender)
   values (v_id, extensions.crypt(to_char(v_dob, 'YYYY-MM-DD'), extensions.gen_salt('bf', 8)),
-          nullif(trim(p_full_name), ''), nullif(trim(p_school), ''), nullif(trim(p_class), ''), nullif(trim(p_stream), ''))
+          nullif(trim(p_full_name), ''), nullif(trim(p_school), ''), nullif(trim(p_class), ''), nullif(trim(p_stream), ''),
+          nullif(trim(p_category), ''), nullif(trim(p_gender), ''))
   on conflict (avanti_id) do update set dob_hash = excluded.dob_hash, full_name = excluded.full_name, school = excluded.school,
-    class = excluded.class, stream = excluded.stream, failed_attempts = 0, locked_until = null;
+    class = excluded.class, stream = excluded.stream, category = excluded.category, gender = excluded.gender,
+    failed_attempts = 0, locked_until = null;
 end $$;
 
 create or replace function public.allowlist_load_import() returns integer
@@ -158,7 +174,7 @@ language plpgsql security definer set search_path = public as $$
 declare r record; n integer := 0;
 begin
   for r in select * from public.student_allowlist_import loop
-    perform public.allowlist_add(r.avanti_id, r.dob, r.full_name, r.school, r.class, r.stream);
+    perform public.allowlist_add(r.avanti_id, r.dob, r.full_name, r.school, r.class, r.stream, r.category, r.gender);
     n := n + 1;
   end loop;
   delete from public.student_allowlist_import;
@@ -224,8 +240,8 @@ begin
   end if;
   if v_av is not null then
     select * into a from public.student_allowlist where avanti_id = v_av;
-    insert into public.profiles (id, email, role, full_name, school, class, stream, avanti_id)
-    values (new.id, null, 'student', a.full_name, a.school, a.class, a.stream, v_av)
+    insert into public.profiles (id, email, role, full_name, school, class, stream, category, gender, avanti_id)
+    values (new.id, null, 'student', a.full_name, a.school, a.class, a.stream, a.category, a.gender, v_av)
     on conflict (id) do nothing;
     delete from public.pending_avanti where email = lower(new.email);
   else
@@ -273,7 +289,7 @@ begin
   end if;
   return json_build_object('id', p.id, 'email', p.email, 'role', p.role, 'plan', public.plan_of(p),
     'premium_until', p.premium_until, 'is_staff', p.is_staff, 'full_name', p.full_name, 'school', p.school,
-    'class', p.class, 'stream', p.stream, 'avanti_id', p.avanti_id,
+    'class', p.class, 'stream', p.stream, 'category', p.category, 'gender', p.gender, 'avanti_id', p.avanti_id,
     'can_create_tests', p.is_staff or (p.role = 'teacher' and public.plan_of(p) = 'premium'));
 end $$;
 
@@ -286,7 +302,9 @@ begin
   return public.my_profile();
 end $$;
 
-create or replace function public.update_my_profile(p_full_name text, p_school text, p_class text, p_stream text) returns json
+drop function if exists public.update_my_profile(text, text, text, text);
+create or replace function public.update_my_profile(p_full_name text, p_school text, p_class text, p_stream text,
+  p_category text default null, p_gender text default null) returns json
 language plpgsql security definer set search_path = public as $$
 begin
   if auth.uid() is null then raise exception 'Please sign in again'; end if;
@@ -295,6 +313,8 @@ begin
     school    = left(nullif(trim(p_school), ''), 160),
     class     = left(nullif(trim(p_class), ''), 20),
     stream    = left(nullif(trim(p_stream), ''), 40),
+    category  = left(nullif(trim(p_category), ''), 30),
+    gender    = left(nullif(trim(p_gender), ''), 30),
     updated_at = now()
   where id = auth.uid();
   return public.my_profile();
@@ -416,6 +436,8 @@ create table if not exists public.attempts (
   school         text,
   class          text,
   stream         text,
+  category       text,
+  gender         text,
   score          numeric,
   max_score      numeric,
   correct        integer,
@@ -424,6 +446,8 @@ create table if not exists public.attempts (
   time_taken_sec integer,
   unique (test_id, user_id)
 );
+alter table public.attempts add column if not exists category text;
+alter table public.attempts add column if not exists gender text;
 create index if not exists attempts_test on public.attempts (test_id, status);
 create index if not exists attempts_user on public.attempts (user_id, started_at desc);
 
@@ -602,8 +626,8 @@ begin
   select * into a from public.attempts where test_id = t.id and user_id = me.id;
   if a.id is null then
     if not t.is_active then raise exception 'This test is not open right now.'; end if;
-    insert into public.attempts (test_id, user_id, student_name, school, class, stream)
-    values (t.id, me.id, me.full_name, me.school, me.class, me.stream)
+    insert into public.attempts (test_id, user_id, student_name, school, class, stream, category, gender)
+    values (t.id, me.id, me.full_name, me.school, me.class, me.stream, me.category, me.gender)
     on conflict (test_id, user_id) do nothing;
     select * into a from public.attempts where test_id = t.id and user_id = me.id;
   end if;
@@ -748,7 +772,7 @@ begin
               (select count(*) from sub where least(greatest(floor(100.0 * greatest(score, 0) / nullif(max_score, 0) / 10), 0), 9) = b)) order by b)
               from generate_series(0, 9) b),
     'students', (select coalesce(json_agg(json_build_object('rank', r_all, 'school_rank', r_school, 'attempt_id', id, 'name', student_name,
-              'avanti_id', avanti_id, 'school', school, 'class', class, 'stream', stream, 'score', score, 'max_score', max_score,
+              'avanti_id', avanti_id, 'school', school, 'class', class, 'stream', stream, 'category', category, 'gender', gender, 'score', score, 'max_score', max_score,
               'correct', correct, 'wrong', wrong, 'skipped', skipped,
               'accuracy', round(100.0 * correct / nullif(correct + wrong, 0), 1), 'time_taken_sec', time_taken_sec,
               'tab_switches', tab_switches, 'submitted_at', submitted_at) order by r_all, student_name), '[]'::json) from sub),
@@ -778,7 +802,7 @@ create or replace function public.ping() returns integer language sql stable as 
 revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function public.ping() to anon, authenticated;
 grant execute on function public.plan_of(public.profiles), public.my_plan(), public.is_staff(), public.can_create_tests(),
-  public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text),
+  public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text),
   public.list_available_tests(), public.test_info(text), public.start_attempt(text),
   public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer),
   public.my_attempts(), public.my_tests(), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()

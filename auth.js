@@ -36,7 +36,6 @@ function permsFor(p) {
     plan, staff, premium: paid, role: p.role || null,
     pdf: paid, print: paid, share: paid, copy: paid,      // Premium: PDF download, print, share in PDF mode
     docx: staff, pptx: staff,                              // editable Word / PowerPoint: Staff only
-    view_must: paid, view_ho: paid,                        // Free: Question Bank, DPPs and PYQs only
     attention: staff,                                      // Attention flags: Staff only
     createTests: !!p.can_create_tests                      // decided by the database
   });
@@ -215,7 +214,7 @@ async function start() {
   if (!started) { started = true; window.AvantiBoot.start(); }
   renderMenu();
   if (window.AvantiPortal) window.AvantiPortal.route();
-  const incomplete = p.role === 'student' ? !(p.full_name && p.school && p.class) : !p.full_name;
+  const incomplete = p.role === 'student' ? !(p.full_name && p.school && p.class && p.category && p.gender) : !p.full_name;
   if (incomplete && !/^#\/t\//.test(location.hash) && location.hash !== '#/profile') location.hash = '#/profile';
 }
 async function afterSignIn() {

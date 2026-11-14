@@ -22,11 +22,12 @@ What it changes:
 
 ## 2. The Avanti ID allow-list
 
-1. Make a CSV file with these column headings exactly: `avanti_id,dob,full_name,school,class,stream`
-   Dates can be `2008-05-14` or `14-05-2008`. Example row: `2401234567,14-05-2008,Priya Sharma,JNV Pune,11,PCM`
+1. Make a CSV file with these column headings exactly: `avanti_id,dob,full_name,school,class,stream,category,gender`
+   Dates can be `2008-05-14` or `14-05-2008`. Category: General, EWS, OBC-NCL, SC or ST. Gender: Female, Male, Other or Prefer not to say.
+   Example row: `2401234567,14-05-2008,Priya Sharma,JNV Pune,11,PCM,OBC-NCL,Female`
 2. In Supabase click **Table Editor** → table **student_allowlist_import** → **Insert** → **Import data from CSV** → choose your file → **Import data**.
 3. Go to **SQL Editor** → **+ New query**, paste `select public.allowlist_load_import();` and click **Run**. It shows how many students were added, stores each date of birth only as a hash, and empties the import table.
-4. To add one student by hand: `select public.allowlist_add('2401234567', '14-05-2008', 'Priya Sharma', 'JNV Pune', '11', 'PCM');`
+4. To add one student by hand: `select public.allowlist_add('2401234567', '14-05-2008', 'Priya Sharma', 'JNV Pune', '11', 'PCM', 'OBC-NCL', 'Female');`
 
 Five wrong dates of birth lock that Avanti ID for 15 minutes; 20 failures from one network block it for 15 minutes.
 
@@ -84,11 +85,12 @@ Premium is given only after the server checks Razorpay's signature (and the sign
 
 1. Open the website in a private window: only the login page shows.
 2. Sign in with an `@avantifellows.org` Google account: profile menu shows **Staff**; Create Test, My Tests and Results, Saved worksheets are there; Question Bank shows the Attention filter.
-3. Sign in with a normal Gmail as Teacher: plan is Free; Must Solve and Handouts ask for Premium; no download buttons.
+3. Sign in with a normal Gmail as Teacher: plan is Free; Must Solve opens without download buttons; in Handouts only the first chapter of each class has View (the rest show Premium).
 4. Sign in with an Avanti ID from the allow-list: Available tests and My Reports are in the menu.
 
 ## Good to know
 
+- Students must fill in name, school, class, stream, category and gender before using the site; category and gender appear in test results and the CSV.
 - Plans, roles, tests and results are enforced by the database. The question files (`qb/data/*.json`) and handout PDFs are public files on GitHub Pages: the site hides and blocks downloads for Free users, but someone who knows the file address could still open it. To lock those too, they would need to move into Supabase Storage.
 - A user's Teacher/Student choice is saved at their first sign-in. To change it later: SQL Editor → `update public.profiles set role = 'teacher' where email = 'name@gmail.com';`
 - Give someone Premium by hand: `update public.profiles set premium_until = now() + interval '1 year', plan = 'premium' where email = 'name@gmail.com';`

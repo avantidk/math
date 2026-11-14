@@ -1064,6 +1064,45 @@ function showPdfPrev(T) {
 }
 /* ---------- Handouts tab: compact PDF list ---------- */
 let HO = null;
+const HO_FREE = new Set();
+const hoNum = x => { const m = /M(\d+)/.exec(x.code); return m ? +m[1] : 999; };
+const hoFree = x => HO_FREE.has(x.code);
+const hoOpen = x => G('pdf') || hoFree(x);
+/* In-page handout viewer (PDF.js draws the pages; no download or print button). Free members may open only the free handouts. */
+let PDFJS_P = null;
+function loadPdfJs() {
+  if (!PDFJS_P) PDFJS_P = loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js').then(() => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; return window.pdfjsLib; }).catch(e => { PDFJS_P = null; throw e; });
+  return PDFJS_P;
+}
+async function viewHandout(x, url) {
+  if (!hoOpen(x)) { toast('This handout is for Premium members.'); return; }
+  const close = () => { m.remove(); document.removeEventListener('keydown', onKey); document.body.classList.remove('hv-on'); if (io) io.disconnect(); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  const pages = h('div', { class: 'hv-pages' }, h('p', { class: 'hv-msg', text: 'Loading the handout\u2026' }));
+  const m = h('div', { class: 'hv', role: 'dialog', 'aria-modal': 'true', 'aria-label': x.title },
+    h('div', { class: 'hv-bar' }, h('span', { class: 'hv-code', text: x.code }), h('strong', { class: 'hv-title', text: x.title }), h('span', { class: 'hv-n' }),
+      h('button', { type: 'button', class: 'hv-x', 'aria-label': 'Close viewer', html: '&times;', onclick: () => close() })), pages);
+  let io = null;
+  document.body.append(m); document.body.classList.add('hv-on'); document.addEventListener('keydown', onKey); m.querySelector('.hv-x').focus();
+  try {
+    const lib = await loadPdfJs();
+    const doc = await lib.getDocument({ url }).promise;
+    m.querySelector('.hv-n').textContent = doc.numPages + ' pages';
+    pages.textContent = '';
+    const draw = async (n, holder) => {
+      if (holder.dataset.done) return; holder.dataset.done = '1';
+      const pg = await doc.getPage(n), w = Math.min(pages.clientWidth - 24, 1000), v0 = pg.getViewport({ scale: 1 }), sc = w / v0.width, dpr = Math.min(window.devicePixelRatio || 1, 2), vp = pg.getViewport({ scale: sc * dpr });
+      const c = h('canvas', { class: 'hv-page', width: Math.floor(vp.width), height: Math.floor(vp.height), 'aria-label': 'Page ' + n });
+      c.style.width = Math.floor(vp.width / dpr) + 'px'; holder.textContent = ''; holder.style.height = ''; holder.append(c);
+      await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    };
+    const first = await doc.getPage(1), ratio = first.getViewport({ scale: 1 }).height / first.getViewport({ scale: 1 }).width, wd = Math.min(pages.clientWidth - 24, 1000);
+    const holders = [];
+    for (let n = 1; n <= doc.numPages; n++) { const d = h('div', { class: 'hv-slot', 'data-n': n, style: 'height:' + Math.round(wd * ratio) + 'px;width:' + wd + 'px' }); holders.push(d); pages.append(d); }
+    io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) draw(+e.target.dataset.n, e.target).catch(() => {}); }), { root: pages, rootMargin: '600px 0px' });
+    holders.forEach(d => io.observe(d));
+  } catch (e) { pages.textContent = ''; pages.append(h('p', { class: 'hv-msg', text: 'The handout could not be opened. Check your internet connection and try again.' })); }
+}
 async function renderHandouts() {
   const view = $('#viewHo'); if (!view) return;
   if (!HO) { try { HO = await (await fetch('handouts/index.json')).json(); } catch (e) { HO = []; } }
@@ -1092,6 +1131,8 @@ async function renderHandouts() {
     document.head.append(st);
   }
   const list = (HO || []).filter(Boolean);
+  /* free to everyone: the first chapter's handout of Class 11 and of Class 12 (lowest chapter number in each class) */
+  HO_FREE.clear(); ['11', '12'].forEach(c => { const L = list.filter(x => x.code.startsWith(c)).sort((a, b) => hoNum(a) - hoNum(b)); if (L.length) HO_FREE.add(L[0].code); });
   if (!list.length) { view.append(h('p', { class: 'hint', text: 'No handouts yet.' })); return; }
   const base = x => x.file.replace(/\.pdf$/, '');
   const path = (x, bw) => 'handouts/' + (bw ? x.dir + '/bw/' + base(x) + '_BW.pdf' : x.file);
@@ -1104,12 +1145,15 @@ async function renderHandouts() {
   const ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8m0 0L4.8 6.8M8 10l3.2-3.2M3 13h10"/></svg>';
   const btn = (x, bw) => h('button', { type: 'button', class: 'hp-btn' + (bw ? ' bw' : ''), title: bw ? 'Download PDF (black and white, for printing)' : 'Download PDF', 'aria-label': 'Download ' + x.title + (bw ? ' PDF, black and white' : ' PDF'), html: ICON + (bw ? 'PDF · B&W' : 'PDF'), onclick: () => dl(x, bw) });
   const ACC = ['#e0197a', '#0a86c2', '#16a06a', '#d98200', '#7a3fd1', '#e8590c', '#5a9a00'];
+  const EYE = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg>';
+  const LOCK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
+  const viewBtn = x => h('button', { type: 'button', class: 'hp-btn hp-view', title: 'Open in the viewer', 'aria-label': 'View ' + x.title, html: EYE + 'View', onclick: () => viewHandout(x, path(x, false)) });
   const card = (x, k) => h('article', { class: 'hp-card', style: '--ac:' + ACC[k % ACC.length] },
     h('span', { class: 'hp-code', text: x.code }),
     h('div', { class: 'hp-main' }, h('h3', { class: 'hp-title', text: x.title }), h('p', { class: 'hp-meta', text: [x.pages ? x.pages + ' pages' : '', x.orient || 'A4'].filter(Boolean).join(' · ') })),
-    h('div', { class: 'hp-act' }, btn(x, false), x.nobw ? null : btn(x, true)));
+    h('div', { class: 'hp-act' }, hoOpen(x) ? viewBtn(x) : null, G('pdf') ? [btn(x, false), x.nobw ? null : btn(x, true)] : hoFree(x) ? h('span', { class: 'hp-free', text: 'Free' }) : h('a', { class: 'hp-btn bw hp-lock', href: '#/membership', title: 'Premium members can open every handout', html: LOCK + 'Premium' })));
   const secs = [['11', 'Class 11'], ['12', 'Class 12']].map(([c, t]) => { const L = list.filter(x => x.code.startsWith(c)); return L.length ? h('section', { class: 'hp-sec' }, h('h2', { class: 'hp-sech', text: t }), h('div', { class: 'hp-list' }, L.map((x, k) => card(x, k)))) : null; }).filter(Boolean);
-  view.append(h('div', { class: 'hp-head' }, h('h1', { text: 'Handouts' }), h('p', { text: 'Handwritten revision notes · PDF' })), ...secs);
+  view.append(h('div', { class: 'hp-head' }, h('h1', { text: 'Handouts' }), h('p', { text: G('pdf') ? 'Handwritten revision notes · view or download as PDF' : 'Handwritten revision notes · the first chapter of each class is free to view' })), ...secs);
 }
 
 /* ---------- Must Solve tab: questions that repeat in JEE (exact or very similar) and sure-shot picks, by chapter and topic ---------- */
@@ -1287,21 +1331,11 @@ function pyqShow() {
   setTimeout(rescale, 0);
 }
 function setTab(t) {
-  if ((t === 'must' || t === 'ho') && !G('view_' + t)) { lockedView(t); return; }
   if (t === 'pyq') { pyqShow(); return; }
   const pv = $('#viewPyq'); if (pv) pv.hidden = true;
   setTabInner(t);
 }
-function hideViews() { ['Qb', 'Lib', 'Cw', 'Sw', 'Ho', 'Must', 'Syl', 'Pyq', 'Lock', 'Portal'].forEach(n => { const e = $('#view' + n); if (e) e.hidden = true; }); }
-/* Must Solve and Handouts are for paid members; free members see an upgrade card instead */
-function lockedView(t) {
-  hideViews(); document.querySelectorAll('[data-act="tab"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === t)));
-  const v = $('#viewLock'); v.textContent = ''; v.hidden = false;
-  v.append(h('div', { class: 'pt-card pt-lock' }, h('h2', { text: (t === 'must' ? 'Must Solve' : 'Handouts') + ' is for Premium members' }),
-    h('p', { class: 'hint', text: 'Free members can view the Question Bank, DPPs and PYQs. Premium members can also use Must Solve, Handouts, PDF downloads and tests.' }),
-    h('a', { class: 'btn pri', href: '#/membership', text: 'See Premium membership' })));
-  if (window.AvantiPortal) window.AvantiPortal.leave();
-}
+function hideViews() { ['Qb', 'Lib', 'Cw', 'Sw', 'Ho', 'Must', 'Syl', 'Pyq', 'Portal'].forEach(n => { const e = $('#view' + n); if (e) e.hidden = true; }); }
 function setTabInner(t) {
   hideViews(); const v = $('#view' + ({ qb: 'Qb', lib: 'Lib', cw: 'Cw', sw: 'Sw', ho: 'Ho', must: 'Must', syl: 'Syl' })[t]); if (v) v.hidden = false;
   if (window.AvantiPortal) window.AvantiPortal.leave();
@@ -1719,7 +1753,6 @@ function buildShell() {
         h('div', { id: 'viewHo', class: 'hoview', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewMust', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewSyl', class: 'sy-wrap', hidden: true }),
-        h('div', { id: 'viewLock', class: 'pt-wrap', hidden: true }),
         h('div', { id: 'viewPortal', class: 'pt-wrap', hidden: true })),
       h('footer', { class: 'app-foot', id: 'appFoot' },
         h('span', { class: 'af-brand' }, 'Made with ', h('span', { class: 'af-heart', style: 'color:#e11d48', 'aria-label': 'love', text: '\u2665' }), ' by Ankit'),
