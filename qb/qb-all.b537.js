@@ -409,7 +409,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   }
 
   function metaLine(q) {
-    if (q.source === 'Non-PYQ') return 'Practice · ' + (q.publisher || 'VMC') + (q.ref_year ? ' [' + q.ref_year + ']' : '') + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' ' : '') + q.topic : '') + ' · ' + q.difficulty;
+    if (q.source === 'Non-PYQ') return 'Practice · ' + (q.publisher || 'Practice') + (q.ref_year ? ' [' + q.ref_year + ']' : '') + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' ' : '') + q.topic : '') + ' · ' + q.difficulty;
     return q.exam + (q.year ? ' ' + q.year : '') + ' · ' + q.paper + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' ' : '') + q.topic : '') + ' · ' + q.difficulty + (q.attention ? ' · NEEDS ATTENTION' : '');
   }
 
@@ -925,7 +925,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     fn: function (pyq, nonpyq) {
       var ex = {}, pb = {};
       pyq.forEach(function (q) { ex[q.exam] = (ex[q.exam] || 0) + 1; });
-      nonpyq.forEach(function (q) { var k = q.publisher || 'VMC'; pb[k] = (pb[k] || 0) + 1; });
+      nonpyq.forEach(function (q) { var k = q.publisher || 'Practice'; pb[k] = (pb[k] || 0) + 1; });
       var g = function (m, k) { return m[k] || 0; };
       return [
         { group: 'all', n: pyq.length + nonpyq.length },
@@ -938,8 +938,6 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
         { group: 'exam_kcet', n: g(ex, 'KCET') },
         { group: 'exam_iat', n: g(ex, 'IAT') },
         { group: 'exam_nda', n: g(ex, 'NDA') },
-        { group: 'src_VMC', n: g(pb, 'VMC') },
-        { group: 'src_Cengage', n: g(pb, 'Cengage') },
         { group: 'src_BlackBook', n: g(pb, 'Black Book') }
       ];
     }
@@ -964,7 +962,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
         var n = function (exam, year) { return p.y[exam + '|' + year] || 0; };
         var ex = function (exam) { return p.e[exam] || 0; };
         var sc = function (pb) { return nn.p[pb] || 0; };
-        return { chapter_code: c.chapter_code, chapter: c.chapter, main_2025: n('JEE Main', 2025), main_2026: n('JEE Main', 2026), adv_2025: n('JEE Advanced', 2025), adv_2026: n('JEE Advanced', 2026), main_all: ex('JEE Main') + ex('AIEEE'), adv_all: ex('JEE Advanced') + ex('IIT'), kcet_all: ex('KCET'), iat_all: ex('IAT'), nda_all: ex('NDA'), src_VMC: sc('VMC'), src_Cengage: sc('Cengage'), src_BlackBook: sc('Black Book'), nonpyq: nn.t, total: p.t + nn.t };
+        return { chapter_code: c.chapter_code, chapter: c.chapter, main_2025: n('JEE Main', 2025), main_2026: n('JEE Main', 2026), adv_2025: n('JEE Advanced', 2025), adv_2026: n('JEE Advanced', 2026), main_all: ex('JEE Main') + ex('AIEEE'), adv_all: ex('JEE Advanced') + ex('IIT'), kcet_all: ex('KCET'), iat_all: ex('IAT'), nda_all: ex('NDA'), src_BlackBook: sc('Black Book'), nonpyq: nn.t, total: p.t + nn.t };
       });
     }
   });
@@ -1127,7 +1125,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
   }
 
   /* chapter order; PYQs first: JEE Main (with AIEEE), JEE Advanced (with IIT), KCET, each newest first (year, month, day, shift); then practice questions by source: Cengage, Black Book, VMC (then any other), each in sheet order */
-  var PUB_ORDER = ['Cengage', 'Black Book', 'VMC'];
+  var PUB_ORDER = ['Black Book'];
   function pubRank(q) { var i = PUB_ORDER.indexOf(q.publisher); return i < 0 ? PUB_ORDER.length : i; }
   function examRank(q) { var e = q.exam; return e === 'JEE Main' || e === 'AIEEE' ? 0 : e === 'JEE Advanced' || e === 'IIT' ? 1 : e === 'KCET' ? 2 : e === 'IAT' ? 3 : e === 'NDA' ? 4 : 5; }
   function cmp(a, b) {
@@ -1192,7 +1190,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     var meta = el('div', 'qb-meta');
     if (q.source === 'Non-PYQ') {
       meta.appendChild(el('span', 'qb-tag np', 'Practice'));
-      meta.appendChild(el('span', 'qb-tag', q.publisher || 'VMC'));
+      meta.appendChild(el('span', 'qb-tag', q.publisher || 'Practice'));
       if (q.pyq) { var pt = el('span', 'qb-tag ex-main', 'PYQ'); pt.title = 'This question is also a previous-year question' + (q.pyq_ref ? ' (' + q.pyq_ref + ')' : ''); meta.appendChild(pt); meta.appendChild(el('span', 'qb-date', q.pyq_paper + (q.pyq_exam === 'JEE Main' || !q.pyq_year ? '' : ' · ' + q.pyq_year))); }
       if (q.ref_year) meta.appendChild(el('span', 'qb-tag', '[' + q.ref_year + ']'));
     } else {
@@ -1584,8 +1582,8 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
       });
     });
   }
-  var SRC_VALS = ['PYQs', 'VMC', 'Cengage', 'Black Book'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET', 'IAT', 'NDA'];
-  function srcOf(q) { return q.source === 'PYQ' ? 'PYQs' : (q.publisher || 'VMC'); }
+  var SRC_VALS = ['PYQs', 'Black Book'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET', 'IAT', 'NDA'];
+  function srcOf(q) { return q.source === 'PYQ' ? 'PYQs' : (q.publisher || 'Practice'); }
   /* "PYQs" ticked together with a source that has PYQ-tagged questions (Black Book) = the PYQs of that source only */
   var PYQ_PUBS = {};
   function comboPubs() { return []; if (!S.src.has('PYQs')) return []; var r = []; Object.keys(PYQ_PUBS).forEach(function (p) { if (S.src.has(p)) r.push(p); }); return r; }
@@ -1984,7 +1982,7 @@ window.QB_LOGO_B64="iVBORw0KGgoAAAANSUhEUgAAAeAAAAClCAMAAACz6N7MAAAKMWlDQ1BJQ0Mg
     rows.forEach(function (r) {
       r.flagged = chFl[r.chapter_code] || 0; r.attn = chAt[r.chapter_code] || 0; r.oos = chOos[r.chapter_code] || 0;
       var tr = el('tr'); tr.dataset.key = r.chapter_code;
-      ['chapter_code', 'chapter', 'main_all', 'adv_all', 'kcet_all', 'iat_all', 'nda_all', 'src_VMC', 'src_Cengage', 'src_BlackBook', 'total', 'oos', 'attn', 'flagged'].forEach(function (k) {
+      ['chapter_code', 'chapter', 'main_all', 'adv_all', 'kcet_all', 'iat_all', 'nda_all', 'src_BlackBook', 'total', 'oos', 'attn', 'flagged'].forEach(function (k) {
         var td = el('td', typeof r[k] === 'number' && r[k] === 0 ? 'z' : null, String(r[k]));
         tr.appendChild(td);
       });

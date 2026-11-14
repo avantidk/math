@@ -447,7 +447,7 @@ function buildSubDpps(bank, chmap) {
 }
 function levelPools(chapterCode) {
   const lv = { 1: [], 2: [], 3: [] };
-  BANK.qs.forEach(q => { if (q.cc === chapterCode && q.s === 'N' && LS.pubs.includes(q.pb || 'VMC')) { const l = practiceLevel(q); if (l) lv[l].push(q); } });
+  BANK.qs.forEach(q => { if (q.cc === chapterCode && q.s === 'N' && LS.pubs.includes(q.pb || 'Practice')) { const l = practiceLevel(q); if (l) lv[l].push(q); } });
   return lv;
 }
 
@@ -478,9 +478,9 @@ function buildPyqTopics() {
 let SUBS = [];
 const BK = {};
 const LS = { kind: 'sub', chs: [], ids: [], idk: '', part: 'all', page: 0, key: false, shown: false, year: 'all', yrs: [], ex: [], lv: ['L1', 'L2', 'L3'], pubs: [], srcs: [], tough: 2, mixv: 2, stat: '', seed: 0 };
-const PUBS = [];   /* every source tag found in the bank: VMC, Cengage and any new one */
+const PUBS = [];   /* every source tag found in the bank (Black Book and any new one) */
 function initPubs() {
-  const found = [...new Set(BANK.qs.filter(q => q.s === 'N').map(q => q.pb || 'VMC'))], first = ['VMC', 'Cengage', 'Black Book'];
+  const found = [...new Set(BANK.qs.filter(q => q.s === 'N').map(q => q.pb || 'Practice'))], first = ['Black Book'];
   PUBS.length = 0; first.concat(found.filter(x => !first.includes(x)).sort()).forEach(x => PUBS.push(x));
   LS.pubs = PUBS.slice(); LS.srcs = EXAMS.concat(PUBS);
 }
@@ -570,7 +570,7 @@ function pyqPages(cc, id) {
   list.forEach(t => { if (!t.qs.length) return; const flat = levelFlat([{ label: t.label + ' \u00b7 ' + t.name, qs: t.qs }]); packPages(flat, (g, i, n) => ({ title: name, sub: t.label + ' \u00b7 ' + t.name, badge: t.label + (n > 1 ? ' \u00b7 Page ' + (i + 1) + ' of ' + n : '') })).forEach(x => { x.qs = x.qs.map((q, j) => (j === 0 && !q.head ? Object.assign({}, q, { head: contHead(q) }) : q)); out.push(x); }); });
   return (BK[key] = out);
 }
-function practiceChapters() { return [...new Set(BANK.qs.filter(q => q.s === 'N' && practiceLevel(q) && LS.pubs.includes(q.pb || 'VMC')).map(q => q.cc))].sort((a, b) => CHMAP.get(a).o - CHMAP.get(b).o || CHMAP.get(a).cl - CHMAP.get(b).cl); }
+function practiceChapters() { return [...new Set(BANK.qs.filter(q => q.s === 'N' && practiceLevel(q) && LS.pubs.includes(q.pb || 'Practice')).map(q => q.cc))].sort((a, b) => CHMAP.get(a).o - CHMAP.get(b).o || CHMAP.get(a).cl - CHMAP.get(b).cl); }
 function libChapters() {
   if (LS.kind === 'book') return practiceChapters().map(cc => ({ cc, n: CHMAP.get(cc).n }));
   if (LS.kind === 'pyq') return Object.keys(PYQT).sort((a, b) => CHMAP.get(a).o - CHMAP.get(b).o || CHMAP.get(a).cl - CHMAP.get(b).cl).map(cc => ({ cc, n: CHMAP.get(cc).n + ' (' + pyqCount(cc, 'all') + ')' }));
@@ -597,7 +597,7 @@ function topicKeyOf(q) {
   const m = TKM[q.cc] || (TKM[q.cc] = new Map(((BANK.syl || {})[q.cc] || []).map(t => [norm(t[1]), String(t[0])])));
   return q.cc + '|' + (m.get(norm(q.tp)) || 'other');
 }
-const srcOf = q => q.s === 'P' ? exOf(q) : (q.pb || 'VMC');
+const srcOf = q => q.s === 'P' ? exOf(q) : (q.pb || 'Practice');
 function dppPool(forCount) {
   const yrs = LS.yrs, chs = new Set(LS.chs), ids = new Set(LS.ids), src = new Set(LS.srcs);
   return BANK.qs.filter(q => chs.has(q.cc) && (forCount || ids.has(topicKeyOf(q))) && src.has(srcOf(q)) && (q.s !== 'P' || !yrs.length || yrs.includes(String(q.y))) && LS.lv.includes('L' + practiceLevel(q))).map(q => Object.assign({}, q, { lvTag: true }));
@@ -977,7 +977,7 @@ function qbCompact(r, withKcet) {
   const P = r.source === 'PYQ';
   let o = r.options || []; if (typeof o === 'string') { try { o = JSON.parse(o); } catch (x) { o = []; } }
   const q = { i: String(r.id), s: P ? 'P' : 'N', e, y: P && r.year != null && r.year !== '' ? Number(r.year) : null, p: r.paper, t: r.type, cc: r.chapter_code, tc: String(r.topic_code || '').replace(/^JM-/, ''), tp: r.topic || '', d: r.difficulty, q: r.question || '', o, a: r.answer == null ? '' : String(r.answer) };
-  if (!P) { q.pb = r.publisher || 'VMC'; q.sec = r.section || ''; if (r.pyq) q.pq = r.pyq_ref || ''; }
+  if (!P) { q.pb = r.publisher || 'Practice'; q.sec = r.section || ''; if (r.pyq) q.pq = r.pyq_ref || ''; }
   if (r.oos) q.oo = 1;
   if (r.figure && r.figure.svg) q.f = r.figure;
   return q;

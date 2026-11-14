@@ -1,5 +1,17 @@
 [
   {
+    "v": "840",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: all VMC and Cengage practice questions and IIT questions up to 1999 removed (3,791); their filters, columns and empty subtopics removed. 11,196 questions remain.",
+      "Must Solve: questions that were removed were taken out of the lists.",
+      "KCET20190429075: new figure with the shaded region.",
+      "BB-16-1-060: new options A–C; the correct answer is now B, (11+√113)/2.",
+      "JM20220627131: the solution now explains why p = 2 is mathematically correct (official answer 45 kept).",
+      "4 number-theory questions moved to \"Number Systems and Integer Counting\"."
+    ]
+  },
+  {
     "v": "839",
     "date": "14 Nov 2026",
     "items": [
