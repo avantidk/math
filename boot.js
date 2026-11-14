@@ -18,7 +18,7 @@ try {
 const inflight = {}, refreshed = {};
 function net(url) {
   if (!inflight[url]) {
-    inflight[url] = origFetch(url).then(r => {
+    inflight[url] = origFetch(url, { cache: 'no-cache' }).then(r => {
       if (r.ok && cachep) cachep.then(c => { if (c) { try { c.put(url, r.clone()).catch(() => {}); } catch (e) { /* cache full */ } } });
       setTimeout(() => { delete inflight[url]; }, 0);
       return r;
