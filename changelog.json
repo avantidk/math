@@ -1,5 +1,16 @@
 [
   {
+    "v": "818",
+    "date": "14 Nov 2026",
+    "items": [
+      "Security: a new Student ID that differs from an existing one only by . _ / - is refused, so nobody can sign in to another student's account.",
+      "Security: dates of birth in My Students are shown only after the admin approves the teacher's school.",
+      "Security: more wrong dates of birth for one Student ID now lock it for 24 hours (the teacher can unlock it by saving the student).",
+      "Fixed: opening Results, a report or a test without choosing one now goes to the right list instead of an error.",
+      "Fixed: the extra \"|\" in the footer; teachers no longer see \"Class ?\" on Available tests; students opening My Students are pointed to their tests."
+    ]
+  },
+  {
     "v": "817",
     "date": "14 Nov 2026",
     "items": [

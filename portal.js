@@ -799,6 +799,7 @@ function saveCsv(name, rows) {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
 }
 async function pageResults(id) {
+  if (!/^[0-9a-f-]{36}$/i.test(id || '')) { location.hash = '#/my-tests'; return; }
   show(head('Results', ''), loading('Loading results…'));
   const R = await rpc('test_results', { p_test: id });
   const t = R.test, s = R.summary || {}, st = R.students || [];
@@ -856,7 +857,7 @@ async function pageAvailable() {
   const codeIn = h('input', { type: 'text', class: 'pt-in', placeholder: 'Test code or link', 'aria-label': 'Test code or link' });
   const go = h('form', { class: 'pt-frow', onsubmit: e => { e.preventDefault(); const v = codeIn.value.trim(); const m = v.match(/#\/t\/([a-z0-9]+)/i) || v.match(/^([a-z0-9]{6,12})$/i); if (m) location.hash = '#/t/' + m[1].toLowerCase(); else toast('Paste the test link or its code'); } }, codeIn, h('button', { type: 'submit', class: 'btn', text: 'Open' }));
   const p = P();
-  const top = head('Available tests', 'Tests for ' + ['Class ' + (p.class || '?'), p.stream, p.school].filter(Boolean).join(' · '));
+  const top = head('Available tests', p.role === 'student' ? 'Tests for ' + [p.class ? 'Class ' + p.class : '', p.stream, p.school].filter(Boolean).join(' · ') : 'Tests open to students of ' + (p.school || 'your school') + '. Your own tests are in My Tests and Results.');
   const open = list.filter(t => t.attempt_status !== 'submitted');
   if (!open.length) { show(top, card(empty('No new tests for you right now', 'When your teacher shares a test for your class and stream, it appears here. Got a link? Open it, or paste it below.'), go), pastCard); return; }
   show(top, h('div', { class: 'pt-cards' }, open.map(t => card(
@@ -887,6 +888,7 @@ async function pageReports() {
       h('td', {}, a.status === 'submitted' ? link('#/report/' + a.id, 'Open report', 'btn pri') : link('#/t/' + a.code, 'Resume', 'btn')))))))));
 }
 async function pageReport(id) {
+  if (!/^[0-9a-f-]{36}$/i.test(id || '')) { location.hash = '#/reports'; return; }
   show(head('Report', ''), loading('Loading the report…'));
   const R = await rpc('attempt_report', { p_attempt: id });
   const a = R.attempt, t = R.test, rk = R.rank || {};
@@ -917,6 +919,7 @@ async function pageReport(id) {
 /* ---------- Taking a test ---------- */
 async function pageTake(code) {
   if (EX) return;
+  if (!code) { location.hash = '#/tests'; return; }
   show(loading('Opening the test…'));
   const info = await rpc('test_info', { p_code: code });
   if (!info) { show(card(empty('Test not found', 'This test link is not valid. Ask your teacher for the link again.', link('#/tests', 'Available tests', 'btn')))); return; }
@@ -1230,7 +1233,7 @@ async function studentTests(st) {
 }
 let STU_SCHOOL = '';
 async function pageStudents() {
-  if (!can('manageStudents')) { if (can('createTests')) { location.replace('#/add-student'); return; } return nope('My Students is for teachers', ''); }
+  if (!can('manageStudents')) { if (can('createTests')) { location.replace('#/add-student'); return; } if (P().role === 'student') return show(card(empty('My Students is for teachers', 'This page is for teachers. Your tests and reports are in the profile menu.', link('#/tests', 'Available tests', 'btn pri')))); return nope('My Students is for teachers', ''); }
   show(head('My Students', ''), loading('Loading your students…'));
   const R = await rpc('school_students', { p_school: STU_SCHOOL || null });
   const all = R.students || [];

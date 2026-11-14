@@ -581,7 +581,7 @@ body.ex-on .ch-fab, body.ex-on .ch-panel, body.hv-on .ch-fab { display: none !im
 @media (prefers-reduced-motion: reduce) { .mb-feat { transition: none; } .mb-feat:hover { transform: none; } }
 
 /* Solutions status (footer) only for the admin */
-html:not(.is-admin) .qb-sstat-link { display: none !important; }
+html:not(.is-admin) .qb-sstat-link, html:not(.is-admin) #appFootLink { display: none !important; }
 /* Question Bank quick filters for non-staff: 4 buttons on the first row, 3 below */
 html:not(.plan-staff) .qb-results .qb-tools > * { grid-column: span 3; }
 html:not(.plan-staff) .qb-results .qb-tools > .qb-reset, html:not(.plan-staff) .qb-results .qb-tools > .qb-selall, html:not(.plan-staff) .qb-results .qb-tools > .qb-clear { grid-column: span 4; }

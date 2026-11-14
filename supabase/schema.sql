@@ -279,6 +279,10 @@ declare v_id text := public.norm_avanti_id(p_avanti_id); v_dob date := public.no
 begin
   if v_id is null then raise exception 'Avanti ID is empty'; end if;
   if v_dob is null then raise exception 'Date of birth "%" for % is not a date. Use YYYY-MM-DD or DD-MM-YYYY.', p_dob, v_id; end if;
+  if exists (select 1 from public.student_allowlist x where x.avanti_id <> v_id
+               and lower(regexp_replace(x.avanti_id, '[^A-Za-z0-9]', '', 'g')) = lower(regexp_replace(v_id, '[^A-Za-z0-9]', '', 'g'))) then
+    raise exception 'Avanti ID % is too similar to an existing ID (they differ only in . _ / -)', v_id;
+  end if;
   insert into public.student_allowlist (avanti_id, dob, dob_hash, full_name, school, class, stream, category, gender, batch, source, session)
   values (v_id, v_dob, extensions.crypt(to_char(v_dob, 'YYYY-MM-DD'), extensions.gen_salt('bf', 8)),
           nullif(trim(p_full_name), ''), nullif(trim(p_school), ''), public.norm_class(p_class), public.norm_stream(p_stream),
@@ -309,7 +313,8 @@ begin
 end $$;
 
 -- Called ONLY by the avanti-login Edge Function (service role). Never returns the stored date of birth.
--- Limits: 5 wrong dates for one Avanti ID locks it for 15 minutes; 20 failures from one network in 15 minutes blocks it.
+-- Limits: 5 wrong dates for one Avanti ID locks it for 15 minutes; 20 wrong dates in 24 hours lock it for 24 hours
+-- (the teacher can unlock it by saving the student); 20 failures from one network in 15 minutes blocks it.
 create or replace function public.avanti_verify(p_avanti_id text, p_dob text, p_ip text) returns json
 language plpgsql security definer set search_path = public, extensions as $$
 declare
@@ -336,6 +341,9 @@ begin
            locked_until    = case when failed_attempts + 1 >= 5 then now() + interval '15 minutes' else locked_until end
      where avanti_id = v_id;
     insert into public.login_attempts (ip, avanti_id, ok) values (p_ip, v_id, false);
+    if (select count(*) from public.login_attempts where avanti_id = v_id and not ok and at > now() - interval '24 hours') >= 20 then
+      update public.student_allowlist set locked_until = now() + interval '24 hours' where avanti_id = v_id;
+    end if;
     return json_build_object('ok', false, 'reason', 'wrong');
   end if;
   update public.student_allowlist set failed_attempts = 0, locked_until = null, dob = coalesce(dob, v_dob) where avanti_id = v_id;
@@ -347,6 +355,12 @@ begin
   insert into public.login_attempts (ip, avanti_id, ok) values (p_ip, v_id, true);
   delete from public.login_attempts where at < now() - interval '30 days';
   v_email := 'avanti-' || lower(regexp_replace(v_id, '[^A-Za-z0-9]', '', 'g')) || '@students.avanti-id.local';
+  -- IDs like AV.001 and AV001 map to the same login: never give one student's account to another ID
+  if exists (select 1 from auth.users u join public.profiles p on p.id = u.id
+              where lower(u.email) = v_email and p.avanti_id is not null and p.avanti_id <> v_id) then
+    insert into public.login_attempts (ip, avanti_id, ok) values (p_ip, v_id, false);
+    return json_build_object('ok', false, 'reason', 'wrong');
+  end if;
   insert into public.pending_avanti (email, avanti_id) values (v_email, v_id)
     on conflict (email) do update set avanti_id = excluded.avanti_id, created_at = now();
   return json_build_object('ok', true, 'avanti_id', v_id, 'email', v_email, 'full_name', a.full_name);
@@ -437,6 +451,9 @@ create or replace function public.set_my_role(p_role text) returns json
 language plpgsql security definer set search_path = public as $$
 begin
   if p_role not in ('teacher', 'student') then raise exception 'Choose Teacher or Student'; end if;
+  if p_role = 'teacher' and exists (select 1 from public.payments where user_id = auth.uid() and status = 'paid' and amount_paise < public.price_paise('teacher')) then
+    raise exception 'This account bought the student plan, so it can only be a student account';
+  end if;
   update public.profiles set role = p_role, updated_at = now() where id = auth.uid() and role is null;
   return public.my_profile();
 end $$;
@@ -1047,6 +1064,12 @@ begin
   if f->>'category' is not null and f->>'category' not in ('General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST') then return json_build_object('ok', false, 'error', 'Category must be General, Gen-EWS, OBC-NCL, SC or ST'); end if;
   if f->>'gender' is not null and f->>'gender' not in ('Male', 'Female', 'Other') then return json_build_object('ok', false, 'error', 'Gender must be Male, Female or Other'); end if;
   select * into a from public.student_allowlist where avanti_id = v_id for update;
+  if a.avanti_id is null and exists (select 1 from public.student_allowlist x
+       where lower(regexp_replace(x.avanti_id, '[^A-Za-z0-9]', '', 'g')) = lower(regexp_replace(v_id, '[^A-Za-z0-9]', '', 'g'))) then
+    return json_build_object('ok', false, 'error', 'Student ID ' || v_id || ' is too similar to an existing ID (' ||
+      (select x.avanti_id from public.student_allowlist x where lower(regexp_replace(x.avanti_id, '[^A-Za-z0-9]', '', 'g')) = lower(regexp_replace(v_id, '[^A-Za-z0-9]', '', 'g')) limit 1) ||
+      '). IDs must differ in letters or numbers, not only in . _ / -');
+  end if;
   if a.avanti_id is null then
     select string_agg(k, ', ') into v_miss from unnest(array['full_name', 'class', 'stream', 'category', 'gender']) k where f->>k is null;
     if v_dob is null then v_miss := concat_ws(', ', 'dob', v_miss); end if;
@@ -1168,7 +1191,8 @@ begin
       from public.attempts where status = 'submitted' and user_id in (select user_id from st where user_id is not null) group by user_id)
   select json_build_object('school', v_school, 'students', coalesce(json_agg(json_build_object(
            'student_id', st.student_id, 'full_name', st.full_name, 'class', st.class, 'stream', st.stream, 'category', st.category,
-           'gender', st.gender, 'session', st.session, 'source', st.source, 'dob', st.dob, 'user_id', st.user_id, 'email', st.email,
+           'gender', st.gender, 'session', st.session, 'source', st.source,
+           'dob', case when me.is_staff or me.school_approved then st.dob end, 'user_id', st.user_id, 'email', st.email,
            'signed_in', st.user_id is not null, 'tests', coalesce(pf.tests, 0), 'avg_pct', pf.avg_pct, 'best_pct', pf.best_pct,
            'accuracy', pf.accuracy, 'last_at', pf.last_at) order by st.class, st.session, st.full_name), '[]'::json))
     into res from st left join perf pf on pf.user_id = st.user_id;
@@ -1323,7 +1347,7 @@ create or replace function public.ping() returns integer language sql stable as 
 revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function public.ping(), public.support_contact() to anon, authenticated;
 grant execute on function public.plan_of(public.profiles), public.my_plan(), public.is_staff(), public.can_create_tests(),
-  public.admin_of(public.profiles), public.norm_class(text), public.norm_stream(text), public.norm_category(text), public.norm_gender(text), public.session_for(text, timestamptz),
+  public.norm_class(text), public.norm_stream(text), public.norm_category(text), public.norm_gender(text), public.session_for(text, timestamptz),
   public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text),
   public.list_available_tests(), public.test_info(text), public.start_attempt(text),
   public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer),

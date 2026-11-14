@@ -119,6 +119,7 @@ Deno.serve(async (req) => {
       if (!prof) return json({ error: 'Profile not found.' }, 404);
       if (prof.is_staff) return json({ error: 'Avanti staff accounts already have full access.' }, 400);
       if (prof.is_avanti) return json({ error: 'Avanti students already have Premium.' }, 400);
+      if (prof.role !== 'teacher' && prof.role !== 'student') return json({ error: 'Choose Teacher or Student first.' }, 400);
       const PRICE = prof.role === 'teacher' ? PRICE_TEACHER : PRICE_STUDENT;
       const order = await razorpay('/orders', { method: 'POST', body: JSON.stringify({
         amount: PRICE, currency: 'INR', receipt: 'md-' + Date.now(), notes: { user_id: user.id, product: 'Premium 1 year (' + (prof.role || 'student') + ')' } }) });
