@@ -1,61 +1,116 @@
 [
-  { "v": "811", "date": "14 Nov 2026", "items": [
-    "Footer: the website version opens this list of updates; the Question Bank version is no longer shown.",
-    "Test window: the question timer shows only the time."
-  ] },
-  { "v": "810", "date": "14 Nov 2026", "items": [
-    "Profile menu: counts after each item; Create Test moved to My Tests; website version shown at the bottom.",
-    "Sharing a PDF now opens a \"PDF ready\" box: share with an app (phones), download, WhatsApp or Gmail.",
-    "Saved worksheets: View questions, an Export menu (PDF, Word, PowerPoint, Share) and a More menu (Rename, Delete).",
-    "Test window: time spent on each question.",
-    "Date of birth visible to teachers in My Students and Edit.",
-    "School search box always shown."
-  ] },
-  { "v": "809", "date": "14 Nov 2026", "items": [
-    "Saved worksheets can be downloaded and shared.",
-    "School lists get a search box.",
-    "Bold text inside questions shows as bold.",
-    "Footer shows the website version."
-  ] },
-  { "v": "808", "date": "14 Nov 2026", "items": [
-    "Fixed lists: Category General, Gen-EWS, OBC-NCL, SC, ST · Gender Male, Female, Other · Class 11, 12, Dropper · Stream JEE, NEET, KCET (PCM), KCET (PCB).",
-    "Bulk upload converts other spellings after a clear warning, and rejects values it cannot convert."
-  ] },
-  { "v": "807", "date": "14 Nov 2026", "items": [
-    "Bulk upload reads swapped Category / Gender columns and short forms (GEN, OBC, F, M).",
-    "Student IDs already registered are skipped, never uploaded twice."
-  ] },
-  { "v": "806", "date": "14 Nov 2026", "items": [
-    "Admin role: only the admin sees every school's students, tests and reports.",
-    "Classes, streams and sessions (Class 11 → 2026-28, Class 12 and Dropper → 2026-27).",
-    "Tests are open only to the classes, streams and school the teacher chooses.",
-    "Students fill their details once; Available tests also lists past tests.",
-    "PYQs: compact dropdowns and a full-width preview; DPPs and PYQs share one toolbar.",
-    "The old artifact now points here; a safety check stops old code from going live."
-  ] },
-  { "v": "805", "date": "14 Nov 2026", "items": [
-    "Teacher school approval by the admin.",
-    "Students added by Avanti teachers get Premium.",
-    "Help & Support page and sign-in help."
-  ] },
-  { "v": "804", "date": "14 Nov 2026", "items": [
-    "New plans: students ₹299, teachers ₹599 a year; Avanti students and teachers included.",
-    "My Students with performance, Excel / CSV bulk upload and editing.",
-    "Tests limited to the teacher's school; coloured profile icons by plan."
-  ] },
-  { "v": "803", "date": "14 Nov 2026", "items": [
-    "Missing profile details are asked for right after sign-in; teachers can add a school that is not in the list."
-  ] },
-  { "v": "802", "date": "14 Nov 2026", "items": [
-    "Save as worksheet and Create test in DPPs, PYQs and Must Solve.",
-    "School chosen from a list; Avanti ID students' details come from the Avanti list."
-  ] },
-  { "v": "801", "date": "14 Nov 2026", "items": [
-    "Must Solve open to everyone; handouts open in a viewer.",
-    "Category and gender added to student details."
-  ] },
-  { "v": "800", "date": "14 Nov 2026", "items": [
-    "Sign in with Google or Student ID; Free, Premium and Avanti plans.",
-    "Online tests with a share link, exam window, reports with ranks, and teacher results."
-  ] }
+  {
+    "v": "812",
+    "date": "14 Nov 2026",
+    "items": [
+      "School lists: one dropdown; the search box appears inside it when you open it."
+    ]
+  },
+  {
+    "v": "811",
+    "date": "14 Nov 2026",
+    "items": [
+      "Footer: the website version opens this list of updates; the Question Bank version is no longer shown.",
+      "Test window: the question timer shows only the time."
+    ]
+  },
+  {
+    "v": "810",
+    "date": "14 Nov 2026",
+    "items": [
+      "Profile menu: counts after each item; Create Test moved to My Tests; website version shown at the bottom.",
+      "Sharing a PDF now opens a \"PDF ready\" box: share with an app (phones), download, WhatsApp or Gmail.",
+      "Saved worksheets: View questions, an Export menu (PDF, Word, PowerPoint, Share) and a More menu (Rename, Delete).",
+      "Test window: time spent on each question.",
+      "Date of birth visible to teachers in My Students and Edit.",
+      "School search box always shown."
+    ]
+  },
+  {
+    "v": "809",
+    "date": "14 Nov 2026",
+    "items": [
+      "Saved worksheets can be downloaded and shared.",
+      "School lists get a search box.",
+      "Bold text inside questions shows as bold.",
+      "Footer shows the website version."
+    ]
+  },
+  {
+    "v": "808",
+    "date": "14 Nov 2026",
+    "items": [
+      "Fixed lists: Category General, Gen-EWS, OBC-NCL, SC, ST · Gender Male, Female, Other · Class 11, 12, Dropper · Stream JEE, NEET, KCET (PCM), KCET (PCB).",
+      "Bulk upload converts other spellings after a clear warning, and rejects values it cannot convert."
+    ]
+  },
+  {
+    "v": "807",
+    "date": "14 Nov 2026",
+    "items": [
+      "Bulk upload reads swapped Category / Gender columns and short forms (GEN, OBC, F, M).",
+      "Student IDs already registered are skipped, never uploaded twice."
+    ]
+  },
+  {
+    "v": "806",
+    "date": "14 Nov 2026",
+    "items": [
+      "Admin role: only the admin sees every school's students, tests and reports.",
+      "Classes, streams and sessions (Class 11 → 2026-28, Class 12 and Dropper → 2026-27).",
+      "Tests are open only to the classes, streams and school the teacher chooses.",
+      "Students fill their details once; Available tests also lists past tests.",
+      "PYQs: compact dropdowns and a full-width preview; DPPs and PYQs share one toolbar.",
+      "The old artifact now points here; a safety check stops old code from going live."
+    ]
+  },
+  {
+    "v": "805",
+    "date": "14 Nov 2026",
+    "items": [
+      "Teacher school approval by the admin.",
+      "Students added by Avanti teachers get Premium.",
+      "Help & Support page and sign-in help."
+    ]
+  },
+  {
+    "v": "804",
+    "date": "14 Nov 2026",
+    "items": [
+      "New plans: students ₹299, teachers ₹599 a year; Avanti students and teachers included.",
+      "My Students with performance, Excel / CSV bulk upload and editing.",
+      "Tests limited to the teacher's school; coloured profile icons by plan."
+    ]
+  },
+  {
+    "v": "803",
+    "date": "14 Nov 2026",
+    "items": [
+      "Missing profile details are asked for right after sign-in; teachers can add a school that is not in the list."
+    ]
+  },
+  {
+    "v": "802",
+    "date": "14 Nov 2026",
+    "items": [
+      "Save as worksheet and Create test in DPPs, PYQs and Must Solve.",
+      "School chosen from a list; Avanti ID students' details come from the Avanti list."
+    ]
+  },
+  {
+    "v": "801",
+    "date": "14 Nov 2026",
+    "items": [
+      "Must Solve open to everyone; handouts open in a viewer.",
+      "Category and gender added to student details."
+    ]
+  },
+  {
+    "v": "800",
+    "date": "14 Nov 2026",
+    "items": [
+      "Sign in with Google or Student ID; Free, Premium and Avanti plans.",
+      "Online tests with a share link, exam window, reports with ranks, and teacher results."
+    ]
+  }
 ]

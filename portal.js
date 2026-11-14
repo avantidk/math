@@ -144,29 +144,52 @@ let SCHOOLS_P = null;
 function schools(fresh) { if (!SCHOOLS_P || fresh) SCHOOLS_P = rpc('list_schools').catch(e => { SCHOOLS_P = null; throw e; }); return SCHOOLS_P; }
 const OTHER = '__other__';
 /* School dropdown from the database. With allowOther, a teacher can pick "Other" and type a school that is not on the list. */
+/* School picker: one dropdown; the search box appears inside it when it is opened. A hidden <select> keeps the value. */
 function schoolSelect(id, val, first, allowOther) {
-  const s = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: first }));
-  const find = h('input', { type: 'search', class: 'pt-in pt-schoolfind', id: id + 'Find', placeholder: 'Search schools…', 'aria-label': 'Search schools', autocomplete: 'off' });
-  let ALL = [];
-  const fill = q => {
-    const keep = s.value, t = (q || '').trim().toLowerCase(), shown = t ? ALL.filter(x => x.toLowerCase().includes(t)) : ALL;
-    s.textContent = ''; s.append(h('option', { value: '', text: t ? (shown.length ? shown.length + ' match' + (shown.length === 1 ? '' : 'es') + ' · choose…' : 'No school matches "' + q.trim() + '"') : first }));
-    shown.forEach(x => s.append(h('option', { value: x, text: x })));
-    if (allowOther) s.append(h('option', { value: OTHER, text: 'Other (my school is not in the list)…' }));
-    if (keep && [...s.options].some(o => o.value === keep)) s.value = keep; else if (shown.length === 1) { s.value = shown[0]; s.dispatchEvent(new Event('change')); }
-  };
-  find.addEventListener('input', () => fill(find.value));
+  const s = h('select', { id: id + 'Value', hidden: true, tabindex: '-1', 'aria-hidden': 'true' }, h('option', { value: '', text: first }));
+  const label = h('span', { class: 'pt-combo-txt', text: first });
+  const btn = h('button', { type: 'button', id, class: 'pt-in pt-combo-btn', 'aria-haspopup': 'listbox', 'aria-expanded': 'false' }, label, h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' }));
+  const find = h('input', { type: 'search', class: 'pt-in pt-combo-find', placeholder: 'Search schools…', 'aria-label': 'Search schools', autocomplete: 'off' });
+  const listEl = h('ul', { class: 'pt-combo-list', role: 'listbox', id: id + 'List' });
+  const pop = h('div', { class: 'pt-combo-pop', hidden: true }, find, listEl);
   const other = allowOther ? h('input', { type: 'text', class: 'pt-in', id: id + 'Other', maxlength: 160, placeholder: 'Type your school name', hidden: true, 'aria-label': 'Your school name' }) : null;
-  const sync = () => { if (other) { other.hidden = s.value !== OTHER; if (!other.hidden) other.focus(); } };
-  s.addEventListener('change', sync);
+  let ALL = [], active = -1;
+  const setValue = (v, silent) => {
+    if (![...s.options].some(o => o.value === v)) s.append(h('option', { value: v, text: v }));
+    s.value = v;
+    label.textContent = v === OTHER ? 'Other (my school is not in the list)' : (v || first); btn.classList.toggle('empty', !v);
+    if (other) { other.hidden = v !== OTHER; if (!other.hidden) setTimeout(() => other.focus(), 0); }
+    if (!silent) s.dispatchEvent(new Event('change'));
+  };
+  const items = () => [...listEl.querySelectorAll('[role=option]')];
+  const mark = i => { const it = items(); active = Math.max(0, Math.min(it.length - 1, i)); it.forEach((x, k) => x.classList.toggle('on', k === active)); if (it[active]) it[active].scrollIntoView({ block: 'nearest' }); };
+  const draw = () => {
+    const t = find.value.trim().toLowerCase(), shown = t ? ALL.filter(x => x.toLowerCase().includes(t)) : ALL;
+    listEl.textContent = '';
+    if (!shown.length) listEl.append(h('li', { class: 'pt-combo-none', text: ALL.length ? 'No school matches "' + find.value.trim() + '"' : 'No schools in the database yet' }));
+    shown.concat(allowOther ? [OTHER] : []).forEach(v => listEl.append(h('li', { role: 'option', class: 'pt-combo-opt' + (v === OTHER ? ' other' : ''), 'aria-selected': String(v === s.value), text: v === OTHER ? 'Other (my school is not in the list)…' : v,
+      onmousedown: e => e.preventDefault(), onclick: e => { e.preventDefault(); e.stopPropagation(); setValue(v); close(); if (v !== OTHER) btn.focus(); } })));
+    mark(0);
+  };
+  const outside = e => { if (!wrap.contains(e.target)) close(); };
+  function open() { if (!pop.hidden) return; pop.hidden = false; btn.setAttribute('aria-expanded', 'true'); find.value = ''; draw(); setTimeout(() => find.focus(), 0); document.addEventListener('mousedown', outside, true); }
+  function close() { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('mousedown', outside, true); }
+  btn.addEventListener('click', () => (pop.hidden ? open() : close()));
+  btn.addEventListener('keydown', e => { if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  find.addEventListener('input', draw);
+  find.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); mark(active + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); mark(active - 1); }
+    else if (e.key === 'Enter') { e.preventDefault(); const it = items()[active]; if (it) it.click(); }
+    else if (e.key === 'Escape') { e.preventDefault(); close(); btn.focus(); }
+  });
   schools().then(list => {
     ALL = list.slice(); if (val && !ALL.includes(val)) ALL.unshift(val);
-    fill(''); s.value = val || '';
-    if (!ALL.length && !allowOther) s.firstChild.textContent = 'No schools in the database yet';
-  }).catch(() => { s.firstChild.textContent = 'Could not load schools'; });
-  const wrap = h('div', { class: 'pt-school' }, find, s, other);
+    if (val) setValue(val, true); else btn.classList.add('empty');
+  }).catch(() => { label.textContent = 'Could not load schools'; });
+  const wrap = h('div', { class: 'pt-school pt-combo' }, btn, pop, s, other);
   wrap.value = () => (s.value === OTHER ? (other.value || '').trim().replace(/\s+/g, ' ') : s.value);
-  wrap.sel = s;
+  wrap.sel = s; wrap.focusId = id;
   return wrap;
 }
 /* The profile form: every field is required. Teachers give name and school; students give name, school, class, stream, category and gender.
@@ -175,7 +198,7 @@ function profileForm(p, o) {
   const student = p.role === 'student', avanti = !!p.avanti_id, locked = k => (student || avanti) && !!p[k];
   const msg = h('p', { class: 'pt-msg', role: 'status' });
   const ro = (label, value) => h('div', { class: 'pt-fld' }, h('span', { text: label }), h('div', { class: 'pt-ro', text: value || '—' }));
-  const fld = (label, input, hint) => h('label', { class: 'pt-fld', for: input.id || (input.sel && input.sel.id) }, h('span', {}, label, h('b', { class: 'pt-req', text: ' *' })), input, hint ? h('small', { text: hint }) : null);
+  const fld = (label, input, hint) => h(input.focusId ? 'div' : 'label', { class: 'pt-fld', for: input.focusId ? null : input.id }, h('span', {}, label, h('b', { class: 'pt-req', text: ' *' })), input, hint ? h('small', { text: hint }) : null);
   const sel = (id, list, val) => { const x = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: 'Choose…' }), list.map(v => h('option', { value: v, text: v }))); x.value = val || ''; return x; };
   const F = {
     full_name: h('input', { id: 'pfName', class: 'pt-in', type: 'text', maxlength: 120, value: p.full_name || '', autocomplete: 'name' }),
@@ -452,7 +475,7 @@ async function pageCreate(arg, r) {
   const fCls = chipSet('ctCls', CLASSES, S.cls), fStr = chipSet('ctStr', STREAMS, S.streams);
   const fSchool = can('isAdmin') ? schoolSelect('ctSchool', S.school, 'All schools') : (() => { const d = h('div', { class: 'pt-ro', id: 'ctSchool', text: P().school || '—' }); d.value = () => P().school; return d; })();
   const fAct = h('input', { type: 'checkbox', id: 'ctAct', role: 'switch' }); fAct.checked = S.active;
-  const fld = (label, el, hint) => h('label', { class: 'pt-fld', for: el.id }, h('span', { text: label }), el, hint ? h('small', { text: hint }) : null);
+  const fld = (label, el, hint) => h(el.focusId ? 'div' : 'label', { class: 'pt-fld', for: el.focusId ? null : el.id }, h('span', { text: label }), el, hint ? h('small', { text: hint }) : null);
   const msg = h('p', { class: 'pt-msg', role: 'status' });
   const selBox = h('div', { class: 'pt-sel' }), selHead = h('h2', {});
   const results = h('div', { class: 'pt-plist' }), resHead = h('div', { class: 'pt-rh' }), pager = h('div', { class: 'pt-pager' });
@@ -1076,7 +1099,7 @@ async function pageStudents() {
   show(head('My Students', R.school + ' · ' + all.length + ' student' + (all.length === 1 ? '' : 's'),
       h('button', { type: 'button', class: 'btn', text: '+ Add a student', onclick: () => addStudentFlow(reload) }),
       h('button', { type: 'button', class: 'btn pri', text: 'Bulk upload', onclick: () => bulkUpload(reload) })),
-    schoolPick ? card(h('label', { class: 'pt-fld' }, h('span', { text: 'School (admin: every school)' }), schoolPick)) : null,
+    schoolPick ? card(h('div', { class: 'pt-fld' }, h('span', { text: 'School (admin: every school)' }), schoolPick)) : null,
     can('schoolApproved') ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Your school is waiting for approval by Avanti Fellows. ' }), 'You can add students, upload new students and create tests now. Editing existing students unlocks once your school is approved.'),
     h('div', { class: 'pt-stats' }, stat('Students', all.length), stat('Signed in', signed), stat('Took a test', took.length), stat('Average score', avg == null ? '—' : pct(avg), 'of students who took a test')),
     card(h('div', { class: 'pt-frow' }, mkSel('Class', 'All classes', CLASSES, 'cls'), mkSel('Stream', 'All streams', STREAMS, 'stream'), mkSel('Session', 'All sessions', uniq('session'), 'session'),

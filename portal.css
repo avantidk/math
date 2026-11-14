@@ -447,3 +447,16 @@ html body .tb-drop a.pf-up:hover, .pf-up:hover, .pf-up:focus-visible { box-shado
 .pt-chv:last-child { border-bottom: 0; }
 .pt-chv h3 { margin: 0; font-size: 16px; color: var(--ink); }
 .pt-chv .pt-feats { margin-top: 6px; font-size: 14px; }
+/* school picker: a dropdown with a search box inside */
+.pt-combo { position: relative; }
+.pt-combo-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; cursor: pointer; }
+.pt-combo-btn.empty .pt-combo-txt { color: var(--muted); }
+.pt-combo-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-combo-pop { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 50; background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; box-shadow: 0 16px 40px rgba(5,12,32,.22); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.pt-combo-find { min-height: 38px; }
+.pt-combo-list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; }
+.pt-combo-opt { padding: 9px 10px; border-radius: 8px; cursor: pointer; color: var(--ink); font-size: 14.5px; }
+.pt-combo-opt.on, .pt-combo-opt:hover { background: var(--accent-soft); }
+.pt-combo-opt[aria-selected="true"] { font-weight: 700; }
+.pt-combo-opt.other { color: var(--accent); border-top: 1px solid var(--rule); border-radius: 0 0 8px 8px; margin-top: 4px; }
+.pt-combo-none { padding: 9px 10px; color: var(--muted); font-size: 13.5px; }
