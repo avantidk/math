@@ -208,14 +208,18 @@ async function start() {
     if (!p || !p.role) { rolePage(); return; }
   }
   A.profile = p; A.perm = permsFor(p); applyGuards(A.perm);
+  /* right after sign-in: every required detail must be filled before the dashboard opens */
+  if (window.AvantiPortal && window.AvantiPortal.profileMissing(p).length) {
+    const root = $('#auth'); root.hidden = false; $('#app').hidden = true;
+    window.AvantiPortal.onboard(root, () => start());
+    return;
+  }
   const next = store.get(NEXT_KEY); store.set(NEXT_KEY, null);
   if (next && !location.hash) history.replaceState(null, '', location.pathname + next);
   $('#auth').hidden = true; $('#auth').textContent = ''; $('#app').hidden = false;
   if (!started) { started = true; window.AvantiBoot.start(); }
   renderMenu();
   if (window.AvantiPortal) window.AvantiPortal.route();
-  const incomplete = p.avanti_id ? false : p.role === 'student' ? !(p.full_name && p.school && p.class && p.category && p.gender) : !p.full_name;
-  if (incomplete && !/^#\/t\//.test(location.hash) && location.hash !== '#/profile') location.hash = '#/profile';
 }
 async function afterSignIn() {
   const { data } = await sb.auth.getSession();

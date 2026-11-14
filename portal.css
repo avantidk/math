@@ -324,3 +324,11 @@ body.hv-on { overflow: hidden; }
 .wsrow .wsbtn:disabled { opacity: .45; cursor: not-allowed; }
 .qb-wsrow { flex-basis: 100%; order: 0; }
 .rail > .wsrow, .card > .wsrow { margin-top: 0; }
+
+/* ---------- profile step after sign-in ---------- */
+.lg-main.lg-wide { max-width: 560px; }
+.pt-onb .pt-form { gap: 14px; }
+.pt-onb .pt-ro { background: var(--field); }
+.pt-req { color: var(--bad); font-weight: 700; }
+.pt-school { display: flex; flex-direction: column; gap: 8px; }
+.pt-onb .btn.pt-big { align-self: stretch; }

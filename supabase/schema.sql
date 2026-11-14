@@ -168,8 +168,9 @@ begin
     class = excluded.class, stream = excluded.stream, category = excluded.category, gender = excluded.gender,
     failed_attempts = 0, locked_until = null;
   -- the student's profile always follows the Avanti list
-  update public.profiles p set full_name = a.full_name, school = a.school, class = a.class, stream = a.stream,
-         category = a.category, gender = a.gender, updated_at = now()
+  update public.profiles p set full_name = coalesce(a.full_name, p.full_name), school = coalesce(a.school, p.school),
+         class = coalesce(a.class, p.class), stream = coalesce(a.stream, p.stream),
+         category = coalesce(a.category, p.category), gender = coalesce(a.gender, p.gender), updated_at = now()
     from public.student_allowlist a where a.avanti_id = v_id and p.avanti_id = a.avanti_id;
 end $$;
 
@@ -216,8 +217,9 @@ begin
     return json_build_object('ok', false, 'reason', 'wrong');
   end if;
   update public.student_allowlist set failed_attempts = 0, locked_until = null where avanti_id = v_id;
-  update public.profiles p set full_name = a.full_name, school = a.school, class = a.class, stream = a.stream,
-         category = a.category, gender = a.gender, updated_at = now()
+  update public.profiles p set full_name = coalesce(a.full_name, p.full_name), school = coalesce(a.school, p.school),
+         class = coalesce(a.class, p.class), stream = coalesce(a.stream, p.stream),
+         category = coalesce(a.category, p.category), gender = coalesce(a.gender, p.gender), updated_at = now()
     from public.student_allowlist a where a.avanti_id = v_id and p.avanti_id = a.avanti_id;
   insert into public.login_attempts (ip, avanti_id, ok) values (p_ip, v_id, true);
   delete from public.login_attempts where at < now() - interval '30 days';
@@ -310,23 +312,29 @@ begin
 end $$;
 
 drop function if exists public.update_my_profile(text, text, text, text);
+-- Saves the signed-in user's details. Every field is required (teachers: name and school).
+-- Avanti ID students can only fill details that are missing from the Avanti list; the rest stay as on the list.
 create or replace function public.update_my_profile(p_full_name text, p_school text, p_class text, p_stream text,
   p_category text default null, p_gender text default null) returns json
 language plpgsql security definer set search_path = public as $$
+declare me public.profiles; v_av boolean;
 begin
   if auth.uid() is null then raise exception 'Please sign in again'; end if;
-  if exists (select 1 from public.profiles where id = auth.uid() and avanti_id is not null) then
-    raise exception 'Your details come from Avanti records and cannot be changed here. Ask your teacher to correct them.';
-  end if;
+  select * into me from public.profiles where id = auth.uid();
+  v_av := me.avanti_id is not null;
   update public.profiles set
-    full_name = left(nullif(trim(p_full_name), ''), 120),
-    school    = left(nullif(trim(p_school), ''), 160),
-    class     = left(nullif(trim(p_class), ''), 20),
-    stream    = left(nullif(trim(p_stream), ''), 40),
-    category  = left(nullif(trim(p_category), ''), 30),
-    gender    = left(nullif(trim(p_gender), ''), 30),
+    full_name = case when v_av and full_name is not null then full_name else left(nullif(trim(p_full_name), ''), 120) end,
+    school    = case when v_av and school    is not null then school    else left(nullif(trim(p_school), ''), 160) end,
+    class     = case when v_av and class     is not null then class     else left(nullif(trim(p_class), ''), 20) end,
+    stream    = case when v_av and stream    is not null then stream    else left(nullif(trim(p_stream), ''), 40) end,
+    category  = case when v_av and category  is not null then category  else left(nullif(trim(p_category), ''), 30) end,
+    gender    = case when v_av and gender    is not null then gender    else left(nullif(trim(p_gender), ''), 30) end,
     updated_at = now()
-  where id = auth.uid();
+  where id = auth.uid() returning * into me;
+  if me.full_name is null or me.school is null
+     or (me.role = 'student' and (me.class is null or me.stream is null or me.category is null or me.gender is null)) then
+    raise exception 'Please fill in every field. All details are required.';
+  end if;
   return public.my_profile();
 end $$;
 
@@ -803,16 +811,19 @@ begin
   return res;
 end $$;
 
--- School names for the dropdowns (Edit profile, Create Test): every school on the Avanti list.
+-- School names for the dropdowns: every school on the Avanti list, plus schools teachers added with "Other".
 create or replace function public.list_schools() returns json
 language sql stable security definer set search_path = public as $$
   select coalesce(json_agg(s order by s), '[]'::json)
-    from (select distinct trim(school) as s from public.student_allowlist where nullif(trim(school), '') is not null) x
+    from (select trim(school) as s from public.student_allowlist where nullif(trim(school), '') is not null
+          union
+          select trim(school) from public.profiles where role = 'teacher' and nullif(trim(school), '') is not null) x
 $$;
 
 -- Students who sign in with Avanti ID: copy their details from the Avanti list (runs every time this file is run).
-update public.profiles p set full_name = a.full_name, school = a.school, class = a.class, stream = a.stream,
-         category = a.category, gender = a.gender, updated_at = now()
+update public.profiles p set full_name = coalesce(a.full_name, p.full_name), school = coalesce(a.school, p.school),
+         class = coalesce(a.class, p.class), stream = coalesce(a.stream, p.stream),
+         category = coalesce(a.category, p.category), gender = coalesce(a.gender, p.gender), updated_at = now()
     from public.student_allowlist a where a.avanti_id = p.avanti_id and p.avanti_id = a.avanti_id;
 
 -- Used by the weekly GitHub Action that keeps the free Supabase project awake.

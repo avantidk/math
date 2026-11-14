@@ -134,20 +134,80 @@ window.addEventListener('hashchange', route);
 
 /* ---------- Edit profile ---------- */
 let SCHOOLS_P = null;
-function schools() { if (!SCHOOLS_P) SCHOOLS_P = rpc('list_schools').catch(e => { SCHOOLS_P = null; throw e; }); return SCHOOLS_P; }
-/* a dropdown of the schools on the Avanti list; the saved value is kept even if it is no longer on the list */
-function schoolSelect(id, val, first) {
+function schools(fresh) { if (!SCHOOLS_P || fresh) SCHOOLS_P = rpc('list_schools').catch(e => { SCHOOLS_P = null; throw e; }); return SCHOOLS_P; }
+const OTHER = '__other__';
+/* School dropdown from the database. With allowOther, a teacher can pick "Other" and type a school that is not on the list. */
+function schoolSelect(id, val, first, allowOther) {
   const s = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: first }));
+  const other = allowOther ? h('input', { type: 'text', class: 'pt-in', id: id + 'Other', maxlength: 160, placeholder: 'Type your school name', hidden: true, 'aria-label': 'Your school name' }) : null;
+  const sync = () => { if (other) { other.hidden = s.value !== OTHER; if (!other.hidden) other.focus(); } };
+  s.addEventListener('change', sync);
   schools().then(list => {
     const all = list.slice(); if (val && !all.includes(val)) all.unshift(val);
-    all.forEach(x => s.append(h('option', { value: x, text: x }))); s.value = val || '';
-    if (!all.length) s.firstChild.textContent = 'No schools in the database yet';
+    all.forEach(x => s.append(h('option', { value: x, text: x })));
+    if (allowOther) s.append(h('option', { value: OTHER, text: 'Other (my school is not in the list)…' }));
+    s.value = val || '';
+    if (!all.length && !allowOther) s.firstChild.textContent = 'No schools in the database yet';
   }).catch(() => { s.firstChild.textContent = 'Could not load schools'; });
-  return s;
+  const wrap = h('div', { class: 'pt-school' }, s, other);
+  wrap.value = () => (s.value === OTHER ? (other.value || '').trim().replace(/\s+/g, ' ') : s.value);
+  wrap.sel = s;
+  return wrap;
+}
+/* The profile form: every field is required. Teachers give name and school; students give name, school, class, stream, category and gender.
+   For Avanti ID students, details that come from the Avanti list are shown but cannot be changed; only missing ones can be filled. */
+function profileForm(p, o) {
+  const student = p.role === 'student', avanti = !!p.avanti_id, locked = k => avanti && !!p[k];
+  const msg = h('p', { class: 'pt-msg', role: 'status' });
+  const ro = (label, value) => h('div', { class: 'pt-fld' }, h('span', { text: label }), h('div', { class: 'pt-ro', text: value || '—' }));
+  const fld = (label, input, hint) => h('label', { class: 'pt-fld', for: input.id || (input.sel && input.sel.id) }, h('span', {}, label, h('b', { class: 'pt-req', text: ' *' })), input, hint ? h('small', { text: hint }) : null);
+  const sel = (id, list, val) => { const x = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: 'Choose…' }), list.map(v => h('option', { value: v, text: v }))); x.value = val || ''; return x; };
+  const F = {
+    full_name: h('input', { id: 'pfName', class: 'pt-in', type: 'text', maxlength: 120, value: p.full_name || '', autocomplete: 'name' }),
+    school: schoolSelect('pfSchool', p.school, student ? 'Choose your school…' : 'Choose your school…', !student),
+    class: sel('pfClass', CLASSES, p.class), stream: sel('pfStream', STREAMS, p.stream),
+    category: sel('pfCat', CATEGORIES, p.category), gender: sel('pfGender', GENDERS, p.gender)
+  };
+  const val = k => (locked(k) ? p[k] : k === 'school' ? F.school.value() : F[k].value.trim());
+  const LBL = { full_name: 'Full name', school: 'School', class: 'Class', stream: 'Stream', category: 'Category', gender: 'Gender' };
+  const keys = student ? ['full_name', 'school', 'class', 'stream', 'category', 'gender'] : ['full_name', 'school'];
+  const box = k => (locked(k) ? ro(LBL[k], p[k]) : fld(LBL[k], F[k], k === 'school' ? (student ? 'Used for your rank within your school.' : 'Not in the list? Choose "Other" and type it.') : null));
+  const btn = h('button', { type: 'submit', class: 'btn pri' + (o.big ? ' pt-big' : ''), text: o.submitText || 'Save profile' });
+  return h('form', { class: 'pt-form', onsubmit: async e => {
+    e.preventDefault(); msg.textContent = ''; msg.className = 'pt-msg';
+    const miss = keys.filter(k => !val(k));
+    if (miss.length) { msg.textContent = 'Please fill in: ' + miss.map(k => LBL[k]).join(', ') + '. All details are required.'; msg.classList.add('bad'); return; }
+    btn.disabled = true; const t0 = btn.textContent; btn.textContent = 'Saving…';
+    try {
+      await rpc('update_my_profile', { p_full_name: val('full_name'), p_school: val('school'), p_class: student ? val('class') : (p.class || null), p_stream: student ? val('stream') : (p.stream || null), p_category: student ? val('category') : null, p_gender: student ? val('gender') : null });
+      schools(true); await AU().refresh(); msg.textContent = 'Saved.'; msg.classList.add('ok');
+      if (o.onSaved) o.onSaved();
+    } catch (x) { msg.textContent = 'Could not save: ' + x.message; msg.classList.add('bad'); }
+    btn.disabled = false; btn.textContent = t0;
+  } },
+    box('full_name'), box('school'),
+    student ? h('div', { class: 'pt-row2' }, box('class'), box('stream')) : null,
+    student ? h('div', { class: 'pt-row2' }, box('category'), box('gender')) : null,
+    avanti ? h('p', { class: 'pt-hint', text: 'Details from Avanti records cannot be changed here. Ask your teacher if something is wrong.' }) : null,
+    h('div', { class: 'pt-actions' }, btn), msg);
+}
+function profileMissing(p) {
+  const keys = p.role === 'student' ? ['full_name', 'school', 'class', 'stream', 'category', 'gender'] : ['full_name', 'school'];
+  return keys.filter(k => !p[k]);
+}
+/* Full-page step right after sign-in, shown until every required detail is filled. */
+function onboard(root, done) {
+  const p = P();
+  root.textContent = '';
+  root.append(h('div', { class: 'lg' },
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/avanti-logo.png', alt: 'Avanti Fellows', width: 150, height: 51 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+      h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
+    h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
+      profileForm(p, { big: true, submitText: 'Continue', onSaved: () => { if (!profileMissing(P()).length) done(); } }),
+      h('button', { type: 'button', class: 'lg-btn lg-ghost', text: 'Sign out', onclick: () => AU().signOut() })))));
 }
 async function pageProfile() {
-  const p = P(), student = p.role === 'student', avanti = !!p.avanti_id;
-  const plan = AU().perm.plan;
+  const p = P(), avanti = !!p.avanti_id, plan = AU().perm.plan;
   const ro = (label, value) => h('div', { class: 'pt-fld' }, h('span', { text: label }), h('div', { class: 'pt-ro', text: value || '—' }));
   const account = card(h('h2', { text: 'Account' }),
     ro('Signed in as', avanti ? p.avanti_id : p.email),
@@ -155,39 +215,8 @@ async function pageProfile() {
     ro('Plan', { free: 'Free', premium: 'Premium', staff: 'Staff (full access)' }[plan] + (plan === 'premium' && p.premium_until ? ' · until ' + day(p.premium_until) : '')),
     h('p', { class: 'pt-hint', text: 'Role and plan are set by the server. Contact Avanti Fellows if your role is wrong.' }),
     h('div', { class: 'pt-actions' }, plan === 'free' ? link('#/membership', '★ Purchase membership', 'btn pt-gold') : null, h('button', { type: 'button', class: 'btn', text: 'Logout', onclick: () => AU().signOut() })));
-  if (avanti) {   // Avanti ID students: details come from the Avanti list and cannot be changed here
-    show(head('Your profile', 'These details come from Avanti records.'),
-      h('div', { class: 'pt-grid2' }, card(h('h2', { text: 'Your details' }),
-        ro('Full name', p.full_name), ro('School', p.school), h('div', { class: 'pt-row2' }, ro('Class', p.class), ro('Stream', p.stream)),
-        h('div', { class: 'pt-row2' }, ro('Category', p.category), ro('Gender', p.gender)),
-        h('p', { class: 'pt-note', text: 'Something wrong? Ask your teacher to correct it in the Avanti list. It updates here the next time you sign in.' })), account));
-    return;
-  }
-  const sel = (id, list, val) => { const s = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: 'Choose…' }), list.map(x => h('option', { value: x, text: x }))); s.value = val || ''; return s; };
-  const fName = h('input', { id: 'pfName', class: 'pt-in', type: 'text', maxlength: 120, value: p.full_name || '', required: true, autocomplete: 'name' });
-  const fSchool = schoolSelect('pfSchool', p.school, student ? 'Choose your school…' : 'No school (optional)');
-  const fClass = sel('pfClass', CLASSES, p.class), fStream = sel('pfStream', STREAMS, p.stream);
-  const fCat = sel('pfCat', CATEGORIES, p.category), fGender = sel('pfGender', GENDERS, p.gender);
-  const msg = h('p', { class: 'pt-msg', role: 'status' });
-  const fld = (label, input, hint) => h('label', { class: 'pt-fld', for: input.id }, h('span', { text: label }), input, hint ? h('small', { text: hint }) : null);
-  const incomplete = student ? !(p.full_name && p.school && p.class && p.category && p.gender) : !p.full_name;
-  show(head('Edit profile', incomplete ? 'Please complete your profile to continue.' : 'Your name and school appear on test results.'),
-    h('div', { class: 'pt-grid2' },
-      card(h('h2', { text: 'Your details' }),
-        h('form', { class: 'pt-form', onsubmit: async e => {
-          e.preventDefault(); msg.textContent = ''; msg.className = 'pt-msg';
-          if (!fName.value.trim()) { msg.textContent = 'Please enter your name.'; msg.classList.add('bad'); fName.focus(); return; }
-          if (student && (!fSchool.value || !fClass.value || !fCat.value || !fGender.value)) { msg.textContent = 'Students need a school, class, category and gender.'; msg.classList.add('bad'); return; }
-          const b = e.target.querySelector('button[type=submit]'); b.disabled = true; b.textContent = 'Saving…';
-          try { await rpc('update_my_profile', { p_full_name: fName.value, p_school: fSchool.value, p_class: student ? fClass.value : (fClass.value || null), p_stream: student ? fStream.value : (fStream.value || null), p_category: student ? fCat.value : null, p_gender: student ? fGender.value : null }); await AU().refresh(); msg.textContent = 'Saved.'; msg.classList.add('ok'); }
-          catch (x) { msg.textContent = 'Could not save: ' + x.message; msg.classList.add('bad'); }
-          b.disabled = false; b.textContent = 'Save profile';
-        } },
-          fld('Full name', fName), fld('School', fSchool, student ? 'Used for your rank within your school.' : 'Pick your school or centre if it is on the list.'),
-          student ? h('div', { class: 'pt-row2' }, fld('Class', fClass), fld('Stream', fStream)) : null,
-          student ? h('div', { class: 'pt-row2' }, fld('Category', fCat), fld('Gender', fGender)) : null,
-          h('div', { class: 'pt-actions' }, h('button', { type: 'submit', class: 'btn pri', text: 'Save profile' })), msg)),
-      account));
+  show(head(avanti ? 'Your profile' : 'Edit profile', avanti ? 'These details come from Avanti records.' : 'Your name and school appear on test results. All details are required.'),
+    h('div', { class: 'pt-grid2' }, card(h('h2', { text: 'Your details' }), profileForm(p, { onSaved: () => {} })), account));
 }
 
 /* ---------- Membership (Razorpay) ---------- */
@@ -437,7 +466,7 @@ async function pageCreate(arg, r) {
   async function save() {
     msg.className = 'pt-msg'; msg.textContent = '';
     const row = { title: fTitle.value.trim(), duration_min: parseInt(fMins.value, 10), marks_correct: parseFloat(fPos.value), marks_wrong: parseFloat(fNeg.value) || 0,
-      target_class: fCls.value || null, target_stream: fStr.value || null, school: fSchool.value || null, is_active: fAct.checked, questions: S.sel.map(q => ({ id: q.id, type: q.type, q: q.q, o: q.o, a: q.a, ch: q.ch, chn: q.chn, tp: q.tp, f: q.f || null })) };
+      target_class: fCls.value || null, target_stream: fStr.value || null, school: fSchool.value() || null, is_active: fAct.checked, questions: S.sel.map(q => ({ id: q.id, type: q.type, q: q.q, o: q.o, a: q.a, ch: q.ch, chn: q.chn, tp: q.tp, f: q.f || null })) };
     const bad = !row.title ? 'Give the test a title.' : !(row.duration_min >= 1 && row.duration_min <= 600) ? 'Duration must be 1 to 600 minutes.' : !(row.marks_correct > 0) ? 'Marks for a correct answer must be more than 0.' : row.marks_wrong < 0 ? 'Negative marks cannot be below 0.' : !S.sel.length ? 'Add at least one question.' : '';
     if (bad) { msg.textContent = bad; msg.classList.add('bad'); return; }
     if (S.locked) { delete row.questions; delete row.marks_correct; delete row.marks_wrong; }
@@ -736,6 +765,6 @@ function runExam(d) {
   tickTimer(); draw();
 }
 
-window.AvantiPortal = { route, leave: () => leave(false), saveWorksheet, createTestFrom };
+window.AvantiPortal = { route, leave: () => leave(false), saveWorksheet, createTestFrom, onboard, profileMissing };
 if (AU() && AU().profile && TE()) route();
 })();
