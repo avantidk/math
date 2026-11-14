@@ -1304,7 +1304,7 @@ async function renderMust() {
       h('div', { class: 'mselbar' }, h('button', { type: 'button', class: 'btn', text: 'Select all shown', onclick: () => tick(true) }), h('button', { type: 'button', class: 'btn', text: 'Clear', onclick: () => tick(false) })),
       selCnt),
     h('div', { class: 'mlegend' }, h('p', { class: 'hint', html: '<b>Exact repeat:</b> the same question came again. <b>Similar type:</b> the same idea and method, different numbers or wording. <b>Sure-shot:</b> a standard JEE must-know picked by us.' })))),
-    h('div', { class: 'stage' }, h('div', { class: 'statbar' }, msg), list));
+    h('div', { class: 'stage' }, list));   /* the count line above the list was removed; the side panel shows the count */
   draw(); fillCh();
   KATEX_P && KATEX_P.then(() => math(list)).catch(() => {});
 }
