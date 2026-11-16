@@ -197,6 +197,30 @@ function schoolSelect(id, val, first, allowOther, opt) {
   wrap.sel = s; wrap.focusId = id;
   return wrap;
 }
+/* Chapter multi-select for the test question picker (nothing ticked = all chapters) */
+function chapterMulti(chs, set, onChange) {
+  const label = h('span', { class: 'pt-combo-txt', text: 'All chapters' });
+  const btn = h('button', { type: 'button', class: 'pt-in pt-combo-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Chapters' }, label, h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' }));
+  const find = h('input', { type: 'search', class: 'pt-in pt-combo-find', placeholder: 'Search chapters…', 'aria-label': 'Search chapters', autocomplete: 'off' });
+  const listEl = h('div', { class: 'pt-multi-list' }), pop = h('div', { class: 'pt-combo-pop', hidden: true }, find, listEl);
+  const byC = new Map(chs.map(x => [x.c, x]));
+  const sync = () => { label.textContent = !set.size ? 'All chapters' : set.size === 1 ? (byC.get([...set][0]) ? [...set][0] + ' ' + byC.get([...set][0]).n : [...set][0]) : set.size + ' chapters selected'; };
+  const draw = () => {
+    const t = find.value.trim().toLowerCase(); listEl.textContent = '';
+    listEl.append(h('label', { class: 'pt-multi-opt pt-multi-all' }, h('input', { type: 'radio', name: 'chall', checked: !set.size, onchange: () => { set.clear(); sync(); draw(); onChange(); } }), h('span', { text: 'All chapters' })));
+    [11, 12].forEach(c => { const rows = chs.filter(x => +x.cl === c && (!t || (x.c + ' ' + x.n).toLowerCase().includes(t))); if (!rows.length) return;
+      listEl.append(h('p', { class: 'pt-multi-grp', text: 'Class ' + c }));
+      rows.forEach(x => listEl.append(h('label', { class: 'pt-multi-opt' }, h('input', { type: 'checkbox', checked: set.has(x.c), onchange: e => { if (e.target.checked) set.add(x.c); else set.delete(x.c); sync(); draw(); onChange(); } }), h('span', { text: x.c + ' ' + x.n })))); });
+  };
+  const outside = e => { if (!wrap.contains(e.target)) close(); };
+  function open() { if (!pop.hidden) return; pop.hidden = false; btn.setAttribute('aria-expanded', 'true'); find.value = ''; draw(); setTimeout(() => find.focus(), 0); document.addEventListener('mousedown', outside, true); }
+  function close() { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('mousedown', outside, true); }
+  btn.addEventListener('click', () => (pop.hidden ? open() : close()));
+  find.addEventListener('input', draw);
+  find.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); close(); btn.focus(); } });
+  const wrap = h('div', { class: 'pt-combo pt-chpick' }, btn, pop); sync();
+  return wrap;
+}
 /* Admin: pick one or more schools for a new test (nothing ticked = all schools). A test belongs to one school, so one test is made for each. */
 function schoolMulti(id) {
   const chosen = new Set(); let ALL = [];
@@ -306,7 +330,7 @@ function onboard(root, done) {
   const p = P();
   root.textContent = '';
   root.append(h('div', { class: 'lg' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=896', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=897', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
       p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
@@ -695,7 +719,7 @@ async function pageCreate(arg, r) {
     const skipped = PREFILL.ids.length - S.sel.length; if (skipped) setTimeout(() => toast(skipped + ' question(s) were left out: tests use only MCQ, MSQ and numerical questions with an answer key.'), 300);
     PREFILL = null;
   }
-  const F = { src: 'all', exam: '', paper: '', ch: '', tp: '', lv: new Set(), ty: new Set(), q: '', ws: '', page: 0 };
+  const F = { src: 'all', exam: '', paper: '', chs: new Set(), tp: '', lv: new Set(), ty: new Set(), q: '', ws: '', page: 0 };
   const selIds = () => new Set(S.sel.map(x => x.id));
   const inp = (id, type, val, attrs) => h('input', Object.assign({ id, type, class: 'pt-in', value: val }, attrs || {}));
   const fTitle = inp('ctTitle', 'text', S.title, { maxlength: 200, placeholder: 'e.g. Quadratic Equations · Weekly test 3', required: true });
@@ -716,7 +740,7 @@ async function pageCreate(arg, r) {
     if (F.src === 'ws') { const w = (wsList || []).find(x => x.id === F.ws); return w ? w.question_ids.map(i => B.byId.get(i)).filter(gradable) : []; }
     const q = F.q.trim().toLowerCase();
     return all.filter(x => (F.src === 'all' || (F.src === 'pyq' ? x.s === 'P' : x.s === 'N'))
-      && (!F.exam || x.e === F.exam) && (!F.paper || paperKey(x) === F.paper) && (!F.ch || x.cc === F.ch) && (!F.tp || x.tp === F.tp)
+      && (!F.exam || x.e === F.exam) && (!F.paper || paperKey(x) === F.paper) && (!F.chs.size || F.chs.has(x.cc)) && (!F.tp || x.tp === F.tp)
       && (!F.lv.size || F.lv.has(x.d)) && (!F.ty.size || F.ty.has(x.t))
       && (!q || x.i.toLowerCase().includes(q) || x.q.toLowerCase().includes(q)));
   }
@@ -730,12 +754,13 @@ async function pageCreate(arg, r) {
       s.value = F.ws; filt.append(s); return;
     }
     const chs = [...CHN.values()].sort((a, b) => a.cl - b.cl || a.o - b.o);
-    const chSel = h('select', { class: 'pt-in', 'aria-label': 'Chapter', onchange: e => { F.ch = e.target.value; F.tp = ''; F.page = 0; drawFilters(); drawResults(); } }, h('option', { value: '', text: 'All chapters' }),
-      [11, 12].map(c => h('optgroup', { label: 'Class ' + c }, chs.filter(x => +x.cl === c).map(x => h('option', { value: x.c, text: x.c + ' ' + x.n })))));
-    chSel.value = F.ch;
-    const tps = F.ch ? [...new Set(all.filter(x => x.cc === F.ch && x.tp).map(x => x.tp))].sort() : [];
-    const tpSel = h('select', { class: 'pt-in', 'aria-label': 'Topic', disabled: !F.ch, onchange: e => { F.tp = e.target.value; F.page = 0; drawResults(); } }, h('option', { value: '', text: F.ch ? 'All topics' : 'Pick a chapter for topics' }), tps.map(t => h('option', { value: t, text: t })));
-    tpSel.value = F.tp;
+    const tpSel = h('select', { class: 'pt-in', 'aria-label': 'Topic', onchange: e => { F.tp = e.target.value; F.page = 0; drawResults(); } });
+    const fillTopics = () => {
+      const oneCh = F.chs.size === 1 ? [...F.chs][0] : '', tps = oneCh ? [...new Set(all.filter(x => x.cc === oneCh && x.tp).map(x => x.tp))].sort() : [];
+      tpSel.textContent = ''; tpSel.disabled = !oneCh; tpSel.append(h('option', { value: '', text: oneCh ? 'All topics' : 'Pick one chapter for topics' }), tps.map(t => h('option', { value: t, text: t }))); tpSel.value = F.tp;
+    };
+    const chSel = chapterMulti(chs, F.chs, () => { F.tp = ''; F.page = 0; fillTopics(); drawResults(); });
+    fillTopics();
     const search = h('input', { type: 'search', class: 'pt-in pt-search', placeholder: 'Search question text or ID', value: F.q, 'aria-label': 'Search', oninput: e => { F.q = e.target.value; F.page = 0; clearTimeout(drawFilters.t); drawFilters.t = setTimeout(drawResults, 250); } });
     const row = h('div', { class: 'pt-frow' }, search, chSel);
     if (F.src === 'pyq') {
@@ -837,15 +862,15 @@ async function pageCreate(arg, r) {
       fld('Test title', fTitle),
       h('div', { class: 'pt-fld' }, h('span', {}, 'Class', h('b', { class: 'pt-req', text: ' *' })), fCls), h('div', { class: 'pt-fld' }, h('span', {}, 'Stream', h('b', { class: 'pt-req', text: ' *' })), fStr),
       fld('School', fSchool, can('isAdmin') ? (S.id ? 'Only students of this school can take it. Choose All schools for everyone.' : 'Tick one or more schools. A separate test and link is made for each school you tick. Leave it on All schools for a test that every school can take.') : 'Only students of your school, in the classes and streams chosen above, can see and take this test.')),
-    card(h('h2', { text: 'Time and marking' }),
+    h('div', { class: 'pt-s1-right' }, card(h('h2', { text: 'Time and marking' }),
       h('div', { class: 'pt-row3' }, fld('Duration (minutes)', fMins), fld('Marks if correct', fPos), fld('Negative marks', fNeg, 'For a wrong MCQ answer')),
       h('label', { class: 'pt-switch', for: 'ctAct' }, fAct, h('span', { text: 'Active: students can open the test now' })),
-      S.locked ? h('p', { class: 'pt-note', text: 'Students have already submitted this test, so the questions and marks are locked. You can still change the title, class, school and on/off.' }) : null, m1));
+      S.locked ? h('p', { class: 'pt-note', text: 'Students have already submitted this test, so the questions and marks are locked. You can still change the title, class, school and on/off.' }) : null, m1)));
   const sec2 = h('div', { class: 'pt-step pt-q2' },
     h('aside', { class: 'pt-q2-side' }, card(h('h2', { text: 'Find questions' }), filt)),
     h('div', { class: 'pt-q2-main' }, card(h('h2', { text: 'Add questions' }), h('p', { class: 'pt-hint', text: 'Tap Add on a question. Only MCQ, MSQ and numerical questions with an answer key can be used.' }), resHead, results, pager)));
-  const sec3 = h('div', { class: 'pt-step' },
-    card(h('h2', { text: 'Review' }), h('div', { class: 'pt-sum', id: 'ctSum' })),
+  const reviewCard = card(h('h2', { text: 'Review' }), h('div', { class: 'pt-sum', id: 'ctSum' }));
+  const sec3 = h('div', { class: 'pt-step pt-s3' }, reviewCard, h('div', { class: 'pt-s3-act' }),
     card(selHead, selBox, h('div', { class: 'pt-actions' },
       h('button', { type: 'button', class: 'btn', text: 'Save as worksheet', onclick: () => { if (!S.sel.length) { toast('Add questions first'); return; } saveWorksheet(S.sel.map(x => x.id), fTitle.value.trim() || 'Worksheet'); } }),
       S.sel.length && !S.locked ? h('button', { type: 'button', class: 'btn', text: 'Clear all', onclick: async () => { if (await confirmBox('Remove all questions?', 'The selected list will be emptied.', 'Clear', true)) { S.sel = []; drawSel(); drawResults(); drawFoot(); } } }) : null), msg));
@@ -868,11 +893,22 @@ async function pageCreate(arg, r) {
         step === 2 ? h('button', { type: 'button', class: 'btn pri', text: 'Review' + (S.sel.length ? ' (' + S.sel.length + ')' : '') + ' →', onclick: () => goStep(3) }) : null,
         step === 3 ? saveBtn : null));
   }
+  /* PC: the action bar sits in the free space of each step; phones: pinned at the bottom */
+  const wideMq = window.matchMedia ? window.matchMedia('(min-width: 961px)') : null;
+  function placeFoot(n) {
+    const wide = !!(wideMq && wideMq.matches);
+    foot.classList.toggle('inline', wide);
+    if (!wide) wiz.append(foot);
+    else if (n === 1) sec1.querySelector('.pt-s1-right').append(foot);
+    else if (n === 2) sec2.querySelector('.pt-q2-side').append(foot);
+    else sec3.querySelector('.pt-s3-act').append(foot);
+  }
+  if (wideMq && wideMq.addEventListener) wideMq.addEventListener('change', () => placeFoot(step));
   function goStep(n) {
     if (n >= 2) { const e = check1(); if (e) { m1.textContent = e; m1.className = 'pt-msg bad'; n = 1; } else { m1.textContent = ''; } }
     if (n === 3 && !S.sel.length) { toast('Add at least one question first'); n = 2; }
     step = n; secs.forEach((x, i) => { x.hidden = i + 1 !== n; });
-    if (n === 3) { sec3.insertBefore(foot, sec3.children[1] || null); foot.classList.add('inline'); } else { wiz.append(foot); foot.classList.remove('inline'); }
+    placeFoot(n);
     stepper.textContent = '';
     NAMES.forEach((t, i) => stepper.append(h('li', {}, h('button', { type: 'button', class: 'pt-stp' + (i + 1 === n ? ' on' : '') + (i + 1 < n ? ' done' : ''), 'aria-current': i + 1 === n ? 'step' : null, onclick: () => goStep(i + 1) }, h('span', { class: 'pt-stn', text: i + 1 < n ? '✓' : String(i + 1) }), h('span', { class: 'pt-stt', text: t })))));
     if (n === 2) drawResults(); if (n === 3) { drawSel(); drawSum(); } drawFoot();

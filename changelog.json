@@ -1,5 +1,13 @@
 [
   {
+    "v": "897",
+    "date": "16 Nov 2026",
+    "items": [
+      "Create Test on a PC: the Next / Back / Save bar now sits in the free space, under Time and marking in step 1, under the filters in step 2, and beside the Review box in step 3. On phones it stays pinned to the bottom.",
+      "Create Test, Questions step: Chapters is now a multi-select with a search box, and long chapter names stay inside the sidebar."
+    ]
+  },
+  {
     "v": "896",
     "date": "16 Nov 2026",
     "items": [

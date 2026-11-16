@@ -999,3 +999,20 @@ html.hv-drag .hv-pages { pointer-events: none; }
 .pt-wizard .pt-q2-side, .pt-wizard .pt-q2-main { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
 @media (max-width: 960px) { .pt-wizard .pt-q2 { display: flex; flex-direction: column; } }
 .pt-foot.inline { position: static; box-shadow: none; }
+
+/* action bar placement on a PC */
+.pt-foot.inline { position: static; box-shadow: none; z-index: auto; }
+@media (min-width: 961px) {
+  .pt-wizard { padding-bottom: 24px; }
+  .pt-wizard .pt-s1-right { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .pt-wizard .pt-s3 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .pt-wizard .pt-s3 > :nth-child(3) { grid-column: 1 / -1; }
+  .pt-wizard .pt-q2-side { display: flex; flex-direction: column; gap: 16px; }
+}
+/* long chapter names must stay inside the sidebar */
+.pt-q2-side .pt-frow { display: flex; flex-direction: column; align-items: stretch; }
+.pt-q2-side .pt-frow > * { flex: none !important; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+.pt-chpick .pt-combo-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-chpick .pt-combo-btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; }
+.pt-multi-grp { margin: 8px 10px 2px; font: 700 11px var(--font-body, system-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.pt-q2-side select.pt-in, .pt-q2-side .pt-in { max-width: 100%; min-width: 0; }
