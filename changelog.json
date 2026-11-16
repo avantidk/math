@@ -1,5 +1,15 @@
 [
   {
+    "v": "916",
+    "date": "17 Nov 2026",
+    "items": [
+      "Allen question sweep: every Allen question was checked for layout, stray symbols, maths errors, typos, answer keys, explanations and figures, and the problems found were repaired.",
+      "AL-12M13-DY1-2, AL-12M13-DY10-1 and AL-11M4-DY8-2 reformatted (the 'refer to' note and the printed answer removed from the question text, sub-parts on separate lines) and their graphs made larger; the other new graphs are larger too.",
+      "Comprehension questions: 52 questions of 'Paragraph for Q..' groups now carry the paragraph text on every question (before, only the first one did) and the leftover question numbers are removed.",
+      "Nine questions whose options (1) to (4) were left inside the question text are now proper multiple-choice questions; seven 'Numerical' questions with written answers are now Subjective; answers printed inside twelve question texts moved to the answer line; two damaged explanations repaired; four 'module answer key' remarks, a few typos and stray symbols removed; a missing figure on five questions is now shown."
+    ]
+  },
+  {
     "v": "915",
     "date": "17 Nov 2026",
     "items": [
