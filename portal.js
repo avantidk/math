@@ -276,7 +276,7 @@ function onboard(root, done) {
   const p = P();
   root.textContent = '';
   root.append(h('div', { class: 'lg' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=892', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=893', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
       p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
@@ -706,7 +706,8 @@ async function pageCreate(arg, r) {
     const tps = F.ch ? [...new Set(all.filter(x => x.cc === F.ch && x.tp).map(x => x.tp))].sort() : [];
     const tpSel = h('select', { class: 'pt-in', 'aria-label': 'Topic', disabled: !F.ch, onchange: e => { F.tp = e.target.value; F.page = 0; drawResults(); } }, h('option', { value: '', text: F.ch ? 'All topics' : 'Pick a chapter for topics' }), tps.map(t => h('option', { value: t, text: t })));
     tpSel.value = F.tp;
-    const row = h('div', { class: 'pt-frow' }, chSel, tpSel);
+    const search = h('input', { type: 'search', class: 'pt-in pt-search', placeholder: 'Search question text or ID', value: F.q, 'aria-label': 'Search', oninput: e => { F.q = e.target.value; F.page = 0; clearTimeout(drawFilters.t); drawFilters.t = setTimeout(drawResults, 250); } });
+    const row = h('div', { class: 'pt-frow' }, search, chSel);
     if (F.src === 'pyq') {
       const exSel = h('select', { class: 'pt-in', 'aria-label': 'Exam', onchange: e => { F.exam = e.target.value; F.paper = ''; F.page = 0; drawFilters(); drawResults(); } }, h('option', { value: '', text: 'All exams' }), [['Main', 'JEE Main / AIEEE'], ['Adv', 'JEE Advanced / IIT'], ['KCET', 'KCET'], ['IAT', 'IAT'], ['NDA', 'NDA']].map(([v, t]) => h('option', { value: v, text: t })));
       exSel.value = F.exam;
@@ -714,13 +715,16 @@ async function pageCreate(arg, r) {
       const papers = [...pm.values()].sort((a, b) => b.t - a.t || a.sh - b.sh || a.label.localeCompare(b.label));
       const pSel = h('select', { class: 'pt-in', 'aria-label': 'Paper', onchange: e => { F.paper = e.target.value; F.page = 0; drawFilters(); drawResults(); } }, h('option', { value: '', text: 'Any paper (newest first)' }), papers.map(p => h('option', { value: p.key, text: (F.exam ? '' : (EXN[p.e] || p.e) + ' · ') + p.label.replace(/^JEE (Main|Advanced) (?=\d{4} ·)/, '') })));
       pSel.value = F.paper;
-      row.prepend(exSel, pSel);
+      row.append(exSel, pSel);
     }
     const chip = (set, k, t) => h('button', { type: 'button', class: 'chip', 'aria-pressed': String(set.has(k)), text: t, onclick: () => { set.has(k) ? set.delete(k) : set.add(k); F.page = 0; drawFilters(); drawResults(); } });
-    filt.append(row, h('div', { class: 'pt-frow' },
-      h('div', { class: 'chips' }, chip(F.lv, 'L1', 'L1 easy'), chip(F.lv, 'L2', 'L2 medium'), chip(F.lv, 'L3', 'L3 hard')),
-      h('div', { class: 'chips' }, chip(F.ty, 'MCQ', 'MCQ'), chip(F.ty, 'MSQ', 'MSQ'), chip(F.ty, 'Numerical', 'Numerical'))),
-      h('input', { type: 'search', class: 'pt-in', placeholder: 'Search question text or ID', value: F.q, 'aria-label': 'Search', oninput: e => { F.q = e.target.value; F.page = 0; clearTimeout(drawFilters.t); drawFilters.t = setTimeout(drawResults, 250); } }));
+    const nMore = (F.tp ? 1 : 0) + F.lv.size + F.ty.size;
+    const more = h('details', { class: 'pt-more' }, h('summary', { text: 'More filters' + (nMore ? ' (' + nMore + ' on)' : '') }),
+      h('div', { class: 'pt-frow' }, tpSel),
+      h('div', { class: 'pt-frow' }, h('span', { class: 'pt-hint', text: 'Level' }), h('div', { class: 'chips' }, chip(F.lv, 'L1', 'L1 easy'), chip(F.lv, 'L2', 'L2 medium'), chip(F.lv, 'L3', 'L3 hard'))),
+      h('div', { class: 'pt-frow' }, h('span', { class: 'pt-hint', text: 'Type' }), h('div', { class: 'chips' }, chip(F.ty, 'MCQ', 'MCQ'), chip(F.ty, 'MSQ', 'MSQ'), chip(F.ty, 'Numerical', 'Numerical'))));
+    more.open = !!F.more || !!nMore; more.addEventListener('toggle', () => { F.more = more.open; });
+    filt.append(row, more);
   }
   const PER = 12;
   function drawResults() {
@@ -750,7 +754,7 @@ async function pageCreate(arg, r) {
     qs.forEach(q => { if (!have.has(q.i) && S.sel.length < 200) { S.sel.push(snap(q)); have.add(q.i); n++; } });
     if (S.sel.length >= 200) toast('A test can have at most 200 questions.');
     if (n) toast(n + ' question' + (n === 1 ? '' : 's') + ' added');
-    drawSel(); drawResults();
+    drawSel(); drawResults(); drawFoot();
   }
   function drawSel() {
     const pos = parseFloat(fPos.value) || 0;
@@ -762,7 +766,7 @@ async function pageCreate(arg, r) {
       S.locked ? null : h('span', { class: 'pt-si-b' },
         h('button', { type: 'button', class: 'pt-ib', title: 'Move up', 'aria-label': 'Move question ' + (i + 1) + ' up', text: '↑', disabled: i === 0, onclick: () => { [S.sel[i - 1], S.sel[i]] = [S.sel[i], S.sel[i - 1]]; drawSel(); } }),
         h('button', { type: 'button', class: 'pt-ib', title: 'Move down', 'aria-label': 'Move question ' + (i + 1) + ' down', text: '↓', disabled: i === S.sel.length - 1, onclick: () => { [S.sel[i + 1], S.sel[i]] = [S.sel[i], S.sel[i + 1]]; drawSel(); } }),
-        h('button', { type: 'button', class: 'pt-ib', title: 'Remove', 'aria-label': 'Remove question ' + (i + 1), text: '✕', onclick: () => { S.sel.splice(i, 1); drawSel(); drawResults(); } })))));
+        h('button', { type: 'button', class: 'pt-ib', title: 'Remove', 'aria-label': 'Remove question ' + (i + 1), text: '✕', onclick: () => { S.sel.splice(i, 1); drawSel(); drawResults(); drawFoot(); drawSum(); } })))));
     mathIn(selBox);
   }
   async function save() {
@@ -770,7 +774,7 @@ async function pageCreate(arg, r) {
     const row = { title: fTitle.value.trim(), duration_min: parseInt(fMins.value, 10), marks_correct: parseFloat(fPos.value), marks_wrong: parseFloat(fNeg.value) || 0,
       target_classes: [...S.cls], target_streams: [...S.streams], school: fSchool.value() || null, is_active: fAct.checked, questions: S.sel.map(q => ({ id: q.id, type: q.type, q: q.q, o: q.o, a: q.a, ch: q.ch, chn: q.chn, tp: q.tp, f: q.f || null })) };
     const bad = !row.title ? 'Give the test a title.' : !S.cls.size ? 'Choose the class (or classes) that should take this test.' : !S.streams.size ? 'Choose the stream (or streams) that should take this test.' : !(row.duration_min >= 1 && row.duration_min <= 600) ? 'Duration must be 1 to 600 minutes.' : !(row.marks_correct > 0) ? 'Marks for a correct answer must be more than 0.' : row.marks_wrong < 0 ? 'Negative marks cannot be below 0.' : !S.sel.length ? 'Add at least one question.' : '';
-    if (bad) { msg.textContent = bad; msg.classList.add('bad'); return; }
+    if (bad) { const st = /questions?\.$|^Add at least/.test(bad) ? 2 : 1; if (st === 1) { m1.textContent = bad; m1.className = 'pt-msg bad'; } else { toast(bad); } goStep(st); return; }
     if (S.locked) { delete row.questions; delete row.marks_correct; delete row.marks_wrong; }
     saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
     const q = S.id ? sb().from('tests').update(row).eq('id', S.id).select('id,code').single() : sb().from('tests').insert(row).select('id,code').single();
@@ -783,21 +787,58 @@ async function pageCreate(arg, r) {
       [{ text: 'My Tests', onclick: () => { location.hash = '#/my-tests'; } }, { text: 'Copy link', pri: true, onclick: () => { copy(url, 'Link copied'); return false; } }]);
   }
   const saveBtn = h('button', { type: 'button', class: 'btn pri', text: S.id ? 'Save changes' : 'Save test', onclick: save });
-  fPos.addEventListener('input', drawSel);
-  show(head(S.id ? 'Edit test' : 'Create Test', S.id ? 'Link: ' + testLink(S.code) : 'Pick questions, set the marking, save, then share the link.', link('#/my-tests', 'My Tests', 'btn')),
-    h('div', { class: 'pt-make' },
-      h('div', { class: 'pt-col' },
-        card(h('h2', { text: 'Test details' }), fld('Title', fTitle),
-          h('div', { class: 'pt-row3' }, fld('Duration (minutes)', fMins), fld('Marks if correct', fPos), fld('Negative marks', fNeg, 'Taken off for a wrong MCQ answer')),
-          h('div', { class: 'pt-fld' }, h('span', {}, 'Class', h('b', { class: 'pt-req', text: ' *' })), fCls), h('div', { class: 'pt-fld' }, h('span', {}, 'Stream', h('b', { class: 'pt-req', text: ' *' })), fStr),
-          fld('School', fSchool, can('isAdmin') ? 'Only students of this school can take it. Choose All schools for everyone.' : 'Only students of your school, in the classes and streams chosen above, can see and take this test.'),
-          h('label', { class: 'pt-switch', for: 'ctAct' }, fAct, h('span', { text: 'Active: students can open the test now' })),
-          S.locked ? h('p', { class: 'pt-note', text: 'Students have already submitted this test, so the questions and marks are locked. You can still change the title, class, school and on/off.' }) : null),
-        card(selHead, selBox, h('div', { class: 'pt-actions' }, saveBtn,
-          h('button', { type: 'button', class: 'btn', text: 'Save as worksheet', onclick: () => { if (!S.sel.length) { toast('Add questions first'); return; } saveWorksheet(S.sel.map(x => x.id), fTitle.value.trim() || 'Worksheet'); } }),
-          S.sel.length && !S.locked ? h('button', { type: 'button', class: 'btn', text: 'Clear all', onclick: async () => { if (await confirmBox('Remove all questions?', 'The selected list will be emptied.', 'Clear', true)) { S.sel = []; drawSel(); drawResults(); } } }) : null), msg)),
-      h('div', { class: 'pt-col' }, card(h('h2', { text: 'Pick questions' }), filt, resHead, results, pager))));
-  drawFilters(); drawSel(); drawResults();
+  fPos.addEventListener('input', () => { drawSel(); drawFoot(); }); fMins.addEventListener('input', drawFoot);
+  /* three steps: 1 details, 2 add questions, 3 review and save */
+  let step = 1;
+  const m1 = h('p', { class: 'pt-msg', role: 'alert' });
+  const check1 = () => !fTitle.value.trim() ? 'Give the test a title.' : !S.cls.size ? 'Choose the class (or classes) that should take this test.' : !S.streams.size ? 'Choose the stream (or streams) that should take this test.'
+    : !(parseInt(fMins.value, 10) >= 1 && parseInt(fMins.value, 10) <= 600) ? 'Duration must be 1 to 600 minutes.' : !(parseFloat(fPos.value) > 0) ? 'Marks for a correct answer must be more than 0.' : (parseFloat(fNeg.value) || 0) < 0 ? 'Negative marks cannot be below 0.' : '';
+  const sec1 = h('div', { class: 'pt-step' },
+    card(h('h2', { text: 'Who is this test for?' }),
+      fld('Test title', fTitle),
+      h('div', { class: 'pt-fld' }, h('span', {}, 'Class', h('b', { class: 'pt-req', text: ' *' })), fCls), h('div', { class: 'pt-fld' }, h('span', {}, 'Stream', h('b', { class: 'pt-req', text: ' *' })), fStr),
+      fld('School', fSchool, can('isAdmin') ? 'Only students of this school can take it. Choose All schools for everyone.' : 'Only students of your school, in the classes and streams chosen above, can see and take this test.')),
+    card(h('h2', { text: 'Time and marking' }),
+      h('div', { class: 'pt-row3' }, fld('Duration (minutes)', fMins), fld('Marks if correct', fPos), fld('Negative marks', fNeg, 'For a wrong MCQ answer')),
+      h('label', { class: 'pt-switch', for: 'ctAct' }, fAct, h('span', { text: 'Active: students can open the test now' })),
+      S.locked ? h('p', { class: 'pt-note', text: 'Students have already submitted this test, so the questions and marks are locked. You can still change the title, class, school and on/off.' }) : null, m1));
+  const sec2 = h('div', { class: 'pt-step' }, card(h('h2', { text: 'Add questions' }), h('p', { class: 'pt-hint', text: 'Tap Add on a question. Only MCQ, MSQ and numerical questions with an answer key can be used.' }), filt, resHead, results, pager));
+  const sec3 = h('div', { class: 'pt-step' },
+    card(h('h2', { text: 'Review' }), h('div', { class: 'pt-sum', id: 'ctSum' })),
+    card(selHead, selBox, h('div', { class: 'pt-actions' },
+      h('button', { type: 'button', class: 'btn', text: 'Save as worksheet', onclick: () => { if (!S.sel.length) { toast('Add questions first'); return; } saveWorksheet(S.sel.map(x => x.id), fTitle.value.trim() || 'Worksheet'); } }),
+      S.sel.length && !S.locked ? h('button', { type: 'button', class: 'btn', text: 'Clear all', onclick: async () => { if (await confirmBox('Remove all questions?', 'The selected list will be emptied.', 'Clear', true)) { S.sel = []; drawSel(); drawResults(); drawFoot(); } } }) : null), msg));
+  const stepper = h('ol', { class: 'pt-steps', 'aria-label': 'Steps' }), foot = h('div', { class: 'pt-foot' });
+  const secs = [sec1, sec2, sec3], NAMES = ['Details', 'Questions', 'Review and save'];
+  function drawSum() {
+    const box = document.getElementById('ctSum'); if (!box) return; const pos = parseFloat(fPos.value) || 0, neg = parseFloat(fNeg.value) || 0;
+    box.textContent = '';
+    [['Title', fTitle.value.trim() || '—'], ['For', [...S.cls].map(c => c === 'Dropper' ? c : 'Class ' + c).join(', ') + (S.streams.size ? ' · ' + [...S.streams].join(', ') : '') || '—'],
+      ['Time', (fMins.value || '—') + ' minutes'], ['Marking', '+' + num(pos, 2) + ' correct · −' + num(neg, 2) + ' wrong'], ['Questions', S.sel.length + ' · ' + num(S.sel.length * pos, 1) + ' marks in total']]
+      .forEach(([k, v]) => box.append(h('div', { class: 'pt-sumrow' }, h('span', { class: 'pt-hint', text: k }), h('b', { text: v }))));
+  }
+  function drawFoot() {
+    const pos = parseFloat(fPos.value) || 0;
+    foot.textContent = '';
+    foot.append(h('span', { class: 'pt-footinfo', text: S.sel.length + ' question' + (S.sel.length === 1 ? '' : 's') + (S.sel.length ? ' · ' + num(S.sel.length * pos, 1) + ' marks' : '') + (fMins.value ? ' · ' + fMins.value + ' min' : '') }),
+      h('span', { class: 'pt-actions' },
+        step > 1 ? h('button', { type: 'button', class: 'btn', text: '← Back', onclick: () => goStep(step - 1) }) : null,
+        step === 1 ? h('button', { type: 'button', class: 'btn pri', text: 'Next: add questions →', onclick: () => goStep(2) }) : null,
+        step === 2 ? h('button', { type: 'button', class: 'btn pri', text: 'Review' + (S.sel.length ? ' (' + S.sel.length + ')' : '') + ' →', onclick: () => goStep(3) }) : null,
+        step === 3 ? saveBtn : null));
+  }
+  function goStep(n) {
+    if (n >= 2) { const e = check1(); if (e) { m1.textContent = e; m1.className = 'pt-msg bad'; n = 1; } else { m1.textContent = ''; } }
+    if (n === 3 && !S.sel.length) { toast('Add at least one question first'); n = 2; }
+    step = n; secs.forEach((x, i) => { x.hidden = i + 1 !== n; });
+    stepper.textContent = '';
+    NAMES.forEach((t, i) => stepper.append(h('li', {}, h('button', { type: 'button', class: 'pt-stp' + (i + 1 === n ? ' on' : '') + (i + 1 < n ? ' done' : ''), 'aria-current': i + 1 === n ? 'step' : null, onclick: () => goStep(i + 1) }, h('span', { class: 'pt-stn', text: i + 1 < n ? '✓' : String(i + 1) }), h('span', { class: 'pt-stt', text: t })))));
+    if (n === 2) drawResults(); if (n === 3) { drawSel(); drawSum(); } drawFoot();
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { /* older browser */ }
+  }
+  show(head(S.id ? 'Edit test' : 'Create Test', S.id ? 'Link: ' + testLink(S.code) : 'Three quick steps: details, questions, review. Then share the link.', link('#/my-tests', 'My Tests', 'btn')),
+    h('div', { class: 'pt-wizard' }, stepper, sec1, sec2, sec3, foot));
+  drawFilters(); drawSel(); goStep(1);
 }
 
 /* ---------- My Tests ---------- */
