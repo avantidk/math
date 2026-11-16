@@ -313,8 +313,20 @@ end $$;
 
 create or replace function public.norm_avanti_id(p text) returns text
 language sql immutable set search_path = public as $$
-  select nullif(upper(regexp_replace(coalesce(p, ''), '\s+', '', 'g')), '')
+  select nullif(regexp_replace(upper(regexp_replace(coalesce(p, ''), '\s+', '', 'g')), '^ST(\d{10,})$', 'St\1'), '')
 $$;
+
+-- Student ID for a student who is not an Avanti student, made by the site: St + DDMMYY + HHSS (India time), e.g. St1611260845.
+-- If that ID is taken (several students added in the same second), 01, 02, ... is added at the end.
+create or replace function public.new_student_id() returns text
+language plpgsql volatile security definer set search_path = public as $$
+declare base text := 'St' || to_char(clock_timestamp() at time zone 'Asia/Kolkata', 'DDMMYYHH24SS'); v text := base; n integer := 0;
+begin
+  while exists (select 1 from public.student_allowlist where lower(regexp_replace(avanti_id, '[^A-Za-z0-9]', '', 'g')) = lower(v)) loop
+    n := n + 1; v := base || lpad(n::text, 2, '0');
+  end loop;
+  return v;
+end $$;
 
 -- A student's account always follows their row in the student list (name, school, class, ...). One place for it.
 -- p_id null = every linked student (used when this file is run).
@@ -1163,6 +1175,58 @@ language sql stable security definer set search_path = public as $$
           select trim(school) from public.profiles where role = 'teacher' and nullif(trim(school), '') is not null) x
 $$;
 
+-- Admin: every school with how many students, teachers and tests use it (Approvals → Schools).
+create or replace function public.admin_schools() returns json
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Only Avanti admins can see this'; end if;
+  return (select coalesce(json_agg(json_build_object('school', n,
+            'list_students', (select count(*) from public.student_allowlist a where lower(trim(a.school)) = lower(n)),
+            'google_students', (select count(*) from public.profiles p where p.role = 'student' and p.avanti_id is null and lower(trim(p.school)) = lower(n)),
+            'teachers', (select count(*) from public.profiles p where p.role = 'teacher' and lower(trim(p.school)) = lower(n)),
+            'tests', (select count(*) from public.tests t where lower(trim(t.school)) = lower(n))) order by n), '[]'::json)
+     from (select distinct on (lower(trim(x))) trim(x) as n from (
+             select school as x from public.student_allowlist union all select school from public.profiles
+             union all select school from public.tests union all select school from public.teacher_invites) z
+           where nullif(trim(x), '') is not null order by lower(trim(x)), trim(x)) s);
+end $$;
+
+-- Admin: rename a school everywhere (students, teachers, tests, results, invites, change requests). Renaming it to the name
+-- of another school merges the two. Approvals stay as they are.
+create or replace function public.admin_rename_school(p_old text, p_new text) returns json
+language plpgsql security definer set search_path = public as $$
+declare o text := trim(coalesce(p_old, '')); n text := left(trim(coalesce(p_new, '')), 160);
+begin
+  if not public.is_admin() then raise exception 'Only Avanti admins can change schools'; end if;
+  if o = '' or n = '' then raise exception 'Give the old and the new school name'; end if;
+  update public.student_allowlist set school = n, updated_at = now() where lower(trim(school)) = lower(o);
+  update public.profiles set school = n, updated_at = now() where lower(trim(school)) = lower(o);
+  update public.profiles set school_request = n where lower(trim(school_request)) = lower(o);
+  update public.tests set school = n where lower(trim(school)) = lower(o);
+  update public.attempts set school = n where lower(trim(school)) = lower(o);
+  update public.teacher_invites set school = n where lower(trim(school)) = lower(o);
+  return json_build_object('ok', true);
+end $$;
+
+-- Admin: delete a school. Only when no student on the student list belongs to it (move or rename them first).
+-- Teachers and Google students who chose it lose the school and its approval and choose again; its tests are switched off.
+create or replace function public.admin_delete_school(p_school text) returns json
+language plpgsql security definer set search_path = public as $$
+declare o text := trim(coalesce(p_school, '')); k integer;
+begin
+  if not public.is_admin() then raise exception 'Only Avanti admins can delete schools'; end if;
+  if o = '' then raise exception 'Choose a school'; end if;
+  select count(*) into k from public.student_allowlist where lower(trim(school)) = lower(o);
+  if k > 0 then raise exception '% students on the student list belong to this school. Move them (Edit the school → new name) before deleting it.', k; end if;
+  update public.tests set is_active = false where lower(trim(school)) = lower(o);   -- first, while the teachers still have the school
+  update public.profiles set school = null, school_approved = false, school_approved_at = null,
+         school_note = 'Your school (' || o || ') was removed. Please choose your school again.', updated_at = now()
+   where lower(trim(school)) = lower(o) and not public.admin_of(profiles);
+  update public.profiles set school_request = null, school_request_at = null where lower(trim(school_request)) = lower(o);
+  update public.teacher_invites set school = null where lower(trim(school)) = lower(o);
+  return json_build_object('ok', true);
+end $$;
+
 -- Students linked to the student list: copy their details from it (runs every time this file is run).
 do $$ begin perform public.sync_student_profile(null); end $$;
 
@@ -1197,8 +1261,10 @@ begin
     return json_build_object('ok', false, 'error', 'Only the admin can add Premium or Avanti students. Students you add are Free.');
   end if;
   if v_school is null then return json_build_object('ok', false, 'error', 'Students can be added after the admin approves your school.'); end if;
-  if v_id is null then return json_build_object('ok', false, 'error', 'Student ID is missing'); end if;
-  if v_id !~ '^[A-Z0-9._/-]{3,40}$' then return json_build_object('ok', false, 'error', 'Student ID can use letters, numbers, . _ / - (3 to 40)'); end if;
+  -- only Avanti students bring their own ID (their Avanti ID); every other new student gets one made by the site
+  if not p_update and not (v_admin and v_plan = 'avanti') then v_id := public.new_student_id(); end if;
+  if v_id is null then return json_build_object('ok', false, 'error', 'Avanti ID is missing'); end if;
+  if v_id !~ '^[A-Za-z0-9._/-]{3,40}$' then return json_build_object('ok', false, 'error', 'Student ID can use letters, numbers, . _ / - (3 to 40)'); end if;
   if nullif(trim(r->>'dob'), '') is not null and v_dob is null then return json_build_object('ok', false, 'error', 'Date of birth is not a date (use YYYY-MM-DD or DD-MM-YYYY)'); end if;
   if v_mail is not null and (v_mail !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' or length(v_mail) > 200) then return json_build_object('ok', false, 'error', 'Email "' || v_mail || '" is not a valid email address'); end if;
   if f->>'class' is not null and f->>'class' not in ('11', '12', 'Dropper') then return json_build_object('ok', false, 'error', 'Class must be 11, 12 or Dropper (you wrote "' || (r->>'class') || '")'); end if;
@@ -1280,7 +1346,7 @@ end $$;
 -- Premium teachers: add many students at once (CSV / Excel upload). IDs already in the database are skipped. One result per row.
 create or replace function public.teacher_add_students(p_rows jsonb) returns json
 language plpgsql security definer set search_path = public as $$
-declare me public.profiles; v_out jsonb := '[]'::jsonb; r jsonb; i integer := 0; v_set boolean;
+declare me public.profiles; v_out jsonb := '[]'::jsonb; r jsonb; i integer := 0; v_set boolean; v_sid text;
 begin
   select * into me from public.profiles where id = auth.uid();
   if not public.is_premium_teacher() then raise exception 'Bulk upload is for Premium teachers'; end if;
@@ -1289,17 +1355,20 @@ begin
   for r in select * from jsonb_array_elements(p_rows) loop
     i := i + 1;
     begin
-      if exists (select 1 from public.student_allowlist where avanti_id = public.norm_avanti_id(r->>'student_id')) then
+      -- an Avanti student is found by the Avanti ID; any other student by their Google email
+      v_sid := case when public.admin_of(me) and lower(coalesce(r->>'plan', '')) = 'avanti' then public.norm_avanti_id(r->>'student_id')
+                    else (select x.avanti_id from public.student_allowlist x where x.email is not null and lower(x.email) = lower(trim(coalesce(r->>'email', '')))) end;
+      if v_sid is not null and exists (select 1 from public.student_allowlist where avanti_id = v_sid) then
         -- a student already in the list: the file sets the readable date of birth (own school only; the admin: any school)
         v_set := false;
         -- (a teacher may set it only for their own school's students who are not Avanti students; the admin: anyone)
         if public.norm_dob(r->>'dob') is not null then
           update public.student_allowlist set dob = public.norm_dob(r->>'dob'), dob_hash = null, failed_attempts = 0, locked_until = null, updated_at = now()
-           where avanti_id = public.norm_avanti_id(r->>'student_id')
+           where avanti_id = v_sid
              and (public.admin_of(me) or (source = 'teacher' and lower(coalesce(school, '')) = lower(public.approved_school(me))));
           v_set := found;
         end if;
-        v_out := v_out || jsonb_build_array(jsonb_build_object('row', i, 'ok', true, 'action', case when v_set then 'dob' else 'exists' end, 'student_id', public.norm_avanti_id(r->>'student_id')));
+        v_out := v_out || jsonb_build_array(jsonb_build_object('row', i, 'ok', true, 'action', case when v_set then 'dob' else 'exists' end, 'student_id', v_sid));
       else
         v_out := v_out || jsonb_build_array(jsonb_build_object('row', i) || public.save_student(r, me, false)::jsonb);
       end if;
@@ -1880,6 +1949,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.school_students(text), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),
   public.request_school_change(text), public.admin_school_requests(), public.admin_school_request(uuid, text, text, text),
   public.admin_set_teacher_school(uuid, text, text, text), public.admin_update_teacher(uuid, text, text), public.admin_pending_students(),
+  public.admin_schools(), public.admin_rename_school(text, text), public.admin_delete_school(text),
   public.chat_member(), public.chat_send(text), public.chat_people(uuid[]), public.qb_flags_list(), public.qb_flag_set(text, text, jsonb),
   public.content_allowed(text), public.in_test(), public.approved_school(public.profiles), public.admin_set_plan(uuid, text, text, date), public.premium_years(text), public.admin_add_teacher(text, text, text, text, date), public.admin_teacher_invites(), public.admin_cancel_teacher_invite(text), public.plan_label(public.profiles), public.school_teachers(text), public.menu_counts(), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
   to authenticated;

@@ -1106,7 +1106,7 @@ function studentForm(o) {
   const avTick = o.avantiTick ? h('input', { type: 'checkbox', id: 'sfAvanti', checked: !!o.avanti }) : null;
   const isAv = () => (avTick ? avTick.checked : !!(v.avanti || o.avanti));
   const F = {
-    student_id: h('input', { id: 'sfId', class: 'pt-in', type: 'text', maxlength: 40, value: v.student_id || '', placeholder: 'e.g. Avanti ID or roll number', disabled: edit, autocomplete: 'off' }),
+    student_id: h('input', { id: 'sfId', class: 'pt-in', type: 'text', maxlength: 40, value: v.student_id || '', placeholder: 'Avanti ID', disabled: edit, autocomplete: 'off' }),
     email: h('input', { id: 'sfMail', class: 'pt-in', type: 'email', maxlength: 200, value: v.email || '', placeholder: 'student@gmail.com', autocomplete: 'off' }),
     dob: h('input', { id: 'sfDob', class: 'pt-in', type: 'date', max: new Date().toISOString().slice(0, 10), value: v.dob || '' }),
     full_name: h('input', { id: 'sfName', class: 'pt-in', type: 'text', maxlength: 120, value: v.full_name || '' }),
@@ -1114,19 +1114,24 @@ function studentForm(o) {
     category: sel('sfCat', CATEGORIES, v.category), gender: sel('sfGender', GENDERS, v.gender),
     session: sel('sfSession', SESSIONS, v.session || '')
   };
-  const req = k => k !== 'session' && !(edit && (k === 'dob' || k === 'email')) && !(k === 'email' && isAv()) && !(k === 'dob' && !isAv());
+  const req = k => k !== 'session' && !(edit && (k === 'dob' || k === 'email' || k === 'student_id')) && !(k === 'email' && isAv()) && !((k === 'dob' || k === 'student_id') && !isAv());
+  const showId = () => edit ? !!v.student_id : isAv();
   const fld = (k, hint) => h('label', { class: 'pt-fld', for: F[k].id }, h('span', {}, COL_LBL[k], k === 'session' ? null : h('b', { class: 'pt-req', text: ' *', hidden: !req(k) })), F[k], hint ? h('small', { text: hint }) : null);
+  let idFld = null, idNote = null;
   const node = h('div', { class: 'pt-form' },
     avTick ? h('label', { class: 'pt-fld pt-check', for: 'sfAvanti' }, h('span', {}, avTick, ' Avanti student'), h('small', { text: 'Ticked: signs in with Avanti ID + date of birth (Premium included). Not ticked: signs in with Google using the email below.' })) : null,
-    o.hideId ? null : h('div', { class: 'pt-row2' }, fld('student_id', edit ? 'The ID cannot be changed.' : 'A roll number or Avanti ID, unique for each student.'),
+    o.hideId ? null : h('div', { class: 'pt-row2' }, idFld = fld('student_id', edit ? 'The ID cannot be changed.' : 'The Avanti student signs in with this ID.'),
       fld('email', isAv() ? 'Optional for Avanti students.' : 'The student signs in with this Google account.')),
+    o.hideId || edit ? null : idNote = h('p', { class: 'pt-hint', text: 'The Student ID is made automatically (St + date and time) and shown after saving.' }),
     o.hideId ? null : fld('dob', isAv() ? (edit && !v.dob ? 'Only the admin sees this. It is the Avanti student\'s sign-in password.' : 'Used as the password with the Avanti ID.') : 'Optional (students who are not Avanti students sign in with Google).'),
     fld('full_name'), h('div', { class: 'pt-row2' }, fld('class'), fld('stream')), h('div', { class: 'pt-row2' }, fld('category'), fld('gender')), fld('session', 'Filled from the class: Class 11 → ' + sessionFor('11') + ', Class 12 / Dropper → ' + sessionFor('12') + '.'));
   F.class.addEventListener('change', () => { if (F.class.value) F.session.value = sessionFor(F.class.value); });
-  node.values = () => { const r = {}; COLS.forEach(k => { r[k] = (F[k].value || '').trim(); }); return r; };
+  const paintId = () => { if (idFld) idFld.hidden = !showId(); if (idNote) idNote.hidden = isAv(); };
+  paintId();
+  node.values = () => { const r = {}; COLS.forEach(k => { r[k] = (F[k].value || '').trim(); }); if (!edit && !isAv()) r.student_id = ''; return r; };
   node.missing = () => COLS.filter(k => req(k) && !(o.hideId && (k === 'student_id' || k === 'dob' || k === 'email')) && !node.values()[k]).map(k => COL_LBL[k]);
   node.avanti = () => isAv();
-  if (avTick) avTick.addEventListener('change', () => { node.querySelectorAll('.pt-fld').forEach(l => { const k = Object.keys(F).find(x => l.contains(F[x])); if (!k) return; const b = l.querySelector('.pt-req'); if (b) b.hidden = !req(k); }); });
+  if (avTick) avTick.addEventListener('change', () => { paintId(); node.querySelectorAll('.pt-fld').forEach(l => { const k = Object.keys(F).find(x => l.contains(F[x])); if (!k) return; const b = l.querySelector('.pt-req'); if (b) b.hidden = !req(k); }); });
   return node;
 }
 const STUDENT_PLANS = [['free', 'Free student'], ['premium', 'Premium student (2 years for Class 11, 1 year for Class 12 / Dropper, from today)']];   /* "Avanti student" is the tick in the form */
@@ -1169,17 +1174,21 @@ function pageAddStudent() {
 
 let XLSX_P = null;
 function loadXlsx() { if (!XLSX_P) XLSX_P = new Promise((res, rej) => { if (window.XLSX) return res(); const sc = document.createElement('script'); sc.src = 'vendor/xlsx-0.18.5.full.min.js'; sc.onload = res; sc.onerror = () => { XLSX_P = null; rej(new Error('Could not load the Excel reader. Check your internet connection.')); }; document.head.append(sc); }); return XLSX_P; }
-const TEMPLATE_BASE = [COLS, ['2401234567', 'priya.sharma@gmail.com', '2008-05-14', 'Priya Sharma', '11', 'JEE', 'OBC-NCL', 'Female', sessionFor('11')], ['ROLL-1102', 'rohan.k@gmail.com', '', 'Rohan Kumar', '12', 'NEET', 'General', 'Male', sessionFor('12')]];
+const TEMPLATE_BASE = [COLS, ['', 'priya.sharma@gmail.com', '2008-05-14', 'Priya Sharma', '11', 'JEE', 'OBC-NCL', 'Female', sessionFor('11')], ['', 'rohan.k@gmail.com', '', 'Rohan Kumar', '12', 'NEET', 'General', 'Male', sessionFor('12')]];
 const TEMPLATE_SCHOOL = 'JNV South Canara';
-function templateRows() { return can('isAdmin') ? TEMPLATE_BASE.map((r, i) => r.concat(i === 0 ? ['school', 'plan'] : [TEMPLATE_SCHOOL, i === 1 ? 'free' : 'premium'])) : TEMPLATE_BASE; }
+function templateRows() {
+  if (!can('isAdmin')) return TEMPLATE_BASE;
+  return TEMPLATE_BASE.map((r, i) => r.concat(i === 0 ? ['school', 'plan'] : [TEMPLATE_SCHOOL, i === 1 ? 'free' : 'premium']))
+    .concat([['2401234567', '', '2008-03-04', 'Asha Verma', '11', 'JEE', 'SC', 'Female', sessionFor('11'), TEMPLATE_SCHOOL, 'avanti']]);
+}
 async function downloadTemplate(kind) {
   const TEMPLATE = templateRows(), HCOLS = TEMPLATE[0];
   if (kind === 'csv') { saveCsv('students_template.csv', TEMPLATE); return; }
   try {
     await loadXlsx();
     const ws = window.XLSX.utils.aoa_to_sheet(TEMPLATE); ws['!cols'] = HCOLS.map(() => ({ wch: 18 }));
-    const help = window.XLSX.utils.aoa_to_sheet([['Column', 'What to write'], ['student_id', 'Avanti ID or roll number. Letters, numbers, . _ / - (3 to 40). Must be unique.'], ['email', 'The student\'s Google email: they sign in with this Google account. Required (not needed for Avanti students).'], ['dob', 'Date of birth, YYYY-MM-DD or DD-MM-YYYY. Optional, except for Avanti students (it is their password).'], ['full_name', 'Full name'], ['class', CLASSES.join(', ') + ' (11th, XI, 12th, XII also work)'], ['stream', STREAMS.join(', ') + ' (PCM is read as JEE, PCB as NEET)'], ['category', CATEGORIES.join(', ')], ['gender', GENDERS.join(', ')], ['session', 'Optional. Leave blank to fill it from the class: Class 11 → ' + sessionFor('11') + ', Class 12 / Dropper → ' + sessionFor('12')]]);
-    if (can('isAdmin')) window.XLSX.utils.sheet_add_aoa(help, [['school', 'School name (admin only). Leave empty to use the school chosen in the upload window.'], ['plan', 'free, premium or avanti (admin only). avanti = Avanti student: signs in with Avanti ID + date of birth. Leave empty to use the plan chosen in the upload window. Students added by other teachers are always Free.']], { origin: -1 });
+    const help = window.XLSX.utils.aoa_to_sheet([['Column', 'What to write'], ['student_id', 'Only for Avanti students: their Avanti ID. Leave empty for everyone else: a Student ID (St + date and time) is made automatically.'], ['email', 'The student\'s Google email: they sign in with this Google account. Required (not needed for Avanti students).'], ['dob', 'Date of birth, YYYY-MM-DD or DD-MM-YYYY. Optional, except for Avanti students (it is their password).'], ['full_name', 'Full name'], ['class', CLASSES.join(', ') + ' (11th, XI, 12th, XII also work)'], ['stream', STREAMS.join(', ') + ' (PCM is read as JEE, PCB as NEET)'], ['category', CATEGORIES.join(', ')], ['gender', GENDERS.join(', ')], ['session', 'Optional. Leave blank to fill it from the class: Class 11 → ' + sessionFor('11') + ', Class 12 / Dropper → ' + sessionFor('12')]]);
+    if (can('isAdmin')) window.XLSX.utils.sheet_add_aoa(help, [['school', 'School name (admin only). Required on every row.'], ['plan', 'free, premium or avanti (admin only). avanti = Avanti student: signs in with Avanti ID + date of birth. Empty = free. Students added by other teachers are always Free.']], { origin: -1 });
     help['!cols'] = [{ wch: 14 }, { wch: 90 }];
     const wb = window.XLSX.utils.book_new(); window.XLSX.utils.book_append_sheet(wb, ws, 'Students'); window.XLSX.utils.book_append_sheet(wb, help, 'How to fill');
     window.XLSX.writeFile(wb, 'students_template.xlsx');
@@ -1210,7 +1219,9 @@ function normRow(o) {
     else if (!(swapped && (k === 'category' || k === 'gender')) && out[k] !== raw[k]) warn.push(COL_LBL[k] + ' "' + raw[k] + '" → ' + out[k]);
   });
   if (!out.session && CLASSES.includes(out.class)) out.session = sessionFor(out.class);
-  if (!out.student_id) err.push('Student ID missing');
+  if (out.plan === 'avanti' && !out.student_id) err.push('Avanti ID missing (student_id column)');
+  if (out.plan !== 'avanti') out.student_id = '';   /* made automatically */
+  if (can('isAdmin') && !out.school) err.push('school missing');
   if (out.plan && !['free', 'premium', 'avanti'].includes(out.plan)) err.push('plan must be free, premium or avanti');
   if ((out.plan === 'premium' || out.plan === 'avanti') && !can('isAdmin')) err.push('Only the admin can add Premium or Avanti students');
   if (out.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(out.email)) err.push('email not understood');
@@ -1232,9 +1243,8 @@ async function readSheet(file) {
 function bulkUpload(after) {
   const out = h('div', { class: 'pt-bulk' });
   const fileIn = h('input', { type: 'file', accept: '.csv,.xlsx,.xls', id: 'bulkFile', class: 'pt-file' });
-  const admin = can('isAdmin'), defSch = admin ? schoolSelect('bulkSchool', STU_SCHOOL || '', 'Choose a school', true) : null, defPlan = admin ? planSel('bulkPlan', 'free') : null;
-  const body = h('div', {}, admin ? h('div', { class: 'pt-fld' }, h('span', { text: 'School for these students' }), defSch, h('small', { text: 'Used for rows that have no School column value. A School column in the file (school) overrides it, so one file can hold several schools.' })) : null,
-    admin ? h('label', { class: 'pt-fld', for: 'bulkPlan' }, h('span', { text: 'Plan for these students' }), defPlan, h('small', { text: 'A plan column in the file (free or premium) overrides it for that row. Premium lasts 2 years for Class 11 and 1 year for Class 12 / Dropper, from the day they are added. Students added by other teachers are always Free.' })) : null, h('p', { class: 'pt-hint', text: 'Use the template: one row per student. Columns: ' + COLS.join(', ') + '. ' + 'New students are added. For Student IDs already in your school, the date of birth in the file is saved (use Edit in the list to change other details).' }),
+  const admin = can('isAdmin');   /* the admin's file has school and plan columns; a teacher's students always go to their own school, Free */
+  const body = h('div', {}, h('p', { class: 'pt-hint', text: 'Use the template: one row per student. Columns: ' + templateRows()[0].join(', ') + '. ' + (admin ? 'school is required on every row; plan is free, premium or avanti (empty = free). ' : '') + 'Fill student_id only for Avanti students (their Avanti ID); every other student gets a Student ID made automatically. A student already in the list (same Avanti ID, or same email) is not added again; only their date of birth is saved.' }),
     h('div', { class: 'pt-actions' }, h('button', { type: 'button', class: 'btn', text: '⬇ Template (Excel)', onclick: () => downloadTemplate('xlsx') }), h('button', { type: 'button', class: 'btn', text: '⬇ Template (CSV)', onclick: () => downloadTemplate('csv') })),
     h('label', { class: 'pt-drop', for: 'bulkFile' }, h('b', { text: 'Choose a .xlsx or .csv file' }), h('span', { text: 'Excel or CSV, up to 2000 students' }), fileIn), out);
   let rows = [];
@@ -1249,14 +1259,14 @@ function bulkUpload(after) {
     out.append(h('p', { class: 'pt-meta' }, h('b', { text: rows.length + ' students found' }), bad ? ' · ' + bad + ' with problems (red: these rows will not be saved; fix them in the file and upload again)' : ''),
       conv ? h('div', { class: 'pt-note pt-warnnote', role: 'note' }, h('b', { text: conv + ' row' + (conv === 1 ? '' : 's') + ' will be converted before saving (yellow). ' }), 'Allowed values are Class 11, 12, Dropper · Stream JEE, NEET, KCET (PCM), KCET (PCB) · Category General, Gen-EWS, OBC-NCL, SC, ST · Gender Male, Female, Other. Check each change below before you upload.') : null,
       h('div', { class: 'pt-tw pt-tw-s' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['#'].concat(COLS.map(k => COL_LBL[k]), ['Check']).map(x => h('th', { text: x })))),
-        h('tbody', {}, rows.slice(0, 200).map((r, i) => h('tr', { class: r._err ? 'pt-badrow' : r._warn ? 'pt-warnrow' : null }, h('td', { text: i + 1 }), COLS.map(k => h('td', { text: r[k] || '—' })), h('td', { text: r._err || (r._warn ? 'Will convert: ' + r._warn : 'OK') })))))),
+        h('tbody', {}, rows.slice(0, 200).map((r, i) => h('tr', { class: r._err ? 'pt-badrow' : r._warn ? 'pt-warnrow' : null }, h('td', { text: i + 1 }), COLS.map(k => h('td', { text: r[k] || (k === 'student_id' ? 'made automatically' : '—') })), h('td', { text: r._err || (r._warn ? 'Will convert: ' + r._warn : 'OK') })))))),
       rows.length > 200 ? h('p', { class: 'pt-hint', text: 'Showing the first 200 rows.' }) : '');
   });
   const close = modal('Bulk upload students', body, [{ text: 'Close', onclick: () => {} }, { text: 'Upload students', pri: true, onclick: () => {
     if (!rows.length) { toast('Choose a file first'); return false; }
     const good = rows.filter(r => !r._err), convN = good.filter(r => r._warn).length;
     if (!good.length) { toast('No row can be saved. Fix the red rows in the file and choose it again.'); return false; }
-    if (admin) { const d = defSch.value(); good.forEach(r => { r.school = r.school || d || ''; r.plan = r.plan || defPlan.value || 'free'; }); if (good.some(r => !r.school)) { toast('Choose the school above, or add a school column to the file.'); return false; } }
+    if (admin) good.forEach(r => { r.plan = r.plan || 'free'; });
     const go = () => {
     out.prepend(loading('Uploading ' + good.length + ' students…'));
     rpc('teacher_add_students', { p_rows: good.map(r => { const o = Object.assign({}, r); delete o._err; delete o._warn; return o; }) }).then(res => {
@@ -1264,7 +1274,7 @@ function bulkUpload(after) {
       out.textContent = '';
       out.append(h('div', { class: 'pt-stats' }, stat('Added', added), stat('Date of birth saved', dobSet, 'for students already in the list'), stat('Already registered', upd, 'skipped (other school, or no date given)'), stat('Not saved', fail.length)),
         fail.length ? h('div', { class: 'pt-tw pt-tw-s' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Row', 'Student ID', 'Problem'].map(x => h('th', { text: x })))),
-          h('tbody', {}, fail.map(x => h('tr', { class: 'pt-badrow' }, h('td', { text: x.row }), h('td', { text: (good[x.row - 1] || {}).student_id || '—' }), h('td', { text: x.error })))))) : h('p', { class: 'pt-msg ok', text: 'All students saved.' }));
+          h('tbody', {}, fail.map(x => h('tr', { class: 'pt-badrow' }, h('td', { text: x.row }), h('td', { text: x.student_id || (good[x.row - 1] || {}).student_id || (good[x.row - 1] || {}).email || '—' }), h('td', { text: x.error })))))) : h('p', { class: 'pt-msg ok', text: 'All students saved.' }));
       rows = []; fileIn.value = ''; if (after) after();
     }).catch(e => { out.querySelector('.pt-state') && out.querySelector('.pt-state').remove(); out.prepend(errorBox(e.message)); });
     };
@@ -1523,6 +1533,28 @@ async function pageApprovals() {
   const reqs = await rpc('admin_school_requests').catch(() => []);
   /* students who signed up with Google and chose their school themselves: their school needs approval too */
   const pstu = await rpc('admin_pending_students').catch(() => []);
+  /* Schools: rename (or merge into another) and delete */
+  const sch = await rpc('admin_schools').catch(() => []);
+  const editSchool = async s => {
+    const nn = await promptBox('Edit school', 'School name (type the name of another school to merge the two)', s.school);
+    if (!nn || nn.trim() === s.school) return;
+    const other = sch.find(x => x.school.toLowerCase() === nn.trim().toLowerCase() && x.school !== s.school);
+    if (other && !await confirmBox('Merge schools?', 'Everyone and everything in "' + s.school + '" moves to "' + other.school + '".', 'Merge')) return;
+    try { await rpc('admin_rename_school', { p_old: s.school, p_new: nn.trim() }); toast(other ? 'Schools merged' : 'School renamed'); schools(true); await AU().refresh(); pageApprovals(); } catch (e) { toast(e.message); }
+  };
+  const delSchool = async s => {
+    if (s.list_students) { toast(s.list_students + ' students on the student list belong to this school. Edit the school to move them first.'); return; }
+    if (!await confirmBox('Delete "' + s.school + '"?', (s.teachers + s.google_students) + ' teachers / students who chose it must choose their school again, and its ' + s.tests + ' tests are switched off.', 'Delete school', true)) return;
+    try { await rpc('admin_delete_school', { p_school: s.school }); toast('School deleted'); schools(true); await AU().refresh(); pageApprovals(); } catch (e) { toast(e.message); }
+  };
+  const schBody = h('div', {});
+  const drawSch = q => { q = (q || '').toLowerCase(); const rows = sch.filter(s => !q || s.school.toLowerCase().includes(q)); schBody.textContent = '';
+    schBody.append(rows.length ? h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['School', 'Students (list)', 'Google students', 'Teachers', 'Tests', ''].map(x => h('th', { text: x })))),
+      h('tbody', {}, rows.map(s => h('tr', {}, h('td', {}, h('b', { text: s.school })), h('td', { class: 'pt-num', text: s.list_students }), h('td', { class: 'pt-num', text: s.google_students }),
+        h('td', { class: 'pt-num', text: s.teachers }), h('td', { class: 'pt-num', text: s.tests }),
+        h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editSchool(s) }),
+          h('button', { type: 'button', class: 'btn pt-danger', text: 'Delete', onclick: () => delSchool(s) })))))))) : empty('No schools match', 'Change the search.')); };
+  drawSch('');
   const stuTable = rows => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Student', 'School', 'Class', 'Signed up', ''].map(x => h('th', { text: x })))),
     h('tbody', {}, rows.map(s => h('tr', {},
       h('td', {}, h('b', { text: s.full_name || '—' }), h('div', { class: 'pt-hint', text: s.email || '' })),
@@ -1540,6 +1572,9 @@ async function pageApprovals() {
     h('p', { class: 'pt-hint', text: 'Every school choice needs your approval: teachers, Avanti staff and students. Until then a teacher cannot see or add students or make tests, and a student cannot see or take tests. Not approving asks them to choose the school again.' }),
     card(h('h2', { text: 'Teachers waiting for approval' }), pend.length ? table(pend) : empty('Nothing waiting', 'New teachers appear here after they choose their school.')),
     card(h('h2', { text: 'Students waiting for approval (' + pstu.length + ')' }), pstu.length ? stuTable(pstu) : empty('Nothing waiting', 'Students who sign up with Google and choose their school appear here. Students you or their teacher added are approved already.')),
+    card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Schools (' + sch.length + ')' })),
+      h('p', { class: 'pt-hint', text: 'Edit renames a school everywhere (students, teachers, tests, results); typing the name of another school merges the two. Delete works when no student on the student list belongs to the school.' }),
+      h('div', { class: 'pt-frow' }, h('input', { type: 'search', class: 'pt-in', placeholder: 'Search schools', 'aria-label': 'Search schools', oninput: e => drawSch(e.target.value.trim()) })), schBody),
     card(h('div', { class: 'pt-ct' }, h('h2', { text: 'All teachers' }), allCount),
       h('div', { class: 'pt-frow' }, h('input', { type: 'search', class: 'pt-in', placeholder: 'Search name, email or school', 'aria-label': 'Search teachers', oninput: e => drawAll(e.target.value.trim()) })), allBody));
 }

@@ -1,5 +1,15 @@
 [
   {
+    "v": "871",
+    "date": "16 Nov 2026",
+    "items": [
+      "Student IDs: only Avanti students need an ID (their Avanti ID). Every other student gets a Student ID made automatically, St + date + time (St DDMMYY HHSS), always unique. Students are recognised by their Google email.",
+      "Add a student: the Student ID box appears only when Avanti student is ticked.",
+      "Bulk upload: the School and Plan boxes are gone. The admin's Excel file has school and plan columns (school required, plan empty = free); student_id is filled only for Avanti students.",
+      "Approvals → Schools: the admin can rename a school everywhere, merge two schools (rename one to the other's name) or delete a school that has no students on the student list."
+    ]
+  },
+  {
     "v": "870",
     "date": "16 Nov 2026",
     "items": [
