@@ -344,6 +344,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     return math ? conv(math) : run(tex, 'p');
   }
 
+  /* the card code has its own srcLabel in another block; the export needs its own copy */
+  function srcLabel(q) { return q.publisher || 'Practice'; }
   function metaLine(q) {
     if (q.source === 'Non-PYQ') return 'Practice · ' + srcLabel(q) + (q.ref_year ? ' [' + q.ref_year + ']' : '') + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' ' : '') + q.topic : '') + ' · ' + q.difficulty;
     return q.exam + (q.year ? ' ' + q.year : '') + ' · ' + q.paper + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' ' : '') + q.topic : '') + ' · ' + q.difficulty + (q.attention ? ' · NEEDS ATTENTION' : '');

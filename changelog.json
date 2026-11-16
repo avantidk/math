@@ -1,5 +1,12 @@
 [
   {
+    "v": "910",
+    "date": "17 Nov 2026",
+    "items": [
+      "Fixed: exporting questions (PDF, Word, PowerPoint, print) stopped with the error 'srcLabel is not defined' for practice questions; exports work again."
+    ]
+  },
+  {
     "v": "909",
     "date": "17 Nov 2026",
     "items": [
