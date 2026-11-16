@@ -1,5 +1,13 @@
 [
   {
+    "v": "902",
+    "date": "16 Nov 2026",
+    "items": [
+      "My Students: the Sign-in column is removed, and you can sort the table by clicking any column heading (click again to reverse).",
+      "Click a student's name to open that student's dashboard: tests taken, average, best and latest score, accuracy, time per test, a score-trend chart, how the answers went, topic-wise performance (needs work and strong topics) and every test with its full report. Students who have not signed in yet have no dashboard. For teachers this needs Premium."
+    ]
+  },
+  {
     "v": "901",
     "date": "16 Nov 2026",
     "items": [

@@ -1046,3 +1046,21 @@ html.hv-drag .hv-pages { pointer-events: none; }
 
 /* My Students: full width */
 .pt-wrap.pt-full { max-width: none; }
+
+/* My Students: sortable headers and the student dashboard */
+.pt-sortb { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font: inherit; color: inherit; white-space: nowrap; }
+.pt-sortb:hover, .pt-sortb:focus-visible { color: var(--accent); }
+.pt-sorti { font-size: 10px; opacity: .55; } th[aria-sort="ascending"] .pt-sorti, th[aria-sort="descending"] .pt-sorti { opacity: 1; color: var(--accent); }
+.pt-sname { font-weight: 700; color: var(--accent); text-decoration: none; } .pt-sname:hover { text-decoration: underline; }
+.pt-two { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .pt-two { grid-template-columns: 1fr; } }
+.pt-chartwrap { width: 100%; overflow: hidden; } .pt-chart { width: 100%; height: auto; display: block; }
+.pt-cg { stroke: var(--rule); stroke-width: 1; } .pt-ct-l { fill: var(--muted); font-size: 11px; font-family: var(--font-body, system-ui); }
+.pt-cavg { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; } .pt-cline { stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.pt-cdot { stroke: var(--panel); stroke-width: 2; fill: var(--accent); } .pt-cdot.ok { fill: var(--ok); } .pt-cdot.mid { fill: var(--gold, #f2b134); } .pt-cdot.bad { fill: var(--bad); }
+.pt-split { display: flex; height: 18px; border-radius: 99px; overflow: hidden; background: var(--bg); gap: 2px; }
+.pt-seg-b { display: block; height: 100%; } .pt-seg-b.ok { background: var(--ok); } .pt-seg-b.bad { background: var(--bad); } .pt-seg-b.mute { background: var(--rule); }
+.pt-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin: 12px 0 0; font-size: 13px; color: var(--body); }
+.pt-lgi { display: inline-flex; align-items: center; gap: 6px; } .pt-lg { width: 10px; height: 10px; border-radius: 50%; display: inline-block; } .pt-lg.ok { background: var(--ok); } .pt-lg.bad { background: var(--bad); } .pt-lg.mute { background: var(--rule); }
+.pt-tpgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 14px; } .pt-tpgrid:empty { display: none; }
+.pt-tp { display: flex; flex-direction: column; gap: 8px; } .pt-tag.badtag { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); } .pt-tag.oktag { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }

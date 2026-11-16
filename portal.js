@@ -68,7 +68,7 @@ function show(...nodes) {
   if (TE()) TE().hideViews();
   document.querySelectorAll('[data-act="tab"]').forEach(b => b.setAttribute('aria-pressed', 'false'));
   v.hidden = false; v.textContent = ''; v.append(...nodes.filter(Boolean));
-  v.classList.toggle('pt-full', /^#\/students\b/.test(location.hash));   /* My Students: wide tables use the whole width */
+  v.classList.toggle('pt-full', /^#\/students?\b/.test(location.hash));   /* My Students: wide tables use the whole width */
   window.scrollTo(0, 0);
   return v;
 }
@@ -123,7 +123,7 @@ function route() {
   if (r !== 't') exitExam();
   curRoute = location.hash;
   const pages = { profile: pageProfile, membership: pageMembership, tests: pageAvailable, reports: pageReports, report: pageReport, t: pageTake,
-    create: pageCreate, edit: pageCreate, students: pageStudents, 'add-student': pageAddStudent, help: pageHelp, approvals: pageApprovals, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets, 'ws-edit': pageWsEdit };
+    create: pageCreate, edit: pageCreate, students: pageStudents, student: pageStudent, 'add-student': pageAddStudent, help: pageHelp, approvals: pageApprovals, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets, 'ws-edit': pageWsEdit };
   const fn = pages[r];
   if (!fn) { leave(); return; }
   const tok = ++NAV; LOADING = tok;
@@ -331,7 +331,7 @@ function onboard(root, done) {
   const p = P();
   root.textContent = '';
   root.append(h('div', { class: 'lg' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=901', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=902', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
       p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
@@ -1462,7 +1462,7 @@ async function studentTests(st) {
         h('td', { class: 'pt-num', text: a.correct + ' / ' + a.wrong + ' / ' + a.skipped }), h('td', {}, h('a', { class: 'btn', href: '#/report/' + a.id, text: 'Report', onclick: () => { const m = document.querySelector('.pt-modal-back'); if (m) m.remove(); } }))))))) : empty('No tests yet', 'This student has not submitted a test.'));
   } catch (e) { body.textContent = ''; body.append(errorBox(e.message)); }
 }
-let STU_SCHOOL = '';
+let STU_SCHOOL = '', STU_NAME = '', STU_ROWS = new Map();
 async function pageStudents() {
   if (!can('manageStudents')) { if (can('createTests')) { location.replace('#/add-student'); return; } if (P().role === 'student') return show(card(empty('My Students is for teachers', 'This page is for teachers. Your tests and reports are in the profile menu.', link('#/tests', 'Available tests', 'btn pri')))); return nope('My Students is for teachers', ''); }
   show(head('My Students', ''), loading('Loading your students…'));
@@ -1473,22 +1473,30 @@ async function pageStudents() {
   /* The teachers of the same school (Premium teachers and the admin). If the database function is not installed yet, the list is simply left out. */
   const T = await rpc('school_teachers', { p_school: STU_SCHOOL || null }).catch(() => null);
   const F = { cls: '', stream: '', session: '', q: '' };
+  STU_NAME = R.school || ''; STU_ROWS = new Map(all.filter(x => x.user_id).map(x => [x.user_id, x]));
+  const SORT = { key: 'full_name', dir: 1 };
   const reload = () => pageStudents();
   const uniq = k => [...new Set(all.map(x => x[k]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'en', { numeric: true }));
-  const tbody = h('tbody', {}), countEl = h('span', { class: 'pt-meta' });
+  const tbody = h('tbody', {}), countEl = h('span', { class: 'pt-meta' }), thead = h('thead', {});
+  const COLS = [['Student', 'full_name'], ['Date of birth', 'dob'], ['Class · Stream', 'class_stream'], ['Session', 'session'], ['Category · Gender', 'cat_gender']].concat(IS_ADMIN ? [['Plan', 'plan_label']] : [], [['Tests', 'tests'], ['Average', 'avg_pct'], ['Last test', 'last_at'], ['', null]]);
+  const drawHead = () => { thead.textContent = ''; thead.append(h('tr', {}, COLS.map(([t, k]) => !k ? h('th', {}) : h('th', { 'aria-sort': SORT.key === k ? (SORT.dir > 0 ? 'ascending' : 'descending') : 'none' },
+    h('button', { type: 'button', class: 'pt-sortb', title: 'Sort by ' + t, onclick: () => { if (SORT.key === k) SORT.dir *= -1; else { SORT.key = k; SORT.dir = ['tests', 'avg_pct', 'last_at'].includes(k) ? -1 : 1; } draw(); } }, t, h('span', { class: 'pt-sorti', 'aria-hidden': 'true', text: SORT.key === k ? (SORT.dir > 0 ? '▲' : '▼') : '↕' })))))); };
   const draw = () => {
     const q = F.q.toLowerCase();
     const rows = all.filter(x => (!F.cls || x.class === F.cls) && (!F.stream || x.stream === F.stream) && (!F.session || x.session === F.session) && (!q || [x.full_name, x.student_id, x.email].some(v => String(v || '').toLowerCase().includes(q))));
+    const val = x => { const k = SORT.key; return k === 'class_stream' ? [x.class, x.stream].filter(Boolean).join(' ') : k === 'cat_gender' ? [x.category, x.gender].filter(Boolean).join(' ') : x[k]; };
+    rows.sort((a, b) => { const A = val(a), B = val(b), ea = A == null || A === '', eb = B == null || B === ''; if (ea || eb) return ea && eb ? 0 : ea ? 1 : -1; return (typeof A === 'number' && typeof B === 'number' ? A - B : String(A).localeCompare(String(B), 'en', { numeric: true, sensitivity: 'base' })) * SORT.dir; });
+    drawHead();
     countEl.textContent = rows.length + ' of ' + all.length + ' students';
     tbody.textContent = '';
-    if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: 11 }, empty('No students match', all.length ? 'Change the filters above.' : 'Add students one by one, or upload a whole class from Excel.'))));
+    if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: 10 }, empty('No students match', all.length ? 'Change the filters above.' : 'Add students one by one, or upload a whole class from Excel.'))));
     rows.forEach(x => tbody.append(h('tr', {},
-      h('td', {}, h('b', { text: x.full_name || '—' }), h('div', { class: 'pt-hint', text: x.student_id ? 'ID ' + x.student_id + (x.email ? ' · ' + x.email : '') : (x.email || 'Google sign-in') })),
+      h('td', {}, x.user_id ? h('a', { class: 'pt-sname', href: '#/student/' + x.user_id, title: 'Open the dashboard of ' + (x.full_name || 'this student'), text: x.full_name || '—' }) : h('b', { text: x.full_name || '—' }),
+        h('div', { class: 'pt-hint', text: (x.student_id ? 'ID ' + x.student_id + (x.email ? ' · ' + x.email : '') : (x.email || 'Google sign-in')) + (x.user_id ? '' : ' · not signed in yet') })),
       h('td', { class: 'pt-num' }, x.dob ? x.dob.split('-').reverse().join('-') : !x.student_id ? 'Google' : x.source === 'avanti' && !IS_ADMIN ? h('span', { class: 'pt-hint', text: 'Admin only', title: 'An Avanti student\'s date of birth is their sign-in password, so only the admin sees it.' }) : !DOB_SHOWN ? h('span', { class: 'pt-hint', text: 'Hidden', title: 'Dates of birth show once Avanti approves your school.' }) : h('span', { class: 'pt-hint', text: 'Not saved yet', title: 'Press Edit and add the date, or upload the class file again. It also fills in when the student signs in.' })),
       h('td', { text: [x.class && (x.class === 'Dropper' ? 'Dropper' : 'Class ' + x.class), x.stream].filter(Boolean).join(' · ') || '—' }), h('td', { text: x.session || '—' }),
       h('td', { text: [x.category, x.gender].filter(Boolean).join(' · ') || '—' }),
       IS_ADMIN ? h('td', {}, planBadge(x)) : null,
-      h('td', {}, x.signed_in ? badge('Signed in', 'ok') : badge('Not yet', 'mute'), x.source === 'avanti' ? h('div', { class: 'pt-hint', text: 'Avanti student · Avanti ID sign-in' }) : h('div', { class: 'pt-hint', text: 'Google sign-in' })),
       h('td', { class: 'pt-num', text: x.tests }), h('td', { class: 'pt-num pt-barcell' }, x.avg_pct == null ? '—' : [h('span', { text: pct(x.avg_pct) }), bar(x.avg_pct, x.avg_pct < 40 ? 'bad' : x.avg_pct < 70 ? 'mid' : 'ok')]),
       h('td', { class: 'pt-num', text: x.last_at ? day(x.last_at) : '—' }),
       h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, can('schoolApproved') ? h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editStudent(x, reload) }) : null,
@@ -1515,9 +1523,70 @@ async function pageStudents() {
     h('div', { class: 'pt-stats' }, stat('Students', all.length), stat('Signed in', signed), stat('Took a test', took.length), stat('Average score', avg == null ? '—' : pct(avg), 'of students who took a test')),
     card(h('div', { class: 'pt-frow' }, mkSel('Class', 'All classes', CLASSES, 'cls'), mkSel('Stream', 'All streams', STREAMS, 'stream'), mkSel('Session', 'All sessions', uniq('session'), 'session'),
         h('input', { type: 'search', class: 'pt-in', placeholder: 'Search name, ID or email', 'aria-label': 'Search students', oninput: e => { F.q = e.target.value.trim(); draw(); } })), countEl,
-      h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Student', 'Date of birth', 'Class · Stream', 'Session', 'Category · Gender'].concat(IS_ADMIN ? ['Plan'] : [], ['Sign-in', 'Tests', 'Average', 'Last test', '']).map(x => h('th', { text: x })))), tbody))));
+      h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t pt-sortable' }, thead, tbody))));
   draw();
 }
+
+
+/* ---------- One student's dashboard (teachers: Premium) ---------- */
+async function pageStudent(uid) {
+  if (!can('manageStudents') || !/^[0-9a-f-]{36}$/i.test(uid || '')) { location.hash = '#/students'; return; }
+  show(head('Student', ''), loading('Loading the student dashboard…'));
+  let st = STU_ROWS.get(uid);
+  if (!st) { try { const R = await rpc('school_students', { p_school: STU_SCHOOL || null }); STU_ROWS = new Map((R.students || []).filter(x => x.user_id).map(x => [x.user_id, x])); st = STU_ROWS.get(uid); } catch (e) { /* shown below */ } }
+  const back = h('a', { class: 'btn', href: '#/students', text: '‹ My Students' });
+  const who = st ? [st.class && (st.class === 'Dropper' ? 'Dropper' : 'Class ' + st.class), st.stream, st.session, R_SCHOOL(st)].filter(Boolean).join(' · ') : '';
+  let list;
+  try { list = await rpc('student_attempts', { p_user: uid }); }
+  catch (e) { show(head(st ? st.full_name || 'Student' : 'Student', who, back), card(empty('Student dashboards are part of Premium', /not found/i.test(e.message || '') ? 'This student was not found in your school.' : (e.message || 'Could not load.'), link('#/membership', 'See Premium', 'btn pri')))); return; }
+  const done = list.filter(a => a.max_score > 0).map(a => Object.assign({ pct: 100 * a.score / a.max_score }, a)).sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at));
+  const head1 = head(st ? st.full_name || 'Student' : 'Student', who + (st && st.student_id ? ' · ID ' + st.student_id : ''), back);
+  if (!done.length) { show(head1, card(empty('No tests taken yet', 'Charts and reports appear here after this student submits a test.'))); return; }
+  const n = done.length, avg = done.reduce((t, a) => t + a.pct, 0) / n, best = Math.max(...done.map(a => a.pct)), last = done[n - 1];
+  const C = done.reduce((t, a) => t + a.correct, 0), W = done.reduce((t, a) => t + a.wrong, 0), Sk = done.reduce((t, a) => t + a.skipped, 0), acc = C + W ? 100 * C / (C + W) : null;
+  const avgTime = done.reduce((t, a) => t + (a.time_taken_sec || 0), 0) / n;
+  const trend = n > 1 ? (() => { const k = Math.min(3, Math.floor(n / 2)), f = done.slice(0, k), l = done.slice(-k); return l.reduce((t, a) => t + a.pct, 0) / k - f.reduce((t, a) => t + a.pct, 0) / k; })() : null;
+  /* score trend: one point per test */
+  const W0 = 640, H0 = 220, L = 38, R2 = 30, T0 = 14, B0 = 30, pw = W0 - L - R2, ph = H0 - T0 - B0;
+  const X = i => L + (n === 1 ? pw / 2 : pw * i / (n - 1)), Y = v => T0 + ph * (1 - v / 100), NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, at, kids) => { const e = document.createElementNS(NS, tag); Object.entries(at || {}).forEach(([k, v]) => e.setAttribute(k, v)); (kids || []).forEach(c => e.append(c)); return e; };
+  const svg = sv('svg', { viewBox: '0 0 ' + W0 + ' ' + H0, class: 'pt-chart', role: 'img', 'aria-label': 'Score of each test, in order' });
+  [0, 25, 50, 75, 100].forEach(v => { svg.append(sv('line', { x1: L, x2: W0 - R2, y1: Y(v), y2: Y(v), class: 'pt-cg' })); const t = sv('text', { x: L - 6, y: Y(v) + 4, class: 'pt-ct-l', 'text-anchor': 'end' }); t.textContent = v + '%'; svg.append(t); });
+  svg.append(sv('line', { x1: L, x2: W0 - R2, y1: Y(avg), y2: Y(avg), class: 'pt-cavg' }));
+  svg.append(sv('polyline', { points: done.map((a, i) => X(i) + ',' + Y(a.pct)).join(' '), class: 'pt-cline', fill: 'none' }));
+  done.forEach((a, i) => { const c = sv('circle', { cx: X(i), cy: Y(a.pct), r: 5, class: 'pt-cdot ' + (a.pct < 40 ? 'bad' : a.pct < 70 ? 'mid' : 'ok') }); const tt = sv('title'); tt.textContent = a.title + ' · ' + day(a.submitted_at) + ' · ' + num(a.pct, 1) + '% (' + num(a.score, 2) + ' / ' + num(a.max_score, 2) + ')'; c.append(tt); svg.append(c);
+    if (n <= 12 || i === 0 || i === n - 1) { const t = sv('text', { x: X(i), y: H0 - 10, class: 'pt-ct-l', 'text-anchor': 'middle' }); t.textContent = new Date(a.submitted_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); svg.append(t); } });
+  /* answers split */
+  const tot = C + W + Sk || 1, seg = (v, cls, lab) => h('span', { class: 'pt-seg-b ' + cls, style: 'width:' + (100 * v / tot) + '%', title: lab + ': ' + v });
+  const split = h('div', {}, h('div', { class: 'pt-split' }, seg(C, 'ok', 'Correct'), seg(W, 'bad', 'Wrong'), seg(Sk, 'mute', 'Not answered')),
+    h('p', { class: 'pt-legend' }, [['ok', 'Correct', C], ['bad', 'Wrong', W], ['mute', 'Not answered', Sk]].map(([c, l, v]) => h('span', { class: 'pt-lgi' }, h('span', { class: 'pt-lg ' + c }), l + ' ' + v + ' (' + num(100 * v / tot, 0) + '%)'))));
+  /* topics over the latest tests (each report is fetched once) */
+  const topicBox = h('div', {}, loading('Adding up topics from the latest tests…'));
+  const tests = h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Test', 'Date', 'Score', '%', 'C / W / S', 'Time', ''].map(x => h('th', { text: x })))),
+    h('tbody', {}, done.slice().reverse().map(a => h('tr', {}, h('td', {}, h('b', { text: a.title })), h('td', { text: day(a.submitted_at) }), h('td', { class: 'pt-num', text: num(a.score, 2) + ' / ' + num(a.max_score, 2) }),
+      h('td', { class: 'pt-num pt-barcell' }, h('span', { text: num(a.pct, 1) + '%' }), bar(a.pct, a.pct < 40 ? 'bad' : a.pct < 70 ? 'mid' : 'ok')), h('td', { class: 'pt-num', text: a.correct + ' / ' + a.wrong + ' / ' + a.skipped }),
+      h('td', { class: 'pt-num', text: mmss(a.time_taken_sec) }), h('td', {}, link('#/report/' + a.id, 'Report', 'btn')))))));
+  show(head1,
+    h('div', { class: 'pt-stats' }, stat('Tests taken', n, 'last: ' + day(last.submitted_at)), stat('Average score', pct(avg), 'across all tests'), stat('Best score', pct(best)), stat('Latest score', pct(last.pct), trend == null ? '' : (trend >= 0 ? '▲ ' : '▼ ') + num(Math.abs(trend), 1) + ' points vs first tests'),
+      stat('Accuracy', pct(acc), 'correct of attempted'), stat('Time per test', mmss(avgTime))),
+    h('div', { class: 'pt-two' }, card(h('h2', { text: 'Score trend' }), h('div', { class: 'pt-chartwrap' }, svg), h('p', { class: 'pt-hint', text: 'Each dot is one test (hover or tap for details). The dashed line is the average.' })),
+      card(h('h2', { text: 'How the answers went' }), split)),
+    card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Topic-wise performance' }), h('span', { class: 'pt-meta', text: 'latest ' + Math.min(n, 12) + ' tests' })), topicBox),
+    card(h('h2', { text: 'All tests' }), tests));
+  /* topic roll-up */
+  const take = done.slice(-12), reps = await Promise.all(take.map(a => rpc('attempt_report', { p_attempt: a.id }).catch(() => null)));
+  const T = new Map(); reps.forEach(r => (r && r.topics || []).forEach(x => { const k = (x.chapter || '') + '|' + x.topic, o = T.get(k) || { topic: x.topic, chapter: x.chapter, total: 0, correct: 0, wrong: 0, skipped: 0 }; o.total += +x.total || 0; o.correct += +x.correct || 0; o.wrong += +x.wrong || 0; o.skipped += +x.skipped || 0; T.set(k, o); }));
+  const rows = [...T.values()].map(o => Object.assign(o, { acc: o.correct + o.wrong ? 100 * o.correct / (o.correct + o.wrong) : null })).sort((a, b) => (a.acc == null) - (b.acc == null) || a.acc - b.acc || b.total - a.total);
+  topicBox.textContent = '';
+  if (!rows.length) { topicBox.append(h('p', { class: 'pt-hint', text: 'Topic details are not available for these tests.' })); return; }
+  const weak = rows.filter(x => x.acc != null && x.acc < 50 && x.correct + x.wrong >= 3).slice(0, 5), strong = rows.filter(x => x.acc != null && x.acc >= 75 && x.correct + x.wrong >= 3).slice(-5).reverse();
+  const chips = (title, list, cls) => list.length ? h('div', { class: 'pt-tp' }, h('b', { text: title }), h('div', { class: 'pt-tags' }, list.map(x => h('span', { class: 'pt-tag ' + cls, title: (x.chapter || '') + ' · ' + num(x.acc, 0) + '% of ' + (x.correct + x.wrong) + ' attempted', text: x.topic + ' · ' + num(x.acc, 0) + '%' })))) : null;
+  topicBox.append(h('div', { class: 'pt-tpgrid' }, chips('Needs work', weak, 'badtag'), chips('Strong topics', strong, 'oktag')),
+    h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Topic', 'Questions', 'Correct', 'Wrong', 'Not answered', 'Accuracy', ''].map(x => h('th', { text: x })))),
+      h('tbody', {}, rows.map(x => h('tr', {}, h('td', {}, h('b', { text: x.topic }), x.chapter ? h('div', { class: 'pt-hint', text: x.chapter }) : null), h('td', { class: 'pt-num', text: x.total }), h('td', { class: 'pt-num', text: x.correct }), h('td', { class: 'pt-num', text: x.wrong }), h('td', { class: 'pt-num', text: x.skipped }),
+        h('td', { class: 'pt-num', text: pct(x.acc) }), h('td', { class: 'pt-barcell' }, bar(x.acc, x.acc == null ? '' : x.acc < 40 ? 'bad' : x.acc < 70 ? 'mid' : 'ok'))))))));
+}
+const R_SCHOOL = st => st.school || STU_NAME;
 
 /* ---------- Help & Support ---------- */
 /* Help & Support: Free and Premium side by side for everyone (same rows as the Membership page, so they never disagree) */
