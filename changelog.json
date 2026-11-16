@@ -1,5 +1,13 @@
 [
   {
+    "v": "917",
+    "date": "17 Nov 2026",
+    "items": [
+      "Allen Do Yourself, Functions and Inverse Trigonometric Functions: questions that the source file only printed as results (for example 'f(x) = x|x| ⇒ f⁻¹(x) = … Ans (B)') are rebuilt from the PDF as real multiple-choice questions with their four options: AL-12M13-DY11-4, DY11-7, DY12-1 to DY12-3, DY13-1 to DY13-3, DY13-5 and AL-12M14-DY3-6, DY3-7.",
+      "Questions that had been folded together are now separate questions, each with the PDF wording: Do Yourself 4 (Q2, Q3), 5 (Q7, Q8, Q9), 8 (Q8, Q9), 12 (Q5 to Q11), 13 (Q4, Q6, Q7, Q8, Q9, Q10) and Inverse Trigonometric Do Yourself 3 (Q8). 16 more questions in total."
+    ]
+  },
+  {
     "v": "916",
     "date": "17 Nov 2026",
     "items": [
