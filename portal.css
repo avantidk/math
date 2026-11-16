@@ -936,3 +936,13 @@ html.hv-drag .hv-pages { pointer-events: none; }
 .hv-page { width: 100%; height: auto; }
 .hv-inv .hv-page { filter: invert(1) hue-rotate(180deg); }
 .hv-inv .hv-slot { background: #111; }
+
+/* Toolbar tidy-up: fixed-size page box (global input rules made it stretch), two rows when space is tight, full screen */
+.hv .hv-tools .hv-pin { width: 46px; min-width: 0; flex: none; padding: 0 2px; margin: 0; box-sizing: border-box; display: inline-block; }
+.hv .hv-tools .hv-t { flex: none; }
+.hv .hv-bar { display: flex; flex-wrap: wrap; align-items: center; }
+.hv .hv-title { flex: 1 1 0; }
+.hv.hv-split .hv-tools { order: 3; flex: 1 0 100%; justify-content: center; margin-left: 0; }
+@media (max-width: 760px) { .hv .hv-tools { order: 3; flex: 1 0 100%; justify-content: center; margin-left: 0; } }
+.hv:fullscreen { width: 100vw !important; height: 100vh; inset: 0; }
+.hv:fullscreen .hv-pages { padding-inline: 12px; }

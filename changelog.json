@@ -1,5 +1,13 @@
 [
   {
+    "v": "884",
+    "date": "16 Nov 2026",
+    "items": [
+      "Handout viewer: tidied the toolbar (the page-number box is small again, and the tools sit in a neat second row when the handout is in the half screen), and added a full-screen button.",
+      "Handout names no longer say '(New)'."
+    ]
+  },
+  {
     "v": "883",
     "date": "16 Nov 2026",
     "items": [
