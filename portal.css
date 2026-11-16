@@ -916,6 +916,23 @@ html body .tb-logo { height: 68px; top: 4px; }
 html.hv-split-on body { margin-left: var(--hv-w, 50vw); width: calc(100% - var(--hv-w, 50vw)); transform: translateZ(0); }
 html.hv-drag, html.hv-drag * { cursor: col-resize !important; user-select: none !important; }
 html.hv-drag .hv-pages { pointer-events: none; }
-.hv.hv-split .hv-slot { width: min(100%, 1000px) !important; }
-.hv.hv-split .hv-page { width: 100% !important; }
-.hv.hv-split .hv-slot { height: auto !important; aspect-ratio: 210 / 297; }
+
+/* Viewer toolbar */
+.hv-bar { flex-wrap: wrap; row-gap: 6px; }
+.hv-title { min-width: 90px; }
+.hv-tools { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; margin-left: auto; }
+.hv-t { min-width: 34px; height: 34px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid transparent; background: transparent; color: #fff; cursor: pointer; font: 600 12px/1 inherit; }
+.hv-t svg { width: 18px; height: 18px; }
+.hv-t:hover:not(:disabled), .hv-t:focus-visible, .hv-t[aria-pressed="true"] { background: rgba(255,255,255,.16); outline: none; }
+.hv-t[aria-pressed="true"] { border-color: rgba(255,255,255,.4); }
+.hv-t:disabled, .hv-pin:disabled { opacity: .4; cursor: default; }
+.hv-zl { min-width: 52px; font-variant-numeric: tabular-nums; }
+.hv-sep { width: 1px; height: 20px; margin: 0 5px; background: rgba(255,255,255,.25); }
+.hv-pin { width: 48px; height: 30px; text-align: center; border-radius: 6px; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.1); color: #fff; font: 600 13px inherit; -moz-appearance: textfield; }
+.hv-pin::-webkit-outer-spin-button, .hv-pin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.hv-pof { color: #c9d4ee; font-size: 12.5px; margin: 0 4px 0 5px; white-space: nowrap; }
+.hv-slot { margin-inline: auto; }
+.hv-pages { align-items: flex-start; }
+.hv-page { width: 100%; height: auto; }
+.hv-inv .hv-page { filter: invert(1) hue-rotate(180deg); }
+.hv-inv .hv-slot { background: #111; }

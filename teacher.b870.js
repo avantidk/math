@@ -192,7 +192,7 @@ function buildQ(q, n, p) {
   return node;
 }
 var LOGO_DATA = '';
-try { fetch('img/ankit-logo-dark.png?v=882').then(r => r.ok ? r.blob() : null).then(bl => { if (!bl) return; const fr = new FileReader(); fr.onload = () => { LOGO_DATA = fr.result; }; fr.readAsDataURL(bl); }).catch(() => {}); } catch (e) { /* use the file path */ }
+try { fetch('img/ankit-logo-dark.png?v=883').then(r => r.ok ? r.blob() : null).then(bl => { if (!bl) return; const fr = new FileReader(); fr.onload = () => { LOGO_DATA = fr.result; }; fr.readAsDataURL(bl); }).catch(() => {}); } catch (e) { /* use the file path */ }
 /* a figure that is just a picture wrapped in an SVG is drawn from the picture itself (screenshots and PDFs then never lose it) */
 function figSrc(f) { const m = /<image[^>]*?href="(data:image\/(?:png|jpeg|jpg);base64,[^"]+)"/.exec(f.svg || ''); return m ? m[1] : 'data:image/svg+xml;utf8,' + encodeURIComponent(f.svg); }
 function skeleton(p, keyMode) {
@@ -206,7 +206,7 @@ function skeleton(p, keyMode) {
   /* header: logo left, exam name (18 bold) with date below (14), Mathematics top right; footer: Exam - Date left, page number right */
   const examName = p.pyq ? String(p.sub || '').replace(/\s*\u00b7\s*all topics$/, '') : p.title, dateLine = p.pyq ? p.title : sub;
   const headTitle = p.pyq ? examName : p.title, headSub = p.pyq ? (keyMode ? dateLine + ' \u00b7 ' + (keyMode === 'exp' ? 'Explanations' : 'Answer key') : dateLine) : sub;
-  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-dark.png?v=882', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
+  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-dark.png?v=883', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
   return h('div', { class: 'sheet' },
     h('div', { class: 'sh-head' },
       h('div', { class: 'sh-brand' }, logo),
@@ -921,7 +921,7 @@ async function cwPptxData(r) {
   const flat = pc ? [].concat(...pc.topics.map(t => t.qs.filter(inScope).map(q => Object.assign({}, q, { _t: t.name, _lab: pyqLabel(q) }))), pc.other.filter(inScope).map(q => Object.assign({}, q, { _t: 'Other topics', _lab: pyqLabel(q) }))) : r.qs.map(q => Object.assign({}, q, { _t: r.name, _lab: pyqLabel(q) }));
   const topics = pc ? pc.topics.map(t => ({ name: t.name, n: t.qs.filter(inScope).length })).concat(pc.other.filter(inScope).length ? [{ name: 'Other topics', n: pc.other.filter(inScope).length }] : []) : [];
   const figs = {}; for (const q of flat) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=882'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=883'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
   return { logo, chapter: c.n, cl: c.cl, cc, bucket, bucketName: BUCKET_NAME[bucket], bucketLabel: bucket, year: cwYrText(), count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
 }
 async function exportCwPptx(r) {
@@ -994,7 +994,7 @@ window.__qbCwPptx = async function (ids, explain) {
   const nP = qs.filter(q => q.s === 'P').length, nN = qs.length - nP, ex = [...new Set(qs.filter(q => q.s === 'P').map(q => q.e))];
   const kindLabel = nN && nP ? 'PYQs + practice' : nN ? 'Practice questions' : ex.length === 1 ? BUCKET_NAME[ex[0]] + ' PYQs' : 'JEE Main + Advanced PYQs';
   const figs = {}; for (const q of flat) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=882'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=883'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
   const yl = Object.keys(years).map(Number).sort((a, b) => a - b);
   const d = { logo, chapter: one ? c0.n : 'Selected Questions', cl: cls[0], cc: one ? ccs[0] : '', clLabel: 'CLASS ' + cls.join(' & '), chLabel: one ? 'CHAPTER ' + ccs[0].split('M')[1] : ccs.length + ' CHAPTERS',
     bucket: ex.length === 1 ? ex[0] : 'Main', bucketName: kindLabel, kindLabel, perQ: true, noFront: true, noTopic: true, year: yl.length ? (yl.length === 1 ? String(yl[0]) : 'all') : '\u2014', count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
@@ -1092,7 +1092,7 @@ async function viewHandout(x, url) {
   let frac = 0.5; try { const v = parseFloat(localStorage.getItem('hv-split')); if (v >= 0.25 && v <= 0.75) frac = v; } catch (e) { /* default 50/50 */ }
   const setFrac = f => { frac = Math.min(0.75, Math.max(0.25, f)); root.style.setProperty('--hv-w', (frac * 100).toFixed(2) + 'vw'); div.setAttribute('aria-valuenow', String(Math.round(frac * 100))); mqSync(); };
   let mqT = 0; const mqSync = () => { cancelAnimationFrame(mqT); mqT = requestAnimationFrame(() => mqEmulate(root.classList.contains('hv-split-on') ? Math.round(window.innerWidth * (1 - frac)) : null)); };
-  const redraw = () => { if (!io) return; holders.forEach(d => { d.dataset.done = ''; io.unobserve(d); io.observe(d); }); };
+  const redraw = () => { if (rerender && doc) rerender(); };
   const applyMode = () => {
     const sp = !!(mql && mql.matches);
     m.classList.toggle('hv-split', sp); div.hidden = !sp; root.classList.toggle('hv-split-on', sp); document.body.classList.toggle('hv-on', !sp);
@@ -1103,8 +1103,23 @@ async function viewHandout(x, url) {
   const close = () => { m.remove(); div.remove(); document.removeEventListener('keydown', onKey); window.removeEventListener('resize', mqSync); if (mql && mql.removeEventListener) mql.removeEventListener('change', applyMode); document.body.classList.remove('hv-on'); root.classList.remove('hv-split-on'); root.style.removeProperty('--hv-w'); mqEmulate(null); if (io) io.disconnect(); };
   const onKey = e => { if (e.key === 'Escape') close(); };
   const pages = h('div', { class: 'hv-pages' }, h('p', { class: 'hv-msg', text: 'Loading the handout\u2026' }));
+  const IC = d => '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
+  const tb = (cls, label, icon, fn) => h('button', { type: 'button', class: 'hv-t ' + cls, title: label, 'aria-label': label, html: IC(icon), onclick: fn });
+  let zoom = 1, ratio = 1.414, doc = null, pdfBlob = null, cur = 1, inv = false; try { inv = localStorage.getItem('hv-inv') === '1'; } catch (e) { /* default */ }
+  const zl = h('button', { type: 'button', class: 'hv-t hv-zl', title: 'Fit to width', 'aria-label': 'Zoom 100 percent, press to fit width', text: '100%', onclick: () => setZoom(1) });
+  const pin = h('input', { type: 'number', class: 'hv-pin', min: '1', value: '1', 'aria-label': 'Go to page number', title: 'Go to page', inputmode: 'numeric' });
+  const pof = h('span', { class: 'hv-pof', text: '/ \u2013' });
+  const tools = h('div', { class: 'hv-tools', role: 'toolbar', 'aria-label': 'Handout tools' },
+    tb('hv-zo', 'Zoom out', '<path d="M3 8h10"/>', () => setZoom(zoom - 0.25)), zl, tb('hv-zi', 'Zoom in', '<path d="M3 8h10M8 3v10"/>', () => setZoom(zoom + 0.25)),
+    h('span', { class: 'hv-sep' }),
+    tb('hv-inv', 'Invert colours (dark pages)', '<circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/>', () => setInv(!inv)),
+    h('span', { class: 'hv-sep' }),
+    tb('hv-pv', 'Previous page', '<path d="M4 10l4-4 4 4"/>', () => goPage(cur - 1)), pin, pof, tb('hv-nx', 'Next page', '<path d="M4 6l4 4 4-4"/>', () => goPage(cur + 1)),
+    h('span', { class: 'hv-sep' }),
+    tb('hv-dl', 'Download PDF', '<path d="M8 2v8m0 0L4.8 6.8M8 10l3.2-3.2M3 13h10"/>', () => saveFile()),
+    navigator.share ? tb('hv-sh', 'Share PDF', '<circle cx="12" cy="3.5" r="1.8"/><circle cx="4" cy="8" r="1.8"/><circle cx="12" cy="12.5" r="1.8"/><path d="M5.6 7.1l4.8-2.7M5.6 8.9l4.8 2.7"/>', () => shareFile()) : null);
   const m = h('div', { class: 'hv', role: 'dialog', 'aria-modal': 'true', 'aria-label': x.title },
-    h('div', { class: 'hv-bar' }, h('span', { class: 'hv-code', text: x.code }), h('strong', { class: 'hv-title', text: x.title }), h('span', { class: 'hv-n' }),
+    h('div', { class: 'hv-bar' }, h('span', { class: 'hv-code', text: x.code }), h('strong', { class: 'hv-title', text: x.title }), tools,
       h('button', { type: 'button', class: 'hv-x', 'aria-label': 'Close viewer', html: '&times;', onclick: () => close() })), pages);
   const div = h('div', { class: 'hv-div', role: 'separator', 'aria-orientation': 'vertical', 'aria-label': 'Resize handout and dashboard', 'aria-valuemin': '25', 'aria-valuemax': '75', 'aria-valuenow': '50', tabindex: '0', hidden: true, title: 'Drag to resize' });
   div.addEventListener('pointerdown', e => {
@@ -1115,28 +1130,51 @@ async function viewHandout(x, url) {
   });
   div.addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); setFrac(frac + (e.key === 'ArrowRight' ? 0.02 : -0.02)); try { localStorage.setItem('hv-split', String(frac)); } catch (er) { /* optional */ } redraw(); } });
   div.addEventListener('dblclick', () => { setFrac(0.5); redraw(); });
-  let io = null; const holders = [];
+  let io = null, rerender = null; const holders = [];
   root.append(m, div); document.addEventListener('keydown', onKey); if (mql && mql.addEventListener) mql.addEventListener('change', applyMode); applyMode(); window.addEventListener('resize', mqSync); setTimeout(mqSync, 1200); m.querySelector('.hv-x').focus();
+  const baseW = () => Math.max(200, Math.min(pages.clientWidth - 24, 1000));
+  const layout = () => { const w = Math.round(baseW() * zoom); holders.forEach(d => { d.style.width = w + 'px'; d.style.height = Math.round(w * ratio) + 'px'; }); zl.textContent = Math.round(zoom * 100) + '%'; };
+  const draw = async (n, holder) => {
+    if (!doc || holder.dataset.done) return; holder.dataset.done = '1';
+    const pg = await doc.getPage(n), w = holder.clientWidth || baseW(), v0 = pg.getViewport({ scale: 1 }), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let sc = (w / v0.width) * dpr; if (v0.width * sc > 3200) sc = 3200 / v0.width;
+    const vp = pg.getViewport({ scale: sc });
+    const c = h('canvas', { class: 'hv-page', width: Math.floor(vp.width), height: Math.floor(vp.height), 'aria-label': 'Page ' + n });
+    await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    holder.textContent = ''; holder.style.height = Math.round(holder.clientWidth * ratio) + 'px'; holder.append(c);
+  };
+  rerender = () => { layout(); if (!io) return; holders.forEach(d => { d.dataset.done = ''; io.unobserve(d); io.observe(d); }); };
+  const setZoom = z => {
+    const nz = Math.min(3, Math.max(0.5, Math.round(z * 4) / 4)); if (nz === zoom && z !== 1) return;
+    const r = pages.scrollHeight ? pages.scrollTop / pages.scrollHeight : 0; zoom = nz; layout();
+    pages.scrollTop = r * pages.scrollHeight; clearTimeout(setZoom.t); setZoom.t = setTimeout(rerender, 160);
+  };
+  const setInv = v => { inv = v; pages.classList.toggle('hv-inv', inv); tools.querySelector('.hv-inv').setAttribute('aria-pressed', String(inv)); try { localStorage.setItem('hv-inv', inv ? '1' : '0'); } catch (e) { /* optional */ } };
+  const goPage = n => { if (!doc) return; n = Math.min(doc.numPages, Math.max(1, Math.round(n) || 1)); const d = holders[n - 1]; if (!d) return; pages.scrollTop += d.getBoundingClientRect().top - pages.getBoundingClientRect().top - 10; cur = n; pin.value = String(n); };
+  const track = () => { if (!doc) return; const top = pages.getBoundingClientRect().top + pages.clientHeight * 0.3; let k = 1; for (let i = 0; i < holders.length; i++) { if (holders[i].getBoundingClientRect().bottom > top) { k = i + 1; break; } k = i + 1; } cur = k; if (document.activeElement !== pin) pin.value = String(k); };
+  const fileName = x.file || (x.code + '.pdf');
+  const saveFile = async () => { if (!pdfBlob) return; try { await downloads.save({ filename: fileName, data: pdfBlob }); toast('Saved ' + fileName); } catch (er) { toast(er && er.code === 'declined' ? 'Download cancelled' : 'Could not download'); } };
+  const shareFile = async () => { if (!pdfBlob) return; try { const f = new File([pdfBlob], fileName, { type: 'application/pdf' }); if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: x.title }); else { await saveFile(); } } catch (er) { if (!er || er.name !== 'AbortError') toast('Could not share'); } };
+  pin.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); goPage(+pin.value); } e.stopPropagation(); });
+  pin.addEventListener('change', () => goPage(+pin.value));
+  pages.addEventListener('scroll', () => { cancelAnimationFrame(track.t); track.t = requestAnimationFrame(track); }, { passive: true });
+  pages.addEventListener('wheel', e => { if (e.ctrlKey) { e.preventDefault(); setZoom(zoom + (e.deltaY < 0 ? 0.25 : -0.25)); } }, { passive: false });
+  setInv(inv);
   try {
     const lib = await loadPdfJs();
     const res = await fetch(url);
     if (!res.ok) throw new Error(res.status === 400 || res.status === 403 ? 'premium' : 'net');
-    const doc = await lib.getDocument({ data: new Uint8Array(await res.arrayBuffer()), isEvalSupported: false }).promise;
-    m.querySelector('.hv-n').textContent = doc.numPages + ' pages';
+    const buf = await res.arrayBuffer(); pdfBlob = new Blob([buf], { type: 'application/pdf' });
+    doc = await lib.getDocument({ data: new Uint8Array(buf.slice(0)), isEvalSupported: false }).promise;
+    pof.textContent = '/ ' + doc.numPages; pin.max = String(doc.numPages);
     pages.textContent = '';
-    const draw = async (n, holder) => {
-      if (holder.dataset.done) return; holder.dataset.done = '1';
-      const pg = await doc.getPage(n), w = Math.min(pages.clientWidth - 24, 1000), v0 = pg.getViewport({ scale: 1 }), sc = w / v0.width, dpr = Math.min(window.devicePixelRatio || 1, 2), vp = pg.getViewport({ scale: sc * dpr });
-      const c = h('canvas', { class: 'hv-page', width: Math.floor(vp.width), height: Math.floor(vp.height), 'aria-label': 'Page ' + n });
-      c.style.width = Math.floor(vp.width / dpr) + 'px'; holder.textContent = ''; holder.style.height = ''; holder.append(c);
-      await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
-    };
-    const first = await doc.getPage(1), ratio = first.getViewport({ scale: 1 }).height / first.getViewport({ scale: 1 }).width, wd = Math.min(pages.clientWidth - 24, 1000);
+    const first = await doc.getPage(1), v1 = first.getViewport({ scale: 1 }); ratio = v1.height / v1.width;
     holders.length = 0;
-    for (let n = 1; n <= doc.numPages; n++) { const d = h('div', { class: 'hv-slot', 'data-n': n, style: 'height:' + Math.round(wd * ratio) + 'px;width:' + wd + 'px' }); holders.push(d); pages.append(d); }
+    for (let n = 1; n <= doc.numPages; n++) { const d = h('div', { class: 'hv-slot', 'data-n': n }); holders.push(d); pages.append(d); }
+    layout();
     io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) draw(+e.target.dataset.n, e.target).catch(() => {}); }), { root: pages, rootMargin: '600px 0px' });
     holders.forEach(d => io.observe(d));
-  } catch (e) { pages.textContent = ''; pages.append(h('p', { class: 'hv-msg', text: e && e.message === 'premium' ? 'Handouts are part of the Premium membership.' : 'The handout could not be opened. Check your internet connection and try again.' })); }
+  } catch (e) { pages.textContent = ''; pages.append(h('p', { class: 'hv-msg', text: e && e.message === 'premium' ? 'Handouts are part of the Premium membership.' : 'The handout could not be opened. Check your internet connection and try again.' })); tools.querySelectorAll('button,input').forEach(b => { b.disabled = true; }); }
 }
 async function renderHandouts() {
   const view = $('#viewHo'); if (!view) return;
@@ -1592,7 +1630,7 @@ async function buildEditable(kind, pages) {
   await Promise.all([officeCode(), loadScript(CDN.zip), kind === 'docx' ? loadScript(CDN.docx) : loadScript(CDN.pptx)]);
   const figs = {};
   for (const p of pages) for (const q of p.qs) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo-dark.png?v=882'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl); logo = { data: new Uint8Array(await bl.arrayBuffer()), w: bm.width, h: bm.height, dataUrl: await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }) }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo-dark.png?v=883'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl); logo = { data: new Uint8Array(await bl.arrayBuffer()), w: bm.width, h: bm.height, dataUrl: await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }) }; } } catch (e) { /* no logo file: skip */ }
   const H = { CHMAP, DIFF, tagText, keyLine, figs, matchParts, expl: eItems, logo };
   return kind === 'docx' ? window.OfficeDoc.buildDocx(window.docx, window.JSZip, pages, H) : window.OfficeDoc.buildPptx(window.PptxGenJS, window.JSZip, pages, H);
 }
@@ -1763,7 +1801,7 @@ const GUIDE_HTML = () => `
 <h3 id="gd-must">4. Must Solve</h3>
 <p>Questions that came again and again in JEE, in the same or a very similar form, plus questions that are sure to come. Choose chapters with the tick-box list. Inside a chapter, questions are grouped by topic; each group shows a note on why it matters (<i>Sure-shot</i>, <i>Must know</i>) and in which years the question came. Tick and download like the Question Bank.</p>
 <h3 id="gd-ho">5. Handouts</h3>
-<p>Handwritten revision notes chapter by chapter (PDF), grouped by Class 11 and Class 12. Each handout has three icon buttons: the <b>eye</b> opens it in the viewer, the <b>download arrow</b> saves the PDF, and the <b>half-filled circle</b> saves the black-and-white version for printing. Hold the pointer over an icon to see its name. On a PC or a tablet held sideways, the viewer opens on the <b>left half</b> and the dashboard stays on the <b>right half</b>, so you can read a handout and solve questions from the Question Bank at the same time. Drag the divider to change the split (double-click it to go back to 50/50). Press &times; or Esc to close the handout. On a phone the handout opens full screen. Handouts need Premium.</p>
+<p>Handwritten revision notes chapter by chapter (PDF), grouped by Class 11 and Class 12. Each handout has three icon buttons: the <b>eye</b> opens it in the viewer, the <b>download arrow</b> saves the PDF, and the <b>half-filled circle</b> saves the black-and-white version for printing. Hold the pointer over an icon to see its name. On a PC or a tablet held sideways, the viewer opens on the <b>left half</b> and the dashboard stays on the <b>right half</b>, so you can read a handout and solve questions from the Question Bank at the same time. Drag the divider to change the split (double-click it to go back to 50/50). Press &times; or Esc to close the handout. The bar at the top of the viewer has <b>zoom out/in</b> (click the percentage to fit the width; Ctrl + scroll also zooms), <b>invert colours</b> (white-on-black pages, for the viewer only), <b>page jump</b> (type a page number and press Enter, or use the arrows), and <b>download</b> and <b>share</b> for the PDF. On a phone the handout opens full screen. Handouts need Premium.</p>
 <h3 id="gd-test">6. Tests and results</h3>
 <ul>
 <li><b>Teachers</b> can create online tests for their approved school, class and stream, share the test link, and see each student's result and a report.</li>
@@ -1834,7 +1872,7 @@ function buildShell() {
   root.append(
     h('div', { class: 'shell' },
       h('header', { class: 'topbar' },
-        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark.png?v=882', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: "JEE, CET, NDA, IAT, PYQ's, DPP's, Handouts" })),
+        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark.png?v=883', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: "JEE, CET, NDA, IAT, PYQ's, DPP's, Handouts" })),
         h('button', { type: 'button', class: 'tb-theme', id: 'themeBtn', 'data-act': 'theme', 'aria-pressed': 'false' }),
         h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
         h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),
