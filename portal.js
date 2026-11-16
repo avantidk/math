@@ -673,7 +673,7 @@ async function pageCreate(arg, r) {
   const mkSel = (id, first, list, val) => { const s = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: first }), list.map(x => h('option', { value: x, text: x }))); s.value = val; return s; };
   const chipSet = (id, list, set) => { const box = h('div', { class: 'chips', id, role: 'group' }); const draw = () => { box.textContent = ''; list.forEach(v => box.append(h('button', { type: 'button', class: 'chip', 'aria-pressed': String(set.has(v)), text: id === 'ctCls' && v !== 'Dropper' ? 'Class ' + v : v, onclick: () => { set.has(v) ? set.delete(v) : set.add(v); draw(); } }))); }; draw(); return box; };
   const fCls = chipSet('ctCls', CLASSES, S.cls), fStr = chipSet('ctStr', STREAMS, S.streams);
-  const fSchool = can('isAdmin') ? schoolSelect('ctSchool', S.school, 'All schools') : (() => { const d = h('div', { class: 'pt-ro', id: 'ctSchool', text: P().school || '—' }); d.value = () => P().school; return d; })();
+  const fSchool = can('isAdmin') ? schoolSelect('ctSchool', S.school, 'All schools') : (() => { const nw = isNotWorking(P().school); const d = h('div', { class: 'pt-ro', id: 'ctSchool', text: nw ? 'Any student with the test link (you are not at a school)' : (P().school || '—') }); d.value = () => (nw ? null : P().school); return d; })();
   const fAct = h('input', { type: 'checkbox', id: 'ctAct', role: 'switch' }); fAct.checked = S.active;
   const fld = (label, el, hint) => h(el.focusId ? 'div' : 'label', { class: 'pt-fld', for: el.focusId ? null : el.id }, h('span', { text: label }), el, hint ? h('small', { text: hint }) : null);
   const msg = h('p', { class: 'pt-msg', role: 'status' });

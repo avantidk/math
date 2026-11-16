@@ -605,8 +605,10 @@ begin
   update public.profiles set
     full_name = case when not v_admin and full_name is not null then full_name else left(nullif(trim(p_full_name), ''), 120) end,
     school    = case when school is not null and not v_admin then school else left(nullif(trim(p_school), ''), 160) end,
-    school_approved = case when v_admin then nullif(trim(p_school), '') is not null when school is null then false else school_approved end,
-    school_approved_at = case when v_admin then now() when school is null then null else school_approved_at end,
+    school_approved = case when v_admin then nullif(trim(p_school), '') is not null
+                           when school is null then (role is distinct from 'student' and public.is_not_working(p_school)) else school_approved end,
+    school_approved_at = case when v_admin or (school is null and role is distinct from 'student' and public.is_not_working(p_school)) then now()
+                              when school is null then null else school_approved_at end,
     school_note = case when school is null then null else school_note end,
     class     = case when v_av and class     is not null then class     else public.norm_class(left(p_class, 20)) end,
     stream    = case when v_av and stream    is not null then stream    else public.norm_stream(left(p_stream, 40)) end,
@@ -720,6 +722,8 @@ create table if not exists public.tests (
 create index if not exists tests_owner on public.tests (owner_id, created_at desc);
 alter table public.tests add column if not exists target_classes text[];
 alter table public.tests add column if not exists target_streams text[];
+-- tests of "Not Working" teachers: open to any (approved) student who has the link, not shown in Available tests
+alter table public.tests add column if not exists link_only boolean not null default false;
 
 -- Once a student has submitted, the questions and marking of a test are frozen (title, dates and on/off can still change).
 create or replace function public.tests_guard() returns trigger
@@ -745,7 +749,10 @@ begin
     if public.approved_school(o) is null then
       raise exception 'Tests can be made after the admin approves your school (Edit profile shows the status).';
     end if;
-    new.school := o.school;
+    if public.is_not_working(o.school) then new.school := null; new.link_only := true;   -- any student with the link
+    else new.school := o.school; new.link_only := false; end if;
+  else
+    new.link_only := false;
   end if;
   new.target_classes := (select array_agg(distinct public.norm_class(c)) from unnest(new.target_classes) c where nullif(trim(c), '') is not null);
   new.target_streams := (select array_agg(distinct public.norm_stream(c)) from unnest(new.target_streams) c where nullif(trim(c), '') is not null);
@@ -882,7 +889,7 @@ language sql stable security definer set search_path = public as $$
       left join public.attempts a on a.test_id = t.id and a.user_id = me.id
      where t.is_active and t.owner_id <> me.id
        and me.class = any(t.target_classes) and me.stream = any(t.target_streams)
-       and public.approved_school(me) is not null
+       and public.approved_school(me) is not null and not t.link_only
        and (t.school is null or lower(t.school) = lower(me.school))
      order by t.created_at desc limit 200) x
 $$;
@@ -1241,6 +1248,11 @@ begin
   update public.teacher_invites set school = null where lower(trim(school)) = lower(o);
   return json_build_object('ok', true);
 end $$;
+
+-- Teachers in "Not Working" never wait for approval (runs every time this file is run).
+update public.profiles set school = 'Not Working', school_approved = true, school_approved_at = coalesce(school_approved_at, now()),
+       school_approved_by = coalesce(school_approved_by, 'Not Working (automatic)')
+ where role is distinct from 'student' and public.is_not_working(school) and (not school_approved or school <> 'Not Working');
 
 -- Students linked to the student list: copy their details from it (runs every time this file is run).
 do $$ begin perform public.sync_student_profile(null); end $$;
@@ -1724,6 +1736,11 @@ begin
   if me.school is null then raise exception 'Choose your school in Edit profile first'; end if;
   if v is not null and lower(v) = lower(me.school) then raise exception 'That is already your school'; end if;
   if me.role = 'student' and public.is_not_working(v) then raise exception '"Not Working" is only for teachers. Please choose your school.'; end if;
+  if me.role is distinct from 'student' and public.is_not_working(v) then   -- moving to "Not Working" needs no approval
+    update public.profiles set school = 'Not Working', school_approved = true, school_approved_at = now(), school_approved_by = 'Not Working (automatic)',
+           school_request = null, school_request_at = null, school_note = null, updated_at = now() where id = me.id;
+    return public.my_profile();
+  end if;
   update public.profiles set school_request = v, school_request_at = case when v is null then null else now() end, updated_at = now() where id = me.id;
   return public.my_profile();
 end $$;
@@ -1779,7 +1796,7 @@ begin
                        + (select count(*) from public.profiles x where x.role = 'student' and x.avanti_id is null and x.school_approved and lower(x.school) = lower(me.school)) end,
     'available', case when me.role = 'student' and public.approved_school(me) is not null then (select count(*) from public.tests t
                        where t.is_active and t.owner_id <> me.id and me.class = any(t.target_classes) and me.stream = any(t.target_streams)
-                         and (t.school is null or lower(t.school) = lower(me.school))
+                         and (t.school is null or lower(t.school) = lower(me.school)) and not t.link_only
                          and not exists (select 1 from public.attempts a where a.test_id = t.id and a.user_id = me.id and a.status = 'submitted')) end,
     'reports', (select count(*) from public.attempts a where a.user_id = me.id and a.status = 'submitted'),
     'approvals', case when public.admin_of(me) then (select count(*) from public.profiles t
