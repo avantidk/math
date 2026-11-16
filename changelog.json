@@ -1,5 +1,14 @@
 [
   {
+    "v": "913",
+    "date": "17 Nov 2026",
+    "items": [
+      "Three Allen Do Yourself questions that say 'in the figure / as shown' now show their figure with the question instead of only inside the explanation: AL-11M7-DY6-20, AL-11M9-DY3-5, AL-11M10-DY1-10.",
+      "Eight Allen Do Yourself questions refer to a graph that is not in the source file. They now carry an Attention note saying so: AL-11M4-DY8-2, AL-12M13-DY1-2, DY2-11, DY3-9, DY3-11, DY3-12, DY10-1 and AL-12M18-DY6-11.",
+      "Removed the remaining self-correction and 'official key' remarks from four explanations (AL-12M13-DY2-11, AL-12M13-DY12-5, AL-11M4-O2-18, AL-12M20-O3-19)."
+    ]
+  },
+  {
     "v": "912",
     "date": "17 Nov 2026",
     "items": [
