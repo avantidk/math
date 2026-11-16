@@ -719,6 +719,13 @@ create table if not exists public.tests (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+-- Extra schools for one test (admin only): the test is for `school` and for every school listed here.
+alter table public.tests add column if not exists schools text[];
+create or replace function public.test_for_school(t public.tests, s text) returns boolean
+language sql stable as $$
+  select t.school is null or lower(t.school) = lower(coalesce(s, ''))
+      or exists (select 1 from unnest(coalesce(t.schools, '{}'::text[])) x where lower(x) = lower(coalesce(s, '')))
+$$;
 create index if not exists tests_owner on public.tests (owner_id, created_at desc);
 alter table public.tests add column if not exists target_classes text[];
 alter table public.tests add column if not exists target_streams text[];
@@ -751,6 +758,7 @@ begin
     end if;
     if public.is_not_working(o.school) then new.school := null; new.link_only := true;   -- any student with the link
     else new.school := o.school; new.link_only := false; end if;
+    new.schools := null;   -- several schools: admin only
   else
     new.link_only := false;
   end if;
@@ -890,7 +898,7 @@ language sql stable security definer set search_path = public as $$
      where t.is_active and t.owner_id <> me.id
        and me.class = any(t.target_classes) and me.stream = any(t.target_streams)
        and public.approved_school(me) is not null and not t.link_only
-       and (t.school is null or lower(t.school) = lower(me.school))
+       and public.test_for_school(t, me.school)
      order by t.created_at desc limit 200) x
 $$;
 
@@ -903,7 +911,7 @@ language sql stable security definer set search_path = public as $$
            'attempt_id', a.id, 'attempt_status', a.status, 'school', t.school,
            'target_classes', t.target_classes, 'target_streams', t.target_streams,
            'for_me', public.admin_of(me) or (public.approved_school(me) is not null
-                     and (t.school is null or lower(t.school) = lower(me.school))
+                     and public.test_for_school(t, me.school)
                      and me.class = any(t.target_classes) and me.stream = any(t.target_streams)),
            'school_pending', public.approved_school(me) is null and not public.admin_of(me))
     from public.tests t
@@ -985,8 +993,8 @@ begin
       if public.approved_school(me) is null then
         raise exception 'Your school is waiting for approval by the admin. Tests open after it is approved.';
       end if;
-      if t.school is not null and lower(t.school) <> lower(coalesce(me.school, '')) then
-        raise exception 'This test is only for students of %.', t.school;
+      if not public.test_for_school(t, me.school) then
+        raise exception 'This test is only for students of %.', array_to_string(array[t.school] || coalesce(t.schools, '{}'::text[]), ', ');
       end if;
       if not (me.class = any(t.target_classes) and me.stream = any(t.target_streams)) then
         raise exception 'This test is only for Class % · %.', array_to_string(t.target_classes, ', '), array_to_string(t.target_streams, ', ');
@@ -1120,7 +1128,7 @@ create or replace function public.my_tests() returns json
 language sql stable security definer set search_path = public as $$
   select coalesce(json_agg(x order by x.created_at desc), '[]'::json) from (
     select t.id, t.code, t.title, t.duration_min, t.n_questions, t.marks_correct, t.marks_wrong, t.target_classes, t.target_streams,
-           t.school, t.is_active, t.created_at, t.updated_at,
+           t.school, t.schools, t.is_active, t.created_at, t.updated_at,
            (select count(*) from public.attempts a where a.test_id = t.id and a.status = 'submitted') as submitted,
            (select count(*) from public.attempts a where a.test_id = t.id and a.status = 'in_progress') as in_progress,
            t.owner_id = auth.uid() as mine, o.full_name as owner_name
@@ -1224,6 +1232,7 @@ begin
   update public.profiles set school = n, updated_at = now() where lower(trim(school)) = lower(o);
   update public.profiles set school_request = n where lower(trim(school_request)) = lower(o);
   update public.tests set school = n where lower(trim(school)) = lower(o);
+  update public.tests set schools = (select array_agg(case when lower(trim(x)) = lower(o) then n else x end) from unnest(schools) x) where schools is not null;
   update public.attempts set school = n where lower(trim(school)) = lower(o);
   update public.teacher_invites set school = n where lower(trim(school)) = lower(o);
   return json_build_object('ok', true);
@@ -1796,7 +1805,7 @@ begin
                        + (select count(*) from public.profiles x where x.role = 'student' and x.avanti_id is null and x.school_approved and lower(x.school) = lower(me.school)) end,
     'available', case when me.role = 'student' and public.approved_school(me) is not null then (select count(*) from public.tests t
                        where t.is_active and t.owner_id <> me.id and me.class = any(t.target_classes) and me.stream = any(t.target_streams)
-                         and (t.school is null or lower(t.school) = lower(me.school)) and not t.link_only
+                         and public.test_for_school(t, me.school) and not t.link_only
                          and not exists (select 1 from public.attempts a where a.test_id = t.id and a.user_id = me.id and a.status = 'submitted')) end,
     'reports', (select count(*) from public.attempts a where a.user_id = me.id and a.status = 'submitted'),
     'approvals', case when public.admin_of(me) then (select count(*) from public.profiles t

@@ -1,5 +1,13 @@
 [
   {
+    "v": "900",
+    "date": "16 Nov 2026",
+    "items": [
+      "Create Test (admin): choosing several schools now makes ONE test with ONE link that is open to all the chosen schools (the admin runs the updated supabase/schema.sql once to turn this on; until then one test per school is made, as before).",
+      "Review box: the title is on the first line and the other four points are on the second line."
+    ]
+  },
+  {
     "v": "899",
     "date": "16 Nov 2026",
     "items": [

@@ -222,8 +222,8 @@ function chapterMulti(chs, set, onChange) {
   return wrap;
 }
 /* Admin: pick one or more schools for a new test (nothing ticked = all schools). A test belongs to one school, so one test is made for each. */
-function schoolMulti(id) {
-  const chosen = new Set(); let ALL = [];
+function schoolMulti(id, initial) {
+  const chosen = new Set((initial || []).filter(Boolean)); let ALL = [];
   const label = h('span', { class: 'pt-combo-txt', text: 'All schools' });
   const btn = h('button', { type: 'button', id, class: 'pt-in pt-combo-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false' }, label, h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' }));
   const find = h('input', { type: 'search', class: 'pt-in pt-combo-find', placeholder: 'Search schools…', 'aria-label': 'Search schools', autocomplete: 'off' });
@@ -247,7 +247,7 @@ function schoolMulti(id) {
   find.addEventListener('input', draw);
   find.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); close(); btn.focus(); } });
   schools().then(list => { ALL = list.filter(x => !isNotWorking(x)); }).catch(() => { label.textContent = 'Could not load schools'; });
-  const wrap = h('div', { class: 'pt-school pt-combo' }, btn, pop, tags);
+  const wrap = h('div', { class: 'pt-school pt-combo' }, btn, pop, tags); sync();
   wrap.values = () => [...chosen]; wrap.value = () => (chosen.size === 1 ? [...chosen][0] : ''); wrap.focusId = id; wrap.multi = true;
   return wrap;
 }
@@ -330,7 +330,7 @@ function onboard(root, done) {
   const p = P();
   root.textContent = '';
   root.append(h('div', { class: 'lg' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=899', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=900', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
       p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
@@ -712,7 +712,7 @@ async function pageCreate(arg, r) {
   if (r === 'edit') {
     const { data: t, error } = await fresh(sb().from('tests').select('*').eq('id', arg).maybeSingle());
     if (error || !t) { show(errorBox(error ? error.message : 'Test not found.', null)); return; }
-    Object.assign(S, { id: t.id, code: t.code, title: t.title, mins: t.duration_min, pos: +t.marks_correct, neg: +t.marks_wrong, cls: new Set(t.target_classes || []), streams: new Set(t.target_streams || []), school: t.school || '', active: t.is_active, sel: t.questions });
+    Object.assign(S, { id: t.id, code: t.code, title: t.title, mins: t.duration_min, pos: +t.marks_correct, neg: +t.marks_wrong, cls: new Set(t.target_classes || []), streams: new Set(t.target_streams || []), school: t.school || '', schoolList: [t.school].concat(t.schools || []).filter(Boolean), active: t.is_active, sel: t.questions });
     const { data: mt } = await sb().rpc('my_tests'); const me = (mt || []).find(x => x.id === t.id); S.locked = !!(me && me.submitted > 0);
   } else if (PREFILL) {
     S.sel = PREFILL.ids.map(i => B.byId.get(i)).filter(gradable).map(snap); S.title = PREFILL.title || '';
@@ -727,7 +727,7 @@ async function pageCreate(arg, r) {
   const mkSel = (id, first, list, val) => { const s = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: first }), list.map(x => h('option', { value: x, text: x }))); s.value = val; return s; };
   const chipSet = (id, list, set) => { const box = h('div', { class: 'chips', id, role: 'group' }); const draw = () => { box.textContent = ''; list.forEach(v => box.append(h('button', { type: 'button', class: 'chip', 'aria-pressed': String(set.has(v)), text: id === 'ctCls' && v !== 'Dropper' ? 'Class ' + v : v, onclick: () => { set.has(v) ? set.delete(v) : set.add(v); draw(); } }))); }; draw(); return box; };
   const fCls = chipSet('ctCls', CLASSES, S.cls), fStr = chipSet('ctStr', STREAMS, S.streams);
-  const fSchool = can('isAdmin') ? (S.id ? schoolSelect('ctSchool', S.school, 'All schools') : schoolMulti('ctSchool')) : (() => { const nw = isNotWorking(P().school); const d = h('div', { class: 'pt-ro', id: 'ctSchool', text: nw ? 'Any student with the test link (you are not at a school)' : (P().school || '—') }); d.value = () => (nw ? null : P().school); return d; })();
+  const fSchool = can('isAdmin') ? schoolMulti('ctSchool', S.schoolList) : (() => { const nw = isNotWorking(P().school); const d = h('div', { class: 'pt-ro', id: 'ctSchool', text: nw ? 'Any student with the test link (you are not at a school)' : (P().school || '—') }); d.value = () => (nw ? null : P().school); return d; })();
   const fAct = h('input', { type: 'checkbox', id: 'ctAct', role: 'switch' }); fAct.checked = S.active;
   const fld = (label, el, hint) => h(el.focusId ? 'div' : 'label', { class: 'pt-fld', for: el.focusId ? null : el.id }, h('span', { text: label }), el, hint ? h('small', { text: hint }) : null);
   const msg = h('p', { class: 'pt-msg', role: 'status' });
@@ -827,24 +827,27 @@ async function pageCreate(arg, r) {
   async function save() {
     msg.className = 'pt-msg'; msg.textContent = '';
     const row = { title: fTitle.value.trim(), duration_min: parseInt(fMins.value, 10), marks_correct: parseFloat(fPos.value), marks_wrong: parseFloat(fNeg.value) || 0,
-      target_classes: [...S.cls], target_streams: [...S.streams], school: fSchool.value() || null, is_active: fAct.checked, questions: S.sel.map(q => ({ id: q.id, type: q.type, q: q.q, o: q.o, a: q.a, ch: q.ch, chn: q.chn, tp: q.tp, f: q.f || null })) };
+      target_classes: [...S.cls], target_streams: [...S.streams], school: fSchool.multi ? (fSchool.values()[0] || null) : (fSchool.value() || null), schools: fSchool.multi && fSchool.values().length > 1 ? fSchool.values().slice(1) : null, is_active: fAct.checked, questions: S.sel.map(q => ({ id: q.id, type: q.type, q: q.q, o: q.o, a: q.a, ch: q.ch, chn: q.chn, tp: q.tp, f: q.f || null })) };
     const bad = !row.title ? 'Give the test a title.' : !S.cls.size ? 'Choose the class (or classes) that should take this test.' : !S.streams.size ? 'Choose the stream (or streams) that should take this test.' : !(row.duration_min >= 1 && row.duration_min <= 600) ? 'Duration must be 1 to 600 minutes.' : !(row.marks_correct > 0) ? 'Marks for a correct answer must be more than 0.' : row.marks_wrong < 0 ? 'Negative marks cannot be below 0.' : !S.sel.length ? 'Add at least one question.' : '';
     if (bad) { const st = /questions?\.$|^Add at least/.test(bad) ? 2 : 1; if (st === 1) { m1.textContent = bad; m1.className = 'pt-msg bad'; } else { toast(bad); } goStep(st); return; }
     if (S.locked) { delete row.questions; delete row.marks_correct; delete row.marks_wrong; }
     saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
-    const many = !S.id && fSchool.multi && fSchool.values().length > 1 ? fSchool.values() : null;
-    const q = S.id ? sb().from('tests').update(row).eq('id', S.id).select('id,code').single()
-      : many ? sb().from('tests').insert(many.map(sc => Object.assign({}, row, { school: sc }))).select('id,code,school') : sb().from('tests').insert(row).select('id,code').single();
-    const { data, error } = await q;
-    saveBtn.disabled = false; saveBtn.textContent = S.id ? 'Save changes' : 'Save test';
-    if (error) { msg.textContent = 'Could not save: ' + error.message; msg.classList.add('bad'); return; }
-    if (many) {
-      saveBtn.disabled = true; saveBtn.textContent = 'Saved'; const links = data.map(d => d.school + '\n' + testLink(d.code)).join('\n\n');
-      modal(data.length + ' tests saved', h('div', {}, h('p', { text: 'One test was made for each school. Share the matching link with each school.' }),
-        h('div', { class: 'pt-multilinks' }, data.map(d => h('div', { class: 'pt-link' }, h('b', { text: d.school }), h('code', { text: testLink(d.code) }))))),
-        [{ text: 'My Tests', onclick: () => { location.hash = '#/my-tests'; } }, { text: 'Copy all links', pri: true, onclick: () => { copy(links, 'Links copied'); return false; } }]);
+    const q = S.id ? sb().from('tests').update(row).eq('id', S.id).select('id,code').single() : sb().from('tests').insert(row).select('id,code').single();
+    let { data, error } = await q;
+    if (error && row.schools && /schools/i.test(error.message || '')) {
+      /* the database has not been updated for several schools yet: make one test per school instead */
+      const all = [row.school].concat(row.schools);
+      const r2 = await sb().from('tests').insert(all.map(sc => Object.assign({}, row, { school: sc, schools: null }))).select('id,code,school');
+      saveBtn.disabled = false; saveBtn.textContent = 'Save test';
+      if (r2.error) { msg.textContent = 'Could not save: ' + r2.error.message; msg.classList.add('bad'); return; }
+      saveBtn.disabled = true; saveBtn.textContent = 'Saved';
+      modal(r2.data.length + ' tests saved', h('div', {}, h('p', { text: 'The database is not yet set up for one link across several schools (the admin needs to run the updated supabase/schema.sql once), so one test was made for each school. Share the matching link with each school.' }),
+        h('div', { class: 'pt-multilinks' }, r2.data.map(d => h('div', { class: 'pt-link' }, h('b', { text: d.school }), h('code', { text: testLink(d.code) }))))),
+        [{ text: 'My Tests', onclick: () => { location.hash = '#/my-tests'; } }, { text: 'Copy all links', pri: true, onclick: () => { copy(r2.data.map(d => d.school + '\n' + testLink(d.code)).join('\n\n'), 'Links copied'); return false; } }]);
       return;
     }
+    saveBtn.disabled = false; saveBtn.textContent = S.id ? 'Save changes' : 'Save test';
+    if (error) { msg.textContent = 'Could not save: ' + error.message; msg.classList.add('bad'); return; }
     S.id = data.id; S.code = data.code;
     const url = testLink(data.code);
     modal('Test saved', h('div', {}, h('p', { text: 'Share this link with your students. They sign in, then take the test.' }), h('div', { class: 'pt-link' }, h('code', { text: url }))),
@@ -861,7 +864,7 @@ async function pageCreate(arg, r) {
     card(h('h2', { text: 'Who is this test for?' }),
       fld('Test title', fTitle),
       h('div', { class: 'pt-fld' }, h('span', {}, 'Class', h('b', { class: 'pt-req', text: ' *' })), fCls), h('div', { class: 'pt-fld' }, h('span', {}, 'Stream', h('b', { class: 'pt-req', text: ' *' })), fStr),
-      fld('School', fSchool, can('isAdmin') ? (S.id ? 'Only students of this school can take it. Choose All schools for everyone.' : 'Tick one or more schools. A separate test and link is made for each school you tick. Leave it on All schools for a test that every school can take.') : 'Only students of your school, in the classes and streams chosen above, can see and take this test.')),
+      fld('School', fSchool, can('isAdmin') ? 'Tick one or more schools: one test, one link, open to all the schools you tick. Leave it on All schools for a test that every school can take.' : 'Only students of your school, in the classes and streams chosen above, can see and take this test.')),
     h('div', { class: 'pt-s1-right' }, card(h('h2', { text: 'Time and marking' }),
       h('div', { class: 'pt-row3' }, fld('Duration (minutes)', fMins), fld('Marks if correct', fPos), fld('Negative marks', fNeg, 'For a wrong MCQ answer')),
       h('label', { class: 'pt-switch', for: 'ctAct' }, fAct, h('span', { text: 'Active: students can open the test now' })),
@@ -879,7 +882,7 @@ async function pageCreate(arg, r) {
   function drawSum() {
     const box = document.getElementById('ctSum'); if (!box) return; const pos = parseFloat(fPos.value) || 0, neg = parseFloat(fNeg.value) || 0;
     box.textContent = '';
-    [['Title', fTitle.value.trim() || '—'], ['For', [...S.cls].map(c => c === 'Dropper' ? c : 'Class ' + c).join(', ') + (S.streams.size ? ' · ' + [...S.streams].join(', ') : '') || '—'],
+    [['Title', fTitle.value.trim() || '—'], ['For', [...S.cls].map(c => c === 'Dropper' ? c : 'Class ' + c).join(', ') + (S.streams.size ? ' · ' + [...S.streams].join(', ') : '') + (fSchool.multi ? ' · ' + (fSchool.values().length ? (fSchool.values().length === 1 ? fSchool.values()[0] : fSchool.values().length + ' schools') : 'all schools') : '') || '—'],
       ['Time', (fMins.value || '—') + ' minutes'], ['Marking', '+' + num(pos, 2) + ' correct · −' + num(neg, 2) + ' wrong'], ['Questions', S.sel.length + ' · ' + num(S.sel.length * pos, 1) + ' marks in total']]
       .forEach(([k, v]) => box.append(h('div', { class: 'pt-sumrow' }, h('span', { class: 'pt-hint', text: k }), h('b', { text: v }))));
   }
@@ -927,8 +930,8 @@ async function pageMyTests() {
   const preview = async t => { const { data, error } = await sb().from('tests').select('title,questions').eq('id', t.id).single(); if (error) { toast(error.message); return; } previewQs(data.title, data.questions, true); };
   show(top, h('div', { class: 'pt-cards' }, list.map(t => card(
     h('div', { class: 'pt-ct' }, h('h3', { text: t.title }), t.is_active ? badge('Active', 'ok') : badge('Inactive', 'mute')),
-    t.mine === false ? h('p', { class: 'pt-meta' }, 'By ', h('b', { text: t.owner_name || 'Teacher' }), ' · ' + (t.school || 'All schools')) : null,
-    h('p', { class: 'pt-meta', text: [t.n_questions + ' questions', t.duration_min + ' min', '+' + num(t.marks_correct, 2) + ' / −' + num(t.marks_wrong, 2), 'Class ' + (t.target_classes || []).join(', '), (t.target_streams || []).join(', '), t.school || 'All schools'].join(' · ') }),
+    t.mine === false ? h('p', { class: 'pt-meta' }, 'By ', h('b', { text: t.owner_name || 'Teacher' }), ' · ' + ([t.school].concat(t.schools || []).filter(Boolean).join(', ') || 'All schools')) : null,
+    h('p', { class: 'pt-meta', text: [t.n_questions + ' questions', t.duration_min + ' min', '+' + num(t.marks_correct, 2) + ' / −' + num(t.marks_wrong, 2), 'Class ' + (t.target_classes || []).join(', '), (t.target_streams || []).join(', '), [t.school].concat(t.schools || []).filter(Boolean).join(', ') || 'All schools'].join(' · ') }),
     h('p', { class: 'pt-meta' }, h('b', { text: t.submitted }), ' submitted', t.in_progress ? ' · ' + t.in_progress + ' writing now' : '', ' · created ' + day(t.created_at)),
     h('div', { class: 'pt-link' }, h('code', { text: testLink(t.code) })),
     h('div', { class: 'pt-actions' },
