@@ -1,5 +1,12 @@
 [
   {
+    "v": "891",
+    "date": "16 Nov 2026",
+    "items": [
+      "Fixed: Word (DOCX) and PowerPoint (PPTX) downloads failed everywhere with 'Could not build the file'. This was caused by a change in the previous releases (v880 to v890); downloads work again."
+    ]
+  },
+  {
     "v": "890",
     "date": "16 Nov 2026",
     "items": [
