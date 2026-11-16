@@ -1,5 +1,13 @@
 [
   {
+    "v": "914",
+    "date": "17 Nov 2026",
+    "items": [
+      "AL-12M13-DY2-11 is now one complete question: the full graph table (graphs P to S with the Column-II and Column-III lists), then questions 11 and 12 with their options, the printed answers (11: B, 12: A) and a clean explanation. The Attention note is removed.",
+      "Allen questions with sub-parts written on one line, such as 'Find domain of: (i) … (ii) …', now show each sub-part on its own line (131 questions). Options (A) to (D) that were run into the question text now start on their own line (193 questions)."
+    ]
+  },
+  {
     "v": "913",
     "date": "17 Nov 2026",
     "items": [
