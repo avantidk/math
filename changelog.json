@@ -1,5 +1,12 @@
 [
   {
+    "v": "895",
+    "date": "16 Nov 2026",
+    "items": [
+      "Create Test: the page is wider and keeps a fixed width. It no longer changes size when you click a filter, a card or a step."
+    ]
+  },
+  {
     "v": "894",
     "date": "16 Nov 2026",
     "items": [

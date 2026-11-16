@@ -954,7 +954,7 @@ html.hv-drag .hv-pages { pointer-events: none; }
 .hv .hv-pages { overflow: auto; }
 
 /* Create Test: three clear steps (details, questions, review) */
-.pt-wizard { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 84px; }
+.pt-wizard { width: 100%; max-width: 1320px; box-sizing: border-box; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 84px; }
 .pt-wizard .pt-step { display: flex; flex-direction: column; gap: 16px; }
 .pt-wizard .pt-step[hidden] { display: none; }
 .pt-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; counter-reset: none; }
