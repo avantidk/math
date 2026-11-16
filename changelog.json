@@ -1,5 +1,13 @@
 [
   {
+    "v": "887",
+    "date": "16 Nov 2026",
+    "items": [
+      "PDF, Word and PowerPoint cover pages (DPPs, PYQs, Must Solve and the rest) now use the dark-text logo on the white page, so the whole अंक-IT name is readable.",
+      "PYQ Question Paper downloads: the exam name and date under each question are removed (every question is from the same paper); each question now shows only its level, like [L2]."
+    ]
+  },
+  {
     "v": "886",
     "date": "16 Nov 2026",
     "items": [
