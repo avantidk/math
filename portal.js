@@ -197,6 +197,36 @@ function schoolSelect(id, val, first, allowOther, opt) {
   wrap.sel = s; wrap.focusId = id;
   return wrap;
 }
+/* Admin: pick one or more schools for a new test (nothing ticked = all schools). A test belongs to one school, so one test is made for each. */
+function schoolMulti(id) {
+  const chosen = new Set(); let ALL = [];
+  const label = h('span', { class: 'pt-combo-txt', text: 'All schools' });
+  const btn = h('button', { type: 'button', id, class: 'pt-in pt-combo-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false' }, label, h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' }));
+  const find = h('input', { type: 'search', class: 'pt-in pt-combo-find', placeholder: 'Search schools…', 'aria-label': 'Search schools', autocomplete: 'off' });
+  const listEl = h('div', { class: 'pt-multi-list' }), tags = h('div', { class: 'pt-tags' });
+  const pop = h('div', { class: 'pt-combo-pop', hidden: true }, find, listEl);
+  const sync = () => {
+    label.textContent = !chosen.size ? 'All schools' : chosen.size === 1 ? [...chosen][0] : chosen.size + ' schools selected'; btn.classList.toggle('empty', false);
+    tags.textContent = ''; [...chosen].forEach(v => tags.append(h('span', { class: 'pt-tag' }, v, h('button', { type: 'button', 'aria-label': 'Remove ' + v, text: '✕', onclick: () => { chosen.delete(v); sync(); if (!pop.hidden) draw(); } }))));
+  };
+  const draw = () => {
+    const t = find.value.trim().toLowerCase(), shown = ALL.filter(x => !isNotWorking(x) && (!t || x.toLowerCase().includes(t)));
+    listEl.textContent = '';
+    listEl.append(h('label', { class: 'pt-multi-opt pt-multi-all' }, h('input', { type: 'radio', name: id + 'all', checked: !chosen.size, onchange: () => { chosen.clear(); sync(); draw(); } }), h('span', { text: 'All schools (every school)' })));
+    if (!shown.length) listEl.append(h('p', { class: 'pt-hint', text: ALL.length ? 'No school matches "' + find.value.trim() + '"' : 'No schools in the database yet' }));
+    shown.forEach(v => listEl.append(h('label', { class: 'pt-multi-opt' }, h('input', { type: 'checkbox', checked: chosen.has(v), onchange: e => { if (e.target.checked) chosen.add(v); else chosen.delete(v); sync(); draw(); } }), h('span', { text: v }))));
+  };
+  const outside = e => { if (!wrap.contains(e.target)) close(); };
+  function open() { if (!pop.hidden) return; pop.hidden = false; btn.setAttribute('aria-expanded', 'true'); find.value = ''; draw(); setTimeout(() => find.focus(), 0); document.addEventListener('mousedown', outside, true); }
+  function close() { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('mousedown', outside, true); }
+  btn.addEventListener('click', () => (pop.hidden ? open() : close()));
+  find.addEventListener('input', draw);
+  find.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); close(); btn.focus(); } });
+  schools().then(list => { ALL = list.filter(x => !isNotWorking(x)); }).catch(() => { label.textContent = 'Could not load schools'; });
+  const wrap = h('div', { class: 'pt-school pt-combo' }, btn, pop, tags);
+  wrap.values = () => [...chosen]; wrap.value = () => (chosen.size === 1 ? [...chosen][0] : ''); wrap.focusId = id; wrap.multi = true;
+  return wrap;
+}
 /* The profile form: every field is required. Teachers give name and school; students give name, school, class, stream, category and gender.
    For Avanti ID students, details that come from the Avanti list are shown but cannot be changed; only missing ones can be filled. */
 function profileForm(p, o) {
@@ -276,7 +306,7 @@ function onboard(root, done) {
   const p = P();
   root.textContent = '';
   root.append(h('div', { class: 'lg' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=893', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=894', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
       p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
@@ -673,7 +703,7 @@ async function pageCreate(arg, r) {
   const mkSel = (id, first, list, val) => { const s = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: first }), list.map(x => h('option', { value: x, text: x }))); s.value = val; return s; };
   const chipSet = (id, list, set) => { const box = h('div', { class: 'chips', id, role: 'group' }); const draw = () => { box.textContent = ''; list.forEach(v => box.append(h('button', { type: 'button', class: 'chip', 'aria-pressed': String(set.has(v)), text: id === 'ctCls' && v !== 'Dropper' ? 'Class ' + v : v, onclick: () => { set.has(v) ? set.delete(v) : set.add(v); draw(); } }))); }; draw(); return box; };
   const fCls = chipSet('ctCls', CLASSES, S.cls), fStr = chipSet('ctStr', STREAMS, S.streams);
-  const fSchool = can('isAdmin') ? schoolSelect('ctSchool', S.school, 'All schools') : (() => { const nw = isNotWorking(P().school); const d = h('div', { class: 'pt-ro', id: 'ctSchool', text: nw ? 'Any student with the test link (you are not at a school)' : (P().school || '—') }); d.value = () => (nw ? null : P().school); return d; })();
+  const fSchool = can('isAdmin') ? (S.id ? schoolSelect('ctSchool', S.school, 'All schools') : schoolMulti('ctSchool')) : (() => { const nw = isNotWorking(P().school); const d = h('div', { class: 'pt-ro', id: 'ctSchool', text: nw ? 'Any student with the test link (you are not at a school)' : (P().school || '—') }); d.value = () => (nw ? null : P().school); return d; })();
   const fAct = h('input', { type: 'checkbox', id: 'ctAct', role: 'switch' }); fAct.checked = S.active;
   const fld = (label, el, hint) => h(el.focusId ? 'div' : 'label', { class: 'pt-fld', for: el.focusId ? null : el.id }, h('span', { text: label }), el, hint ? h('small', { text: hint }) : null);
   const msg = h('p', { class: 'pt-msg', role: 'status' });
@@ -777,10 +807,19 @@ async function pageCreate(arg, r) {
     if (bad) { const st = /questions?\.$|^Add at least/.test(bad) ? 2 : 1; if (st === 1) { m1.textContent = bad; m1.className = 'pt-msg bad'; } else { toast(bad); } goStep(st); return; }
     if (S.locked) { delete row.questions; delete row.marks_correct; delete row.marks_wrong; }
     saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
-    const q = S.id ? sb().from('tests').update(row).eq('id', S.id).select('id,code').single() : sb().from('tests').insert(row).select('id,code').single();
+    const many = !S.id && fSchool.multi && fSchool.values().length > 1 ? fSchool.values() : null;
+    const q = S.id ? sb().from('tests').update(row).eq('id', S.id).select('id,code').single()
+      : many ? sb().from('tests').insert(many.map(sc => Object.assign({}, row, { school: sc }))).select('id,code,school') : sb().from('tests').insert(row).select('id,code').single();
     const { data, error } = await q;
     saveBtn.disabled = false; saveBtn.textContent = S.id ? 'Save changes' : 'Save test';
     if (error) { msg.textContent = 'Could not save: ' + error.message; msg.classList.add('bad'); return; }
+    if (many) {
+      saveBtn.disabled = true; saveBtn.textContent = 'Saved'; const links = data.map(d => d.school + '\n' + testLink(d.code)).join('\n\n');
+      modal(data.length + ' tests saved', h('div', {}, h('p', { text: 'One test was made for each school. Share the matching link with each school.' }),
+        h('div', { class: 'pt-multilinks' }, data.map(d => h('div', { class: 'pt-link' }, h('b', { text: d.school }), h('code', { text: testLink(d.code) }))))),
+        [{ text: 'My Tests', onclick: () => { location.hash = '#/my-tests'; } }, { text: 'Copy all links', pri: true, onclick: () => { copy(links, 'Links copied'); return false; } }]);
+      return;
+    }
     S.id = data.id; S.code = data.code;
     const url = testLink(data.code);
     modal('Test saved', h('div', {}, h('p', { text: 'Share this link with your students. They sign in, then take the test.' }), h('div', { class: 'pt-link' }, h('code', { text: url }))),
@@ -797,7 +836,7 @@ async function pageCreate(arg, r) {
     card(h('h2', { text: 'Who is this test for?' }),
       fld('Test title', fTitle),
       h('div', { class: 'pt-fld' }, h('span', {}, 'Class', h('b', { class: 'pt-req', text: ' *' })), fCls), h('div', { class: 'pt-fld' }, h('span', {}, 'Stream', h('b', { class: 'pt-req', text: ' *' })), fStr),
-      fld('School', fSchool, can('isAdmin') ? 'Only students of this school can take it. Choose All schools for everyone.' : 'Only students of your school, in the classes and streams chosen above, can see and take this test.')),
+      fld('School', fSchool, can('isAdmin') ? (S.id ? 'Only students of this school can take it. Choose All schools for everyone.' : 'Tick one or more schools. A separate test and link is made for each school you tick. Leave it on All schools for a test that every school can take.') : 'Only students of your school, in the classes and streams chosen above, can see and take this test.')),
     card(h('h2', { text: 'Time and marking' }),
       h('div', { class: 'pt-row3' }, fld('Duration (minutes)', fMins), fld('Marks if correct', fPos), fld('Negative marks', fNeg, 'For a wrong MCQ answer')),
       h('label', { class: 'pt-switch', for: 'ctAct' }, fAct, h('span', { text: 'Active: students can open the test now' })),

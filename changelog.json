@@ -1,5 +1,13 @@
 [
   {
+    "v": "894",
+    "date": "16 Nov 2026",
+    "items": [
+      "Create Test (admin): the School field is now a multi-select. Tick one or more schools, and one test with its own link is made for each; leave it on All schools for a test every school can take. Other teachers still cannot choose a school: their test is always for their own school, and the server enforces this.",
+      "Create Test is wider, and the list of selected questions now scrolls with the page, one compact line per question, instead of in its own small scrolling box."
+    ]
+  },
+  {
     "v": "893",
     "date": "16 Nov 2026",
     "items": [

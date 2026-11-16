@@ -954,7 +954,7 @@ html.hv-drag .hv-pages { pointer-events: none; }
 .hv .hv-pages { overflow: auto; }
 
 /* Create Test: three clear steps (details, questions, review) */
-.pt-wizard { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 84px; }
+.pt-wizard { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 84px; }
 .pt-wizard .pt-step { display: flex; flex-direction: column; gap: 16px; }
 .pt-wizard .pt-step[hidden] { display: none; }
 .pt-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; counter-reset: none; }
@@ -975,3 +975,17 @@ html.hv-drag .hv-pages { pointer-events: none; }
 .pt-sumrow { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: baseline; font-size: 14px; padding: 6px 0; border-bottom: 1px solid var(--rule); }
 .pt-sumrow:last-child { border-bottom: 0; }
 @media (max-width: 560px) { .pt-stt { display: none; } .pt-stp.on .pt-stt { display: inline; } .pt-steps { grid-template-columns: 1fr 1fr 1fr; } .pt-stp { padding: 10px; } .pt-foot { padding: 10px 12px; } }
+
+/* Admin school multi-select; selected-question list scrolls with the page, one row per question */
+.pt-multi-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 6px 0 2px; }
+.pt-multi-opt { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+.pt-multi-opt:hover { background: var(--accent-soft, rgba(47,111,237,.1)); }
+.pt-multi-opt input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.pt-multi-all { font-weight: 700; border-bottom: 1px solid var(--rule); border-radius: 8px 8px 0 0; margin-bottom: 4px; }
+.pt-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pt-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border-radius: 999px; background: var(--accent-soft, rgba(47,111,237,.12)); color: var(--accent); font: 600 12.5px var(--font-body, system-ui); }
+.pt-tag button { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 12px; padding: 2px 4px; }
+.pt-multilinks { display: grid; gap: 8px; max-height: 50vh; overflow-y: auto; }
+.pt-wizard .pt-sel { max-height: none; overflow: visible; }
+.pt-wizard .pt-si { padding: 6px 10px; }
+.pt-wizard .pt-si-t { -webkit-line-clamp: 1; }
