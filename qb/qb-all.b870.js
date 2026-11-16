@@ -874,7 +874,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
         { group: 'exam_kcet', n: g(ex, 'KCET') },
         { group: 'exam_iat', n: g(ex, 'IAT') },
         { group: 'exam_nda', n: g(ex, 'NDA') },
-        { group: 'src_BlackBook', n: g(pb, 'Black Book') }
+        { group: 'src_BlackBook', n: g(pb, 'Black Book') },
+        { group: 'src_Allen', n: g(pb, 'Allen') }
       ];
     }
   });
@@ -898,7 +899,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
         var n = function (exam, year) { return p.y[exam + '|' + year] || 0; };
         var ex = function (exam) { return p.e[exam] || 0; };
         var sc = function (pb) { return nn.p[pb] || 0; };
-        return { chapter_code: c.chapter_code, chapter: c.chapter, main_2025: n('JEE Main', 2025), main_2026: n('JEE Main', 2026), adv_2025: n('JEE Advanced', 2025), adv_2026: n('JEE Advanced', 2026), main_all: ex('JEE Main') + ex('AIEEE'), adv_all: ex('JEE Advanced') + ex('IIT'), kcet_all: ex('KCET'), iat_all: ex('IAT'), nda_all: ex('NDA'), src_BlackBook: sc('Black Book'), nonpyq: nn.t, total: p.t + nn.t };
+        return { chapter_code: c.chapter_code, chapter: c.chapter, main_2025: n('JEE Main', 2025), main_2026: n('JEE Main', 2026), adv_2025: n('JEE Advanced', 2025), adv_2026: n('JEE Advanced', 2026), main_all: ex('JEE Main') + ex('AIEEE'), adv_all: ex('JEE Advanced') + ex('IIT'), kcet_all: ex('KCET'), iat_all: ex('IAT'), nda_all: ex('NDA'), src_BlackBook: sc('Black Book'), src_Allen: sc('Allen'), nonpyq: nn.t, total: p.t + nn.t };
       });
     }
   });
@@ -1063,7 +1064,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   }
 
   /* chapter order; PYQs first: JEE Main (with AIEEE), JEE Advanced (with IIT), KCET, each newest first (year, month, day, shift); then practice questions by source: Cengage, Black Book, VMC (then any other), each in sheet order */
-  var PUB_ORDER = ['Black Book'];
+  var PUB_ORDER = ['Black Book', 'Allen'];
   function pubRank(q) { var i = PUB_ORDER.indexOf(q.publisher); return i < 0 ? PUB_ORDER.length : i; }
   function examRank(q) { var e = q.exam; return e === 'JEE Main' || e === 'AIEEE' ? 0 : e === 'JEE Advanced' || e === 'IIT' ? 1 : e === 'KCET' ? 2 : e === 'IAT' ? 3 : e === 'NDA' ? 4 : 5; }
   function cmp(a, b) {
@@ -1422,7 +1423,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   function openSource(v, from) {
     closeYear(); YM_FROM = from || null;
     var rows = VR().filter(function (q) { return q.source !== 'PYQ' && srcOf(q) === v; });
-    var isBB = v === 'Black Book', EX = [1, 2, 3, 4, 5];
+    var isBB = v === 'Black Book' || v === 'Allen', EX = [1, 2, 3, 4, 5];
     var EXN = { 1: 'Ex-1 Single', 2: 'Ex-2 Multi', 3: 'Ex-3 Compr.', 4: 'Ex-4 Match', 5: 'Ex-5 Subj.' };
     var ov = el('div', 'qb-ymodal'); ov.addEventListener('mousedown', function (e) { if (e.target === ov) closeYear(); });
     var box = el('div', 'qb-ybox'); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', v + ' summary');
@@ -1519,7 +1520,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       });
     });
   }
-  var SRC_VALS = ['PYQs', 'Black Book'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET', 'IAT', 'NDA'];
+  var SRC_VALS = ['PYQs', 'Black Book', 'Allen'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET', 'IAT', 'NDA'];
   function srcOf(q) { return q.source === 'PYQ' ? 'PYQs' : (q.publisher || 'Practice'); }
   /* "PYQs" ticked together with a source that has PYQ-tagged questions (Black Book) = the PYQs of that source only */
   var PYQ_PUBS = {};
@@ -1919,7 +1920,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     rows.forEach(function (r) {
       r.flagged = chFl[r.chapter_code] || 0; r.attn = chAt[r.chapter_code] || 0; r.oos = chOos[r.chapter_code] || 0;
       var tr = el('tr'); tr.dataset.key = r.chapter_code;
-      ['chapter_code', 'chapter', 'main_all', 'adv_all', 'kcet_all', 'iat_all', 'nda_all', 'src_BlackBook', 'total', 'oos', 'attn', 'flagged'].forEach(function (k) {
+      ['chapter_code', 'chapter', 'main_all', 'adv_all', 'kcet_all', 'iat_all', 'nda_all', 'src_BlackBook', 'src_Allen', 'total', 'oos', 'attn', 'flagged'].forEach(function (k) {
         var td = el('td', typeof r[k] === 'number' && r[k] === 0 ? 'z' : null, String(r[k]));
         tr.appendChild(td);
       });
