@@ -1023,6 +1023,31 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       }
       target.appendChild(grid); return;
     }
+    /* tables written as | cell | cell | rows (frequency tables and the like): drawn as a real table; the other lines go through the normal path */
+    var isRow = function (l) { return /^\s*\|.*\|\s*$/.test(l); };
+    var tl0 = String(s).split('\n');
+    if (tl0.some(isRow)) {
+      var tbuf = [], trows = [];
+      var tflush = function () { if (tbuf.length) { renderRich(target, tbuf.join('\n'), fig); tbuf = []; } };
+      var tdraw = function () {
+        var tb = el('table', 'qb-tbl');
+        trows.forEach(function (rw) {
+          var mk = rw.replace(/\\\(.*?\\\)|\\\[.*?\\\]/g, function (m) { return m.replace(/\|/g, '\u0003'); });
+          var cells = mk.trim().replace(/^\||\|$/g, '').split('|');
+          if (cells.every(function (c) { return /^\s*:?-{2,}:?\s*$/.test(c); })) return;
+          var tr = document.createElement('tr');
+          cells.forEach(function (c) { var td = document.createElement(tb.rows.length ? 'td' : 'th'); renderRich(td, c.replace(/\u0003/g, '|').trim(), null); tr.appendChild(td); });
+          tb.appendChild(tr);
+        });
+        var wrap = el('div', 'qb-tblw'); wrap.appendChild(tb); target.appendChild(wrap); trows = [];
+      };
+      tl0.forEach(function (l) {
+        if (isRow(l)) { tflush(); trows.push(l); }
+        else { if (trows.length) tdraw(); tbuf.push(l); }
+      });
+      if (trows.length) tdraw(); else tflush();
+      return;
+    }
     var CI = fig && fig.card && fig.card.imgs, prevRow = false;
     String(s).split('\n').forEach(function (line, i) {
       var cm = CI && /^(.*?)\{\{f([1-9])\}\}\s*$/.exec(line);

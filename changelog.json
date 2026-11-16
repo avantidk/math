@@ -1,5 +1,15 @@
 [
   {
+    "v": "912",
+    "date": "17 Nov 2026",
+    "items": [
+      "Allen Do Yourself 1, question 6 is one question again, with all five parts (i) to (v) in it, the five answers listed together, and each part's explanation under its own label.",
+      "Tables inside questions and explanations (frequency tables and similar) are now drawn as real tables instead of rows of '|' characters. This fixes 24 Allen questions and 6 explanations.",
+      "Allen Do Yourself sheets: the shared instruction printed once for a run of questions ('Solve the following equations', 'Prove the following statements', 'If A + B + C = 180°, prove that') is now shown on each of those 53 questions; it had been dropped, and it was also sitting at the end of the previous question's explanation (cleaned).",
+      "Five grouped Functions/Inverse questions that had been left out of the Allen Do Yourself sheets are added (AL-12M13-DY2-11, DY5-7, DY8-8, DY12-5, DY13-8); they take the topic and level of the question before them."
+    ]
+  },
+  {
     "v": "911",
     "date": "17 Nov 2026",
     "items": [
