@@ -1,8 +1,9 @@
 [
   {
-    "v": "875",
+    "v": "876",
     "date": "16 Nov 2026",
     "items": [
+      "Logo text fixed: the top bar and sign-in pages now show the full white and cyan logo (the अंक-IT letters and 'MATHEMATICS' were hard to see). The browser-tab icon is now transparent, without the dark square.",
       "The logo now has a transparent background and is a little larger in the top bar. The Word and PowerPoint downloads also say 'अंक-IT'.",
       "New logo and site icon: the new अंक-IT Mathematics logo is now on the sign-in page, the dashboard header, handouts and the PDF, Word and PowerPoint downloads. The browser-tab and phone home-screen icon is the new symbol from the logo.",
       "The name is now written 'अंक-IT' everywhere (page title, headings, guide, sharing text, payment screen and downloads)."
