@@ -334,7 +334,9 @@
 .qb-fpop .qb-chip{width:100%;min-height:34px;justify-content:flex-start;text-align:left;white-space:nowrap;margin:0}
 .qb-fpop .qb-chip::before{content:"";display:inline-block;width:14px;height:14px;margin-right:8px;border:1.5px solid currentColor;border-radius:3px;vertical-align:-2px;box-sizing:border-box}
 .qb-fpop .qb-chip[aria-pressed=true]::before{content:"\2713";font-size:11px;line-height:11px;text-align:center}
-.qb-chip.qb-samef[aria-pressed=true]{background:#2f6f4f;border-color:#2f6f4f;color:#fff}
+/* Attention and Out of Syllabus are red; every other filter uses the usual blue */
+.qb-fpop .qb-chip.qb-attnf,.qb-fpop .qb-chip.qb-oosonly{color:#b23c27;border-color:color-mix(in srgb,#b23c27 45%,transparent)}
+.qb-fpop .qb-chip.qb-attnf[aria-pressed=true],.qb-fpop .qb-chip.qb-oosonly[aria-pressed=true]{background:#b23c27;border-color:#b23c27;color:#fff}
 @media (max-width:640px){.qb-tools{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* export box: top of the left panel, always visible */
 .qb-sbar .qb-bar{position:sticky;top:0;bottom:auto;margin:0 0 12px;padding:10px 12px;gap:8px 10px}

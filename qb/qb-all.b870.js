@@ -1701,7 +1701,10 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   $('.qb-revall').addEventListener('click', function () { var b = $('.qb-revall'), on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(on)); $('#questions').classList.toggle('rev-all', on); apply(); });
   $('.qb-reset').addEventListener('click', function () {
     ['exam', 'year', 'cls', 'diff', 'type', 'ch', 'tp', 'src'].forEach(function (k) { S[k].clear(); });
-    S.q = ''; S.onlySel = false; S.flag = false; S.attn = false; S.same = false; S.oos = false; $('.qb-search').value = ''; apply();
+    S.q = ''; S.onlySel = false; S.flag = false; S.attn = false; S.same = false; S.oos = false; $('.qb-search').value = '';
+    /* the two view toggles (Show all answers, Hide options) are switched off too */
+    var rv = $('.qb-revall'), ho = $('.qb-hideopts'); rv.setAttribute('aria-pressed', 'false'); $('#questions').classList.remove('rev-all'); ho.setAttribute('aria-pressed', 'false'); ho.textContent = 'Hide options'; $('#questions').classList.remove('hide-opts');
+    apply();
   });
 
   /* ---------- selection ---------- */
@@ -1727,6 +1730,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   }
 
   function updateSelUI() {
+    var osb = $('.qb-onlysel'); if (osb) osb.textContent = 'Show selected (' + S.sel.size + ')';
     var n = S.sel.size;
     $('.qb-nsel').textContent = String(n);
     ['.qb-docx', '.qb-pdf', '.qb-ppt', '.qb-print', '.qb-share', '.qb-savews', '.qb-mktest', '.qb-expbtn'].forEach(function (k) { var b = $(k); if (b) b.disabled = busy || !n; });
@@ -1762,6 +1766,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     $('.qb-attnf').setAttribute('aria-pressed', String(S.attn));
     $('.qb-attnf').textContent = 'Attention (' + attnCount() + ')';
     $('.qb-oosonly').setAttribute('aria-pressed', String(S.oos));
+    $('.qb-oosonly').textContent = 'Show Out of Syllabus (' + oosCount() + ')';
+    $('.qb-onlysel').textContent = 'Show selected (' + S.sel.size + ')';
     (function () { var n = [S.onlySel, S.same, S.oos, S.attn].filter(Boolean).length + ($('.qb-revall').getAttribute('aria-pressed') === 'true' ? 1 : 0) + ($('.qb-hideopts').getAttribute('aria-pressed') === 'true' ? 1 : 0), fb = $('.qb-fbtn'); if (fb) fb.textContent = n ? 'Filter (' + n + ')' : 'Filter'; })();
     Array.prototype.forEach.call(document.querySelectorAll('.qb-oosx button'), function (b) { b.setAttribute('aria-pressed', String((b.dataset.v === 'ex') === S.oosx)); if (b.dataset.v === 'in') b.textContent = 'Include (' + oosCount() + ')'; });
     msBtn.textContent = S.ch.size === 0 ? 'All chapters' : S.ch.size === 1 ? (function () { var c = CHMAP[Array.from(S.ch)[0]]; return c ? c.chapter_code + ' ' + c.chapter : '1 chapter'; })() : S.ch.size + ' chapters';

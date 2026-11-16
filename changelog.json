@@ -1,5 +1,15 @@
 [
   {
+    "v": "909",
+    "date": "17 Nov 2026",
+    "items": [
+      "Filter menu: 'Reset filters' now also switches off 'Show all answers' and 'Hide options'.",
+      "'Attention' and 'Show Out of Syllabus' are shown in red; the other filters stay blue ('Show repeated' is no longer green).",
+      "'Show selected' and 'Show Out of Syllabus' now show their counts, like the others.",
+      "Allen Ex questions checked against the Allen books: answer keys filled in, solutions cleaned, missing figures and tables added, wrong keys corrected."
+    ]
+  },
+  {
     "v": "908",
     "date": "17 Nov 2026",
     "items": [
