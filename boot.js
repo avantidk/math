@@ -24,7 +24,7 @@ function h(tag, props, ...kids) {
 }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 window.AvantiUtil = Object.freeze({ h, esc });
-const BUILD = '887';
+const BUILD = '888';
 const RELEASED = '16 Nov 2026';   /* date of this release, shown in the footer */
 const SB_URL = 'https://usehxhvzhdbcmnmqaxoo.supabase.co';
 const SB_KEY = 'sb_publishable_QQ_N_B6kl416kbGMF0DQtw_9Jg58PoN';
@@ -151,7 +151,7 @@ function fail() {
 async function start() {
   ['topics', 'chapters'].forEach(n => { data[n] = getJson('qb/data/' + n + '.json'); });
   const first = getJson('qb/data/first.json'); first.catch(() => {});
-  const html = window.fetch(QB_HTML).then(r => { if (!r.ok) throw new Error(QB_HTML); return r.text(); });
+  const html = window.fetch(QB_HTML + '?v=' + BUILD).then(r => { if (!r.ok) throw new Error(QB_HTML); return r.text(); });
   const kcss = window.fetch('katex.css').then(r => r.text()).catch(() => null), kjs = katex().catch(() => null);
   /* the big question files start only after the first screen's files are in */
   const gate = Promise.all([first, html, kcss, kjs].map(p => Promise.resolve(p).catch(() => null)));

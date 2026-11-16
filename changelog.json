@@ -1,5 +1,13 @@
 [
   {
+    "v": "888",
+    "date": "16 Nov 2026",
+    "items": [
+      "Question Bank filters are now in this order: Class, Source, Exam, Year, Chapter, Level, Question type, Out of syllabus. Class and Level are dropdowns like the others. On a phone they sit in pairs, Chapter has its own single line, and Out of syllabus sits on one line.",
+      "Chapterwise PYQs (PYQs tab): the order is now Chapter, Exam, Years."
+    ]
+  },
+  {
     "v": "887",
     "date": "16 Nov 2026",
     "items": [

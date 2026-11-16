@@ -1505,7 +1505,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     };
     defs.year.vals = defs.year.vals.slice().sort(function (a, b) { return Number(b) - Number(a); });
     defs.year.label = function (v) { return v; };
-    var DD = { src: 'All sources', exam: 'All exams', year: 'All years', type: 'All question types' };
+    var DD = { cls: 'All classes', src: 'All sources', exam: 'All exams', year: 'All years', diff: 'All levels', type: 'All question types' };
+    defs.diff.label = function (v) { return { L1: 'L1 \u00b7 Easy', L2: 'L2 \u00b7 Medium', L3: 'L3 \u00b7 Hard' }[v] || v; };
     DDS = [];
     $$('.qb-chips[data-f], .qb-dd[data-f]').forEach(function (box) {
       var f = box.dataset.f, d = defs[f];
@@ -1549,7 +1550,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     });
     DDS.push(function () {
       var counts = {};
-      ROWS.forEach(function (q) { if (matches(q, f) && (q.source === 'PYQ' || (f !== 'exam' && f !== 'year'))) { var k = f === 'src' ? srcOf(q) : f === 'exam' ? effExam(q, comboPubs()) : f === 'year' ? String(effYear(q, comboPubs())) : q.type; counts[k] = (counts[k] || 0) + 1; } });
+      ROWS.forEach(function (q) { if (matches(q, f) && (q.source === 'PYQ' || (f !== 'exam' && f !== 'year'))) { var k = f === 'cls' ? String(q.class) : f === 'diff' ? q.difficulty : f === 'src' ? srcOf(q) : f === 'exam' ? effExam(q, comboPubs()) : f === 'year' ? String(effYear(q, comboPubs())) : q.type; counts[k] = (counts[k] || 0) + 1; } });
       d.vals.forEach(function (v) { var b = boxes[v]; b.cb.checked = S[f].has(v); b.n.textContent = String(counts[v] || 0); b.lab.classList.toggle('zero', !counts[v]); });
       var sel = d.vals.filter(function (v) { return S[f].has(v); });
       btn.textContent = sel.length === 0 ? allLabel : sel.length <= 2 ? sel.map(d.label).join(', ') : sel.length + ' selected';

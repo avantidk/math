@@ -126,13 +126,11 @@
   .qb-sbar .qb-frow.qb-toggles>.qb-reset{grid-column:1/-1;background:#1f3a5f;border-color:#1f3a5f;color:#fff;font-weight:600}
   .qb-sbar .qb-frow.qb-toggles>.qb-reset:hover{background:#2a4d7c;border-color:#2a4d7c}
   .qb-sbar .qb-pills{margin-top:6px}
-  /* phone: paired rows in this order: Source | Question type, Exam | Year, Class | Level */
-  .qb-sbar .qb-frow>.qb-fgroup:has(>.qb-chips[data-f=src]){order:1}
-  .qb-sbar .qb-frow>.qb-fgroup:has(>.qb-chips[data-f=type]){order:2}
-  .qb-sbar .qb-frow>.qb-fgroup:has(>.qb-chips[data-f=exam]){order:3}
-  .qb-sbar .qb-frow>.qb-fgroup:has(>.qb-chips[data-f=year]){order:4}
-  .qb-sbar .qb-frow>.qb-fgroup:has(>.qb-chips[data-f=cls]){order:5}
-  .qb-sbar .qb-frow>.qb-fgroup:has(>.qb-chips[data-f=diff]){order:6}
+  /* phone: filters follow the page order in pairs (Class | Source, Exam | Year), Chapter on one line, Level | Type, Out of syllabus on one line */
+  .qb-sbar #chapter-filter .qb-ms-btn{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+  .qb-sbar .qb-frow>.qb-oosg{grid-column:1/-1;display:flex;flex-direction:row;align-items:center;gap:10px}
+  .qb-sbar .qb-frow>.qb-oosg>.cap{white-space:nowrap;flex:none}
+  .qb-sbar .qb-frow>.qb-oosg .qb-oosx{flex:1;min-width:0}
 }
 .qb-dd{min-width:min(100%,12rem);max-width:100%}.qb-dd .qb-ms-panel{width:min(18rem,calc(100vw - 48px))}
 .qb-input{font:inherit;font-size:var(--cds-font-size-body);padding:7px 12px;border:1px solid var(--qb-line);border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg)}
@@ -393,7 +391,7 @@
 .qb-ytable thead th{position:sticky;top:0;background:var(--color-panel)}
 .qb-ytable td.z{color:var(--color-fg-muted)}
 .qb-ytable tr.qb-ytot td{font-weight:600}
-.qb-btn.qb-ibtn{padding:4px 8px;display:inline-flex;align-items:center;justify-content:center}.qb-btn.qb-ibtn:disabled img{opacity:.35}.qb-sbar .qb-frow>.qb-oosg{order:2}.qb-oosx{display:inline-flex;align-self:flex-start;border-radius:999px;border:1px solid var(--qb-line);background:var(--color-bg);overflow:hidden}.qb-oosx button{border:0;background:transparent;font:inherit;font-size:var(--cds-font-size-caption);padding:5px 14px;color:var(--color-fg);cursor:pointer;white-space:nowrap;line-height:inherit}.qb-oosx button[aria-pressed=true]{background:#1f3a5f;color:#fff}.qb-oosx button[data-v=ex][aria-pressed=true]{background:#b23c27}.qb-oosx button:focus-visible{outline:2px solid #1f3a5f;outline-offset:-2px}.qb-sbar .qb-oosx{display:flex!important;width:100%!important;align-self:stretch!important;height:32px!important;min-height:32px!important;box-sizing:border-box!important;margin:0}.qb-sbar .qb-oosx button{flex:1 1 50%;height:100%!important;padding:0 8px!important;font-size:12.5px;line-height:1.2;display:inline-flex;align-items:center;justify-content:center}.qb-sbar .qb-fgroup.qb-oosg{width:100%}.qb-chip.qb-oosf[aria-pressed=true]{background:#c2503a;border-color:#c2503a;color:#fff}.qb-tag.oos{color:#b23c27;border-color:color-mix(in srgb,#b23c27 45%,transparent);background:color-mix(in srgb,#b23c27 10%,transparent);font-weight:600}
+.qb-btn.qb-ibtn{padding:4px 8px;display:inline-flex;align-items:center;justify-content:center}.qb-btn.qb-ibtn:disabled img{opacity:.35}.qb-oosx{display:inline-flex;align-self:flex-start;border-radius:999px;border:1px solid var(--qb-line);background:var(--color-bg);overflow:hidden}.qb-oosx button{border:0;background:transparent;font:inherit;font-size:var(--cds-font-size-caption);padding:5px 14px;color:var(--color-fg);cursor:pointer;white-space:nowrap;line-height:inherit}.qb-oosx button[aria-pressed=true]{background:#1f3a5f;color:#fff}.qb-oosx button[data-v=ex][aria-pressed=true]{background:#b23c27}.qb-oosx button:focus-visible{outline:2px solid #1f3a5f;outline-offset:-2px}.qb-sbar .qb-oosx{display:flex!important;width:100%!important;align-self:stretch!important;height:32px!important;min-height:32px!important;box-sizing:border-box!important;margin:0}.qb-sbar .qb-oosx button{flex:1 1 50%;height:100%!important;padding:0 8px!important;font-size:12.5px;line-height:1.2;display:inline-flex;align-items:center;justify-content:center}.qb-sbar .qb-fgroup.qb-oosg{width:100%}.qb-chip.qb-oosf[aria-pressed=true]{background:#c2503a;border-color:#c2503a;color:#fff}.qb-tag.oos{color:#b23c27;border-color:color-mix(in srgb,#b23c27 45%,transparent);background:color-mix(in srgb,#b23c27 10%,transparent);font-weight:600}
 .qb-trow.h-oos .qb-tile,.qb-trow.h-oos .qb-ytile{cursor:pointer}
 .qb-note{margin:0 0 14px;padding:10px 14px;border-radius:10px;border:1px solid color-mix(in srgb,#d9961a 45%,transparent);background:color-mix(in srgb,#f2b134 14%,transparent);font-size:13px;line-height:1.45;color:var(--color-fg,inherit)}
 .qb-wc-ctl{display:flex;flex-wrap:wrap;gap:10px 22px;margin:6px 0 14px}.qb-wc-g{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.qb-wc-g>span{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-fg-muted);margin-right:4px}
@@ -482,6 +480,10 @@
       <input class="qb-input qb-search" type="search" placeholder="Search question text or question ID" aria-label="Search question text or question ID" style="flex:1;min-width:12rem">
     </div>
     <div class="qb-frow">
+      <div class="qb-fgroup"><span class="cap">Class</span><div class="qb-chips" data-f="cls"></div></div>
+      <div class="qb-fgroup"><span class="cap">Source</span><div class="qb-chips" data-f="src"></div></div>
+      <div class="qb-fgroup"><span class="cap">Exam</span><div class="qb-chips" data-f="exam"></div></div>
+      <div class="qb-fgroup"><span class="cap">Year</span><div class="qb-chips" data-f="year"></div></div>
       <div class="qb-fgroup qb-ms" id="chapter-filter">
         <span class="cap">Chapters (pick one or more)</span>
         <button class="qb-ms-btn" type="button" aria-haspopup="true" aria-expanded="false">All chapters</button>
@@ -506,11 +508,7 @@
           <div class="qb-ms-list" data-source="topics"></div>
         </div>
       </div>
-      <div class="qb-fgroup"><span class="cap">Source</span><div class="qb-chips" data-f="src"></div></div>
-      <div class="qb-fgroup"><span class="cap">Exam</span><div class="qb-chips" data-f="exam"></div></div>
-      <div class="qb-fgroup"><span class="cap">Year</span><div class="qb-chips" data-f="year"></div></div>
-      <div class="qb-fgroup"><span class="cap">Class</span><div class="qb-chips" data-f="cls"></div></div>
-      <div class="qb-fgroup"><span class="cap">Level (L1 easy, L2 medium, L3 hard)</span><div class="qb-chips" data-f="diff"></div></div>
+      <div class="qb-fgroup"><span class="cap">Level</span><div class="qb-chips" data-f="diff"></div></div>
       <div class="qb-fgroup"><span class="cap">Question type</span><div class="qb-chips" data-f="type"></div></div>
       <div class="qb-fgroup qb-oosg"><span class="cap">Out of syllabus</span><span class="qb-oosx" role="group" aria-label="Out of syllabus questions"><button type="button" data-v="in" aria-pressed="true">Include</button><button type="button" data-v="ex" aria-pressed="false">Exclude</button></span></div>
     </div>
