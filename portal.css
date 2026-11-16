@@ -1016,3 +1016,17 @@ html.hv-drag .hv-pages { pointer-events: none; }
 .pt-chpick .pt-combo-btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; }
 .pt-multi-grp { margin: 8px 10px 2px; font: 700 11px var(--font-body, system-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .pt-q2-side select.pt-in, .pt-q2-side .pt-in { max-width: 100%; min-width: 0; }
+
+/* Action bar: always pinned to the bottom of the screen (PC, tablet, phone) */
+.pt-foot, .pt-foot.inline { position: sticky; bottom: 0; z-index: 30; box-shadow: 0 -6px 24px rgba(8,16,40,.12); }
+@media (min-width: 961px) {
+  .pt-wizard { padding-bottom: 84px; }
+  .pt-wizard .pt-q2 { grid-template-columns: 420px minmax(0, 1fr); }
+  .pt-wizard .pt-s1-right { display: contents; }
+  .pt-wizard .pt-s3 { display: flex; flex-direction: column; gap: 16px; align-items: stretch; }
+}
+/* Review: the five points in two lines */
+.pt-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 20px; }
+.pt-sumrow { display: flex; flex-direction: column; gap: 2px; border: 0; padding: 0; min-width: 0; }
+.pt-sumrow > b { overflow-wrap: anywhere; }
+@media (max-width: 640px) { .pt-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

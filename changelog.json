@@ -1,5 +1,13 @@
 [
   {
+    "v": "898",
+    "date": "16 Nov 2026",
+    "items": [
+      "Create Test: the Next / Back / Save bar is always stuck to the bottom of the screen on a PC, tablet and phone.",
+      "Step 2: the filter sidebar is wider. Step 3: the Review box is compact, showing its five points in two lines."
+    ]
+  },
+  {
     "v": "897",
     "date": "16 Nov 2026",
     "items": [

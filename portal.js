@@ -330,7 +330,7 @@ function onboard(root, done) {
   const p = P();
   root.textContent = '';
   root.append(h('div', { class: 'lg' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=897', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=898', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
       p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
@@ -870,7 +870,7 @@ async function pageCreate(arg, r) {
     h('aside', { class: 'pt-q2-side' }, card(h('h2', { text: 'Find questions' }), filt)),
     h('div', { class: 'pt-q2-main' }, card(h('h2', { text: 'Add questions' }), h('p', { class: 'pt-hint', text: 'Tap Add on a question. Only MCQ, MSQ and numerical questions with an answer key can be used.' }), resHead, results, pager)));
   const reviewCard = card(h('h2', { text: 'Review' }), h('div', { class: 'pt-sum', id: 'ctSum' }));
-  const sec3 = h('div', { class: 'pt-step pt-s3' }, reviewCard, h('div', { class: 'pt-s3-act' }),
+  const sec3 = h('div', { class: 'pt-step pt-s3' }, reviewCard,
     card(selHead, selBox, h('div', { class: 'pt-actions' },
       h('button', { type: 'button', class: 'btn', text: 'Save as worksheet', onclick: () => { if (!S.sel.length) { toast('Add questions first'); return; } saveWorksheet(S.sel.map(x => x.id), fTitle.value.trim() || 'Worksheet'); } }),
       S.sel.length && !S.locked ? h('button', { type: 'button', class: 'btn', text: 'Clear all', onclick: async () => { if (await confirmBox('Remove all questions?', 'The selected list will be emptied.', 'Clear', true)) { S.sel = []; drawSel(); drawResults(); drawFoot(); } } }) : null), msg));
@@ -893,22 +893,11 @@ async function pageCreate(arg, r) {
         step === 2 ? h('button', { type: 'button', class: 'btn pri', text: 'Review' + (S.sel.length ? ' (' + S.sel.length + ')' : '') + ' →', onclick: () => goStep(3) }) : null,
         step === 3 ? saveBtn : null));
   }
-  /* PC: the action bar sits in the free space of each step; phones: pinned at the bottom */
-  const wideMq = window.matchMedia ? window.matchMedia('(min-width: 961px)') : null;
-  function placeFoot(n) {
-    const wide = !!(wideMq && wideMq.matches);
-    foot.classList.toggle('inline', wide);
-    if (!wide) wiz.append(foot);
-    else if (n === 1) sec1.querySelector('.pt-s1-right').append(foot);
-    else if (n === 2) sec2.querySelector('.pt-q2-side').append(foot);
-    else sec3.querySelector('.pt-s3-act').append(foot);
-  }
-  if (wideMq && wideMq.addEventListener) wideMq.addEventListener('change', () => placeFoot(step));
   function goStep(n) {
     if (n >= 2) { const e = check1(); if (e) { m1.textContent = e; m1.className = 'pt-msg bad'; n = 1; } else { m1.textContent = ''; } }
     if (n === 3 && !S.sel.length) { toast('Add at least one question first'); n = 2; }
     step = n; secs.forEach((x, i) => { x.hidden = i + 1 !== n; });
-    placeFoot(n);
+    wiz.append(foot);
     stepper.textContent = '';
     NAMES.forEach((t, i) => stepper.append(h('li', {}, h('button', { type: 'button', class: 'pt-stp' + (i + 1 === n ? ' on' : '') + (i + 1 < n ? ' done' : ''), 'aria-current': i + 1 === n ? 'step' : null, onclick: () => goStep(i + 1) }, h('span', { class: 'pt-stn', text: i + 1 < n ? '✓' : String(i + 1) }), h('span', { class: 'pt-stt', text: t })))));
     if (n === 2) drawResults(); if (n === 3) { drawSel(); drawSum(); } drawFoot();
