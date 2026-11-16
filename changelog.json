@@ -1,5 +1,12 @@
 [
   {
+    "v": "889",
+    "date": "16 Nov 2026",
+    "items": [
+      "Sign-in screen: the logo now uses dark letters, so it is readable on the white background."
+    ]
+  },
+  {
     "v": "888",
     "date": "16 Nov 2026",
     "items": [
