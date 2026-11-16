@@ -276,7 +276,7 @@ function onboard(root, done) {
   const p = P();
   root.textContent = '';
   root.append(h('div', { class: 'lg' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=877', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=878', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
       p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
@@ -1440,7 +1440,8 @@ async function pageHelp() {
     ['My school, class or name is wrong.', 'Students: ask your teacher to correct it. Teachers: email us and we will change the school.'],
     ['A question, answer or figure is wrong.', 'Email the question ID (shown in the question menu) and what should be corrected.']];
   show(head('Help & Support', 'Found a problem or have a question? Write to us and we will get back to you.'),
-    h('div', { class: 'pt-grid2' },
+    h('div', { class: 'pt-grid2 pt-helpgrid' },
+      h('div', { class: 'pt-stack' },
       card(h('h2', { text: 'Contact' }),
         h('div', { class: 'pt-contact' }, h('span', { class: 'pt-cic', text: '✉' }), h('div', {}, h('span', { class: 'pt-hint', text: 'Email' }), h('a', { href: 'mailto:' + c.email, text: c.email }))),
         c.phone ? h('div', { class: 'pt-contact' }, h('span', { class: 'pt-cic', text: '☎' }), h('div', {}, h('span', { class: 'pt-hint', text: 'Mobile' }), h('a', { href: 'tel:+' + wa, text: c.phone }))) : null,
@@ -1451,7 +1452,7 @@ async function pageHelp() {
           wa ? h('a', { class: 'btn', href: 'https://wa.me/' + wa + '?text=' + encodeURIComponent('Hello, I need help with the Mathematics Dashboard. ' + who), target: '_blank', rel: 'noopener', text: 'WhatsApp' }) : null,
           c.phone ? h('a', { class: 'btn', href: 'tel:+' + wa, text: '☎ Call' }) : null),
         h('p', { class: 'pt-hint', text: 'The email opens with your account details filled in, so we can help faster.' })),
-      card(h('h2', { text: 'Common questions' }), h('div', { class: 'pt-faq' }, faq.map(([q, a]) => h('details', {}, h('summary', { text: q }), h('p', { text: a }))))),
+      card(h('h2', { text: 'Common questions' }), h('div', { class: 'pt-faq' }, faq.map(([q, a]) => h('details', {}, h('summary', { text: q }), h('p', { text: a })))))),
     planCompareCard(),
     window.AvantiBoot ? h('p', { class: 'pt-hver' }, h('button', { type: 'button', class: 'pt-hver-b', title: 'See what changed in each version', onclick: showChangelog },
       'Website v' + window.AvantiBoot.build + ' · ' + window.AvantiBoot.released), h('span', { text: ' · tap to see what changed' })) : null));

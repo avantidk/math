@@ -898,3 +898,9 @@ html body .tb-head .tb-title { position: absolute; width: 1px; height: 1px; marg
 html body .tb-head .tb-sub { display: none; }
 html body .tb-logo { height: 68px; top: 4px; }
 @media (max-width: 760px) { html body .tb-logo { height: 52px; } }
+
+/* Help page: Contact above Common questions on the left, wider plan table on the right */
+.pt-stack { display: grid; gap: 16px; align-content: start; }
+.pt-helpgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); }
+@media (max-width: 900px) { .pt-helpgrid { grid-template-columns: 1fr; } }
+.pt-helpgrid .mb-table td:first-child, .pt-helpgrid table td:first-child { min-width: 220px; }
