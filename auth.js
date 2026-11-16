@@ -176,7 +176,7 @@ function loginPage(msg) {
     h('p', { class: 'lgx-free' }, h('b', { text: 'Start free. ' }), 'Premium from ₹299 a year adds PDF downloads, all-India ranks and more. Avanti students get Premium free.'));
   root.append(h('div', { class: 'lg lg-split' },
     h('main', { class: 'lg-main' },
-      h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=881', alt: 'अंक-IT', width: 139, height: 52 }),
+      h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=882', alt: 'अंक-IT', width: 139, height: 52 }),
         h('h1', { text: 'Mathematics Dashboard' }), h('p', { text: "JEE, CET, NDA, IAT · PYQ's, DPP's, Handouts and tests" })),
       testLink ? h('p', { class: 'lg-note', text: 'Sign in to open your test.' }) : null,
       h('section', { class: 'lg-card' },
@@ -208,7 +208,7 @@ function rolePage() {
   const root = $('#auth'); root.hidden = false; root.textContent = ''; $('#app').hidden = true;
   const err = h('p', { class: 'lg-err', role: 'alert', hidden: true });
   const pick = r => async () => { try { await rpc('set_my_role', { p_role: r }); await start(); } catch (e) { err.textContent = e.message; err.hidden = false; } };
-  root.append(h('div', { class: 'lg' }, h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=881', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' })),
+  root.append(h('div', { class: 'lg' }, h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=882', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' })),
     h('main', { class: 'lg-main' }, h('section', { class: 'lg-card' }, h('h2', { text: 'Are you a teacher or a student?' }), h('p', { class: 'lg-sub', text: 'This is saved once and decides what you see.' }),
       h('div', { class: 'lg-two' }, h('button', { type: 'button', class: 'lg-btn', text: 'I am a Teacher', onclick: pick('teacher') }), h('button', { type: 'button', class: 'lg-btn', text: 'I am a Student', onclick: pick('student') })), err))));
 }
