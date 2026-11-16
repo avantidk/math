@@ -1,5 +1,14 @@
 [
   {
+    "v": "918",
+    "date": "17 Nov 2026",
+    "items": [
+      "Allen Functions Do Yourself 11 (AL-12M13-DY11-1 to DY11-8) and Do Yourself 1, 5, 8, 9 questions that were shown as short fragments (for example 'f : N → N, f(n) = (n + 1)/2 (odd)') are rebuilt from the PDF: full wording and the four options.",
+      "14 more Allen questions whose options (A) to (D) were written inside the question text are now proper multiple-choice questions.",
+      "Fixed damaged maths symbols in 54 explanations and questions (binomial coefficients such as C(30, 15), mod, divides, not-equal, determinants and the like were shown as broken text), and a stray backslash that showed in answers such as 'a = 3,\\ b = 4' and in percentages."
+    ]
+  },
+  {
     "v": "917",
     "date": "17 Nov 2026",
     "items": [
