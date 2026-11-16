@@ -1,5 +1,13 @@
 [
   {
+    "v": "906",
+    "date": "17 Nov 2026",
+    "items": [
+      "Allen is now two sources in the Source filter: 'Allen Ex' (2,620 exercise questions) and 'Allen DY' (2,918 Do Yourself questions). The chapter-wise count table has a column for each.",
+      "Match-the-following questions: the heading now says only 'List I / List II' or 'Column I / Column II' (whichever the question uses), and the extra 'List-I' / 'List-II' line that was repeated at the top of the columns is removed."
+    ]
+  },
+  {
     "v": "905",
     "date": "17 Nov 2026",
     "items": [

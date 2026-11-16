@@ -875,7 +875,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
         { group: 'exam_iat', n: g(ex, 'IAT') },
         { group: 'exam_nda', n: g(ex, 'NDA') },
         { group: 'src_BlackBook', n: g(pb, 'Black Book') },
-        { group: 'src_Allen', n: g(pb, 'Allen') }
+        { group: 'src_AllenEx', n: g(pb, 'Allen Ex') },
+        { group: 'src_AllenDY', n: g(pb, 'Allen DY') }
       ];
     }
   });
@@ -899,7 +900,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
         var n = function (exam, year) { return p.y[exam + '|' + year] || 0; };
         var ex = function (exam) { return p.e[exam] || 0; };
         var sc = function (pb) { return nn.p[pb] || 0; };
-        return { chapter_code: c.chapter_code, chapter: c.chapter, main_2025: n('JEE Main', 2025), main_2026: n('JEE Main', 2026), adv_2025: n('JEE Advanced', 2025), adv_2026: n('JEE Advanced', 2026), main_all: ex('JEE Main') + ex('AIEEE'), adv_all: ex('JEE Advanced') + ex('IIT'), kcet_all: ex('KCET'), iat_all: ex('IAT'), nda_all: ex('NDA'), src_BlackBook: sc('Black Book'), src_Allen: sc('Allen'), nonpyq: nn.t, total: p.t + nn.t };
+        return { chapter_code: c.chapter_code, chapter: c.chapter, main_2025: n('JEE Main', 2025), main_2026: n('JEE Main', 2026), adv_2025: n('JEE Advanced', 2025), adv_2026: n('JEE Advanced', 2026), main_all: ex('JEE Main') + ex('AIEEE'), adv_all: ex('JEE Advanced') + ex('IIT'), kcet_all: ex('KCET'), iat_all: ex('IAT'), nda_all: ex('NDA'), src_BlackBook: sc('Black Book'), src_AllenEx: sc('Allen Ex'), src_AllenDY: sc('Allen DY'), nonpyq: nn.t, total: p.t + nn.t };
       });
     }
   });
@@ -1007,13 +1008,14 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     if (fig) s = String(s).replace(/\s*\{\{figure\}\}\s*/, '\n{{figure}}\n');
     /* matching questions: Column I and Column II side by side, row by row */
     var ls = String(s).split('\n'), c1 = -1, c2 = -1;
-    ls.forEach(function (l, k) { if (c1 < 0 && /^\s*Column[\s-]*I\s*:?\s*$/i.test(l)) c1 = k; else if (c1 >= 0 && c2 < 0 && /^\s*Column[\s-]*II\s*:?\s*$/i.test(l)) c2 = k; });
+    var mw = 'Column';
+    ls.forEach(function (l, k) { var m1 = /^\s*(Column|List)[\s-]*I\s*:?\s*$/i.exec(l); if (c1 < 0 && m1) { c1 = k; mw = /^list/i.test(m1[1]) ? 'List' : 'Column'; } else if (c1 >= 0 && c2 < 0 && /^\s*(Column|List)[\s-]*II\s*:?\s*$/i.test(l)) c2 = k; });
     if (c1 >= 0 && c2 > c1) {
       if (c1 > 0) renderRich(target, ls.slice(0, c1).join('\n'), fig);
       var colA = ls.slice(c1 + 1, c2).filter(function (l) { return l.trim(); }), colB = ls.slice(c2 + 1).filter(function (l) { return l.trim(); });
       var grid = el('div', 'qb-match'); var wideB = colB.some(function (l) { return String(l).replace(/\\\(|\\\)|\\[a-z]+|[{}^_ ]/gi, '').length > 40; });
       grid.style.cssText = 'display:grid;grid-template-columns:' + (wideB ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,3fr) minmax(140px,1fr)') + ';column-gap:40px;row-gap:0;margin:10px 0 6px;align-items:stretch';
-      var h1 = el('div', 'qb-mh', 'Column I'), h2 = el('div', 'qb-mh', 'Column II'); h1.style.fontWeight = h2.style.fontWeight = '700'; h1.style.paddingBottom = h2.style.paddingBottom = '6px'; grid.appendChild(h1); grid.appendChild(h2);
+      var h1 = el('div', 'qb-mh', mw + ' I'), h2 = el('div', 'qb-mh', mw + ' II'); h1.style.fontWeight = h2.style.fontWeight = '700'; h1.style.paddingBottom = h2.style.paddingBottom = '6px'; grid.appendChild(h1); grid.appendChild(h2);
       for (var r = 0; r < Math.max(colA.length, colB.length); r++) {
         [colA[r], colB[r]].forEach(function (ln) { var cell = el('div', 'qb-mc'); cell.style.cssText = 'padding:10px 0;border-top:1px solid var(--qb-line, rgba(128,128,128,.22));min-width:0;display:flex;flex-direction:column;justify-content:center'; var inner = el('div', 'qb-mci'); cell.appendChild(inner); if (ln != null) renderRich(inner, ln, fig); grid.appendChild(cell); });
       }
@@ -1064,7 +1066,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   }
 
   /* chapter order; PYQs first: JEE Main (with AIEEE), JEE Advanced (with IIT), KCET, each newest first (year, month, day, shift); then practice questions by source: Cengage, Black Book, VMC (then any other), each in sheet order */
-  var PUB_ORDER = ['Black Book', 'Allen'];
+  var PUB_ORDER = ['Black Book', 'Allen Ex', 'Allen DY'];
   function pubRank(q) { var i = PUB_ORDER.indexOf(q.publisher); return i < 0 ? PUB_ORDER.length : i; }
   function examRank(q) { var e = q.exam; return e === 'JEE Main' || e === 'AIEEE' ? 0 : e === 'JEE Advanced' || e === 'IIT' ? 1 : e === 'KCET' ? 2 : e === 'IAT' ? 3 : e === 'NDA' ? 4 : 5; }
   function cmp(a, b) {
@@ -1423,7 +1425,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   function openSource(v, from) {
     closeYear(); YM_FROM = from || null;
     var rows = VR().filter(function (q) { return q.source !== 'PYQ' && srcOf(q) === v; });
-    var isBB = v === 'Black Book' || v === 'Allen', EX = [1, 2, 3, 4, 5];
+    var isBB = v === 'Black Book' || v === 'Allen Ex' || v === 'Allen DY', EX = [1, 2, 3, 4, 5];
     var EXN = { 1: 'Ex-1 Single', 2: 'Ex-2 Multi', 3: 'Ex-3 Compr.', 4: 'Ex-4 Match', 5: 'Ex-5 Subj.' };
     var ov = el('div', 'qb-ymodal'); ov.addEventListener('mousedown', function (e) { if (e.target === ov) closeYear(); });
     var box = el('div', 'qb-ybox'); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', v + ' summary');
@@ -1520,9 +1522,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       });
     });
   }
-  var SRC_VALS = ['PYQs', 'Black Book', 'Allen'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET', 'IAT', 'NDA'];
-  /* card label: Allen questions say which sheet they come from (the Source filter stays 'Allen') */
-  function srcLabel(q) { var p = q.publisher || 'Practice'; return p === 'Allen' ? (/^AL-[^-]+-DY/.test(String(q.id)) ? 'Allen DY' : 'Allen Ex') : p; }
+  var SRC_VALS = ['PYQs', 'Black Book', 'Allen Ex', 'Allen DY'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET', 'IAT', 'NDA'];
+  function srcLabel(q) { return q.publisher || 'Practice'; }
   function srcOf(q) { return q.source === 'PYQ' ? 'PYQs' : (q.publisher || 'Practice'); }
   /* "PYQs" ticked together with a source that has PYQ-tagged questions (Black Book) = the PYQs of that source only */
   var PYQ_PUBS = {};
@@ -1922,7 +1923,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     rows.forEach(function (r) {
       r.flagged = chFl[r.chapter_code] || 0; r.attn = chAt[r.chapter_code] || 0; r.oos = chOos[r.chapter_code] || 0;
       var tr = el('tr'); tr.dataset.key = r.chapter_code;
-      ['chapter_code', 'chapter', 'main_all', 'adv_all', 'kcet_all', 'iat_all', 'nda_all', 'src_BlackBook', 'src_Allen', 'total', 'oos', 'attn', 'flagged'].forEach(function (k) {
+      ['chapter_code', 'chapter', 'main_all', 'adv_all', 'kcet_all', 'iat_all', 'nda_all', 'src_BlackBook', 'src_AllenEx', 'src_AllenDY', 'total', 'oos', 'attn', 'flagged'].forEach(function (k) {
         var td = el('td', typeof r[k] === 'number' && r[k] === 0 ? 'z' : null, String(r[k]));
         tr.appendChild(td);
       });
