@@ -1,5 +1,13 @@
 [
   {
+    "v": "886",
+    "date": "16 Nov 2026",
+    "items": [
+      "Handout viewer fixes: Zoom in now works, and the page-number box is readable and accepts typing (type a number, press Enter).",
+      "New 'Fit to screen' button that shows the whole page at once. The tool order is now: fit to screen, full screen, download, share."
+    ]
+  },
+  {
     "v": "885",
     "date": "16 Nov 2026",
     "items": [

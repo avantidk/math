@@ -946,3 +946,9 @@ html.hv-drag .hv-pages { pointer-events: none; }
 @media (max-width: 760px) { .hv .hv-tools { order: 3; flex: 1 0 100%; justify-content: center; margin-left: 0; } }
 .hv:fullscreen { width: 100vw !important; height: 100vh; inset: 0; }
 .hv:fullscreen .hv-pages { padding-inline: 12px; }
+
+/* Zoom must be allowed to exceed the panel width (the pages scroll sideways); page box readable */
+.hv .hv-pages .hv-slot { max-width: none; }
+.hv .hv-pages .hv-page { max-width: none; }
+.hv .hv-tools .hv-pin { background: #fff !important; color: #14295c !important; -webkit-text-fill-color: #14295c; caret-color: #14295c; opacity: 1; font-weight: 700; user-select: text; -webkit-user-select: text; pointer-events: auto; }
+.hv .hv-pages { overflow: auto; }
