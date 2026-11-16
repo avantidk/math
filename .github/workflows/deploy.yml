@@ -1,0 +1,51 @@
+# Publishes the site to GitHub Pages, but only when the guard passes.
+# One-time setting: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+name: Deploy site
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Guard (stops old artifact code from going live)
+        run: bash .github/scripts/guard.sh
+      # The website reads its questions from Supabase: never publish it while the bucket is empty.
+      - name: Check the content is in Supabase
+        env:
+          SUPABASE_URL: https://usehxhvzhdbcmnmqaxoo.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Add the repository secret SUPABASE_SERVICE_ROLE_KEY and run 'Upload content to Supabase' before publishing."; exit 1
+          fi
+          python3 .github/scripts/storage.py check qb/data/first.json
+          python3 .github/scripts/storage.py check qb/data/pyq.json
+      # Only the website files are published. The private content (content/), the database files, scripts and notes
+      # never go to GitHub Pages: questions, solutions and handouts are served from Supabase with plan checks.
+      - name: Collect the website files
+        run: |
+          mkdir _site
+          rsync -a --exclude '.git' --exclude '.github' --exclude 'content' --exclude 'supabase' --exclude '_site' \
+                --exclude '*.md' --exclude '*.py' --exclude '*.sh' ./ _site/
+          if find _site -name 'sol*.json' -o -name 'pyq.json' -o -name 'nonpyq.json' -o -name 'must.json' -o -name '*.pdf' -o -path '*/qb/data*' | grep -q .; then
+            echo "::error::Private content found in the website files. It must stay in content/ (Supabase)."; exit 1
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

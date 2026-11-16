@@ -1,0 +1,15 @@
+# Runs the site guard on every push and pull request. Make "guard" a required check on main
+# (Settings → Rules) so a commit that fails it can never land on main.
+name: guard
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check that this is the current site, not the old artifact version
+        run: bash .github/scripts/guard.sh

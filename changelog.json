@@ -1,0 +1,595 @@
+[
+  {
+    "v": "870",
+    "date": "16 Nov 2026",
+    "items": [
+      "Security: questions, answers, solutions, Must Solve and handouts are no longer files on the website. They are kept in a private Supabase store and the server checks every request: signed in, the right plan, and not while that person is writing a test.",
+      "Solutions now download one chapter at a time, only when an explanation is opened, instead of a 15 MB file for every visitor. The question bank code is 60% smaller for everyone.",
+      "Downloads: Word, PowerPoint, sharing and copying are for the admin only (the server sends that code only to the admin). Premium members get PDF downloads and printing. Free accounts view only. Handouts are part of Premium.",
+      "Sign-in: only students ticked as Avanti students use Avanti ID + date of birth. Every other student signs in with Google, using the email their teacher added. Stronger limits on wrong tries; an Avanti student's date of birth is visible to the admin only.",
+      "School approval for everyone: teachers, Avanti staff and students choose their school once and the admin approves it (and any later change). Until then a teacher cannot see or add students, make tests or use the chat, and a student sees no tests. Approvals now lists waiting students too.",
+      "Tests: correct answers in a report appear 3 hours after the student started (teachers see them at once). Test questions no longer carry question-bank numbers, so they cannot be looked up.",
+      "Teachers' chat: messages are saved by the server with the sender's real name (nobody can pose as someone else), with a limit on how fast messages can be sent; they are deleted after 24 hours.",
+      "Staff question flags are now shared through the database. Fixed: a page that was still loading could replace the page you had just opened.",
+      "All libraries (KaTeX, PDF, Word, PowerPoint, Excel readers) are served from this website, and a strict browser security policy blocks code from other sites. Old unused copies of files were removed."
+    ]
+  },
+  {
+    "v": "869",
+    "date": "15 Nov 2026",
+    "items": [
+      "Straight Lines (11M9): 34 figures redrawn to scale as clean diagrams. Wrong figures corrected (AIEEE200505080P95, JM20210901274, AIEEE200704290P86, JM20250124215, JM20260121115, NDA20240901058, BB-17-1-003, BB-17-1-026, BB-17-1-048, BB-17-5-005), clipped ones completed (JM20250408204, JM20250122224, JM20200906109), leftover titles such as 'Q156:' removed, and overlapping labels moved."
+    ]
+  },
+  {
+    "v": "868",
+    "date": "15 Nov 2026",
+    "items": [
+      "Straight Lines (11M9): all 389 questions and solutions reviewed (text part; figures follow).",
+      "Answer keys: JA20130000111M9Q08 is now a multiple-answer question with answer (A), (C), as in the official JEE Advanced 2013 key. IIT200005070Q04: the stated answer now gives the correct ranges.",
+      "Questions corrected: JM20220725183 (AB = √29/3), NDA20240901064 (data added), JM20260122207 (question completed), NDA headers removed, typos.",
+      "Solutions: 22 maths errors fixed (e.g. wrong vertices in JM201901092P75, JM201901102P75, BB-17-1-010; wrong sign or identity in JM20210318198, JM20240130108, IIT200804132Q05), NDA20240901063/064 explain why the official NDA key is wrong, notes and references to other questions removed, final answer lines added."
+    ]
+  },
+  {
+    "v": "867",
+    "date": "15 Nov 2026",
+    "items": [
+      "Top bar: the words 'Mathematics Dashboard' and the subject line are removed. Only the logo is shown, and it is a little bigger.",
+      "PYQ sheets (on screen, PDF and Word) now show a 'PYQ' badge at the top right under 'Mathematics', in the place where DPP sheets show 'DPP'."
+    ]
+  },
+  {
+    "v": "866",
+    "date": "15 Nov 2026",
+    "items": [
+      "Premium students added by the admin now get dated Premium: 2 years for Class 11 and 1 year for Class 12 or Dropper, counted from the day they are added. It switches to Free by itself when the time ends. This applies to one-by-one adds and Excel uploads, and the admin's plan editor uses the same default for students.",
+      "Only the admin can add Premium students. If any other teacher tries (for example a plan column with 'premium' in their Excel file), those rows are rejected with 'Only the admin can add Premium students' and the student is not added.",
+      "Needs supabase/schema.sql to be run again in Supabase."
+    ]
+  },
+  {
+    "v": "865",
+    "date": "15 Nov 2026",
+    "items": [
+      "Students you add are now always Free, unless the admin chooses otherwise. Being Avanti staff no longer makes a student Premium. When the admin adds a student (one by one or by Excel), a Plan choice (Free student or Premium student) is shown; an optional plan column in the Excel file can set it per row.",
+      "Admin: Teacher approvals → Add a teacher. Enter the Google email, name, school and plan (Free, Premium until a date, or Avanti). The school is approved and the plan applies from their first sign-in (or at once if they already have an account). Teachers added but not signed in yet are listed, and the invite can be cancelled.",
+      "Needs supabase/schema.sql to be run again in Supabase."
+    ]
+  },
+  {
+    "v": "864",
+    "date": "15 Nov 2026",
+    "items": [
+      "Admin: Add a student now has a School field (search the list, or choose Other and type a new school), so students are no longer added to your own school by default. Teachers still add to their own school.",
+      "Admin: Bulk upload has a school picker, and the template has an optional school column, so one Excel file can add students to several schools. The picker is used for rows with no school."
+    ]
+  },
+  {
+    "v": "863",
+    "date": "15 Nov 2026",
+    "items": [
+      "Date of birth is now stored as a normal, readable date (no more hash). Students still sign in with their Student ID and date of birth, and the date is compared directly.",
+      "Bulk upload (Excel): for a Student ID already in your school, the date of birth in the file is now saved. Upload your sheet once and every student's date of birth appears in My Students. The admin can do this for any school.",
+      "Needs supabase/schema.sql to be run again in Supabase. Students who only had the old hash can still sign in until their date is uploaded or they sign in once."
+    ]
+  },
+  {
+    "v": "862",
+    "date": "15 Nov 2026",
+    "items": [
+      "Logo: the line under 'अंक-IT' now says just 'Mathematics', and the logo is bigger at the top of the dashboard and on the login pages."
+    ]
+  },
+  {
+    "v": "861",
+    "date": "15 Nov 2026",
+    "items": [
+      "New logo: the Avanti logo and name are replaced everywhere by the round Unkganit icon with 'अंक-IT' in Hindi and 'Mathematics Dashboard' below it. This covers the top of the dashboard, the login and welcome pages, and the logo on PDF, Word and PowerPoint downloads.",
+      "The name 'Avanti Fellows' is now 'Unkganit' on the site, in the guide, in downloads and in the page description. The browser-tab icon is the new round icon."
+    ]
+  },
+  {
+    "v": "860",
+    "date": "15 Nov 2026",
+    "items": [
+      "New site icon with no text: an open book with a rising graph line, in navy and gold. The browser tab still reads 'Mathematics Dashboard | Unkganit'."
+    ]
+  },
+  {
+    "v": "859",
+    "date": "15 Nov 2026",
+    "items": [
+      "Syllabus Priority now compares JEE Main and JEE Advanced side by side, using past-year questions from 2013 onwards. It shows both totals, a year-by-year chart, a chapter comparison (share of Main, share of Advanced, rank in each, which exam leans on the chapter) that you can sort four ways, and per-chapter bars for Main and Advanced. Subtopic priorities are counted from 2013.",
+      "The Syllabus Priority item in the overview menu now stays highlighted after you click it, like the other three. Chapter Weightage also has a new 'Since 2013' period.",
+      "Browser tab: the title is now 'Mathematics Dashboard | Unkganit' and the site has a new अंक-IT icon (also used when saved to a phone home screen).",
+      "Admin: Teacher approvals → Edit now lets you change a teacher's plan (Free, Premium until a date, or Avanti). My Students → Edit lets you do the same for a student, and the list shows each student's plan. Avanti staff accounts keep full access.",
+      "Help & Support now shows a Free and Premium comparison to everyone (teachers and students), using the same list as the Membership page.",
+      "Date of birth: the owner/admin sees it for every school and a teacher sees it for students of their own school only (after Avanti approves the school). Students without a saved date now say 'Not saved yet', with a note on how to fill it (upload the class file again, press Edit, or they sign in once). Needs supabase/schema.sql to be run again."
+    ]
+  },
+  {
+    "v": "858",
+    "date": "15 Nov 2026",
+    "items": [
+      "JM20260406222: the question now asks for 9a₉/a₁₀ (a₁₂ did not exist); answer 30 with a full solution.",
+      "JM20240130288: marked as a bonus question. Option (D) is now 'None of these' and is the answer; the solution shows why the given data cannot occur."
+    ]
+  },
+  {
+    "v": "857",
+    "date": "15 Nov 2026",
+    "items": [
+      "Binomial Theorem (11M8): all 372 questions and solutions reviewed. Answer keys unchanged.",
+      "Questions corrected so they match their official answers: JM20240405281 (expression of the actual paper), JM202206251100 (bracket up to 11 terms), JM20260408208 (factor 52), JM20260404109 (coefficient of x³), JM20260405123 ((1/x³ − x⁴)ⁿ), BB-14-2-004 (asks for the values of r). Lost superscripts in ⁿCᵣ, NDA headers, typos fixed.",
+      "Solutions: maths errors fixed (e.g. JM201901122P64, JM202301311101, JM202206242101, JM20220730214, AIEEE200804270P17), notes and references to other questions removed, missing working and final answer lines added, binomials and mod written properly."
+    ]
+  },
+  {
+    "v": "856",
+    "date": "15 Nov 2026",
+    "items": [
+      "BB-9-2-002: new question (number of possible integers in the range of (a²+b²+c²)/(ab+bc+ca)). The solution proves 1 < y < 11/8, so the answer is 0 (option A), and explains why the quick bound y ≤ 4 is too loose.",
+      "BB-9-2-013: option (c) is tan 2y = 2√2, so the answer is now (a), (b), (c); solution completed.",
+      "BB-9-4-003: part (B) now uses the factor (a₂ − a₃). BB-9-1-078: options (b), (d) are products (7·2)^(1/7) and (3·10)^(1/3). KCET20190429084: option (A) is 9¹⁰."
+    ]
+  },
+  {
+    "v": "855",
+    "date": "15 Nov 2026",
+    "items": [
+      "Sequences and Series (11M6): all 589 questions and solutions reviewed. Fixed 139 questions and 252 solutions.",
+      "Answer keys changed: BB-9-2-007 is now (b) only (δ = −32; a = −2 gives no real ratio). BB-9-5-012 now asks for p + q (answer 5). BB-9-2-005 option (d) is back to the book's 2/5, so (b), (c) stay correct.",
+      "Questions corrected: JM20250404208 (the series of the actual paper, 4r/(4 + 3r² + r⁴)), AIEEE201205190P82 (series starts 4/3), IIT200604090Q35 (n ≥ n₀), JM20210826D120 (x^(2^100), option D), JM20240406279 (sum of areas Q), lost ordinals ('the 4th, 6th and 8th terms'), garbled text, NDA headers and editorial notes removed.",
+      "Solutions corrected: maths errors in 23 solutions (e.g. JM202301292107, JM202304121102, JM20240405285, JA20200000111M6Q14, BB-9-1-017, BB-9-4-003), references to other questions replaced by full working, final answer lines added, formatting (ordinals, gcd/lcm, mod, binomials, line breaks). Two figures redrawn (JM20240408299, JM20240406279)."
+    ]
+  },
+  {
+    "v": "854",
+    "date": "15 Nov 2026",
+    "items": [
+      "JM202304121101: answer is now 944. The solution counts the numbers by inclusion-exclusion and explains why 1260 (the NTA key) is an overcount, with examples of numbers that 1260 counts two or three times (e.g. 123123123).",
+      "BB-13-5-009: figure redrawn with columns of 3, 2 and 3 targets, matching the solution."
+    ]
+  },
+  {
+    "v": "853",
+    "date": "15 Nov 2026",
+    "items": [
+      "Permutations and Combinations (11M7): all 384 questions and solutions reviewed. Answer keys unchanged.",
+      "Questions fixed: lost superscripts in nCr / nPr (e.g. JM20240406278, JM202301252108, AIEEE200305110P109), JM20240405283 (word is BHBJO), JM20250403125 (m·n·10ⁿ), BB-13-1-016 (AAAABBBC), BB-13-2-003 (options 11 × 6! …, figure now has the 8 boxes the answer needs), BB-13-2-004 (products a×b + c×d), KCET20230520076 (men choose from chairs 7 to 10), paper headers removed from 4 NDA items, backticks and typos.",
+      "Solutions corrected: JM20210318253, JM20220729279, JM20230130172, JM201904101P61, BB-13-1-009, BB-13-1-028, BB-13-1-031, BB-13-5-005, BB-13-5-011, KCET20230520076, and others; hedging notes and second answers removed; missing explanations and final answers added.",
+      "Formatting: binomials now shown as proper binomials instead of column matrices, one style for nCr, mod / lcm / gcd written properly, ordinals and numbers like 10,000 fixed, sentences no longer split by equations. Two NDA solution diagrams redrawn so their labels are not cut off."
+    ]
+  },
+  {
+    "v": "852",
+    "date": "15 Nov 2026",
+    "items": [
+      "My Students: the teachers of the school are now listed first (name, plan, tests, joined, approval), then the students. Admins see this for the school they choose; Premium teachers see it for their own school.",
+      "Teacher approvals (admin only): a new All teachers list with every teacher (also those who have not chosen a school yet and Avanti staff), a search box, and an Edit button to change a teacher's name and school.",
+      "Needs the updated supabase/schema.sql to be run once in the Supabase SQL Editor. Until then the teacher list in My Students is simply left out."
+    ]
+  },
+  {
+    "v": "851",
+    "date": "15 Nov 2026",
+    "items": [
+      "BB-11-2-004: solution rewritten with clear steps, including the reason the two diagonals must be diameters, and the (A), (C), (D) conclusion. Answer unchanged."
+    ]
+  },
+  {
+    "v": "850",
+    "date": "15 Nov 2026",
+    "items": [
+      "Complex Numbers (11M5), maths review complete (all 378 questions and solutions checked).",
+      "Questions fixed: JM20260405202 (equation is z² + 4z − (1+12i) = 0), IIT201104102Q53 (ω = e^{i2π/3}), NDA20240901042 (condition now stated in the question), JM20190110158 (θ defined), JM20250408202 (no blank).",
+      "Solutions fixed: JA20220000211M5Q11 (correct values for each option), JM20220626232 (terms a₁…a₆), JM20220729226 (equality case), IIT200804131Q23 (ranges), JM20200902113 (full working), BB-11-5-007 (stray text). All answer keys unchanged except BB-11-1-003 (A, B, C, D, in 849)."
+    ]
+  },
+  {
+    "v": "849",
+    "date": "15 Nov 2026",
+    "items": [
+      "Complex Numbers (11M5), first half of the maths review: JM20200107102 (circle equation and diameter), JM20240201121 (the two points z1, z2) corrected in the solutions; the answers stay the same.",
+      "BB-11-3-001 / BB-11-3-002: condition (ii) was impossible as typed and is now f(z) + conj(f(z)) = 0. BB-11-1-003: all four statements are true, so it is now a multiple-answer question with answer A, B, C, D.",
+      "Broken symbols fixed in 5 more solutions (Re, ℝ, ℕ)."
+    ]
+  },
+  {
+    "v": "848",
+    "date": "15 Nov 2026",
+    "items": [
+      "Complex Numbers (11M5): formatting review started. Fixed broken symbols (ℤ, ℕ, ℂ, mod, 'for x') in 7 solutions, Re/Im written upright everywhere, Centre/Radius labels, and removed editorial notes and 'see Question N' references (BB-11-2-006, BB-11-3-004, BB-11-3-009). Answer keys unchanged."
+    ]
+  },
+  {
+    "v": "847",
+    "date": "14 Nov 2026",
+    "items": [
+      "Must Solve: the count bar above the list is removed (the count is in the side panel).",
+      "BB-8-5-043: answer 1, with a note on why students get 3. BB-8-1-111: solution explains the correct answer and why the range [1/3, 3] appears. BB-8-2-029: a and b are complex numbers. JM20190409148: p and q are rational."
+    ]
+  },
+  {
+    "v": "846",
+    "date": "14 Nov 2026",
+    "items": [
+      "Must Solve: the top of the side panel now looks like the Question Bank: number selected, Answer Key and Explanation, Save as worksheet, and Create test next to one Export menu (PDF, Word, PowerPoint, Print, Share).",
+      "Faster loading: a file needed twice on the same visit (for example the maths styles) is now downloaded only once.",
+      "Quadratic Equations (11M4): all 514 questions and solutions reviewed. Fixed 36 questions (headers, missing equations, typos, broken symbols, a subtopic) and 99 solutions (errors, editorial notes, references to other questions, stray figure markers, missing line breaks)."
+    ]
+  },
+  {
+    "v": "845",
+    "date": "14 Nov 2026",
+    "items": [
+      "Match the following: Column I gets more room (Column II stays narrow when its answers are short), more space and a light line between rows, rows aligned across both columns.",
+      "Degree signs written as a double superscript (tiny and raised) fixed in 62 questions and many solutions.",
+      "JM20260402111: angles corrected to π/18, 5π/18, 7π/18. NDA20240901026: options C \"Only four\" (answer) and D \"Only five\". NDA20230903029: option D \"No value exists\" (answer) with a full explanation of the usual mistake. BB-22-1-090: \"a and b have the same sign\" added. BB-22-1-080: interval [0, 3π]. BB-22-4-001: duplicate option (T) removed."
+    ]
+  },
+  {
+    "v": "844",
+    "date": "14 Nov 2026",
+    "items": [
+      "Trigonometry (11M3): all 537 questions and solutions reviewed. Fixed broken maths (\\cos ec, absin120, ℝ/ℤ, units) and paper headers in 44 questions, and 92 solutions (errors, editorial notes, references to other questions, stray figure markers, missing line breaks); a few levels and subtopics corrected."
+    ]
+  },
+  {
+    "v": "843",
+    "date": "14 Nov 2026",
+    "items": [
+      "DPPs, PYQs and Must Solve: the buttons above the preview (Shuffle, Word, PDF, PowerPoint, Print, Share, Save as worksheet, Create test) now have the same height, text style and centred icons.",
+      "JM20230410230: corrected figure (θ₂ at C, θ₁ at B)."
+    ]
+  },
+  {
+    "v": "842",
+    "date": "14 Nov 2026",
+    "items": [
+      "DPPs: practice (non-PYQ) questions now show only their question code, for example [BB-16-1-060]; PYQs keep their level, exam and year."
+    ]
+  },
+  {
+    "v": "841",
+    "date": "14 Nov 2026",
+    "items": [
+      "Sets, Relations and Functions (11M2): all 194 questions and solutions reviewed (every answer key correct). Fixed broken symbols (ℕ, ℤ, ℝ, gcd, mod, ∅) and maths in 27 places, stray figure markers in 7 solutions, wrong names and capitals in 7 places, 6 solutions with errors or editorial notes (for example the wrong table in JM20240409114), and the level of 5 questions."
+    ]
+  },
+  {
+    "v": "840",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: all VMC and Cengage practice questions and IIT questions up to 1999 removed (3,791); their filters, columns and empty subtopics removed. 11,196 questions remain.",
+      "Must Solve: questions that were removed were taken out of the lists.",
+      "KCET20190429075: new figure with the shaded region.",
+      "BB-16-1-060: new options A–C; the correct answer is now B, (11+√113)/2.",
+      "JM20220627131: the solution now explains why p = 2 is mathematically correct (official answer 45 kept).",
+      "4 number-theory questions moved to \"Number Systems and Integer Counting\"."
+    ]
+  },
+  {
+    "v": "839",
+    "date": "14 Nov 2026",
+    "items": [
+      "Fundamentals of Mathematics (11M1): every question and solution reviewed. Fixed a mistyped sign in BB-16-2-001, a mistyped option and the missing answer key in NDA20230416003, missing words and blanks in 5 questions, broken symbols (ℝ, ℤ, bold) in 6 solutions, stray figure markers in 2 solutions, and errors or references to other questions in 8 Black Book solutions."
+    ]
+  },
+  {
+    "v": "838",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: final subtopic check — 20 more questions moved to the right subtopic (random variables, binomial, tangents, scalar and vector triple products, line–plane and equation of a plane)."
+    ]
+  },
+  {
+    "v": "837",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: fixed 12 questions with broken maths (for example \"1\\(0^{th}\\)\" now 10th, (x₁ − 4)², a permutation series) and turned a garbled frequency table into a proper table."
+    ]
+  },
+  {
+    "v": "836",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: Application of Derivatives subtopic renamed \"Mean Value Theorem (Rolle's and Lagrange's)\"; 10 more Rolle/MVT questions moved into it (65 in total).",
+      "Question Bank: 6 more questions moved to Functions → \"Inequalities, Modulus and Logarithmic Equations\"."
+    ]
+  },
+  {
+    "v": "835",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: 368 questions moved into their proper subtopics: Tangents and Normals, Functional Equations, number of roots, limits of sequences, binomial distribution and random variables, and the plane, line–plane and sphere subtopics of 3D Geometry.",
+      "Question Bank: triple products split into two subtopics, \"Scalar Triple Product\" (53) and \"Vector Triple Product\" (27)."
+    ]
+  },
+  {
+    "v": "834",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: new subtopic \"Limit as a Sum\" in Definite Integration with all 50 limit-of-a-sum questions (3 moved there from the Limits and Application of Derivatives chapters).",
+      "Question Bank: every question re-checked for its subtopic; 49 more questions moved to the correct official subtopic. Cengage, VMC, IIT before 2000 and Black Book chapters unchanged."
+    ]
+  },
+  {
+    "v": "833",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: 61 questions that were in made-up subtopics moved to the correct official subtopic of their chapter; 3 made-up subtopics that became empty were removed. Chapters unchanged; Cengage, VMC and IIT before 2000 not changed."
+    ]
+  },
+  {
+    "v": "832",
+    "date": "14 Nov 2026",
+    "items": [
+      "Login page: on laptops the left side now fills the space up to the dividing line."
+    ]
+  },
+  {
+    "v": "831",
+    "date": "14 Nov 2026",
+    "items": [
+      "Login page: the left side now starts near the left edge and uses the full width up to the dividing line."
+    ]
+  },
+  {
+    "v": "830",
+    "date": "14 Nov 2026",
+    "items": [
+      "Login page: split screen — blue gradient on the left with what the site offers, white on the right with the logo and sign-in, and a coloured line between them."
+    ]
+  },
+  {
+    "v": "829",
+    "date": "14 Nov 2026",
+    "items": [
+      "Login page: logo and title at the top of the right side above the sign-in box; \"Free to start · by Ankit Kamboj\" below the sign-in box; the headline starts at the top of the left side."
+    ]
+  },
+  {
+    "v": "828",
+    "date": "14 Nov 2026",
+    "items": [
+      "Login page: the headline now starts at the top; the logo and title moved to the bottom. \"Free to start · by Ankit Kamboj\"."
+    ]
+  },
+  {
+    "v": "827",
+    "date": "14 Nov 2026",
+    "items": [
+      "Login page redesigned: a bold headline, a picture of the NTA-style test screen with its timer and question panel, exam badges, a stats strip and colourful feature cards; the sign-in box stays in view on the right."
+    ]
+  },
+  {
+    "v": "826",
+    "date": "14 Nov 2026",
+    "items": [
+      "New login page: everything the site offers on the left (NTA-style online tests, instant reports and ranks, Question Bank, past papers 1978–2026, DPPs, Must Solve, handouts, tools for teachers) and sign-in on the right. On phones the sign-in comes first.",
+      "Question Bank: brackets around fractions now grow to fit them in 18 questions (for example the greatest-integer series in JM201904121P109)."
+    ]
+  },
+  {
+    "v": "825",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: in 577 questions, variables, points, matrices and equations that were written as plain text now show as proper maths (Cengage, VMC and IIT questions before 2000 not changed).",
+      "Question Bank: fixed 9 more questions with broken maths or typos (for example \"I\\(f\\) …C₄ an\\(d\\)\", \"For x x R\", \"uni t²\")."
+    ]
+  },
+  {
+    "v": "824",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: fixed the maths in 19 questions that showed wrongly (for example \"se c²θ\", \"o f ¹⁹C\", \"c m²\", variables and equations typed as plain text).",
+      "Question Bank: 4 Black Book questions had two identical options; one option in each was replaced and the answers were checked (all four answer keys are correct).",
+      "Question Bank: removed extra spaces and blank lines in 1,093 questions (maths unchanged)."
+    ]
+  },
+  {
+    "v": "823",
+    "date": "14 Nov 2026",
+    "items": [
+      "Compact header: on computers the logo, title, tabs and buttons fit in one row; tablets and phones use tighter rows, so more of the page is visible."
+    ]
+  },
+  {
+    "v": "822",
+    "date": "14 Nov 2026",
+    "items": [
+      "Edit profile: students are told to use \"Request a school change\" to move to another school."
+    ]
+  },
+  {
+    "v": "821",
+    "date": "14 Nov 2026",
+    "items": [
+      "School changes: once a school is chosen, only Avanti staff (@avantifellows.org) can change it themselves. Everyone else uses \"Request a school change\" in Edit profile, and the admin approves or rejects it in Teacher approvals."
+    ]
+  },
+  {
+    "v": "820",
+    "date": "14 Nov 2026",
+    "items": [
+      "The website version moved from the profile menu to the bottom of Help & Support; tap it to see what changed."
+    ]
+  },
+  {
+    "v": "819",
+    "date": "14 Nov 2026",
+    "items": [
+      "Footer: the website version is shown only to the admin."
+    ]
+  },
+  {
+    "v": "818",
+    "date": "14 Nov 2026",
+    "items": [
+      "Security: a new Student ID that differs from an existing one only by . _ / - is refused, so nobody can sign in to another student's account.",
+      "Security: dates of birth in My Students are shown only after the admin approves the teacher's school.",
+      "Security: more wrong dates of birth for one Student ID now lock it for 24 hours (the teacher can unlock it by saving the student).",
+      "Fixed: opening Results, a report or a test without choosing one now goes to the right list instead of an error.",
+      "Fixed: the extra \"|\" in the footer; teachers no longer see \"Class ?\" on Available tests; students opening My Students are pointed to their tests."
+    ]
+  },
+  {
+    "v": "817",
+    "date": "14 Nov 2026",
+    "items": [
+      "Saved worksheets: the separate Edit button is removed; use ⋯ → Edit questions."
+    ]
+  },
+  {
+    "v": "816",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: one Export menu (PDF, Word, PowerPoint, Print, Share) next to Create test; Save as worksheet, Create test and Export are white with a blue border.",
+      "Saved worksheets: new Edit button to change the title, reorder or remove questions, and add questions by ID.",
+      "Save as worksheet can now add the ticked questions to an existing worksheet."
+    ]
+  },
+  {
+    "v": "815",
+    "date": "14 Nov 2026",
+    "items": [
+      "Question Bank: quick filter buttons in two neat rows (4 on top, 3 below).",
+      "Solutions status link in the footer is shown only to the admin.",
+      "Membership questions in bigger, easier-to-read text.",
+      "Teachers' chat: if it cannot connect it now says why, with a Try again button."
+    ]
+  },
+  {
+    "v": "814",
+    "date": "14 Nov 2026",
+    "items": [
+      "New Membership page for teachers and students: a banner with the price per day, Premium benefits with icons, a Free vs Premium comparison, how payment works, and common questions.",
+      "Premium members see their days left and can renew; Avanti students and staff see that Premium is included."
+    ]
+  },
+  {
+    "v": "813",
+    "date": "14 Nov 2026",
+    "items": [
+      "Teachers' chat at the bottom right for Premium teachers, Avanti teachers and the admin: see who is online and chat. Messages are not saved.",
+      "PYQs: Answer Key and Explanation at the top; Question Paper and Chapterwise as two blocks.",
+      "Question Bank: wider filter sidebar."
+    ]
+  },
+  {
+    "v": "812",
+    "date": "14 Nov 2026",
+    "items": [
+      "School lists: one dropdown; the search box appears inside it when you open it."
+    ]
+  },
+  {
+    "v": "811",
+    "date": "14 Nov 2026",
+    "items": [
+      "Footer: the website version opens this list of updates; the Question Bank version is no longer shown.",
+      "Test window: the question timer shows only the time."
+    ]
+  },
+  {
+    "v": "810",
+    "date": "14 Nov 2026",
+    "items": [
+      "Profile menu: counts after each item; Create Test moved to My Tests; website version shown at the bottom.",
+      "Sharing a PDF now opens a \"PDF ready\" box: share with an app (phones), download, WhatsApp or Gmail.",
+      "Saved worksheets: View questions, an Export menu (PDF, Word, PowerPoint, Share) and a More menu (Rename, Delete).",
+      "Test window: time spent on each question.",
+      "Date of birth visible to teachers in My Students and Edit.",
+      "School search box always shown."
+    ]
+  },
+  {
+    "v": "809",
+    "date": "14 Nov 2026",
+    "items": [
+      "Saved worksheets can be downloaded and shared.",
+      "School lists get a search box.",
+      "Bold text inside questions shows as bold.",
+      "Footer shows the website version."
+    ]
+  },
+  {
+    "v": "808",
+    "date": "14 Nov 2026",
+    "items": [
+      "Fixed lists: Category General, Gen-EWS, OBC-NCL, SC, ST · Gender Male, Female, Other · Class 11, 12, Dropper · Stream JEE, NEET, KCET (PCM), KCET (PCB).",
+      "Bulk upload converts other spellings after a clear warning, and rejects values it cannot convert."
+    ]
+  },
+  {
+    "v": "807",
+    "date": "14 Nov 2026",
+    "items": [
+      "Bulk upload reads swapped Category / Gender columns and short forms (GEN, OBC, F, M).",
+      "Student IDs already registered are skipped, never uploaded twice."
+    ]
+  },
+  {
+    "v": "806",
+    "date": "14 Nov 2026",
+    "items": [
+      "Admin role: only the admin sees every school's students, tests and reports.",
+      "Classes, streams and sessions (Class 11 → 2026-28, Class 12 and Dropper → 2026-27).",
+      "Tests are open only to the classes, streams and school the teacher chooses.",
+      "Students fill their details once; Available tests also lists past tests.",
+      "PYQs: compact dropdowns and a full-width preview; DPPs and PYQs share one toolbar.",
+      "The old artifact now points here; a safety check stops old code from going live."
+    ]
+  },
+  {
+    "v": "805",
+    "date": "14 Nov 2026",
+    "items": [
+      "Teacher school approval by the admin.",
+      "Students added by Avanti teachers get Premium.",
+      "Help & Support page and sign-in help."
+    ]
+  },
+  {
+    "v": "804",
+    "date": "14 Nov 2026",
+    "items": [
+      "New plans: students ₹299, teachers ₹599 a year; Avanti students and teachers included.",
+      "My Students with performance, Excel / CSV bulk upload and editing.",
+      "Tests limited to the teacher's school; coloured profile icons by plan."
+    ]
+  },
+  {
+    "v": "803",
+    "date": "14 Nov 2026",
+    "items": [
+      "Missing profile details are asked for right after sign-in; teachers can add a school that is not in the list."
+    ]
+  },
+  {
+    "v": "802",
+    "date": "14 Nov 2026",
+    "items": [
+      "Save as worksheet and Create test in DPPs, PYQs and Must Solve.",
+      "School chosen from a list; Avanti ID students' details come from the Avanti list."
+    ]
+  },
+  {
+    "v": "801",
+    "date": "14 Nov 2026",
+    "items": [
+      "Must Solve open to everyone; handouts open in a viewer.",
+      "Category and gender added to student details."
+    ]
+  },
+  {
+    "v": "800",
+    "date": "14 Nov 2026",
+    "items": [
+      "Sign in with Google or Student ID; Free, Premium and Avanti plans.",
+      "Online tests with a share link, exam window, reports with ranks, and teacher results."
+    ]
+  }
+]

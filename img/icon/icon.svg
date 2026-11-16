@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><defs>
+<linearGradient id="mbg" x1="0.15" y1="0" x2="0.85" y2="1"><stop offset="0" stop-color="#2a56b8"/><stop offset="1" stop-color="#0a173f"/></linearGradient>
+<linearGradient id="mgold" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#f29a00"/><stop offset="1" stop-color="#ffd84d"/></linearGradient>
+</defs>
+<circle cx="256" cy="256" r="250" fill="url(#mbg)"/>
+<!-- open book: two flat pages meeting at the spine -->
+<path d="M250 394 C206 352 140 344 92 354 L92 232 C140 222 206 230 250 270 Z" fill="#ffffff"/>
+<path d="M262 394 C306 352 372 344 420 354 L420 232 C372 222 306 230 262 270 Z" fill="#c4d6ff"/>
+<!-- growth arrow rising out of the book -->
+<path d="M142 236 L220 176 L276 214 L370 122" fill="none" stroke="url(#mgold)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M320 114 L382 108 L376 170 Z" fill="url(#mgold)" stroke="url(#mgold)" stroke-width="14" stroke-linejoin="round"/>
+</svg>
