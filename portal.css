@@ -1043,3 +1043,6 @@ html.hv-drag .hv-pages { pointer-events: none; }
 /* dropdown lists must open above the fixed bottom bar */
 .pt-wizard .pt-combo-pop { z-index: 90; }
 .pt-wizard .pt-card { position: relative; z-index: auto; }
+
+/* My Students: full width */
+.pt-wrap.pt-full { max-width: none; }

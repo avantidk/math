@@ -68,6 +68,7 @@ function show(...nodes) {
   if (TE()) TE().hideViews();
   document.querySelectorAll('[data-act="tab"]').forEach(b => b.setAttribute('aria-pressed', 'false'));
   v.hidden = false; v.textContent = ''; v.append(...nodes.filter(Boolean));
+  v.classList.toggle('pt-full', /^#\/students\b/.test(location.hash));   /* My Students: wide tables use the whole width */
   window.scrollTo(0, 0);
   return v;
 }
@@ -330,7 +331,7 @@ function onboard(root, done) {
   const p = P();
   root.textContent = '';
   root.append(h('div', { class: 'lg' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=900', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=901', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
       p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
