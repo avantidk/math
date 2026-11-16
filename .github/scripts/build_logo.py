@@ -1,4 +1,4 @@
-# Draws the Unkganit round icon and the Hindi logo lockup (needs: pip install uharfbuzz fonttools, and Noto Sans Devanagari 400/600 TTFs saved as noto400.ttf / noto600.ttf). Output: mark.svg, lockup-dark.svg, lockup-light.svg
+# Draws the अंक-IT round icon and the Hindi logo lockup (needs: pip install uharfbuzz fonttools, and Noto Sans Devanagari 400/600 TTFs saved as noto400.ttf / noto600.ttf). Output: mark.svg, lockup-dark.svg, lockup-light.svg
 import uharfbuzz as hb
 from fontTools.ttLib import TTFont
 from fontTools.pens.svgPathPen import SVGPathPen

@@ -896,5 +896,5 @@ html.plan-free .m-wsrow .qb-expbtn { display: none; }
 /* Top bar: only the logo (the title and the subject line stay in the page for screen readers) */
 html body .tb-head .tb-title { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 html body .tb-head .tb-sub { display: none; }
-html body .tb-logo { height: 58px; top: 8px; }
-@media (max-width: 760px) { html body .tb-logo { height: 46px; } }
+html body .tb-logo { height: 68px; top: 4px; }
+@media (max-width: 760px) { html body .tb-logo { height: 52px; } }
