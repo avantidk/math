@@ -1,4 +1,4 @@
-/* Unkganit · Mathematics Dashboard · sign-in, plans and the profile menu.
+/* अंक-IT · Mathematics Dashboard · sign-in, plans and the profile menu.
    Supabase Auth (Google) for everyone, plus "Login with Avanti ID" for students the admin marked as Avanti students.
    The plan (Free / Premium / Staff) and the role (Teacher / Student) are read from the database
    (function my_profile); the page never decides them. Only the public "publishable" key is here. */
@@ -176,14 +176,14 @@ function loginPage(msg) {
     h('p', { class: 'lgx-free' }, h('b', { text: 'Start free. ' }), 'Premium from ₹299 a year adds PDF downloads, all-India ranks and more. Avanti students get Premium free.'));
   root.append(h('div', { class: 'lg lg-split' },
     h('main', { class: 'lg-main' },
-      h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png', alt: 'Unkganit', width: 145, height: 51 }),
+      h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png', alt: 'अंक-IT', width: 139, height: 51 }),
         h('h1', { text: 'Mathematics Dashboard' }), h('p', { text: "JEE, CET, NDA, IAT · PYQ's, DPP's, Handouts and tests" })),
       testLink ? h('p', { class: 'lg-note', text: 'Sign in to open your test.' }) : null,
       h('section', { class: 'lg-card' },
         h('h2', { text: 'Sign in or create an account' }),
         h('p', { class: 'lg-sub', text: 'I am a' }), seg,
         gBtn, err,
-        h('p', { class: 'lg-fine', text: 'Your choice of Teacher or Student is saved the first time you sign in. Unkganit staff (@avantifellows.org) get full access automatically.' })),
+        h('p', { class: 'lg-fine', text: 'Your choice of Teacher or Student is saved the first time you sign in. अंक-IT staff (@avantifellows.org) get full access automatically.' })),
       avBox,
       h('p', { class: 'lgx-pillrow' }, h('span', { class: 'lgx-pill', text: '★ Free to start · by Ankit Kamboj' })),
       h('section', { class: 'lg-help' }, h('span', { text: 'Trouble signing in?' }), h('button', { type: 'button', class: 'lg-link', text: 'Help & Support', onclick: e => showHelp(e.target) }))),
@@ -208,7 +208,7 @@ function rolePage() {
   const root = $('#auth'); root.hidden = false; root.textContent = ''; $('#app').hidden = true;
   const err = h('p', { class: 'lg-err', role: 'alert', hidden: true });
   const pick = r => async () => { try { await rpc('set_my_role', { p_role: r }); await start(); } catch (e) { err.textContent = e.message; err.hidden = false; } };
-  root.append(h('div', { class: 'lg' }, h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo.png', alt: 'Unkganit', width: 145, height: 51 }), h('h1', { text: 'Welcome' })),
+  root.append(h('div', { class: 'lg' }, h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo.png', alt: 'अंक-IT', width: 139, height: 51 }), h('h1', { text: 'Welcome' })),
     h('main', { class: 'lg-main' }, h('section', { class: 'lg-card' }, h('h2', { text: 'Are you a teacher or a student?' }), h('p', { class: 'lg-sub', text: 'This is saved once and decides what you see.' }),
       h('div', { class: 'lg-two' }, h('button', { type: 'button', class: 'lg-btn', text: 'I am a Teacher', onclick: pick('teacher') }), h('button', { type: 'button', class: 'lg-btn', text: 'I am a Student', onclick: pick('student') })), err))));
 }

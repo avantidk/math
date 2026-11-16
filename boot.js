@@ -1,4 +1,4 @@
-/* Unkganit · Mathematics Dashboard · loads the dashboard after sign-in.
+/* अंक-IT · Mathematics Dashboard · loads the dashboard after sign-in.
    Questions, solutions, Must Solve and handouts are NOT on this website: they live in a private Supabase Storage bucket
    and every file is checked by the database (signed in, plan, not during a test) before it is sent. This file sends the
    signed-in user's token with each request and keeps a copy in the browser (one cache per account, cleared at sign-out),
@@ -24,7 +24,7 @@ function h(tag, props, ...kids) {
 }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 window.AvantiUtil = Object.freeze({ h, esc });
-const BUILD = '873';
+const BUILD = '874';
 const RELEASED = '16 Nov 2026';   /* date of this release, shown in the footer */
 const SB_URL = 'https://usehxhvzhdbcmnmqaxoo.supabase.co';
 const SB_KEY = 'sb_publishable_QQ_N_B6kl416kbGMF0DQtw_9Jg58PoN';

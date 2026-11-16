@@ -1,4 +1,4 @@
-/* Unkganit \u00b7 Mathematics Dashboard: Question Bank, DPPs, PYQs, Must Solve and Handouts. One file, no build step. Tests and results live in portal.js. */
+/* अंक-IT \u00b7 Mathematics Dashboard: Question Bank, DPPs, PYQs, Must Solve and Handouts. One file, no build step. Tests and results live in portal.js. */
 (function () {
 'use strict';
 const h = window.AvantiUtil.h;
@@ -206,7 +206,7 @@ function skeleton(p, keyMode) {
   /* header: logo left, exam name (18 bold) with date below (14), Mathematics top right; footer: Exam - Date left, page number right */
   const examName = p.pyq ? String(p.sub || '').replace(/\s*\u00b7\s*all topics$/, '') : p.title, dateLine = p.pyq ? p.title : sub;
   const headTitle = p.pyq ? examName : p.title, headSub = p.pyq ? (keyMode ? dateLine + ' \u00b7 ' + (keyMode === 'exp' ? 'Explanations' : 'Answer key') : dateLine) : sub;
-  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-dark.png', alt: 'Unkganit', style: 'height:40px;width:auto;display:block' });
+  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-dark.png', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
   return h('div', { class: 'sheet' },
     h('div', { class: 'sh-head' },
       h('div', { class: 'sh-brand' }, logo),
@@ -1448,7 +1448,7 @@ function closeShareKey(e) { if (e.key === 'Escape') closeShare(); }
 function shareMenu(btn, o) {
   if (!need('share')) return;
   closeShare();
-  const text = o.title + ' (Unkganit Mathematics Dashboard)', link = o.url || DASH_URL, full = text + '\n' + link;
+  const text = o.title + ' (अंक-IT Mathematics Dashboard)', link = o.url || DASH_URL, full = text + '\n' + link;
   const item = (ico, label, attrs) => h(attrs.href ? 'a' : 'button', Object.assign({ class: 'smi', type: attrs.href ? undefined : 'button' }, attrs), h('span', { class: 'smic', html: ico }), h('span', { text: label }));
   const m = h('div', { id: 'shareMenu', class: 'smenu', role: 'menu' },
     h('div', { class: 'smh', text: 'Share ' + o.title }),
@@ -1645,7 +1645,7 @@ async function renderSyl() {
   redrawCmp();
   box.textContent = '';
   box.append(
-    h('p', { class: 'sy-eyebrow', text: 'Unkganit · Maths · Class 11 and 12' }),
+    h('p', { class: 'sy-eyebrow', text: 'अंक-IT · Maths · Class 11 and 12' }),
     h('h2', { class: 'sy-title', text: 'JEE Maths Syllabus Priority: Main vs Advanced' }),
     h('p', { class: 'sy-lede', text: 'JEE Main and JEE Advanced compared side by side, using the past-year questions from ' + Y0 + ' to ' + Y1 + ' for all ' + ch.length + ' chapters and ' + D.tot_sub + ' subtopics.' }),
     h('div', { class: 'sy-cards' },
@@ -1689,7 +1689,7 @@ function themeInit() { let m = null; try { m = localStorage.getItem(THEME_KEY); 
 function themeToggle() { const m = themeNow() === 'dark' ? 'light' : 'dark'; themeApply(m); try { localStorage.setItem(THEME_KEY, m); } catch (e) { /* optional */ } }
 const GUIDE_HTML = () => `
 <p class="gd-note">Questions and solutions for exams before 2000 are in working mode and will take time to update.</p>
-<p class="gd-lead">The Mathematics Dashboard is Unkganit' one place for JEE Maths teaching material: a searchable question bank, ready-made DPPs, past-year papers, must-solve lists and revision handouts. Everything can be downloaded as Word, PDF or PowerPoint.</p>
+<p class="gd-lead">The Mathematics Dashboard is अंक-IT's one place for JEE Maths teaching material: a searchable question bank, ready-made DPPs, past-year papers, must-solve lists and revision handouts. Everything can be downloaded as Word, PDF or PowerPoint.</p>
 <nav class="gd-toc" aria-label="Guide sections"><a href="#gd-qb">Question Bank</a><a href="#gd-dpp">DPPs</a><a href="#gd-pyq">PYQs</a><a href="#gd-must">Must Solve</a><a href="#gd-ho">Handouts</a><a href="#gd-dates">Exam dates</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a></nav>
 <h3 id="gd-qb">1. Question Bank</h3>
 <p>Every question in one list: JEE Main, JEE Advanced, AIEEE and IIT-JEE previous-year questions (PYQs) plus practice questions from different sources.</p>
@@ -1731,7 +1731,7 @@ const GUIDE_HTML = () => `
 <li>Maths is written in proper notation; if a formula looks broken, refresh the page once.</li>
 </ul>
 
-<p class="gd-foot">Built by Ankit for the Unkganit teaching team.</p>`;
+<p class="gd-foot">Built by Ankit for the अंक-IT teaching team.</p>`;
 
 function guideOpen() {
   let m = document.getElementById('guideModal');
@@ -1780,7 +1780,7 @@ function buildShell() {
   root.append(
     h('div', { class: 'shell' },
       h('header', { class: 'topbar' },
-        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo.png', alt: 'Unkganit', width: 145, height: 51 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: "JEE, CET, NDA, IAT, PYQ's, DPP's, Handouts" })),
+        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo.png', alt: 'अंक-IT', width: 139, height: 51 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: "JEE, CET, NDA, IAT, PYQ's, DPP's, Handouts" })),
         h('button', { type: 'button', class: 'tb-theme', id: 'themeBtn', 'data-act': 'theme', 'aria-pressed': 'false' }),
         h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
         h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),

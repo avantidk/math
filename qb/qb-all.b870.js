@@ -571,7 +571,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   function logoXml() {
     if (!window.QB_LOGO_B64) return '';
     var cy = LOGO_H, cx = Math.round(cy * (window.QB_LOGO_W || 480) / (window.QB_LOGO_H || 165));
-    return '<p:pic><p:nvPicPr><p:cNvPr id="6" name="Unkganit logo"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId3"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="' + (EMU_W - 300000 - cx) + '" y="' + LOGO_TOP + '"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>';
+    return '<p:pic><p:nvPicPr><p:cNvPr id="6" name="अंक-IT logo"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId3"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="' + (EMU_W - 300000 - cx) + '" y="' + LOGO_TOP + '"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>';
   }
   function logoWidth() { return window.QB_LOGO_B64 ? Math.round(LOGO_H * (window.QB_LOGO_W || 480) / (window.QB_LOGO_H || 165)) + 400000 : 0; }
   function slideXml(inner) { return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld xmlns:a="' + NS_A + '" xmlns:r="' + NS_R + '" xmlns:p="' + NS_P + '">' + SP_HEAD + inner + logoXml() + SP_TAIL + '</p:sld>'; }

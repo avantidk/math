@@ -1,4 +1,4 @@
-/* Unkganit · dashboard skin (design layer only: colours, type, spacing, header). No behaviour lives here. */
+/* अंक-IT · dashboard skin (design layer only: colours, type, spacing, header). No behaviour lives here. */
 :root{
   --bg:#f2f4f9; --panel:#ffffff; --ink:#0e1a33; --body:#26324b; --muted:#66728b; --rule:#e1e6ef;
   --head:#0e1a33; --accent:#1f3f95; --accent-ink:#ffffff; --accent-soft:#e8eefc; --ok:#17794a; --bad:#b4471d;

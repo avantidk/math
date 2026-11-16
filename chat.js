@@ -1,4 +1,4 @@
-/* Unkganit · Mathematics Dashboard · teachers' chat (bottom-right).
+/* अंक-IT · Mathematics Dashboard · teachers' chat (bottom-right).
    For the admin, and Premium teachers / Avanti teachers whose school the admin approved (function chat_member).
    A message is saved by the database function chat_send, which writes the sender's real name, school and role (nobody can
    pose as someone else), limits how fast one person can send, and deletes messages after 24 hours. New messages arrive

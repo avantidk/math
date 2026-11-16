@@ -1,4 +1,4 @@
-/* Unkganit · Mathematics Dashboard · account pages, tests and results.
+/* अंक-IT · Mathematics Dashboard · account pages, tests and results.
    Everything here reads and writes Supabase (tables with row-level security, and database functions).
    Routes (address bar hash):
      #/profile  #/membership  #/tests  #/reports  #/report/<attempt>  #/t/<code> (take a test)
@@ -241,7 +241,7 @@ function profileForm(p, o) {
 function schoolBox(p) {
   const wrap = h('div', { class: 'pt-fld' }, h('span', { text: 'School' }), h('div', { class: 'pt-ro', text: p.school }));
   if (p.school_request) {
-    wrap.append(h('div', { class: 'pt-schreq' }, h('span', {}, 'Change requested to ', h('b', { text: p.school_request }), ' · waiting for approval by Unkganit.'),
+    wrap.append(h('div', { class: 'pt-schreq' }, h('span', {}, 'Change requested to ', h('b', { text: p.school_request }), ' · waiting for approval by अंक-IT.'),
       h('button', { type: 'button', class: 'btn pt-mini', text: 'Cancel request', onclick: async e => {
         e.currentTarget.disabled = true;
         try { await rpc('request_school_change', { p_school: null }); await AU().refresh(); toast('Request cancelled'); pageProfile(); } catch (x) { toast(x.message); e.currentTarget.disabled = false; } } })));
@@ -258,7 +258,7 @@ function requestSchoolChange(p) {
   modal('Request a school change', h('div', { class: 'pt-form' },
     h('p', {}, 'Your school now: ', h('b', { text: p.school })),
     h('div', { class: 'pt-fld' }, h('span', { text: 'New school' }), pick),
-    h('p', { class: 'pt-hint', text: 'Unkganit will check and approve the change. Until then your school stays the same.' + (p.role === 'teacher' ? ' After the change, your new school needs approval like before.' : '') }), msg),
+    h('p', { class: 'pt-hint', text: 'अंक-IT will check and approve the change. Until then your school stays the same.' + (p.role === 'teacher' ? ' After the change, your new school needs approval like before.' : '') }), msg),
     [{ text: 'Cancel', onclick: () => {} }, { text: 'Send request', pri: true, onclick: close => {
       const v = pick.value(); msg.className = 'pt-msg';
       if (!v) { msg.textContent = 'Choose the new school.'; msg.classList.add('bad'); return false; }
@@ -276,7 +276,7 @@ function onboard(root, done) {
   const p = P();
   root.textContent = '';
   root.append(h('div', { class: 'lg' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo.png', alt: 'Unkganit', width: 145, height: 51 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo.png', alt: 'अंक-IT', width: 139, height: 51 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
       p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
@@ -289,9 +289,9 @@ async function pageProfile() {
   const account = card(h('h2', { text: 'Account' }),
     ro('Signed in as', avanti ? p.avanti_id : p.email),
     ro('Role', p.role === 'teacher' ? 'Teacher' : 'Student'),
-    !AU().perm.isAdmin && p.school ? ro('School approval', p.school_approved ? 'Approved by Unkganit' : 'Waiting for approval by Unkganit. ' + (p.role === 'teacher' ? 'Until then you cannot see or add students or make tests.' : 'Until then tests are not shown.')) : null,
+    !AU().perm.isAdmin && p.school ? ro('School approval', p.school_approved ? 'Approved by अंक-IT' : 'Waiting for approval by अंक-IT. ' + (p.role === 'teacher' ? 'Until then you cannot see or add students or make tests.' : 'Until then tests are not shown.')) : null,
     ro('Plan', { free: 'Free', premium: 'Premium', staff: 'Staff (full access)' }[plan] + (plan === 'premium' && p.premium_until ? ' · until ' + day(p.premium_until) : '')),
-    h('p', { class: 'pt-hint', text: 'Role and plan are set by the server. Contact Unkganit if your role is wrong.' }),
+    h('p', { class: 'pt-hint', text: 'Role and plan are set by the server. Contact अंक-IT if your role is wrong.' }),
     h('div', { class: 'pt-actions' }, plan === 'free' ? link('#/membership', '★ Purchase membership', 'btn pt-gold') : null, h('button', { type: 'button', class: 'btn', text: 'Logout', onclick: () => AU().signOut() })));
   show(head(avanti ? 'Your profile' : 'Edit profile', avanti ? 'These details come from Avanti records.' : 'Your name and school appear on test results. All details are required.'),
     h('div', { class: 'pt-grid2' }, card(h('h2', { text: 'Your details' }), profileForm(p, { onSaved: () => {} })), account));
@@ -379,7 +379,7 @@ async function pageMembership() {
   const payBtn = () => h('button', { type: 'button', class: 'btn pt-gold mb-cta', onclick: e => pay(e.currentTarget, msg) }, active ? 'Renew for 1 more year · ₹' + price : 'Get Premium · ₹' + price);
   const trust = h('ul', { class: 'mb-trust' }, [['lock', 'Secure payment by Razorpay'], ['upi', 'UPI, cards, net banking'], ['bolt', 'Starts instantly'], ['cal', '1 year · no auto-renewal']].map(([i, t]) => h('li', {}, h('span', { html: MICON[i] }), t)));
   const heroText = included
-    ? [h('span', { class: 'mb-eyebrow', text: plan === 'staff' ? 'Unkganit' : 'Avanti student' }), h('h1', { text: 'Premium is included for you' }),
+    ? [h('span', { class: 'mb-eyebrow', text: plan === 'staff' ? 'अंक-IT' : 'Avanti student' }), h('h1', { text: 'Premium is included for you' }),
        h('p', { class: 'mb-lead', text: plan === 'staff' ? 'Your @avantifellows.org account has full access to everything. No payment is needed.' : 'Students on the Avanti list get Premium free. Everything below is already yours.' })]
     : active
       ? [h('span', { class: 'mb-eyebrow', text: C.eyebrow }), h('h1', { text: 'You are on Premium' }),
@@ -422,7 +422,7 @@ async function pay(btn, msg) {
     const o = await callPay({ action: 'create-order' });
     msg.textContent = 'Complete the payment in the Razorpay window.';
     const rz = new window.Razorpay({
-      key: o.key_id, order_id: o.order_id, amount: o.amount, currency: o.currency, name: 'Unkganit', description: 'Mathematics Dashboard · Premium (1 year)',
+      key: o.key_id, order_id: o.order_id, amount: o.amount, currency: o.currency, name: 'अंक-IT', description: 'Mathematics Dashboard · Premium (1 year)',
       prefill: { name: o.name || '', email: o.email || '' }, theme: { color: '#1f3f95' },
       handler: async resp => {
         msg.textContent = 'Confirming your payment with the server…';
@@ -483,7 +483,7 @@ async function shareWorksheet(w) {
 /* "PDF ready" box used by every share button on the site. The share sheet needs a fresh click, so it opens from here. */
 function shareReady(blob, fileName, title) {
   if (!can('share')) { toast('Sharing needs a Premium membership.'); return; }
-  const file = new File([blob], fileName, { type: 'application/pdf' }), url = URL.createObjectURL(blob), text = title + ' (Unkganit)';
+  const file = new File([blob], fileName, { type: 'application/pdf' }), url = URL.createObjectURL(blob), text = title + ' (अंक-IT)';
   const canFiles = !!(navigator.canShare && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
   const msg = h('p', { class: 'pt-msg', role: 'status' });
   const sizeKb = Math.max(1, Math.round(blob.size / 1024));
@@ -1393,7 +1393,7 @@ async function pageStudents() {
       h('button', { type: 'button', class: 'btn pri', text: 'Bulk upload', onclick: () => bulkUpload(reload) })),
     schoolPick ? card(h('div', { class: 'pt-fld' }, h('span', { text: 'School (admin: every school)' }), schoolPick)) : null,
     teachersCard,
-    can('schoolApproved') ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Your school is waiting for approval by Unkganit. ' }), 'You can add students, upload new students and create tests now. Editing existing students unlocks once your school is approved.'),
+    can('schoolApproved') ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Your school is waiting for approval by अंक-IT. ' }), 'You can add students, upload new students and create tests now. Editing existing students unlocks once your school is approved.'),
     DOB_SHOWN && noDob ? h('div', { class: 'pt-note' }, h('b', { text: noDob + ' student' + (noDob === 1 ? ' has' : 's have') + ' no date of birth saved yet. ' }), 'Upload your Excel sheet with the date of birth column (Bulk upload), or press Edit on a student, to save it. It also fills in when the student signs in once. Dates of birth are shown only to the teachers of the student\u2019s own school and to Avanti admins.') : null,
     DOB_SHOWN ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Dates of birth are hidden until Avanti approves your school. ' }), 'Then you will see the date of birth of every student of ' + R.school + '.'),
     h('div', { class: 'pt-stats' }, stat('Students', all.length), stat('Signed in', signed), stat('Took a test', took.length), stat('Average score', avg == null ? '—' : pct(avg), 'of students who took a test')),
