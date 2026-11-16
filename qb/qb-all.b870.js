@@ -345,7 +345,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   }
 
   function metaLine(q) {
-    if (q.source === 'Non-PYQ') return 'Practice · ' + (q.publisher || 'Practice') + (q.ref_year ? ' [' + q.ref_year + ']' : '') + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' ' : '') + q.topic : '') + ' · ' + q.difficulty;
+    if (q.source === 'Non-PYQ') return 'Practice · ' + srcLabel(q) + (q.ref_year ? ' [' + q.ref_year + ']' : '') + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' ' : '') + q.topic : '') + ' · ' + q.difficulty;
     return q.exam + (q.year ? ' ' + q.year : '') + ' · ' + q.paper + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' ' : '') + q.topic : '') + ' · ' + q.difficulty + (q.attention ? ' · NEEDS ATTENTION' : '');
   }
 
@@ -1127,7 +1127,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     var meta = el('div', 'qb-meta');
     if (q.source === 'Non-PYQ') {
       meta.appendChild(el('span', 'qb-tag np', 'Practice'));
-      meta.appendChild(el('span', 'qb-tag', q.publisher || 'Practice'));
+      meta.appendChild(el('span', 'qb-tag', srcLabel(q)));
       if (q.pyq) { var pt = el('span', 'qb-tag ex-main', 'PYQ'); pt.title = 'This question is also a previous-year question' + (q.pyq_ref ? ' (' + q.pyq_ref + ')' : ''); meta.appendChild(pt); meta.appendChild(el('span', 'qb-date', q.pyq_paper + (q.pyq_exam === 'JEE Main' || !q.pyq_year ? '' : ' · ' + q.pyq_year))); }
       if (q.ref_year) meta.appendChild(el('span', 'qb-tag', '[' + q.ref_year + ']'));
     } else {
@@ -1521,6 +1521,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     });
   }
   var SRC_VALS = ['PYQs', 'Black Book', 'Allen'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET', 'IAT', 'NDA'];
+  /* card label: Allen questions say which sheet they come from (the Source filter stays 'Allen') */
+  function srcLabel(q) { var p = q.publisher || 'Practice'; return p === 'Allen' ? (/^AL-[^-]+-DY/.test(String(q.id)) ? 'Allen DY' : 'Allen Ex') : p; }
   function srcOf(q) { return q.source === 'PYQ' ? 'PYQs' : (q.publisher || 'Practice'); }
   /* "PYQs" ticked together with a source that has PYQ-tagged questions (Black Book) = the PYQs of that source only */
   var PYQ_PUBS = {};
