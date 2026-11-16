@@ -192,7 +192,7 @@ function buildQ(q, n, p) {
   return node;
 }
 var LOGO_DATA = '';
-try { fetch('img/ankit-logo-dark.png?v=878').then(r => r.ok ? r.blob() : null).then(bl => { if (!bl) return; const fr = new FileReader(); fr.onload = () => { LOGO_DATA = fr.result; }; fr.readAsDataURL(bl); }).catch(() => {}); } catch (e) { /* use the file path */ }
+try { fetch('img/ankit-logo-dark.png?v=879').then(r => r.ok ? r.blob() : null).then(bl => { if (!bl) return; const fr = new FileReader(); fr.onload = () => { LOGO_DATA = fr.result; }; fr.readAsDataURL(bl); }).catch(() => {}); } catch (e) { /* use the file path */ }
 /* a figure that is just a picture wrapped in an SVG is drawn from the picture itself (screenshots and PDFs then never lose it) */
 function figSrc(f) { const m = /<image[^>]*?href="(data:image\/(?:png|jpeg|jpg);base64,[^"]+)"/.exec(f.svg || ''); return m ? m[1] : 'data:image/svg+xml;utf8,' + encodeURIComponent(f.svg); }
 function skeleton(p, keyMode) {
@@ -206,7 +206,7 @@ function skeleton(p, keyMode) {
   /* header: logo left, exam name (18 bold) with date below (14), Mathematics top right; footer: Exam - Date left, page number right */
   const examName = p.pyq ? String(p.sub || '').replace(/\s*\u00b7\s*all topics$/, '') : p.title, dateLine = p.pyq ? p.title : sub;
   const headTitle = p.pyq ? examName : p.title, headSub = p.pyq ? (keyMode ? dateLine + ' \u00b7 ' + (keyMode === 'exp' ? 'Explanations' : 'Answer key') : dateLine) : sub;
-  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-dark.png?v=878', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
+  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-dark.png?v=879', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
   return h('div', { class: 'sheet' },
     h('div', { class: 'sh-head' },
       h('div', { class: 'sh-brand' }, logo),
@@ -921,7 +921,7 @@ async function cwPptxData(r) {
   const flat = pc ? [].concat(...pc.topics.map(t => t.qs.filter(inScope).map(q => Object.assign({}, q, { _t: t.name, _lab: pyqLabel(q) }))), pc.other.filter(inScope).map(q => Object.assign({}, q, { _t: 'Other topics', _lab: pyqLabel(q) }))) : r.qs.map(q => Object.assign({}, q, { _t: r.name, _lab: pyqLabel(q) }));
   const topics = pc ? pc.topics.map(t => ({ name: t.name, n: t.qs.filter(inScope).length })).concat(pc.other.filter(inScope).length ? [{ name: 'Other topics', n: pc.other.filter(inScope).length }] : []) : [];
   const figs = {}; for (const q of flat) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=878'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=879'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
   return { logo, chapter: c.n, cl: c.cl, cc, bucket, bucketName: BUCKET_NAME[bucket], bucketLabel: bucket, year: cwYrText(), count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
 }
 async function exportCwPptx(r) {
@@ -994,7 +994,7 @@ window.__qbCwPptx = async function (ids, explain) {
   const nP = qs.filter(q => q.s === 'P').length, nN = qs.length - nP, ex = [...new Set(qs.filter(q => q.s === 'P').map(q => q.e))];
   const kindLabel = nN && nP ? 'PYQs + practice' : nN ? 'Practice questions' : ex.length === 1 ? BUCKET_NAME[ex[0]] + ' PYQs' : 'JEE Main + Advanced PYQs';
   const figs = {}; for (const q of flat) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=878'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=879'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
   const yl = Object.keys(years).map(Number).sort((a, b) => a - b);
   const d = { logo, chapter: one ? c0.n : 'Selected Questions', cl: cls[0], cc: one ? ccs[0] : '', clLabel: 'CLASS ' + cls.join(' & '), chLabel: one ? 'CHAPTER ' + ccs[0].split('M')[1] : ccs.length + ' CHAPTERS',
     bucket: ex.length === 1 ? ex[0] : 'Main', bucketName: kindLabel, kindLabel, perQ: true, noFront: true, noTopic: true, year: yl.length ? (yl.length === 1 ? String(yl[0]) : 'all') : '\u2014', count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
@@ -1118,7 +1118,7 @@ async function renderHandouts() {
       + '.hp-btn{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:5px 11px;border-radius:8px;border:1px solid var(--ac);background:var(--ac);color:#fff;font:600 12.5px Figtree,system-ui,sans-serif;cursor:pointer;white-space:nowrap}'
       + '.hp-btn:hover{filter:brightness(1.08)}.hp-btn:focus-visible{outline:3px solid color-mix(in srgb,var(--ac) 40%,transparent);outline-offset:2px}'
       + '.hp-btn.bw{background:transparent;color:var(--ink);border-color:var(--rule)}.hp-btn.bw:hover{background:var(--ink);color:var(--bg);filter:none}'
-      + '.hp-btn svg{width:14px;height:14px;flex:none}'
+      + '.hp-btn svg{width:16px;height:16px;flex:none}.hp-btn:not(.hp-lock):not(a){padding:5px 10px;min-width:38px;justify-content:center;gap:4px}'
       + '@media(max-width:480px){.hp-list{grid-template-columns:1fr}.hp-card{grid-template-columns:auto 1fr}.hp-act{grid-column:1 / -1;justify-content:flex-start}}';
     document.head.append(st);
   }
@@ -1133,10 +1133,11 @@ async function renderHandouts() {
     catch (er) { if (er && er.code === 'declined') toast('Download cancelled'); else toast('Could not download'); }
   };
   const ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8m0 0L4.8 6.8M8 10l3.2-3.2M3 13h10"/></svg>';
-  const btn = (x, bw) => h('button', { type: 'button', class: 'hp-btn' + (bw ? ' bw' : ''), title: bw ? 'Download PDF (black and white, for printing)' : 'Download PDF', 'aria-label': 'Download ' + x.title + (bw ? ' PDF, black and white' : ' PDF'), html: ICON + (bw ? 'PDF · B&W' : 'PDF'), onclick: () => dl(x, bw) });
+  const btn = (x, bw) => h('button', { type: 'button', class: 'hp-btn' + (bw ? ' bw' : ''), title: bw ? 'Download PDF (black and white, for printing)' : 'Download PDF', 'aria-label': 'Download ' + x.title + (bw ? ' PDF, black and white' : ' PDF'), html: bw ? ICON + BWI : ICON, onclick: () => dl(x, bw) });
+  const BWI = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/></svg>';
   const ACC = ['#e0197a', '#0a86c2', '#16a06a', '#d98200', '#7a3fd1', '#e8590c', '#5a9a00'];
   const EYE = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg>';
-  const viewBtn = x => h('button', { type: 'button', class: 'hp-btn hp-view', title: 'Open in the viewer', 'aria-label': 'View ' + x.title, html: EYE + 'View', onclick: () => viewHandout(x, path(x, false)) });
+  const viewBtn = x => h('button', { type: 'button', class: 'hp-btn hp-view', title: 'Open in the viewer', 'aria-label': 'View ' + x.title, html: EYE, onclick: () => viewHandout(x, path(x, false)) });
   const card = (x, k) => h('article', { class: 'hp-card', style: '--ac:' + ACC[k % ACC.length] },
     h('span', { class: 'hp-code', text: x.code }),
     h('div', { class: 'hp-main' }, h('h3', { class: 'hp-title', text: x.title }), h('p', { class: 'hp-meta', text: [x.pages ? x.pages + ' pages' : '', x.orient || 'A4'].filter(Boolean).join(' · ') })),
@@ -1547,7 +1548,7 @@ async function buildEditable(kind, pages) {
   await Promise.all([officeCode(), loadScript(CDN.zip), kind === 'docx' ? loadScript(CDN.docx) : loadScript(CDN.pptx)]);
   const figs = {};
   for (const p of pages) for (const q of p.qs) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo-dark.png?v=878'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl); logo = { data: new Uint8Array(await bl.arrayBuffer()), w: bm.width, h: bm.height, dataUrl: await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }) }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo-dark.png?v=879'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl); logo = { data: new Uint8Array(await bl.arrayBuffer()), w: bm.width, h: bm.height, dataUrl: await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }) }; } } catch (e) { /* no logo file: skip */ }
   const H = { CHMAP, DIFF, tagText, keyLine, figs, matchParts, expl: eItems, logo };
   return kind === 'docx' ? window.OfficeDoc.buildDocx(window.docx, window.JSZip, pages, H) : window.OfficeDoc.buildPptx(window.PptxGenJS, window.JSZip, pages, H);
 }
@@ -1688,24 +1689,29 @@ const THEME_ICONS = {
 function themeInit() { let m = null; try { m = localStorage.getItem(THEME_KEY); } catch (e) { m = null; } if (m === 'dark' || m === 'light') document.documentElement.setAttribute('data-theme', m); themeApply(themeNow()); }
 function themeToggle() { const m = themeNow() === 'dark' ? 'light' : 'dark'; themeApply(m); try { localStorage.setItem(THEME_KEY, m); } catch (e) { /* optional */ } }
 const GUIDE_HTML = () => `
-<p class="gd-note">Questions and solutions for exams before 2000 are in working mode and will take time to update.</p>
-<p class="gd-lead">The Mathematics Dashboard is अंक-IT's one place for JEE Maths teaching material: a searchable question bank, ready-made DPPs, past-year papers, must-solve lists and revision handouts. Everything can be downloaded as Word, PDF or PowerPoint.</p>
-<nav class="gd-toc" aria-label="Guide sections"><a href="#gd-qb">Question Bank</a><a href="#gd-dpp">DPPs</a><a href="#gd-pyq">PYQs</a><a href="#gd-must">Must Solve</a><a href="#gd-ho">Handouts</a><a href="#gd-dates">Exam dates</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a></nav>
+<p class="gd-lead">The Mathematics Dashboard is अंक-IT's one place for JEE Maths teaching material: a searchable question bank, ready-made DPPs, past-year papers, must-solve lists, revision handouts and online tests. Questions and papers can be downloaded as Word, PDF or PowerPoint.</p>
+<nav class="gd-toc" aria-label="Guide sections"><a href="#gd-start">Getting started</a><a href="#gd-qb">Question Bank</a><a href="#gd-dpp">DPPs</a><a href="#gd-pyq">PYQs</a><a href="#gd-must">Must Solve</a><a href="#gd-ho">Handouts</a><a href="#gd-test">Tests and results</a><a href="#gd-dates">Exam dates</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a></nav>
+<h3 id="gd-start">Getting started</h3>
+<ul>
+<li><b>Sign in</b> with Google, or with your Student ID if you are an Avanti student. Your choice of Teacher or Student is saved the first time you sign in.</li>
+<li><b>Plans:</b> Free, Premium and Avanti. Premium unlocks downloads, handouts and more; Avanti students and teachers get Premium without paying. Compare plans in Help &amp; Support, and upgrade from the profile menu &rarr; Membership.</li>
+<li><b>Profile menu</b> (your name, top right): profile, membership, tests, results, students, help and sign out. Teachers' schools are approved by अंक-IT before students and tests become visible.</li>
+</ul>
 <h3 id="gd-qb">1. Question Bank</h3>
 <p>Every question in one list: JEE Main, JEE Advanced, AIEEE and IIT-JEE previous-year questions (PYQs) plus practice questions from different sources.</p>
 <ul>
 <li><b>Find questions:</b> search by words or question id; filter by chapter, source, exam, year, class, level (L1 easy, L2 medium, L3 hard), type (single, multiple, numerical) and topic.</li>
-<li><b>Each question card</b> shows exam, date and shift, level and tags. Use the eye icon to show the answer, the book icon to open the solution, and the ≡ menu for the topic, type, question id and <b>Flag</b> (to report a wrong question).</li>
+<li><b>Each question card</b> shows exam, date and shift, level and tags. Use the eye icon to show the answer, the book icon to open the solution, and the &equiv; menu for the topic, type, question id and <b>Flag</b> (to report a wrong question).</li>
 <li><b>Show all answers / Hide options / Show selected only</b> change how the whole page looks. <b>Attention</b> lists questions flagged for checking; <b>Out of syllabus</b> marks questions on topics no longer in JEE.</li>
-<li><b>Tick questions</b> (or Select all filtered) and export just those as Word, PDF or PowerPoint. "Answer Key" adds the key at the end and "Explanation" adds the full solutions on new pages after it.</li>
+<li><b>Tick questions</b> (or Select all filtered) and export just those. "Answer Key" adds the key at the end and "Explanation" adds the full solutions on new pages after it.</li>
 <li><b>Overview icon</b> (bar-chart circle at the top right) opens the question counts, the chapter-wise count, the syllabus priority and the chapter weightage charts.</li>
 </ul>
 <h3 id="gd-dpp">2. DPPs</h3>
 <p>Ready-made practice sheets. Choose what you need:</p>
 <ul>
-<li><b>Subtopic DPPs</b> – practice questions grouped by subtopic of a chapter.</li>
-<li><b>Level 1, 2, 3 booklet</b> – a chapter booklet by difficulty and source.</li>
-<li><b>PYQs topic-wise</b> – past-year questions of a chapter by topic, filtered by exam, year and level.</li>
+<li><b>Subtopic DPPs</b> &ndash; practice questions grouped by subtopic of a chapter.</li>
+<li><b>Level 1, 2, 3 booklet</b> &ndash; a chapter booklet by difficulty and source.</li>
+<li><b>PYQs topic-wise</b> &ndash; past-year questions of a chapter by topic, filtered by exam, year and level.</li>
 </ul>
 <p>Pick one or many chapters, see the live preview page by page, and download. Turn on "Answer Key" to add answers on a separate page and "Explanation" to add the full solutions.</p>
 <h3 id="gd-pyq">3. PYQs</h3>
@@ -1713,7 +1719,12 @@ const GUIDE_HTML = () => `
 <h3 id="gd-must">4. Must Solve</h3>
 <p>Questions that came again and again in JEE, in the same or a very similar form, plus questions that are sure to come. Choose chapters with the tick-box list. Inside a chapter, questions are grouped by topic; each group shows a note on why it matters (<i>Sure-shot</i>, <i>Must know</i>) and in which years the question came. Tick and download like the Question Bank.</p>
 <h3 id="gd-ho">5. Handouts</h3>
-<p>Short revision notes chapter by chapter (PDF). Preview each page, switch to the black-and-white print version with the half-filled circle icon, maximise to read, or download.</p>
+<p>Handwritten revision notes chapter by chapter (PDF), grouped by Class 11 and Class 12. Each handout has three icon buttons: the <b>eye</b> opens it in the viewer, the <b>download arrow</b> saves the PDF, and the <b>half-filled circle</b> saves the black-and-white version for printing. Hold the pointer over an icon to see its name. Handouts need Premium.</p>
+<h3 id="gd-test">6. Tests and results</h3>
+<ul>
+<li><b>Teachers</b> can create online tests for their approved school, class and stream, share the test link, and see each student's result and a report.</li>
+<li><b>Students</b> see the tests available to them, attempt them online, and see their own results afterwards.</li>
+</ul>
 <h3 id="gd-dates">Exam dates</h3>
 <p>Dates of every exam whose papers are in the bank. New exams are added to this table when they are uploaded.</p>
 <div id="gd-dates-box" style="max-height:340px;overflow:auto;border:1px solid var(--color-border-line,#ccc);border-radius:8px">Loading…</div>
@@ -1727,10 +1738,9 @@ const GUIDE_HTML = () => `
 <ul>
 <li>The <b>moon/sun icon</b> switches light and dark mode.</li>
 <li>On a phone the menu wraps into two rows; every feature works there too.</li>
-<li>Seen a wrong question, answer or figure? Open the ≡ menu and press <b>Flag</b>.</li>
+<li>Seen a wrong question, answer or figure? Open the &equiv; menu and press <b>Flag</b>, or write to us from Help &amp; Support.</li>
 <li>Maths is written in proper notation; if a formula looks broken, refresh the page once.</li>
 </ul>
-
 <p class="gd-foot">Built by Ankit for the अंक-IT teaching team.</p>`;
 
 function guideOpen() {
@@ -1780,7 +1790,7 @@ function buildShell() {
   root.append(
     h('div', { class: 'shell' },
       h('header', { class: 'topbar' },
-        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark.png?v=878', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: "JEE, CET, NDA, IAT, PYQ's, DPP's, Handouts" })),
+        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark.png?v=879', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: "JEE, CET, NDA, IAT, PYQ's, DPP's, Handouts" })),
         h('button', { type: 'button', class: 'tb-theme', id: 'themeBtn', 'data-act': 'theme', 'aria-pressed': 'false' }),
         h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
         h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),

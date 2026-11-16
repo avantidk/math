@@ -1,5 +1,13 @@
 [
   {
+    "v": "879",
+    "date": "16 Nov 2026",
+    "items": [
+      "Handouts: the View and PDF buttons now show only icons (eye, download arrow, and a half-filled circle for the black-and-white print version). Hover to see the name.",
+      "The guide is rewritten: it now covers signing in, plans, tests and results, and describes the new handout icons. The note about exams before 2000 is removed."
+    ]
+  },
+  {
     "v": "878",
     "date": "16 Nov 2026",
     "items": [
