@@ -306,7 +306,7 @@ function onboard(root, done) {
   const p = P();
   root.textContent = '';
   root.append(h('div', { class: 'lg' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=895', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=896', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
       p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
@@ -832,7 +832,7 @@ async function pageCreate(arg, r) {
   const m1 = h('p', { class: 'pt-msg', role: 'alert' });
   const check1 = () => !fTitle.value.trim() ? 'Give the test a title.' : !S.cls.size ? 'Choose the class (or classes) that should take this test.' : !S.streams.size ? 'Choose the stream (or streams) that should take this test.'
     : !(parseInt(fMins.value, 10) >= 1 && parseInt(fMins.value, 10) <= 600) ? 'Duration must be 1 to 600 minutes.' : !(parseFloat(fPos.value) > 0) ? 'Marks for a correct answer must be more than 0.' : (parseFloat(fNeg.value) || 0) < 0 ? 'Negative marks cannot be below 0.' : '';
-  const sec1 = h('div', { class: 'pt-step' },
+  const sec1 = h('div', { class: 'pt-step pt-s1' },
     card(h('h2', { text: 'Who is this test for?' }),
       fld('Test title', fTitle),
       h('div', { class: 'pt-fld' }, h('span', {}, 'Class', h('b', { class: 'pt-req', text: ' *' })), fCls), h('div', { class: 'pt-fld' }, h('span', {}, 'Stream', h('b', { class: 'pt-req', text: ' *' })), fStr),
@@ -841,7 +841,9 @@ async function pageCreate(arg, r) {
       h('div', { class: 'pt-row3' }, fld('Duration (minutes)', fMins), fld('Marks if correct', fPos), fld('Negative marks', fNeg, 'For a wrong MCQ answer')),
       h('label', { class: 'pt-switch', for: 'ctAct' }, fAct, h('span', { text: 'Active: students can open the test now' })),
       S.locked ? h('p', { class: 'pt-note', text: 'Students have already submitted this test, so the questions and marks are locked. You can still change the title, class, school and on/off.' }) : null, m1));
-  const sec2 = h('div', { class: 'pt-step' }, card(h('h2', { text: 'Add questions' }), h('p', { class: 'pt-hint', text: 'Tap Add on a question. Only MCQ, MSQ and numerical questions with an answer key can be used.' }), filt, resHead, results, pager));
+  const sec2 = h('div', { class: 'pt-step pt-q2' },
+    h('aside', { class: 'pt-q2-side' }, card(h('h2', { text: 'Find questions' }), filt)),
+    h('div', { class: 'pt-q2-main' }, card(h('h2', { text: 'Add questions' }), h('p', { class: 'pt-hint', text: 'Tap Add on a question. Only MCQ, MSQ and numerical questions with an answer key can be used.' }), resHead, results, pager)));
   const sec3 = h('div', { class: 'pt-step' },
     card(h('h2', { text: 'Review' }), h('div', { class: 'pt-sum', id: 'ctSum' })),
     card(selHead, selBox, h('div', { class: 'pt-actions' },
@@ -870,13 +872,15 @@ async function pageCreate(arg, r) {
     if (n >= 2) { const e = check1(); if (e) { m1.textContent = e; m1.className = 'pt-msg bad'; n = 1; } else { m1.textContent = ''; } }
     if (n === 3 && !S.sel.length) { toast('Add at least one question first'); n = 2; }
     step = n; secs.forEach((x, i) => { x.hidden = i + 1 !== n; });
+    if (n === 3) { sec3.insertBefore(foot, sec3.children[1] || null); foot.classList.add('inline'); } else { wiz.append(foot); foot.classList.remove('inline'); }
     stepper.textContent = '';
     NAMES.forEach((t, i) => stepper.append(h('li', {}, h('button', { type: 'button', class: 'pt-stp' + (i + 1 === n ? ' on' : '') + (i + 1 < n ? ' done' : ''), 'aria-current': i + 1 === n ? 'step' : null, onclick: () => goStep(i + 1) }, h('span', { class: 'pt-stn', text: i + 1 < n ? '✓' : String(i + 1) }), h('span', { class: 'pt-stt', text: t })))));
     if (n === 2) drawResults(); if (n === 3) { drawSel(); drawSum(); } drawFoot();
     try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { /* older browser */ }
   }
+  const wiz = h('div', { class: 'pt-wizard' }, stepper, sec1, sec2, sec3, foot);
   show(head(S.id ? 'Edit test' : 'Create Test', S.id ? 'Link: ' + testLink(S.code) : 'Three quick steps: details, questions, review. Then share the link.', link('#/my-tests', 'My Tests', 'btn')),
-    h('div', { class: 'pt-wizard' }, stepper, sec1, sec2, sec3, foot));
+    wiz);
   drawFilters(); drawSel(); goStep(1);
 }
 

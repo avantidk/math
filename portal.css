@@ -989,3 +989,13 @@ html.hv-drag .hv-pages { pointer-events: none; }
 .pt-wizard .pt-sel { max-height: none; overflow: visible; }
 .pt-wizard .pt-si { padding: 6px 10px; }
 .pt-wizard .pt-si-t { -webkit-line-clamp: 1; }
+
+/* Create Test on a PC: details side by side; filters in a left sidebar; Save bar right under the review */
+@media (min-width: 961px) {
+  .pt-wizard .pt-s1 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .pt-wizard .pt-q2 { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .pt-wizard .pt-q2-side { position: sticky; top: 12px; }
+}
+.pt-wizard .pt-q2-side, .pt-wizard .pt-q2-main { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 960px) { .pt-wizard .pt-q2 { display: flex; flex-direction: column; } }
+.pt-foot.inline { position: static; box-shadow: none; }
