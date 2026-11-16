@@ -304,7 +304,7 @@ body.hv-on { overflow: hidden; }
 .hv-slot { max-width: 100%; background: #fff; border-radius: 4px; box-shadow: 0 6px 24px rgba(0,0,0,.4); flex: none; }
 .hv-page { display: block; max-width: 100%; height: auto; border-radius: 4px; }
 .hv-msg { color: #e9eefb; margin: 40px 0; text-align: center; }
-@media print { body.hv-on .hv { display: none !important; } }
+@media print { .hv, .hv-div { display: none !important; } }
 
 /* ---------- gold "Purchase membership" ---------- */
 .btn.pt-gold, .pf-drop a.tb-item.pf-buy { position: relative; overflow: hidden; border: 1px solid #c98b12 !important; color: #2a1a00 !important; font-weight: 800;
@@ -904,3 +904,18 @@ html body .tb-logo { height: 68px; top: 4px; }
 .pt-helpgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); }
 @media (max-width: 900px) { .pt-helpgrid { grid-template-columns: 1fr; } }
 .pt-helpgrid .mb-table td:first-child, .pt-helpgrid table td:first-child { min-width: 220px; }
+
+/* Handout beside the dashboard (wide landscape screens): handout on the left, dashboard on the right, draggable divider */
+.hv.hv-split { right: auto; width: var(--hv-w, 50vw); background: #0b1630; z-index: 1100; }
+.hv-div { position: fixed; top: 0; bottom: 0; left: calc(var(--hv-w, 50vw) - 5px); width: 10px; z-index: 1101; cursor: col-resize; touch-action: none; background: transparent; }
+.hv-div[hidden] { display: none; }
+.hv-div::after { content: ""; position: absolute; top: 0; bottom: 0; left: 4px; width: 2px; background: var(--rule, #c9d2e6); }
+.hv-div::before { content: ""; position: absolute; top: 50%; left: 1px; width: 8px; height: 48px; margin-top: -24px; border-radius: 4px; background: var(--navy-2, #14295c); box-shadow: 0 0 0 1px rgba(255,255,255,.5); }
+.hv-div:hover::after, .hv-div:focus-visible::after, html.hv-drag .hv-div::after { background: var(--gold, #f2b134); width: 3px; }
+.hv-div:focus-visible { outline: none; }
+html.hv-split-on body { margin-left: var(--hv-w, 50vw); width: calc(100% - var(--hv-w, 50vw)); transform: translateZ(0); }
+html.hv-drag, html.hv-drag * { cursor: col-resize !important; user-select: none !important; }
+html.hv-drag .hv-pages { pointer-events: none; }
+.hv.hv-split .hv-slot { width: min(100%, 1000px) !important; }
+.hv.hv-split .hv-page { width: 100% !important; }
+.hv.hv-split .hv-slot { height: auto !important; aspect-ratio: 210 / 297; }
