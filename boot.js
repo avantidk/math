@@ -24,7 +24,7 @@ function h(tag, props, ...kids) {
 }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 window.AvantiUtil = Object.freeze({ h, esc });
-const BUILD = '879';
+const BUILD = '880';
 const RELEASED = '16 Nov 2026';   /* date of this release, shown in the footer */
 const SB_URL = 'https://usehxhvzhdbcmnmqaxoo.supabase.co';
 const SB_KEY = 'sb_publishable_QQ_N_B6kl416kbGMF0DQtw_9Jg58PoN';
@@ -106,7 +106,7 @@ function getJson(path) { return window.fetch(path).then(r => { if (!r.ok) throw 
 function loadScript(src) {
   return new Promise((res, rej) => {
     if (document.querySelector('script[data-src="' + src + '"]')) return res();
-    const s = document.createElement('script'); s.src = src; s.dataset.src = src;
+    const s = document.createElement('script'); s.src = src + (src.indexOf('?') < 0 ? '?v=' + BUILD : ''); s.dataset.src = src;
     s.onload = res; s.onerror = () => { s.remove(); rej(new Error(src)); }; document.head.append(s);
   });
 }

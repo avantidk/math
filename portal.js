@@ -276,7 +276,7 @@ function onboard(root, done) {
   const p = P();
   root.textContent = '';
   root.append(h('div', { class: 'lg' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=879', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=880', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
       p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
@@ -871,7 +871,7 @@ async function pageResults(id) {
   const qs = card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Question-wise correctness' }), can('pdf') ? h('button', { type: 'button', class: 'btn', text: 'Export CSV', onclick: exportQs }) : null),
     h('div', { class: 'pt-legend' }, h('span', { class: 'lg-c', text: 'Correct' }), h('span', { class: 'lg-w', text: 'Wrong' }), h('span', { class: 'lg-s', text: 'Skipped' })),
     h('div', { class: 'pt-qbars' }, (R.questions || []).map(q => h('div', { class: 'pt-qbar' }, h('b', { text: 'Q' + q.pos }),
-      h('span', { class: 'pt-stack', title: q.correct + ' correct, ' + q.wrong + ' wrong, ' + q.skipped + ' skipped' },
+      h('span', { class: 'pt-hstack', title: q.correct + ' correct, ' + q.wrong + ' wrong, ' + q.skipped + ' skipped' },
         h('span', { class: 'c', style: 'width:' + (100 * q.correct / q.total) + '%' }), h('span', { class: 'w', style: 'width:' + (100 * q.wrong / q.total) + '%' }), h('span', { class: 's', style: 'width:' + (100 * q.skipped / q.total) + '%' })),
       h('span', { class: 'pt-num', text: pct(q.correct_pct) }), h('span', { class: 'pt-hint pt-qtp', text: q.topic || '' })))));
   const tps = card(h('h2', { text: 'Topic-wise weak areas' }), h('p', { class: 'pt-hint', text: 'Weakest first: share of all answers in the topic that were correct.' }),
@@ -1441,7 +1441,7 @@ async function pageHelp() {
     ['A question, answer or figure is wrong.', 'Email the question ID (shown in the question menu) and what should be corrected.']];
   show(head('Help & Support', 'Found a problem or have a question? Write to us and we will get back to you.'),
     h('div', { class: 'pt-grid2 pt-helpgrid' },
-      h('div', { class: 'pt-stack' },
+      h('div', { class: 'pt-hstack' },
       card(h('h2', { text: 'Contact' }),
         h('div', { class: 'pt-contact' }, h('span', { class: 'pt-cic', text: '✉' }), h('div', {}, h('span', { class: 'pt-hint', text: 'Email' }), h('a', { href: 'mailto:' + c.email, text: c.email }))),
         c.phone ? h('div', { class: 'pt-contact' }, h('span', { class: 'pt-cic', text: '☎' }), h('div', {}, h('span', { class: 'pt-hint', text: 'Mobile' }), h('a', { href: 'tel:+' + wa, text: c.phone }))) : null,

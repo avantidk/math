@@ -192,7 +192,7 @@ function buildQ(q, n, p) {
   return node;
 }
 var LOGO_DATA = '';
-try { fetch('img/ankit-logo-dark.png?v=879').then(r => r.ok ? r.blob() : null).then(bl => { if (!bl) return; const fr = new FileReader(); fr.onload = () => { LOGO_DATA = fr.result; }; fr.readAsDataURL(bl); }).catch(() => {}); } catch (e) { /* use the file path */ }
+try { fetch('img/ankit-logo-dark.png?v=880').then(r => r.ok ? r.blob() : null).then(bl => { if (!bl) return; const fr = new FileReader(); fr.onload = () => { LOGO_DATA = fr.result; }; fr.readAsDataURL(bl); }).catch(() => {}); } catch (e) { /* use the file path */ }
 /* a figure that is just a picture wrapped in an SVG is drawn from the picture itself (screenshots and PDFs then never lose it) */
 function figSrc(f) { const m = /<image[^>]*?href="(data:image\/(?:png|jpeg|jpg);base64,[^"]+)"/.exec(f.svg || ''); return m ? m[1] : 'data:image/svg+xml;utf8,' + encodeURIComponent(f.svg); }
 function skeleton(p, keyMode) {
@@ -206,7 +206,7 @@ function skeleton(p, keyMode) {
   /* header: logo left, exam name (18 bold) with date below (14), Mathematics top right; footer: Exam - Date left, page number right */
   const examName = p.pyq ? String(p.sub || '').replace(/\s*\u00b7\s*all topics$/, '') : p.title, dateLine = p.pyq ? p.title : sub;
   const headTitle = p.pyq ? examName : p.title, headSub = p.pyq ? (keyMode ? dateLine + ' \u00b7 ' + (keyMode === 'exp' ? 'Explanations' : 'Answer key') : dateLine) : sub;
-  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-dark.png?v=879', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
+  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-dark.png?v=880', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
   return h('div', { class: 'sheet' },
     h('div', { class: 'sh-head' },
       h('div', { class: 'sh-brand' }, logo),
@@ -921,7 +921,7 @@ async function cwPptxData(r) {
   const flat = pc ? [].concat(...pc.topics.map(t => t.qs.filter(inScope).map(q => Object.assign({}, q, { _t: t.name, _lab: pyqLabel(q) }))), pc.other.filter(inScope).map(q => Object.assign({}, q, { _t: 'Other topics', _lab: pyqLabel(q) }))) : r.qs.map(q => Object.assign({}, q, { _t: r.name, _lab: pyqLabel(q) }));
   const topics = pc ? pc.topics.map(t => ({ name: t.name, n: t.qs.filter(inScope).length })).concat(pc.other.filter(inScope).length ? [{ name: 'Other topics', n: pc.other.filter(inScope).length }] : []) : [];
   const figs = {}; for (const q of flat) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=879'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=880'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
   return { logo, chapter: c.n, cl: c.cl, cc, bucket, bucketName: BUCKET_NAME[bucket], bucketLabel: bucket, year: cwYrText(), count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
 }
 async function exportCwPptx(r) {
@@ -994,7 +994,7 @@ window.__qbCwPptx = async function (ids, explain) {
   const nP = qs.filter(q => q.s === 'P').length, nN = qs.length - nP, ex = [...new Set(qs.filter(q => q.s === 'P').map(q => q.e))];
   const kindLabel = nN && nP ? 'PYQs + practice' : nN ? 'Practice questions' : ex.length === 1 ? BUCKET_NAME[ex[0]] + ' PYQs' : 'JEE Main + Advanced PYQs';
   const figs = {}; for (const q of flat) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=879'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=880'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
   const yl = Object.keys(years).map(Number).sort((a, b) => a - b);
   const d = { logo, chapter: one ? c0.n : 'Selected Questions', cl: cls[0], cc: one ? ccs[0] : '', clLabel: 'CLASS ' + cls.join(' & '), chLabel: one ? 'CHAPTER ' + ccs[0].split('M')[1] : ccs.length + ' CHAPTERS',
     bucket: ex.length === 1 ? ex[0] : 'Main', bucketName: kindLabel, kindLabel, perQ: true, noFront: true, noTopic: true, year: yl.length ? (yl.length === 1 ? String(yl[0]) : 'all') : '\u2014', count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
@@ -1118,7 +1118,7 @@ async function renderHandouts() {
       + '.hp-btn{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:5px 11px;border-radius:8px;border:1px solid var(--ac);background:var(--ac);color:#fff;font:600 12.5px Figtree,system-ui,sans-serif;cursor:pointer;white-space:nowrap}'
       + '.hp-btn:hover{filter:brightness(1.08)}.hp-btn:focus-visible{outline:3px solid color-mix(in srgb,var(--ac) 40%,transparent);outline-offset:2px}'
       + '.hp-btn.bw{background:transparent;color:var(--ink);border-color:var(--rule)}.hp-btn.bw:hover{background:var(--ink);color:var(--bg);filter:none}'
-      + '.hp-btn svg{width:16px;height:16px;flex:none}.hp-btn:not(.hp-lock):not(a){padding:5px 10px;min-width:38px;justify-content:center;gap:4px}'
+      + '.hp-btn svg{width:16px;height:16px;flex:none}.hp-btn{padding:5px 10px;min-width:38px;justify-content:center;gap:4px;text-decoration:none}'
       + '@media(max-width:480px){.hp-list{grid-template-columns:1fr}.hp-card{grid-template-columns:auto 1fr}.hp-act{grid-column:1 / -1;justify-content:flex-start}}';
     document.head.append(st);
   }
@@ -1135,13 +1135,14 @@ async function renderHandouts() {
   const ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8m0 0L4.8 6.8M8 10l3.2-3.2M3 13h10"/></svg>';
   const btn = (x, bw) => h('button', { type: 'button', class: 'hp-btn' + (bw ? ' bw' : ''), title: bw ? 'Download PDF (black and white, for printing)' : 'Download PDF', 'aria-label': 'Download ' + x.title + (bw ? ' PDF, black and white' : ' PDF'), html: bw ? ICON + BWI : ICON, onclick: () => dl(x, bw) });
   const BWI = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/></svg>';
+  const LOCK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
   const ACC = ['#e0197a', '#0a86c2', '#16a06a', '#d98200', '#7a3fd1', '#e8590c', '#5a9a00'];
   const EYE = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg>';
   const viewBtn = x => h('button', { type: 'button', class: 'hp-btn hp-view', title: 'Open in the viewer', 'aria-label': 'View ' + x.title, html: EYE, onclick: () => viewHandout(x, path(x, false)) });
   const card = (x, k) => h('article', { class: 'hp-card', style: '--ac:' + ACC[k % ACC.length] },
     h('span', { class: 'hp-code', text: x.code }),
     h('div', { class: 'hp-main' }, h('h3', { class: 'hp-title', text: x.title }), h('p', { class: 'hp-meta', text: [x.pages ? x.pages + ' pages' : '', x.orient || 'A4'].filter(Boolean).join(' · ') })),
-    h('div', { class: 'hp-act' }, G('pdf') ? [viewBtn(x), btn(x, false), x.nobw ? null : btn(x, true)] : h('a', { class: 'hp-btn hp-view', href: '#/membership', title: 'Handouts are part of Premium', text: '\uD83D\uDD12 Premium' })));
+    h('div', { class: 'hp-act' }, G('pdf') ? [viewBtn(x), btn(x, false), x.nobw ? null : btn(x, true)] : h('a', { class: 'hp-btn hp-view', href: '#/membership', title: 'Handouts are part of Premium', 'aria-label': 'Handouts are part of Premium. Open Membership', html: LOCK })));
   const secs = [['11', 'Class 11'], ['12', 'Class 12']].map(([c, t]) => { const L = list.filter(x => x.code.startsWith(c)); return L.length ? h('section', { class: 'hp-sec' }, h('h2', { class: 'hp-sech', text: t }), h('div', { class: 'hp-list' }, L.map((x, k) => card(x, k)))) : null; }).filter(Boolean);
   view.append(h('div', { class: 'hp-head' }, h('h1', { text: 'Handouts' }), h('p', { text: G('pdf') ? 'Handwritten revision notes · view or download as PDF' : 'Handwritten revision notes · part of the Premium membership (view and download)' })), ...secs);
 }
@@ -1548,7 +1549,7 @@ async function buildEditable(kind, pages) {
   await Promise.all([officeCode(), loadScript(CDN.zip), kind === 'docx' ? loadScript(CDN.docx) : loadScript(CDN.pptx)]);
   const figs = {};
   for (const p of pages) for (const q of p.qs) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo-dark.png?v=879'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl); logo = { data: new Uint8Array(await bl.arrayBuffer()), w: bm.width, h: bm.height, dataUrl: await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }) }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo-dark.png?v=880'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl); logo = { data: new Uint8Array(await bl.arrayBuffer()), w: bm.width, h: bm.height, dataUrl: await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }) }; } } catch (e) { /* no logo file: skip */ }
   const H = { CHMAP, DIFF, tagText, keyLine, figs, matchParts, expl: eItems, logo };
   return kind === 'docx' ? window.OfficeDoc.buildDocx(window.docx, window.JSZip, pages, H) : window.OfficeDoc.buildPptx(window.PptxGenJS, window.JSZip, pages, H);
 }
@@ -1741,7 +1742,7 @@ const GUIDE_HTML = () => `
 <li>Seen a wrong question, answer or figure? Open the &equiv; menu and press <b>Flag</b>, or write to us from Help &amp; Support.</li>
 <li>Maths is written in proper notation; if a formula looks broken, refresh the page once.</li>
 </ul>
-<p class="gd-foot">Built by Ankit for the अंक-IT teaching team.</p>`;
+`;
 
 function guideOpen() {
   let m = document.getElementById('guideModal');
@@ -1790,7 +1791,7 @@ function buildShell() {
   root.append(
     h('div', { class: 'shell' },
       h('header', { class: 'topbar' },
-        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark.png?v=879', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: "JEE, CET, NDA, IAT, PYQ's, DPP's, Handouts" })),
+        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark.png?v=880', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: "JEE, CET, NDA, IAT, PYQ's, DPP's, Handouts" })),
         h('button', { type: 'button', class: 'tb-theme', id: 'themeBtn', 'data-act': 'theme', 'aria-pressed': 'false' }),
         h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
         h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),

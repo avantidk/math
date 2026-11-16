@@ -1,5 +1,14 @@
 [
   {
+    "v": "880",
+    "date": "16 Nov 2026",
+    "items": [
+      "Fixed the blank Help & Support page; Contact and Common questions now show, with the wider plans table beside them.",
+      "The new guide now shows straight away (the dashboard code is reloaded on every release instead of coming from an old saved copy).",
+      "Handouts: the locked button shows only a lock icon. The 'Built by Ankit' line is removed from the guide."
+    ]
+  },
+  {
     "v": "879",
     "date": "16 Nov 2026",
     "items": [
