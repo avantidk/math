@@ -1,5 +1,12 @@
 [
   {
+    "v": "899",
+    "date": "16 Nov 2026",
+    "items": [
+      "Create Test: the bottom bar (Next / Back / Save) is now fixed to the bottom of the screen on the PC as well."
+    ]
+  },
+  {
     "v": "898",
     "date": "16 Nov 2026",
     "items": [

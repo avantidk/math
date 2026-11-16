@@ -330,7 +330,7 @@ function onboard(root, done) {
   const p = P();
   root.textContent = '';
   root.append(h('div', { class: 'lg' },
-    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=898', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
+    h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-dark.png?v=899', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { text: 'Welcome' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') }),
       h('p', { text: p.role === 'student' ? 'Tell us about yourself to continue. All details are required.' : 'Tell us your school to continue.' })),
     h('main', { class: 'lg-main lg-wide' }, h('section', { class: 'lg-card pt-onb' }, h('h2', { text: 'Complete your profile' }),
       p.school_note && !p.school ? h('p', { class: 'pt-note pt-warnnote', text: p.school_note }) : null,
@@ -906,7 +906,10 @@ async function pageCreate(arg, r) {
   const wiz = h('div', { class: 'pt-wizard' }, stepper, sec1, sec2, sec3, foot);
   show(head(S.id ? 'Edit test' : 'Create Test', S.id ? 'Link: ' + testLink(S.code) : 'Three quick steps: details, questions, review. Then share the link.', link('#/my-tests', 'My Tests', 'btn')),
     wiz);
-  drawFilters(); drawSel(); goStep(1);
+  /* the bar is fixed to the bottom of the screen and lined up with the page block (sticky can fail inside scrolling parents) */
+  const alignFoot = () => { if (!wiz.isConnected) { window.removeEventListener('resize', alignFoot); return; } const r = wiz.getBoundingClientRect(); foot.style.left = Math.max(0, r.left) + 'px'; foot.style.width = r.width + 'px'; };
+  window.addEventListener('resize', alignFoot); if (window.ResizeObserver) new ResizeObserver(alignFoot).observe(wiz);
+  drawFilters(); drawSel(); goStep(1); alignFoot();
 }
 
 /* ---------- My Tests ---------- */

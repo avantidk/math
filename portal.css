@@ -1030,3 +1030,8 @@ html.hv-drag .hv-pages { pointer-events: none; }
 .pt-sumrow { display: flex; flex-direction: column; gap: 2px; border: 0; padding: 0; min-width: 0; }
 .pt-sumrow > b { overflow-wrap: anywhere; }
 @media (max-width: 640px) { .pt-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Action bar fixed to the bottom of the window (lined up with the block by script) */
+.pt-wizard > .pt-foot, .pt-wizard .pt-foot { position: fixed !important; bottom: 8px; left: 12px; width: calc(100% - 24px); box-sizing: border-box; z-index: 60; }
+.pt-wizard { padding-bottom: 96px !important; }
+@media (max-width: 560px) { .pt-wizard .pt-foot { bottom: 0; border-radius: 14px 14px 0 0; } }
