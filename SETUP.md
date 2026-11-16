@@ -60,13 +60,14 @@ the private Storage bucket `content` (schema.sql creates it). Every file is chec
 | `handouts/...` (PDFs) | Premium, Avanti and Staff only |
 | `admin/...` (Word / PowerPoint export code) | the admin only |
 
-Uploading (and again whenever the content changes):
-1. GitHub → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**: name `SUPABASE_SERVICE_ROLE_KEY`,
-   value from Supabase → **Project Settings** → **API Keys** → the **secret** (service_role) key.
-2. In the private repository **avantidk/openmath**: GitHub → **Actions** → **Upload content to Supabase** → **Run workflow** (it also runs by itself when files in `content/` change there). The secret in step 1 goes in that repository too.
-3. Check in Supabase → **Storage** → `content`: folders `qb`, `sol`, `handouts`, `admin` and the files `must.json`, `bank-meta.json`.
+Changing the content: upload the new file straight to Supabase → **Storage** → bucket `content` (same folder and file name,
+replace the old one). Solutions are one file per chapter: `sol/<chapter code>.json`.
+Never add these files to this public repository: anything in a public repository can be read by anyone.
 
-The `content/` folder lives only in the **private** repository `avantidk/openmath`. Never add it to this public repository: anything in a public repository can be read by anyone.
+`avantidk/openmath` (private) is only a frozen backup of the old repository. It takes no part in the site.
+
+The website's deploy checks that the bucket holds the questions, using the repository secret `SUPABASE_SERVICE_ROLE_KEY`
+(Settings → Secrets and variables → Actions; value: Supabase → Project Settings → API Keys → the secret key).
 
 ## 4. Google sign-in
 

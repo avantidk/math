@@ -20,8 +20,9 @@ tests and results. It replaced an older Claude artifact.
 - `portal.js`, `portal.css`: profile, membership, tests, results, students, approvals, help.
 - `teacher.b870.js`, `qb/qb-all.b870.js`, `qb/qb.b525.html`: Question Bank, DPPs, PYQs, Must Solve, Handouts (with plan checks).
 - The private content (questions, answers, solutions, Must Solve, handouts, Word/PowerPoint code) is NOT in this public
-  repository. It lives in the PRIVATE repository `avantidk/openmath` (folder `content/`), whose "Upload content to Supabase"
-  workflow uploads it to the Supabase Storage bucket `content`. Question-bank edits are made there, never here.
+  repository. The live copy is the private Supabase Storage bucket `content`. `avantidk/openmath` is only a frozen private
+  BACKUP of the old repository: never push to it, run its workflows, read from it or use it for anything unless the owner
+  explicitly asks. Content changes are uploaded straight to the bucket (Supabase → Storage), never committed here.
   `boot.js` fetches it with the user's token; the database (function `content_allowed`) decides who may read each file.
   Never move these files back into the website folder.
 - `supabase/schema.sql`: the whole database; safe to run again. `supabase/functions/`: Edge Functions.

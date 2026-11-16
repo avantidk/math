@@ -4,5 +4,5 @@
 *.b[0-9]*.html
 __pycache__/
 *.pyc
-# private content lives in the private repo avantidk/openmath, never here
+# private content lives only in the Supabase Storage bucket, never here
 content/
