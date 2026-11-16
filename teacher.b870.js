@@ -192,7 +192,7 @@ function buildQ(q, n, p) {
   return node;
 }
 var LOGO_DATA = '';
-try { fetch('img/ankit-logo-dark.png?v=884').then(r => r.ok ? r.blob() : null).then(bl => { if (!bl) return; const fr = new FileReader(); fr.onload = () => { LOGO_DATA = fr.result; }; fr.readAsDataURL(bl); }).catch(() => {}); } catch (e) { /* use the file path */ }
+try { fetch('img/ankit-logo-dark.png?v=885').then(r => r.ok ? r.blob() : null).then(bl => { if (!bl) return; const fr = new FileReader(); fr.onload = () => { LOGO_DATA = fr.result; }; fr.readAsDataURL(bl); }).catch(() => {}); } catch (e) { /* use the file path */ }
 /* a figure that is just a picture wrapped in an SVG is drawn from the picture itself (screenshots and PDFs then never lose it) */
 function figSrc(f) { const m = /<image[^>]*?href="(data:image\/(?:png|jpeg|jpg);base64,[^"]+)"/.exec(f.svg || ''); return m ? m[1] : 'data:image/svg+xml;utf8,' + encodeURIComponent(f.svg); }
 function skeleton(p, keyMode) {
@@ -206,7 +206,7 @@ function skeleton(p, keyMode) {
   /* header: logo left, exam name (18 bold) with date below (14), Mathematics top right; footer: Exam - Date left, page number right */
   const examName = p.pyq ? String(p.sub || '').replace(/\s*\u00b7\s*all topics$/, '') : p.title, dateLine = p.pyq ? p.title : sub;
   const headTitle = p.pyq ? examName : p.title, headSub = p.pyq ? (keyMode ? dateLine + ' \u00b7 ' + (keyMode === 'exp' ? 'Explanations' : 'Answer key') : dateLine) : sub;
-  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-dark.png?v=884', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
+  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-dark.png?v=885', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
   return h('div', { class: 'sheet' },
     h('div', { class: 'sh-head' },
       h('div', { class: 'sh-brand' }, logo),
@@ -921,7 +921,7 @@ async function cwPptxData(r) {
   const flat = pc ? [].concat(...pc.topics.map(t => t.qs.filter(inScope).map(q => Object.assign({}, q, { _t: t.name, _lab: pyqLabel(q) }))), pc.other.filter(inScope).map(q => Object.assign({}, q, { _t: 'Other topics', _lab: pyqLabel(q) }))) : r.qs.map(q => Object.assign({}, q, { _t: r.name, _lab: pyqLabel(q) }));
   const topics = pc ? pc.topics.map(t => ({ name: t.name, n: t.qs.filter(inScope).length })).concat(pc.other.filter(inScope).length ? [{ name: 'Other topics', n: pc.other.filter(inScope).length }] : []) : [];
   const figs = {}; for (const q of flat) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=884'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=885'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
   return { logo, chapter: c.n, cl: c.cl, cc, bucket, bucketName: BUCKET_NAME[bucket], bucketLabel: bucket, year: cwYrText(), count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
 }
 async function exportCwPptx(r) {
@@ -994,7 +994,7 @@ window.__qbCwPptx = async function (ids, explain) {
   const nP = qs.filter(q => q.s === 'P').length, nN = qs.length - nP, ex = [...new Set(qs.filter(q => q.s === 'P').map(q => q.e))];
   const kindLabel = nN && nP ? 'PYQs + practice' : nN ? 'Practice questions' : ex.length === 1 ? BUCKET_NAME[ex[0]] + ' PYQs' : 'JEE Main + Advanced PYQs';
   const figs = {}; for (const q of flat) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=884'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=885'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
   const yl = Object.keys(years).map(Number).sort((a, b) => a - b);
   const d = { logo, chapter: one ? c0.n : 'Selected Questions', cl: cls[0], cc: one ? ccs[0] : '', clLabel: 'CLASS ' + cls.join(' & '), chLabel: one ? 'CHAPTER ' + ccs[0].split('M')[1] : ccs.length + ' CHAPTERS',
     bucket: ex.length === 1 ? ex[0] : 'Main', bucketName: kindLabel, kindLabel, perQ: true, noFront: true, noTopic: true, year: yl.length ? (yl.length === 1 ? String(yl[0]) : 'all') : '\u2014', count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
@@ -1085,7 +1085,9 @@ function mqEmulate(width) {
   for (const sh of Array.from(document.styleSheets)) { try { walk(sh.cssRules); } catch (e) { /* other site's sheet */ } }
   if (width == null) MQ_ORIG.clear();
 }
+let HV_CLOSE = null;
 async function viewHandout(x, url) {
+  if (HV_CLOSE) HV_CLOSE();   /* a second View replaces the handout that is already open */
   /* Wide landscape screens (PC, tablet landscape): the handout docks on the left and the dashboard stays usable on the right. */
   const mql = window.matchMedia ? window.matchMedia('(min-width: 900px) and (orientation: landscape)') : null;
   const root = document.documentElement;
@@ -1100,7 +1102,7 @@ async function viewHandout(x, url) {
     if (sp) setFrac(frac); else { root.style.removeProperty('--hv-w'); mqSync(); }
     redraw();
   };
-  const close = () => { m.remove(); div.remove(); document.removeEventListener('keydown', onKey); document.removeEventListener('fullscreenchange', onFs); if (document.fullscreenElement === m) document.exitFullscreen().catch(() => {}); window.removeEventListener('resize', mqSync); if (mql && mql.removeEventListener) mql.removeEventListener('change', applyMode); document.body.classList.remove('hv-on'); root.classList.remove('hv-split-on'); root.style.removeProperty('--hv-w'); mqEmulate(null); if (io) io.disconnect(); };
+  const close = () => { if (HV_CLOSE === close) HV_CLOSE = null; m.remove(); div.remove(); document.removeEventListener('keydown', onKey); document.removeEventListener('fullscreenchange', onFs); if (document.fullscreenElement === m) document.exitFullscreen().catch(() => {}); window.removeEventListener('resize', mqSync); if (mql && mql.removeEventListener) mql.removeEventListener('change', applyMode); document.body.classList.remove('hv-on'); root.classList.remove('hv-split-on'); root.style.removeProperty('--hv-w'); mqEmulate(null); if (io) io.disconnect(); };
   const onKey = e => { if (e.key === 'Escape' && !document.fullscreenElement) close(); };
   const pages = h('div', { class: 'hv-pages' }, h('p', { class: 'hv-msg', text: 'Loading the handout\u2026' }));
   const IC = d => '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
@@ -1134,7 +1136,7 @@ async function viewHandout(x, url) {
   });
   div.addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); setFrac(frac + (e.key === 'ArrowRight' ? 0.02 : -0.02)); try { localStorage.setItem('hv-split', String(frac)); } catch (er) { /* optional */ } redraw(); } });
   div.addEventListener('dblclick', () => { setFrac(0.5); redraw(); });
-  let io = null, rerender = null; const holders = [];
+  let io = null, rerender = null; const holders = []; HV_CLOSE = close;
   root.append(m, div); document.addEventListener('keydown', onKey); document.addEventListener('fullscreenchange', onFs); if (mql && mql.addEventListener) mql.addEventListener('change', applyMode); applyMode(); window.addEventListener('resize', mqSync); setTimeout(mqSync, 1200); m.querySelector('.hv-x').focus();
   const baseW = () => Math.max(200, Math.min(pages.clientWidth - 24, 1000));
   const layout = () => { const w = Math.round(baseW() * zoom); holders.forEach(d => { d.style.width = w + 'px'; d.style.height = Math.round(w * ratio) + 'px'; }); zl.textContent = Math.round(zoom * 100) + '%'; };
@@ -1634,7 +1636,7 @@ async function buildEditable(kind, pages) {
   await Promise.all([officeCode(), loadScript(CDN.zip), kind === 'docx' ? loadScript(CDN.docx) : loadScript(CDN.pptx)]);
   const figs = {};
   for (const p of pages) for (const q of p.qs) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo-dark.png?v=884'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl); logo = { data: new Uint8Array(await bl.arrayBuffer()), w: bm.width, h: bm.height, dataUrl: await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }) }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo-dark.png?v=885'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl); logo = { data: new Uint8Array(await bl.arrayBuffer()), w: bm.width, h: bm.height, dataUrl: await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }) }; } } catch (e) { /* no logo file: skip */ }
   const H = { CHMAP, DIFF, tagText, keyLine, figs, matchParts, expl: eItems, logo };
   return kind === 'docx' ? window.OfficeDoc.buildDocx(window.docx, window.JSZip, pages, H) : window.OfficeDoc.buildPptx(window.PptxGenJS, window.JSZip, pages, H);
 }
@@ -1876,7 +1878,7 @@ function buildShell() {
   root.append(
     h('div', { class: 'shell' },
       h('header', { class: 'topbar' },
-        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark.png?v=884', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: "JEE, CET, NDA, IAT, PYQ's, DPP's, Handouts" })),
+        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark.png?v=885', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: "JEE, CET, NDA, IAT, PYQ's, DPP's, Handouts" })),
         h('button', { type: 'button', class: 'tb-theme', id: 'themeBtn', 'data-act': 'theme', 'aria-pressed': 'false' }),
         h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
         h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),
