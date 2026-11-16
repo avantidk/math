@@ -1088,7 +1088,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   /* ---------- teacher flags: what to correct, saved in this page's shared database ---------- */
   var FDB = null, FLAGS = {}, FKEY = 'avanti_qb_flags';
   function flagOf(q) { return FLAGS[q.id] ? FLAGS[q.id].note : ''; }
-  function isSame(q) { return /^Same as BB-/i.test(String(q.note || '')); }
+  function isSame(q) { return /^Same as (?:BB|AL)-/i.test(String(q.note || '')); }
   function isFlagged(q) { return !!((q.note && !isSame(q)) || flagOf(q)); }
   function flagCount() { return ROWS.filter(isFlagged).length; }
   function attnCount() { return ROWS.filter(function (q) { return !!q.attention; }).length; }
@@ -1670,6 +1670,13 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       raf = 0; if (mo) mo.disconnect();
       try { document.querySelectorAll('.mx.mxw').forEach(function (wr) { var w = wr.clientWidth; if (w <= 0) return; var pcs = Array.prototype.filter.call(wr.children, function (c) { return c.classList.contains('mxp'); }), sc = 1; pcs.forEach(function (pc) { pc.style.fontSize = ''; }); pcs.forEach(function (pc) { var k = pc.firstElementChild, nw = Math.max(pc.scrollWidth, k ? k.getBoundingClientRect().width : 0); if (nw > w + 1) sc = Math.min(sc, Math.max(0.42, (w / nw) * 0.97)); }); /* one size for every line of the same equation */ if (sc < 1) pcs.forEach(function (pc) { pc.style.fontSize = sc * 100 + '%'; }); }); } catch (e) { /* keep the page working */ }
       try { document.querySelectorAll('.qb-qt .mx.mxd').forEach(function (sp) { if (sp.dataset.fw !== String(sp.clientWidth) && sp.clientWidth > 0) layout(sp); }); } catch (e) { /* keep the page working */ }
+      /* an inline equation wider than its line (for example a long fraction inside a bracket) shrinks to fit instead of running out of the card */
+      try {
+        var inl = Array.prototype.slice.call(document.querySelectorAll('.qb-qt .mx:not(.mxd):not(.mxw), .qb-sol-b .mx:not(.mxd):not(.mxw)'));
+        inl.forEach(function (sp) { if (sp.style.fontSize) sp.style.fontSize = ''; });
+        var meas = inl.map(function (sp) { var h = sp.closest('.qb-qt, .qb-sol-b'), r = sp.getBoundingClientRect(); return { sp: sp, w: h ? h.clientWidth : 0, n: Math.max(r.width, sp.scrollWidth) }; });
+        meas.forEach(function (m) { if (m.w > 0 && m.n > m.w + 1) m.sp.style.fontSize = Math.max(0.5, (m.w / m.n) * 0.96) * 100 + '%'; });
+      } catch (e) { /* keep the page working */ }
       if (mo) mo.observe(document.body, { childList: true, subtree: true });
     }
     function sched() { if (!raf) { raf = requestAnimationFrame(fit); setTimeout(function () { if (raf) fit(); }, 250); } }

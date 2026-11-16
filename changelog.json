@@ -1,5 +1,15 @@
 [
   {
+    "v": "907",
+    "date": "17 Nov 2026",
+    "items": [
+      "Repeated questions: every Allen question that is the same as another question now shows 'Same as AL-… / BB-…' next to its tags, like the Black Book ones (in both questions of a pair, and the Black Book twin shows the Allen ID too). The 'Attention' flags on the recent Allen questions are removed.",
+      "Fixed two wrong explanations: BB-16-1-035 and BB-16-1-077 were showing another question's explanation; they now show the correct one (same as BB-16-1-034).",
+      "Fixed 9 Allen match-the-column questions (12M16, 12M17, 12M18) whose Column I and Column II rows were missing, and 5 matching answers that listed only the first match (for example A → P, Q, R, S, T).",
+      "A long equation inside a line of a question or explanation now shrinks to fit the card instead of running off the right edge."
+    ]
+  },
+  {
     "v": "906",
     "date": "17 Nov 2026",
     "items": [
