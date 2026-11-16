@@ -614,6 +614,9 @@ begin
     gender    = case when v_av and gender    is not null then gender    else public.norm_gender(left(p_gender, 30)) end,
     updated_at = now()
   where id = auth.uid() returning * into me;
+  if me.role = 'student' and public.is_not_working(me.school) then
+    raise exception '"Not Working" is only for teachers. Please choose your school.';
+  end if;
   if me.role = 'student' and me.session is null and me.class is not null then
     update public.profiles set session = public.session_for(class) where id = me.id returning * into me;
   end if;
@@ -1169,11 +1172,17 @@ end $$;
 -- School names for the dropdowns: every school on the Avanti list, plus schools teachers added with "Other".
 create or replace function public.list_schools() returns json
 language sql stable security definer set search_path = public as $$
-  select coalesce(json_agg(s order by s), '[]'::json)
+  select coalesce(json_agg(s order by lower(s) = 'not working', s), '[]'::json)
     from (select trim(school) as s from public.student_allowlist where nullif(trim(school), '') is not null
           union
-          select trim(school) from public.profiles where role = 'teacher' and nullif(trim(school), '') is not null) x
+          select trim(school) from public.profiles where role = 'teacher' and nullif(trim(school), '') is not null
+          union
+          select 'Not Working') x
 $$;
+
+-- "Not Working": the built-in school for teachers who are at no school now. Students can never be in it.
+create or replace function public.is_not_working(p text) returns boolean
+language sql immutable as $$ select lower(trim(coalesce(p, ''))) = 'not working' $$;
 
 -- Admin: every school with how many students, teachers and tests use it (Approvals → Schools).
 create or replace function public.admin_schools() returns json
@@ -1199,6 +1208,11 @@ declare o text := trim(coalesce(p_old, '')); n text := left(trim(coalesce(p_new,
 begin
   if not public.is_admin() then raise exception 'Only Avanti admins can change schools'; end if;
   if o = '' or n = '' then raise exception 'Give the old and the new school name'; end if;
+  if public.is_not_working(o) then raise exception '"Not Working" is built in and cannot be renamed'; end if;
+  if public.is_not_working(n) and exists (select 1 from public.student_allowlist where lower(trim(school)) = lower(o))
+     or public.is_not_working(n) and exists (select 1 from public.profiles where role = 'student' and lower(trim(school)) = lower(o)) then
+    raise exception 'This school has students, so it cannot become "Not Working"';
+  end if;
   update public.student_allowlist set school = n, updated_at = now() where lower(trim(school)) = lower(o);
   update public.profiles set school = n, updated_at = now() where lower(trim(school)) = lower(o);
   update public.profiles set school_request = n where lower(trim(school_request)) = lower(o);
@@ -1216,6 +1230,7 @@ declare o text := trim(coalesce(p_school, '')); k integer;
 begin
   if not public.is_admin() then raise exception 'Only Avanti admins can delete schools'; end if;
   if o = '' then raise exception 'Choose a school'; end if;
+  if public.is_not_working(o) then raise exception '"Not Working" is built in and cannot be deleted'; end if;
   select count(*) into k from public.student_allowlist where lower(trim(school)) = lower(o);
   if k > 0 then raise exception '% students on the student list belong to this school. Move them (Edit the school → new name) before deleting it.', k; end if;
   update public.tests set is_active = false where lower(trim(school)) = lower(o);   -- first, while the teachers still have the school
@@ -1261,6 +1276,7 @@ begin
     return json_build_object('ok', false, 'error', 'Only the admin can add Premium or Avanti students. Students you add are Free.');
   end if;
   if v_school is null then return json_build_object('ok', false, 'error', 'Students can be added after the admin approves your school.'); end if;
+  if public.is_not_working(v_school) then return json_build_object('ok', false, 'error', 'Students cannot be added to "Not Working". Choose a real school.'); end if;
   -- only Avanti students bring their own ID (their Avanti ID); every other new student gets one made by the site
   if not p_update and not (v_admin and v_plan = 'avanti') then v_id := public.new_student_id(); end if;
   if v_id is null then return json_build_object('ok', false, 'error', 'Avanti ID is missing'); end if;
@@ -1707,6 +1723,7 @@ begin
   if public.admin_of(me) then raise exception 'As the admin you can change your school in Edit profile'; end if;
   if me.school is null then raise exception 'Choose your school in Edit profile first'; end if;
   if v is not null and lower(v) = lower(me.school) then raise exception 'That is already your school'; end if;
+  if me.role = 'student' and public.is_not_working(v) then raise exception '"Not Working" is only for teachers. Please choose your school.'; end if;
   update public.profiles set school_request = v, school_request_at = case when v is null then null else now() end, updated_at = now() where id = me.id;
   return public.my_profile();
 end $$;

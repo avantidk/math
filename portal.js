@@ -144,7 +144,12 @@ function schools(fresh) { if (!SCHOOLS_P || fresh) SCHOOLS_P = rpc('list_schools
 const OTHER = '__other__';
 /* School dropdown from the database. With allowOther, a teacher can pick "Other" and type a school that is not on the list. */
 /* School picker: one dropdown; the search box appears inside it when it is opened. A hidden <select> keeps the value. */
-function schoolSelect(id, val, first, allowOther) {
+/* "Not Working": a built-in choice for teachers who are not at any school now. It is always the last school in the list for
+   teachers (and the admin's teacher boxes) and never offered for students (the server refuses it for students too). */
+const NOT_WORKING = 'Not Working';
+const isNotWorking = v => String(v || '').trim().toLowerCase() === NOT_WORKING.toLowerCase();
+function schoolSelect(id, val, first, allowOther, opt) {
+  const withNW = !!(opt && opt.notWorking);
   const s = h('select', { id: id + 'Value', hidden: true, tabindex: '-1', 'aria-hidden': 'true' }, h('option', { value: '', text: first }));
   const label = h('span', { class: 'pt-combo-txt', text: first });
   const btn = h('button', { type: 'button', id, class: 'pt-in pt-combo-btn', 'aria-haspopup': 'listbox', 'aria-expanded': 'false' }, label, h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' }));
@@ -163,10 +168,11 @@ function schoolSelect(id, val, first, allowOther) {
   const items = () => [...listEl.querySelectorAll('[role=option]')];
   const mark = i => { const it = items(); active = Math.max(0, Math.min(it.length - 1, i)); it.forEach((x, k) => x.classList.toggle('on', k === active)); if (it[active]) it[active].scrollIntoView({ block: 'nearest' }); };
   const draw = () => {
-    const t = find.value.trim().toLowerCase(), shown = t ? ALL.filter(x => x.toLowerCase().includes(t)) : ALL;
+    const t = find.value.trim().toLowerCase(), base = ALL.filter(x => !isNotWorking(x)).concat(withNW ? [NOT_WORKING] : []);
+    const shown = t ? base.filter(x => x.toLowerCase().includes(t) || (withNW && isNotWorking(x))) : base;   /* Not Working always stays visible, at the end */
     listEl.textContent = '';
     if (!shown.length) listEl.append(h('li', { class: 'pt-combo-none', text: ALL.length ? 'No school matches "' + find.value.trim() + '"' : 'No schools in the database yet' }));
-    shown.concat(allowOther ? [OTHER] : []).forEach(v => listEl.append(h('li', { role: 'option', class: 'pt-combo-opt' + (v === OTHER ? ' other' : ''), 'aria-selected': String(v === s.value), text: v === OTHER ? 'Other (my school is not in the list)…' : v,
+    shown.concat(allowOther ? [OTHER] : []).forEach(v => listEl.append(h('li', { role: 'option', class: 'pt-combo-opt' + (v === OTHER ? ' other' : '') + (isNotWorking(v) ? ' nw' : ''), 'aria-selected': String(v === s.value), text: v === OTHER ? 'Other (my school is not in the list)…' : v,
       onmousedown: e => e.preventDefault(), onclick: e => { e.preventDefault(); e.stopPropagation(); setValue(v); close(); if (v !== OTHER) btn.focus(); } })));
     mark(0);
   };
@@ -183,7 +189,7 @@ function schoolSelect(id, val, first, allowOther) {
     else if (e.key === 'Escape') { e.preventDefault(); close(); btn.focus(); }
   });
   schools().then(list => {
-    ALL = list.slice(); if (val && !ALL.includes(val)) ALL.unshift(val);
+    ALL = list.filter(x => withNW || !isNotWorking(x)); if (val && !ALL.includes(val) && (withNW || !isNotWorking(val))) ALL.unshift(val);
     if (val) setValue(val, true); else btn.classList.add('empty');
   }).catch(() => { label.textContent = 'Could not load schools'; });
   const wrap = h('div', { class: 'pt-school pt-combo' }, btn, pop, s, other);
@@ -203,7 +209,7 @@ function profileForm(p, o) {
   const sel = (id, list, val) => { const x = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: 'Choose…' }), list.map(v => h('option', { value: v, text: v }))); x.value = val || ''; return x; };
   const F = {
     full_name: h('input', { id: 'pfName', class: 'pt-in', type: 'text', maxlength: 120, value: p.full_name || '', autocomplete: 'name' }),
-    school: schoolSelect('pfSchool', p.school, student ? 'Choose your school…' : 'Choose your school…', !student),
+    school: schoolSelect('pfSchool', p.school, 'Choose your school…', !student, { notWorking: !student }),
     class: sel('pfClass', CLASSES, p.class), stream: sel('pfStream', STREAMS, p.stream),
     category: sel('pfCat', CATEGORIES, p.category), gender: sel('pfGender', GENDERS, p.gender)
   };
@@ -247,7 +253,7 @@ function schoolBox(p) {
   return wrap;
 }
 function requestSchoolChange(p) {
-  const pick = schoolSelect('rqSchool', '', 'Choose the new school…', true);
+  const pick = schoolSelect('rqSchool', '', 'Choose the new school…', true, { notWorking: P().role !== 'student' });
   const msg = h('p', { class: 'pt-msg', role: 'status' });
   modal('Request a school change', h('div', { class: 'pt-form' },
     h('p', {}, 'Your school now: ', h('b', { text: p.school })),
@@ -1459,7 +1465,7 @@ async function pageApprovals() {
   const pend = list.filter(x => !x.approved && x.school);
   const editTeacher = t => {
     const name = h('input', { type: 'text', class: 'pt-in', id: 'etName', maxlength: 120, value: t.full_name || '', autocomplete: 'off' });
-    const sch = schoolSelect('etSchool', t.school, 'Choose a school', true); const msg = h('p', { class: 'pt-msg', role: 'status' });
+    const sch = schoolSelect('etSchool', t.school, 'Choose a school', true, { notWorking: true }); const msg = h('p', { class: 'pt-msg', role: 'status' });
     const pick = t.is_staff ? null : planPicker(t.plan_label, t.premium_until, true);
     modal('Edit teacher', h('div', {},
       h('p', { class: 'pt-hint', text: 'Signs in with Google: ' + (t.email || '') + (t.is_staff ? ' · Avanti staff' : '') }),
@@ -1515,7 +1521,7 @@ async function pageApprovals() {
   const addTeacher = () => {
     const mail = h('input', { type: 'email', class: 'pt-in', id: 'atMail', placeholder: 'name@gmail.com', autocomplete: 'off' });
     const name = h('input', { type: 'text', class: 'pt-in', id: 'atName', maxlength: 120, autocomplete: 'off' });
-    const sch = schoolSelect('atSchool', '', 'Choose a school', true), pick = planPicker('free', null, true), msg = h('p', { class: 'pt-msg', role: 'status' });
+    const sch = schoolSelect('atSchool', '', 'Choose a school', true, { notWorking: true }), pick = planPicker('free', null, true), msg = h('p', { class: 'pt-msg', role: 'status' });
     modal('Add a teacher', h('div', {}, h('p', { class: 'pt-hint', text: 'The teacher signs in with this Google account. Their school is approved and their plan is set from the first sign-in. If they already have an account, it is updated now.' }),
       h('label', { class: 'pt-fld', for: 'atMail' }, h('span', {}, 'Google email', h('b', { class: 'pt-req', text: ' *' })), mail),
       h('label', { class: 'pt-fld', for: 'atName' }, h('span', {}, 'Full name', h('b', { class: 'pt-req', text: ' *' })), name),

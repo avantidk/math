@@ -208,6 +208,9 @@ html.plan-free .main :not(input):not(textarea):not(select) { -webkit-user-select
 .pt-modal p { margin: 0; }
 .pt-modal > .pt-actions { justify-content: flex-end; }
 .pt-modal:has(.pt-plist) { width: min(900px, 100%); }
+/* boxes with a school picker: wide and tall, so the school list opens fully inside the box */
+.pt-modal:has(.pt-combo-btn) { width: min(760px, 100%); min-height: min(680px, 88vh); }
+.pt-modal:has(.pt-combo-btn) .pt-combo-list { max-height: min(340px, 45vh); }
 
 /* ---------- exam window ---------- */
 body.ex-on #app, body.ex-on .toast ~ #app { display: none !important; }

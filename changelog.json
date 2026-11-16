@@ -1,5 +1,13 @@
 [
   {
+    "v": "872",
+    "date": "16 Nov 2026",
+    "items": [
+      "School list: \"Not Working\" is a built-in choice for teachers who are not at any school right now. It is always the last school in the list for teachers and is never offered to students (the server refuses it for students, and no student can be added to it). It cannot be renamed or deleted.",
+      "Boxes with a school picker (Edit teacher, Add a teacher, ...) are bigger, so the whole school list opens inside the box."
+    ]
+  },
+  {
     "v": "871",
     "date": "16 Nov 2026",
     "items": [
