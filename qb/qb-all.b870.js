@@ -914,7 +914,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     return window.AvantiContent.sols(need).then(function (m) { need.forEach(function (id) { SOLM[id] = m[id] || null; }); return SOLM; }).catch(function () { return SOLM; });   /* on a failure nothing is stored, so the next click tries again */
   }
   var PER_PAGE = 20, page = 0, lastKey = null;
-  var S = { exam: new Set(), year: new Set(), cls: new Set(), diff: new Set(), type: new Set(), ch: new Set(), tp: new Set(), src: new Set(), q: '', onlySel: false, flag: false, attn: false, oos: false, oosx: false, sel: new Set() };
+  var S = { exam: new Set(), year: new Set(), cls: new Set(), diff: new Set(), type: new Set(), ch: new Set(), tp: new Set(), src: new Set(), q: '', onlySel: false, flag: false, same: false, attn: false, oos: false, oosx: false, sel: new Set() };
   S.oosx = false; /* out of syllabus questions are included by default */
   /* Question Bank opens first from qb/data/first.json (first cards + counts) while the full data downloads: PARTIAL holds the stub rows used for the header numbers and filter lists */
   var PARTIAL = null;
@@ -1091,7 +1091,10 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   function isSame(q) { return /^Same as (?:BB|AL)-/i.test(String(q.note || '')); }
   function isFlagged(q) { return !!((q.note && !isSame(q)) || flagOf(q)); }
   function flagCount() { return ROWS.filter(isFlagged).length; }
-  function attnCount() { return ROWS.filter(function (q) { return !!q.attention; }).length; }
+  /* Attention now covers everything that needs a check: the attention flag and the old Review notes */
+  function needsAttn(q) { return !!q.attention || isFlagged(q); }
+  function attnCount() { return ROWS.filter(needsAttn).length; }
+  function sameCount() { return ROWS.filter(isSame).length; }
   function oosCount() { return ROWS.filter(function (q) { return q.oos; }).length; }
   /* Staff flags are shared by every Staff account through the database (qb_flags_list / qb_flag_set). */
   function loadFlags() {
@@ -1316,8 +1319,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       else if (!S.src.has(sv)) return false;
     }
     if (S.onlySel && !S.sel.has(q.id)) return false;
-    if (S.flag && !isFlagged(q)) return false;
-    if (S.attn && !q.attention) return false;
+    if (S.attn && !needsAttn(q)) return false;
+    if (S.same && !isSame(q)) return false;
     if (S.oosx && q.oos) return false;
     if (S.oos && !q.oos) return false;
     if (S.q) {
@@ -1399,14 +1402,14 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   }
   function goYear(y, ch, ex, oos, pp) {
     S.exam.clear(); S.ch.clear(); S.tp.clear(); S.year.clear(); S.src.clear(); if (y != null) S.year.add(String(y)); if (ch) S.ch.add(ch); if (ex) S.exam.add(ex);
-    S.flag = false; S.attn = false; S.oos = !!oos; if (oos) { S.oosx = false; try { localStorage.setItem('oosEx2', '0'); } catch (e) { /* ignore */ } buildChips(); } S.q = pp ? String(pp).toLowerCase() : ''; var se = $('.qb-search'); if (se) se.value = pp || '';
+    S.same = false; S.attn = false; S.oos = !!oos; if (oos) { S.oosx = false; try { localStorage.setItem('oosEx2', '0'); } catch (e) { /* ignore */ } buildChips(); } S.q = pp ? String(pp).toLowerCase() : ''; var se = $('.qb-search'); if (se) se.value = pp || '';
     closeYear(); apply();
     var r = $('.qb-results'); if (r && r.scrollIntoView) r.scrollIntoView({ block: 'start' });
   }
   function goOos(exam) {
     S.exam.clear(); S.ch.clear(); S.tp.clear(); S.year.clear(); S.src.clear(); S.diff.clear(); S.type.clear(); S.cls.clear();
     if (exam) S.exam.add(exam);
-    S.flag = false; S.attn = false; S.oos = true; S.oosx = false; try { localStorage.setItem('oosEx2', '0'); } catch (e) { /* ignore */ } buildChips(); S.q = ''; var se = $('.qb-search'); if (se) se.value = '';
+    S.same = false; S.attn = false; S.oos = true; S.oosx = false; try { localStorage.setItem('oosEx2', '0'); } catch (e) { /* ignore */ } buildChips(); S.q = ''; var se = $('.qb-search'); if (se) se.value = '';
     apply();
     var r = $('.qb-results'); if (r && r.scrollIntoView) r.scrollIntoView({ block: 'start' });
   }
@@ -1418,7 +1421,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   function exOf(q) { var m = /Exercise-(\d)/.exec(q.paper || q.section || ''); var n = m ? Number(m[1]) : 0; if (q.type === 'Matching') n = 4; else if (q.type === 'Numerical' || q.type === 'Subjective') n = 5; return n; }
   function goSrc(v, ch) {
     S.exam.clear(); S.ch.clear(); S.tp.clear(); S.year.clear(); S.src.clear(); S.diff.clear(); S.type.clear(); S.cls.clear(); S.src.add(v); if (ch) S.ch.add(ch);
-    S.flag = false; S.attn = false; S.oos = false; S.q = ''; var se = $('.qb-search'); if (se) se.value = '';
+    S.same = false; S.attn = false; S.oos = false; S.q = ''; var se = $('.qb-search'); if (se) se.value = '';
     closeYear(); apply();
     var r = $('.qb-results'); if (r && r.scrollIntoView) r.scrollIntoView({ block: 'start' });
   }
@@ -1636,7 +1639,14 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
 
   $('.qb-search').addEventListener('input', function (e) { S.q = e.target.value.trim().toLowerCase(); apply(); });
   $('.qb-onlysel').addEventListener('click', function () { S.onlySel = !S.onlySel; apply(); });
-  $('.qb-flagf').addEventListener('click', function () { S.flag = !S.flag; apply(); });
+  $('.qb-samef').addEventListener('click', function () { S.same = !S.same; apply(); });
+  (function () { /* the Filter menu: opens on click, closes on outside click or Escape */
+    var fb = $('.qb-fbtn'), fp = $('.qb-fpop'); if (!fb || !fp) return;
+    function setOpen(o) { fp.hidden = !o; fb.setAttribute('aria-expanded', String(o)); }
+    fb.addEventListener('click', function (e) { e.stopPropagation(); setOpen(fp.hidden); });
+    document.addEventListener('click', function (e) { if (!fp.hidden && !fp.contains(e.target) && e.target !== fb) setOpen(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !fp.hidden) { setOpen(false); fb.focus(); } });
+  })();
   $('.qb-attnf').addEventListener('click', function () { S.attn = !S.attn; apply(); });
   $('.qb-oosonly').addEventListener('click', function () { var on = !S.oos; S.oos = on; if (on && S.oosx) { setOosx(false); } apply(); });
   function setOosx(on) {
@@ -1687,11 +1697,11 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     window.addEventListener('load', function () { document.querySelectorAll('.mxd').forEach(function (s) { delete s.dataset.fw; }); sched(); });
     sched();
   })();
-  $('.qb-hideopts').addEventListener('click', function () { var b = $('.qb-hideopts'), on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Show options' : 'Hide options'; $('#questions').classList.toggle('hide-opts', on); });
-  $('.qb-revall').addEventListener('click', function () { var b = $('.qb-revall'), on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(on)); $('#questions').classList.toggle('rev-all', on); });
+  $('.qb-hideopts').addEventListener('click', function () { var b = $('.qb-hideopts'), on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Show options' : 'Hide options'; $('#questions').classList.toggle('hide-opts', on); apply(); });
+  $('.qb-revall').addEventListener('click', function () { var b = $('.qb-revall'), on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(on)); $('#questions').classList.toggle('rev-all', on); apply(); });
   $('.qb-reset').addEventListener('click', function () {
     ['exam', 'year', 'cls', 'diff', 'type', 'ch', 'tp', 'src'].forEach(function (k) { S[k].clear(); });
-    S.q = ''; S.onlySel = false; S.flag = false; S.attn = false; S.oos = false; $('.qb-search').value = ''; apply();
+    S.q = ''; S.onlySel = false; S.flag = false; S.attn = false; S.same = false; S.oos = false; $('.qb-search').value = ''; apply();
   });
 
   /* ---------- selection ---------- */
@@ -1747,11 +1757,12 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     $$('.qb-chips[data-f] .qb-chip').forEach(function (b) { var f = b.parentNode.dataset.f; b.setAttribute('aria-pressed', String(S[f].has(b.dataset.v))); });
     DDS.forEach(function (fn) { fn(); });
     $('.qb-onlysel').setAttribute('aria-pressed', String(S.onlySel));
-    $('.qb-flagf').setAttribute('aria-pressed', String(S.flag));
-    $('.qb-flagf').textContent = 'Review (' + flagCount() + ')';
+    $('.qb-samef').setAttribute('aria-pressed', String(!!S.same));
+    $('.qb-samef').textContent = 'Show repeated (' + sameCount() + ')';
     $('.qb-attnf').setAttribute('aria-pressed', String(S.attn));
     $('.qb-attnf').textContent = 'Attention (' + attnCount() + ')';
     $('.qb-oosonly').setAttribute('aria-pressed', String(S.oos));
+    (function () { var n = [S.onlySel, S.same, S.oos, S.attn].filter(Boolean).length + ($('.qb-revall').getAttribute('aria-pressed') === 'true' ? 1 : 0) + ($('.qb-hideopts').getAttribute('aria-pressed') === 'true' ? 1 : 0), fb = $('.qb-fbtn'); if (fb) fb.textContent = n ? 'Filter (' + n + ')' : 'Filter'; })();
     Array.prototype.forEach.call(document.querySelectorAll('.qb-oosx button'), function (b) { b.setAttribute('aria-pressed', String((b.dataset.v === 'ex') === S.oosx)); if (b.dataset.v === 'in') b.textContent = 'Include (' + oosCount() + ')'; });
     msBtn.textContent = S.ch.size === 0 ? 'All chapters' : S.ch.size === 1 ? (function () { var c = CHMAP[Array.from(S.ch)[0]]; return c ? c.chapter_code + ' ' + c.chapter : '1 chapter'; })() : S.ch.size + ' chapters';
     var tpCh = {}; TOPICS.forEach(function (t) { tpCh[t.topic_code] = t.chapter_code; }); Array.from(S.tp).forEach(function (t) { if (!S.ch.has(tpCh[t])) S.tp.delete(t); });
@@ -1814,7 +1825,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     updateSelUI();
   }
   function filterKey() {
-    return ['exam', 'year', 'cls', 'diff', 'type', 'ch', 'tp', 'src'].map(function (k) { return Array.from(S[k]).sort().join(','); }).join('|') + '|' + S.q + '|' + S.onlySel + '|' + S.flag + '|' + S.attn + '|' + S.oos + '|' + S.oosx;
+    return ['exam', 'year', 'cls', 'diff', 'type', 'ch', 'tp', 'src'].map(function (k) { return Array.from(S[k]).sort().join(','); }).join('|') + '|' + S.q + '|' + S.onlySel + '|' + S.same + '|' + S.attn + '|' + S.oos + '|' + S.oosx;
   }
   function pager(pages, start, n, total) {
     var nav = el('nav', 'qb-pager'); nav.setAttribute('aria-label', 'Pages');

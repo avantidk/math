@@ -322,6 +322,20 @@
 .qb-tools>:nth-child(n+7){grid-column:span 4}
 .qb-tools .qb-reset{margin-left:0}
 @media (max-width:640px){.qb-tools{grid-template-columns:repeat(2,minmax(0,1fr))}.qb-tools>*,.qb-tools>:nth-child(n+7){grid-column:span 1}}
+/* v908: one Filter menu holds the six view filters; Reset / Select all filtered / Clear selection stay as buttons */
+.qb-tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.qb-tools>*,.qb-tools>:nth-child(n+7){grid-column:span 1}
+.qb-tools>.qb-fmenu{position:relative;min-width:0;overflow:visible;padding:0}
+.qb-fmenu .qb-fbtn{width:100%;font-weight:600;background:#1f3a5f;border-color:#1f3a5f;color:#fff}
+.qb-fmenu .qb-fbtn::after{content:" \25BE"}
+.qb-fmenu .qb-fbtn[aria-expanded=true]::after{content:" \25B4"}
+.qb-fpop{position:absolute;left:0;top:calc(100% + 6px);z-index:60;display:flex;flex-direction:column;gap:6px;min-width:220px;max-width:calc(100vw - 32px);padding:10px;border:1px solid var(--qb-line);border-radius:12px;background:var(--color-panel,#fff);box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.qb-fpop[hidden]{display:none}
+.qb-fpop .qb-chip{width:100%;min-height:34px;justify-content:flex-start;text-align:left;white-space:nowrap;margin:0}
+.qb-fpop .qb-chip::before{content:"";display:inline-block;width:14px;height:14px;margin-right:8px;border:1.5px solid currentColor;border-radius:3px;vertical-align:-2px;box-sizing:border-box}
+.qb-fpop .qb-chip[aria-pressed=true]::before{content:"\2713";font-size:11px;line-height:11px;text-align:center}
+.qb-chip.qb-samef[aria-pressed=true]{background:#2f6f4f;border-color:#2f6f4f;color:#fff}
+@media (max-width:640px){.qb-tools{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* export box: top of the left panel, always visible */
 .qb-sbar .qb-bar{position:sticky;top:0;bottom:auto;margin:0 0 12px;padding:10px 12px;gap:8px 10px}
 .qb-sbar .qb-bar .count{flex:1 1 100%}
@@ -523,13 +537,17 @@
 
 
   <div class="qb-tools" id="qbtools" role="toolbar" aria-label="Quick filters and selection">
-      <button class="qb-chip qb-revall" type="button" aria-pressed="false">Show all answers</button>
-      <button class="qb-chip qb-hideopts" type="button" aria-pressed="false" title="Hide the answer options of every question to fit more questions on screen">Hide options</button>
-      <button class="qb-chip qb-onlysel" type="button" aria-pressed="false">Show selected only</button>
-      <button class="qb-chip qb-attnf" type="button" aria-pressed="false">Attention</button>
-      <button class="qb-chip qb-flagf" type="button" aria-pressed="false">Review</button>
-      <button class="qb-chip qb-oosonly" type="button" aria-pressed="false">Out of syllabus only</button>
-      
+      <div class="qb-fmenu">
+        <button class="qb-btn qb-fbtn" type="button" aria-haspopup="true" aria-expanded="false">Filter</button>
+        <div class="qb-fpop" role="menu" aria-label="Filter" hidden>
+          <button class="qb-chip qb-onlysel" type="button" aria-pressed="false">Show selected</button>
+          <button class="qb-chip qb-samef" type="button" aria-pressed="false" title="Questions that repeat another question (marked Same as ...)">Show repeated</button>
+          <button class="qb-chip qb-oosonly" type="button" aria-pressed="false">Show Out of Syllabus</button>
+          <button class="qb-chip qb-revall" type="button" aria-pressed="false">Show all answers</button>
+          <button class="qb-chip qb-hideopts" type="button" aria-pressed="false" title="Hide the answer options of every question to fit more questions on screen">Hide options</button>
+          <button class="qb-chip qb-attnf" type="button" aria-pressed="false">Attention</button>
+        </div>
+      </div>
       <button class="qb-btn qb-reset" type="button">Reset filters</button>
     <button class="qb-btn qb-selall" type="button">Select all filtered</button>
     <button class="qb-btn qb-clear" type="button">Clear selection</button>

@@ -1,5 +1,14 @@
 [
   {
+    "v": "908",
+    "date": "17 Nov 2026",
+    "items": [
+      "Question Bank: the six view buttons are now in one 'Filter' menu: Show selected, Show repeated (new: lists questions that are the same as another, marked 'Same as …'), Show Out of Syllabus, Show all answers, Hide options and Attention. The Filter button shows how many are on.",
+      "The separate 'Review' filter is removed; 'Attention' now covers everything that needs a check.",
+      "Reset filters, Select all filtered and Clear selection stay as their own buttons."
+    ]
+  },
+  {
     "v": "907",
     "date": "17 Nov 2026",
     "items": [
