@@ -58,11 +58,13 @@ LEVEL = {'High': 'High', 'Medium': 'Medium', 'Low': 'Low', 'None': 'Rare'}
 
 def svg(d, w=24, extra=''):
     return f'<svg viewBox="0 0 24 24" width="{w}" height="{w}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"{extra}>{d}</svg>'
+ARROW = svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 20)
 CHECK = svg('<path d="M20 6 9 17l-5-5"/>', 20)
 
 
 # ---------- exams (counts come from .github/scripts/exam-stats.json, made by exam_stats.py; only numbers, no questions) ----------
 STATS = json.load(open('.github/scripts/exam-stats.json', encoding='utf-8'))
+GUIDES = json.load(open('.github/scripts/exam-guides.json', encoding='utf-8')) if os.path.exists('.github/scripts/exam-guides.json') else {}   # text of the exam guides (guides_from_pdf.py)
 CH_NAME = {c['code']: c['name'] for c in CH}
 CH_NAME.update({code: n for code, n in OOS})
 CH_SLUG = {c['code']: slug(c) for c in CH}
@@ -391,6 +393,70 @@ def hub_page():
     return page(title, desc, f'{SITE}/maths/', body, 1, ld)
 
 # ---------- exam pages ----------
+# ---------- exam guide pages: /exams/<exam>/about/ ----------
+def gd_cell(c):
+    if isinstance(c, dict): return '<ul class="gd-ul">' + ''.join(f'<li>{E(x)}</li>' for x in c['list']) + '</ul>'
+    return E(c)
+
+def gd_table(t):
+    head, rows = t[0], t[1:]
+    span = {}   # an empty cell continues the cell above it (merged cells in the PDF)
+    last = {}
+    for ri, r in enumerate(rows):
+        for ci, c in enumerate(r):
+            if c == '' and ci in last: span[last[ci]] = span.get(last[ci], 1) + 1; r[ci] = None
+            else: last[ci] = (ri, ci)
+    th = ''.join(f'<th scope="col">{gd_cell(h)}</th>' for h in head)
+    body = ''
+    for ri, r in enumerate(rows):
+        tds = ''
+        for ci, c in enumerate(r):
+            if c is None: continue
+            rs = span.get((ri, ci), 1); at = f' rowspan="{rs}"' if rs > 1 else ''
+            tds += (f'<th scope="row"{at}>{gd_cell(c)}</th>' if ci == 0 else f'<td{at}>{gd_cell(c)}</td>')
+        body += f'<tr>{tds}</tr>'
+    return f'<div class="pg-table gd-tbl"><table><thead><tr>{th}</tr></thead><tbody>{body}</tbody></table></div>'
+
+def gd_blocks(blocks):
+    return ''.join(f'<p>{E(b["p"])}</p>' if 'p' in b else gd_table(b['table']) for b in blocks)
+
+GD_ICONS = ['<path d="M9 12l2 2 4-4M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>', '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', '<path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', '<path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/>', '<path d="M12 3l9 5-9 5-9-5 9-5zM7 12v5c0 1 2.2 3 5 3s5-2 5-3v-5"/>', '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', '<path d="M4 4h16v16H4zM4 10h16M10 4v16"/>']
+
+def guide_page(e):
+    key, name, sl, tag, about = e
+    g = GUIDES[sl]; s = STATS[key]
+    nyr = s['last'] - s['first'] + 1
+    title = f'{name} Exam Guide: Pattern, Fees, Seats, Colleges | अंक-IT'
+    intro = g['intro'].split('. ', 1)[1] if '. ' in g['intro'] else g['intro']
+    desc = f'{name} exam guide: {intro}'
+    secs = ''; toc = ''
+    for i, sec in enumerate(g['sections'], 1):
+        sid = f'sec{i}'
+        toc += f'<a href="#{sid}"><b>{i}</b>{E(sec["h"])}</a>'
+        subs = ''.join(f'<div class="gd-sub"><h3>{E(sb["h"])}</h3>{gd_blocks(sb["blocks"])}</div>' for sb in sec['subs'])
+        secs += (f'<section class="gd-sec" id="{sid}"><h2><span class="gd-ico">{svg(GD_ICONS[(i - 1) % len(GD_ICONS)], 22)}</span><span class="gd-t"><small>Section {i}</small>{E(sec["h"])}</span></h2>'
+                 f'{gd_blocks(sec["blocks"])}{subs}</section>')
+    tiles = (f'<div class="gd-tiles"><div><b>{s["questions"]:,}</b><span>math questions in our bank</span></div><div><b>{s["first"]}&ndash;{s["last"]}</b><span>{nyr} years of papers</span></div>'
+             f'<div><b>{s["papers"]}</b><span>papers (shifts and sessions)</span></div><div><b>{len(g["sections"])}</b><span>sections in this guide</span></div></div>')
+    others = ''.join(f'<li><a href="../../{x[2]}/about/">{exlogo(x, "../../../", 32)}<span>{E(x[1])} exam guide</span></a></li>' for x in EXAMS if x[2] != sl and x[2] in GUIDES)
+    crumbs = f'<a href="../../../">Home</a> &rsaquo; <a href="../../">Exams</a> &rsaquo; <a href="../">{E(name)}</a> &rsaquo; <span aria-current="page">Exam guide</span>'
+    main = f"""<p class="gd-kick">{E(g["kicker"].title())}</p>
+<p class="pg-lead">{E(intro)}</p>
+{tiles}
+<div class="gd-go"><a class="sb sb-gold" href="../">Practise {E(name)} math questions</a><a class="sb sb-line" href="../../">All exams</a></div>
+<nav class="gd-toc" aria-label="On this page"><p class="gd-toc-h">On this page</p><div>{toc}</div></nav>
+{secs}
+<p class="pg-fine">The figures in this guide are rounded or approximate and are compiled from the official notifications and public reports. They change from year to year, so always confirm the latest rules, dates and fees on the official website of the exam.</p>
+{('<h2 class="gd-more-h">Other exam guides</h2><ul class="side-list gd-more">' + others + '</ul>') if others else ''}
+{cta(3, f"Practise {name} math questions chapter-wise with full solutions, build DPPs and open whole papers. Everything is inside after you sign in.")}"""
+    body = band(crumbs, f'{exlogo(e, "../../../", 44)} {E(name)}: Complete Exam Guide') + '\n' + grid(main, 3, sl)
+    ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
+            {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'},
+            {'@type': 'ListItem', 'position': 2, 'name': 'Exams', 'item': SITE + '/exams/'},
+            {'@type': 'ListItem', 'position': 3, 'name': name, 'item': exam_url(e)},
+            {'@type': 'ListItem', 'position': 4, 'name': 'Exam guide', 'item': exam_url(e) + 'about/'}]}]
+    return page(title, desc, exam_url(e) + 'about/', body, 3, ld)
+
 def exam_page(e):
     key, name, sl, tag, about = e
     s = STATS[key]
@@ -411,12 +477,15 @@ def exam_page(e):
     yr_strip = yrtbl(s['by_year_lv'], s['first'], s['last'])
     nyr = s['last'] - s['first'] + 1
     basis = f'These counts use all {E(name)} papers in this bank: {nyr} years ({s["first"]}&ndash;{s["last"]}), {s["papers"]} papers and {s["questions"]:,} questions.'
+    know = (f'<div class="know"><div><b>Want the full picture of {E(name)}?</b><span>Paper pattern, fees, cutoffs, seats and reservation, top colleges and the step-by-step timeline.</span></div>'
+            f'<a class="sb sb-gold sb-lg know-btn" href="about/">Know more {ARROW}</a></div>') if sl in GUIDES else ''
     crumbs = f'<a href="../../">Home</a> &rsaquo; <a href="../">Exams</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
     main = f"""<p class="pg-lead">{E(tag)}</p>
 <p>{E(about)}</p>
 <h2>{E(name)} at a glance</h2>
 <div class="pg-table pg-facts"><table><tbody>{facts}</tbody></table></div>
 <p class="pg-fine">Exam patterns change from year to year. Always check the official notification for the latest rules and dates.</p>
+{know}
 <h2>{E(name)} in this question bank</h2>
 <div class="pg-table pg-facts"><table><tbody>{glance}</tbody></table></div>
 <h2>Chapter-wise questions</h2>
@@ -794,7 +863,7 @@ def home_block():
 {footer(0, share=True)}"""
 
 def sitemap():
-    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9')] + [(exam_url(e), '0.8') for e in EXAMS] + [(f'{SITE}/exams/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
+    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9')] + [(exam_url(e), '0.8') for e in EXAMS] + [(exam_url(e) + 'about/', '0.7') for e in EXAMS if e[2] in GUIDES] + [(f'{SITE}/exams/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
     body = ''.join(f'<url><loc>{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}</urlset>\n'
 
@@ -812,6 +881,7 @@ def main():
     write('exams/index.html', exams_hub())
     for e in EXAMS:
         write(f'exams/{e[2]}/index.html', exam_page(e))
+        if e[2] in GUIDES: write(f'exams/{e[2]}/about/index.html', guide_page(e))
         for code in STATS[e[0]]['chapters']: write(f'exams/{e[2]}/{ANY_SLUG[code]}/index.html', exam_chapter_page(e, code))
     for slug_, fn in (('about', about_page), ('contact', contact_page), ('privacy', privacy_page), ('terms', terms_page)): write(f'{slug_}/index.html', fn())
     write('sitemap.xml', sitemap())

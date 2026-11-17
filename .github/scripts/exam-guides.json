@@ -1,0 +1,3990 @@
+{
+ "aieee": {
+  "intro": "Simple, table-by-table reference covering exam overview, question counts, candidate numbers, fees, seat matrix, and NIT/IIIT colleges before JEE Main began in 2013. The All India Engineering Entrance Examination (AIEEE) was India's flagship national entrance exam conducted between 2002 and 2012 for admission to NITs (formerly RECs), IIITs, Deemed Universities, and Central/State Government Technical Institutes. From 2013 onward, AIEEE was replaced by JEE Main under the \"One Nation, One Test\" reform.",
+  "kicker": "HISTORICAL NATIONAL ENGINEERING ENTRANCE ARCHIVE (2002 – 2012)",
+  "sections": [
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Particular",
+        "Official Details (2002 – 2012 Era)"
+       ],
+       [
+        "Exam Name & Full Form",
+        "AIEEE — All India Engineering Entrance Examination"
+       ],
+       [
+        "Conducting Authority",
+        "CBSE — Central Board of Secondary Education (Ministry of HRD, Govt. of India)"
+       ],
+       [
+        "Active Years & Replacement",
+        "Conducted from 2002 to 2012 (11 editions). Replaced by JEE Main starting in 2013."
+       ],
+       [
+        "Frequency",
+        "Once a year (held on the last Sunday of April / first Sunday of May)"
+       ],
+       [
+        "Exam Mode & Languages",
+        "Offline Pen-and-Paper (OMR) from 2002–2010; Hybrid (Offline + Optional Online CBT) introduced in 2011–2012. Conducted in English and Hindi (plus regional languages in select states)."
+       ],
+       [
+        "Marking Scheme (Final Pattern)",
+        {
+         "list": [
+          "+4 marks for every correct answer",
+          "−1 mark (1/4th) negative marking for every wrong answer",
+          "0 marks for unattempted questions"
+         ]
+        }
+       ],
+       [
+        "Attempt Limit & Age",
+        "Maximum 3 consecutive attempts (Class 12 passing year + next 2 years); upper age limit was 25 years (30 for SC/ST/PwD)."
+       ],
+       [
+        "Counselling Body",
+        "CCB — Central Counselling Board (later renamed CSAB / JoSAA)"
+       ]
+      ]
+     }
+    ],
+    "h": "Exam Overview & Basic Facts",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "p": "Between 2002 and 2012, CBSE refined the AIEEE question count twice before settling on the classic 90- question (360-mark) format in 2010–2012, which later became the blueprint for JEE Main:"
+     }
+    ],
+    "h": "Question Paper Pattern & Number of Questions",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Paper & Subject",
+          "Questions",
+          "Question Type",
+          "Max Marks",
+          "Duration"
+         ],
+         [
+          "Paper 1 — Physics",
+          "30 Qs",
+          "Single-Choice MCQs (4 options)",
+          "120",
+          "3 Hours (180 Mins)"
+         ],
+         [
+          "Paper 1 — Chemistry",
+          "30 Qs",
+          "Single-Choice MCQs (4 options)",
+          "120",
+          ""
+         ],
+         [
+          "Paper 1 — Mathematics",
+          "30 Qs",
+          "Single-Choice MCQs (4 options)",
+          "120",
+          ""
+         ]
+        ]
+       },
+       {
+        "table": [
+         [
+          "Paper & Subject",
+          "Questions",
+          "Question Type",
+          "Max Marks",
+          "Duration"
+         ],
+         [
+          "Total Paper 1 (B.E. / B.Tech)",
+          "90 MCQs",
+          "+4 / −1 Marking",
+          "360 Marks",
+          ""
+         ],
+         [
+          "Paper 2 (B.Arch / B.Planning)",
+          "82 Qs",
+          "Maths (30 Qs) + Aptitude (50 Qs) + Drawing (2 Qs)",
+          "390 Marks",
+          "3 Hours"
+         ]
+        ]
+       }
+      ],
+      "h": "Final AIEEE Pattern (2010 – 2012 Editions)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Years",
+          "Total Questions (Paper 1)",
+          "Max Marks",
+          "Paper Format Details"
+         ],
+         [
+          "2002 – 2004",
+          "225 Qs (75 per subject)",
+          "675 Marks",
+          "3 separate 1-hour subject papers (+3 for right, −1 for wrong)"
+         ],
+         [
+          "2005 – 2006",
+          "150 Qs (50 per subject)",
+          "450 Marks",
+          "Single composite 3-hour paper (+3 for right, −1 for wrong)"
+         ],
+         [
+          "2007 – 2008",
+          "120 Qs (40 per subject)",
+          "360 Marks",
+          "Single composite 3-hour paper (+3 for right, −1 for wrong)"
+         ],
+         [
+          "2009",
+          "105 Qs (35 per subject)",
+          "420 Marks",
+          "Single composite 3-hour paper (+4 for right, −1 for wrong)"
+         ],
+         [
+          "2010 – 2012",
+          "90 Qs (30 per subject)",
+          "360 Marks",
+          "Single composite 3-hour paper (+4 for right, −1 for wrong)"
+         ]
+        ]
+       }
+      ],
+      "h": "How AIEEE Question Counts Evolved (2002 – 2012)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "AIEEE grew rapidly from just 1.6 lakh applicants in 2002 to over 11.4 lakh students in 2012 —making it one of the world's largest undergraduate engineering entrance tests at the time."
+     },
+     {
+      "table": [
+       [
+        "Exam Year",
+        "Registered Students",
+        "Appeared (Wrote Exam)",
+        "CCB Counselling Seats",
+        "Key Historical Milestone"
+       ],
+       [
+        "AIEEE 2012 (Final)",
+        "11,42,000",
+        "10,64,000",
+        "~33,000+ (30 NITs, IIITs, GFTIs)",
+        "Last AIEEE before transition to JEE Main in 2013"
+       ],
+       [
+        "AIEEE 2011",
+        "11,16,000",
+        "10,50,000",
+        "~31,500+",
+        "First year CBSE introduced online CBT option"
+       ],
+       [
+        "AIEEE 2010",
+        "11,36,000",
+        "10,65,000",
+        "~28,000+",
+        "30 Qs per subject (90 Qs / 360 marks) standardized"
+       ],
+       [
+        "AIEEE 2008",
+        "8,62,000",
+        "8,15,000",
+        "~21,000+",
+        "27% OBC-NCL reservation phase-in began"
+       ],
+       [
+        "AIEEE 2005",
+        "4,72,000",
+        "4,45,000",
+        "~15,500+",
+        "Combined single 3-hour paper introduced"
+       ]
+      ]
+     },
+     {
+      "table": [
+       [
+        "Exam Year",
+        "Registered Students",
+        "Appeared (Wrote Exam)",
+        "CCB Counselling Seats",
+        "Key Historical Milestone"
+       ],
+       [
+        "AIEEE 2002 (First)",
+        "1,60,000",
+        "1,48,000",
+        "~11,000+",
+        "Inaugural edition replacing state REC entrance tests"
+       ]
+      ]
+     }
+    ],
+    "h": "Year-Wise Registration, Attendance & Selection Numbers",
+    "subs": []
+   },
+   {
+    "blocks": [],
+    "h": "Application Fee & College Tuition Fees (2012 Era)",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Candidate Category",
+          "Paper 1 Only (Offline / Online)",
+          "Paper 1 + Paper 2 (Both)"
+         ],
+         [
+          "General / OBC (Male & Female)",
+          "₹800 (Offline) / ₹500 (Online)",
+          "₹1,300 (Offline) / ₹800 (Online)"
+         ],
+         [
+          "SC / ST / PwD (Male & Female)",
+          "₹400 (Offline) / ₹250 (Online)",
+          "₹650 (Offline) / ₹400 (Online)"
+         ],
+         [
+          "Exam Centres Outside India (All Categories)",
+          "₹2,500",
+          "₹4,000"
+         ]
+        ]
+       }
+      ],
+      "h": "AIEEE Exam Application Fee (Offline vs. Online Mode in 2012)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Institute Type & Category",
+          "Annual Tuition Fee (2012)",
+          "Notes"
+         ],
+         [
+          "NITs (General / OBC Students)",
+          "₹35,000 / year",
+          "Before the 2016 fee revision to ₹1,25,000/year"
+         ],
+         [
+          "NITs (SC / ST Students)",
+          "₹0 (100% Waived)",
+          "Full tuition fee exemption across all NITs"
+         ],
+         [
+          "IIITs & CFTIs (All Categories)",
+          "₹40,000 – ₹90,000 / year",
+          "Central & state scholarships reimbursed SC/ST fees"
+         ]
+        ]
+       }
+      ],
+      "h": "Annual College Tuition Fee in NITs & IIITs (2012 Reference)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "By 2011–2012, the phased implementation of the 27% OBC-NCL quota was completed across all central institutes, establishing the exact seat matrix still used in JoSAA today:"
+     },
+     {
+      "table": [
+       [
+        "Category / Quota",
+        "Seat Share (%)",
+        "How Seats Were Allotted via CCB"
+       ],
+       [
+        "General / Open Merit (UR)",
+        "50.5%",
+        "Open to all candidates based purely on All India Rank (AIR)"
+       ],
+       [
+        "OBC-NCL (Non-Creamy Layer)",
+        "27.0%",
+        "Central OBC list candidates with family income < ₹4.5 lakh (in 2012)"
+       ],
+       [
+        "Scheduled Caste (SC)",
+        "15.0%",
+        "All-India and State-wise SC quota seats"
+       ],
+       [
+        "Scheduled Tribe (ST)",
+        "7.5%",
+        "All-India and State-wise ST quota seats"
+       ]
+      ]
+     },
+     {
+      "table": [
+       [
+        "Category / Quota",
+        "Seat Share (%)",
+        "How Seats Were Allotted via CCB"
+       ],
+       [
+        "PwD (Horizontal Reservation)",
+        "3.0%",
+        "3% horizontal reservation inside each category (later raised to 5%)"
+       ],
+       [
+        "NIT State Quota Split",
+        "50% HS / 50% OS",
+        "50% seats reserved for Home State (Class 12 state) + 50% Other States"
+       ]
+      ]
+     }
+    ],
+    "h": "Seat Matrix & Reservation Rules (CCB Counselling)",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Institute Group",
+        "Premier Colleges Participating in AIEEE (2002 – 2012)"
+       ],
+       [
+        "Top NITs (30 NITs by 2012)",
+        {
+         "list": [
+          "NIT Tiruchirappalli (Trichy)",
+          "NITK Surathkal",
+          "NIT Warangal",
+          "MNNIT Allahabad",
+          "NIT Rourkela",
+          "NIT Calicut",
+          "MNIT Jaipur",
+          "VNIT Nagpur",
+          "SVNIT Surat",
+          "NIT Kurukshetra",
+          "MANIT Bhopal",
+          "NIT Durgapur"
+         ]
+        }
+       ],
+       [
+        "Top IIITs & Central Institutes",
+        {
+         "list": [
+          "IIIT Allahabad",
+          "ABV-IIITM Gwalior",
+          "IIITDM Jabalpur",
+          "IIITDM Kancheepuram",
+          "BIT Mesra (Ranchi)",
+          "PEC Chandigarh",
+          "School of Planning & Architecture (SPA) Delhi & Bhopal (for B.Arch)"
+         ]
+        }
+       ],
+       [
+        "State & Deemed Universities",
+        {
+         "list": [
+          "DTU (Delhi Technological University) & NSIT Delhi (joined AIEEE in 2010– 2012)",
+          "IIIT Hyderabad (used AIEEE scores for admission alongside its own interview)",
+          "Thapar University, LNMIIT Jaipur, Nirma University, SASTRA, Amity, Jaypee (JIIT)"
+         ]
+        }
+       ]
+      ]
+     },
+     {
+      "p": "Why AIEEE Was Discontinued After 2012: To reduce the burden of writing multiple engineering entrance tests, the Ministry of Human Resource Development merged AIEEE and state-level engineering entrances into a single two-tier system in 2013: JEE Main (replacing AIEEE) and JEE Advanced (replacing IIT-JEE)."
+     }
+    ],
+    "h": "Top Colleges That Admitted Students Through AIEEE",
+    "subs": []
+   }
+  ],
+  "title": "Complete Guide to the AIEEE Exam"
+ },
+ "iat": {
+  "intro": "Simple, table-by-table breakdown of exam structure, question counts, candidate numbers, fees, IISER seat matrix, and top institutes. The IISER Aptitude Test (IAT) is India's sole national entrance examination for admission into the 7 Indian Institutes of Science Education and Research (IISERs). It is also accepted for flagship undergraduate science and engineering degrees at IISc Bangalore, IIT Madras, IIT Guwahati, IACS Kolkata, and IIEST Shibpur.",
+  "kicker": "NATIONAL SCIENCE & RESEARCH UNDERGRADUATE ENTRANCE HANDBOOK",
+  "sections": [
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Particular",
+        "Official Details"
+       ],
+       [
+        "Exam Name & Full Form",
+        "IAT — IISER Aptitude Test (Indian Institutes of Science Education and Research Aptitude Test)"
+       ],
+       [
+        "Conducting Authority",
+        "IISER Joint Admissions Committee (JAC) — Managed jointly by the 7 IISERs (one designated coordinating IISER each year)"
+       ],
+       [
+        "Official Website",
+        "iiseradmission.in"
+       ],
+       [
+        "Frequency",
+        "Once a year (usually held in June; registration opens in March)"
+       ],
+       [
+        "Admission Channels",
+        "100% through IAT only (KVPY and JEE Advanced admission channels to IISERs have been discontinued)"
+       ],
+       [
+        "Exam Mode & Languages",
+        "Online CBT (Computer-Based Test) in English and Hindi across 730+ test centres in India"
+       ],
+       [
+        "Marking Scheme",
+        {
+         "list": [
+          "+4 marks for every correct answer",
+          "−1 mark negative marking for every wrong answer",
+          "0 marks for unattempted questions"
+         ]
+        }
+       ],
+       [
+        "Maximum Attempts & Age",
+        "No age limit. Maximum 3 consecutive attempts (Class 12 appearing year + next 2 years)."
+       ],
+       [
+        "Class 12 Eligibility",
+        "Passed Class 12 with Science stream (at least 3 subjects among Physics, Chemistry, Maths, Biology) and minimum 60% aggregate (55% for SC/ST/PwD)."
+       ]
+      ]
+     }
+    ],
+    "h": "Exam Overview & Basic Facts",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "p": "IAT consists of a single 3-hour paper containing 60 Multiple Choice Questions (MCQs) divided equally across all four science subjects. Even if you had PCM or PCB in Class 12, all 4 sections are open to attempt —you can answer questions from all 4 subjects to maximize your score out of 240."
+     }
+    ],
+    "h": "Question Paper Pattern & Number of Questions",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Subject Section",
+          "Questions",
+          "Marks per Q",
+          "Max Marks",
+          "Compulsory?"
+         ],
+         [
+          "Physics",
+          "15 MCQs",
+          "+4 / −1",
+          "60",
+          "All 4 sections available"
+         ],
+         [
+          "Chemistry",
+          "15 MCQs",
+          "+4 / −1",
+          "60",
+          "All 4 sections available"
+         ],
+         [
+          "Mathematics",
+          "15 MCQs",
+          "+4 / −1",
+          "60",
+          "All 4 sections available"
+         ],
+         [
+          "Biology",
+          "15 MCQs",
+          "+4 / −1",
+          "60",
+          "All 4 sections available"
+         ],
+         [
+          "Total Exam (3 Hours / 180 Mins)",
+          "60 MCQs",
+          "—",
+          "240 Marks",
+          "Score range: −60 to +240"
+         ]
+        ]
+       }
+      ],
+      "h": "Subject-Wise Question Count & Marks (Total: 60 Qs / 240 Marks)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Subject (15 Qs)",
+          "High-Weightage Units & Expected Question Count (NCERT Class 11 & 12 Syllabus)"
+         ],
+         [
+          "Physics (15 Qs)",
+          {
+           "list": [
+            "Mechanics & Rotational Motion (4–5 Qs)",
+            "Electricity & Magnetism (4–5 Qs)",
+            "Optics & Waves (2–3 Qs)",
+            "Modern Physics (2 Qs)",
+            "Heat & Thermodynamics (2 Qs)"
+           ]
+          }
+         ],
+         [
+          "Chemistry (15 Qs)",
+          {
+           "list": [
+            "Organic Chemistry — Carbonyls, GOC, Hydrocarbons, Amines (5–6 Qs)",
+            "Physical Chemistry — Thermodynamics, Electrochemistry, Kinetics, Atomic Structure (5 Qs)",
+            "Inorganic Chemistry — Chemical Bonding, Coordination, Periodicity (4–5 Qs)"
+           ]
+          }
+         ],
+         [
+          "Mathematics (15 Qs)",
+          {
+           "list": [
+            "Calculus — Limits, Derivatives, Integrals, Differential Eqns (5–6 Qs)",
+            "Algebra — Matrices, Determinants, Complex Nos, Probability, Sequences (4–5 Qs)",
+            "Coordinate Geometry (2–3 Qs)",
+            "Vectors, 3D Geometry & Trigonometry (2–3 Qs)"
+           ]
+          }
+         ],
+         [
+          "Biology (15 Qs)",
+          {
+           "list": [
+            "Human & Plant Physiology (4–5 Qs)",
+            "Genetics, Molecular Biology & Evolution (3–4 Qs)",
+            "Cell Biology & Biomolecules (2–3 Qs)",
+            "Biotechnology & Reproduction (2–3 Qs)",
+            "Ecology & Diversity (2 Qs)"
+           ]
+          }
+         ]
+        ]
+       }
+      ],
+      "h": "Chapter-Wise Question Weightage (Out of 15 Questions per Subject)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Since IAT became the only admission gateway to all 7 IISERs, candidate registrations have surged past 2 lakh per year, making the selection ratio roughly 1 seat for every 75–80 test-takers."
+     },
+     {
+      "table": [
+       [
+        "Exam Year",
+        "Registered Students",
+        "Appeared (Wrote Exam)",
+        "Total IISER Seats",
+        "Key Admission Milestone"
+       ],
+       [
+        "IAT 2026",
+        "2,00,000+",
+        "1,86,000+",
+        "2,343 – 2,363",
+        "IACS Kolkata & IIEST Shibpur also joined IAT"
+       ],
+       [
+        "IAT 2025",
+        "1,49,228",
+        "1,19,196",
+        "2,363",
+        "IISER Bhopal B.Tech & Tirupati BS included"
+       ],
+       [
+        "IAT 2024",
+        "98,000",
+        "71,087",
+        "1,933",
+        "100% IISER seats shifted exclusively to IAT"
+       ],
+       [
+        "IAT 2023",
+        "44,000",
+        "34,751",
+        "1,813",
+        "IISc Bangalore & IIT Madras started using IAT"
+       ]
+      ]
+     },
+     {
+      "table": [
+       [
+        "Exam Year",
+        "Registered Students",
+        "Appeared (Wrote Exam)",
+        "Total IISER Seats",
+        "Key Admission Milestone"
+       ],
+       [
+        "IAT 2022",
+        "22,320",
+        "22,320",
+        "1,748",
+        "Last year with KVPY & JEE Advanced channels"
+       ]
+      ]
+     }
+    ],
+    "h": "Year-Wise Registration, Attendance & Selection Numbers",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "IAT Score (Out of 240)",
+          "Approx. All India Rank",
+          "Expected College & Programme Allotment (General / OBC-NCL)"
+         ],
+         [
+          "190 – 240 Marks",
+          "Top 100",
+          "IISc Bangalore (4-Year B.S. Research) & IIT Madras (BS Medical Sciences)"
+         ],
+         [
+          "155 – 189 Marks",
+          "Rank 100 – 450",
+          "IISER Pune & IISER Kolkata (First-choice BS-MS & Computational Data Science)"
+         ],
+         [
+          "130 – 154 Marks",
+          "Rank 450 – 1,200",
+          "IISER Mohali, IISER Bhopal (BS-MS / B.Tech) & IISER Thiruvananthapuram"
+         ],
+         [
+          "105 – 129 Marks",
+          "Rank 1,200 – 2,500",
+          {
+           "list": [
+            "IISER Tirupati & IISER Berhampur (General)",
+            "Top IISERs for OBC- NCL / EWS"
+           ]
+          }
+         ],
+         [
+          "65 – 104 Marks",
+          "Rank 2,500 – 8,000+",
+          "Strong admission chances for SC / ST / PwD / Kashmiri Migrant categories across IISERs"
+         ]
+        ]
+       }
+      ],
+      "h": "Safe Target Scores & Expected Rank Range (Out of 240 Marks)"
+     }
+    ]
+   },
+   {
+    "blocks": [],
+    "h": "Application Fee & IISER Semester / Tuition Fees",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Candidate Category",
+          "Application Fee"
+         ],
+         [
+          "General (UR) / GEN-EWS / OBC / OBC-NCL (Central List)",
+          "₹2,000"
+         ],
+         [
+          "SC / ST / PwD / Third Gender / Kashmiri Migrants (KM)",
+          "₹1,000"
+         ],
+         [
+          "Foreign Nationals (Applying under Foreign National Category)",
+          "₹12,000"
+         ]
+        ]
+       }
+      ],
+      "h": "IAT Exam Registration Fee (Non-Refundable)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Student Category",
+          "Semester Tuition Fee",
+          "Fee Waiver & Research Scholarship Benefit"
+         ],
+         [
+          "General / OBC-NCL / GEN- EWS",
+          "~₹40,000 – ₹48,000 / sem",
+          "Total ~₹55,000–₹68,000/sem including hostel & student amenities (mess extra)"
+         ],
+         [
+          "SC / ST / PwD Students",
+          "₹0 (100% Waived)",
+          "100% full tuition fee waiver across all 7 IISERs (only hostel/mess charges apply)"
+         ],
+         [
+          "INSPIRE / KVPY / Institute Fellowships",
+          "₹5,000 / month + ₹20,000/yr",
+          "Top-performing BS-MS students receive DST-INSPIRE scholarship (₹80,000/year)"
+         ]
+        ]
+       }
+      ],
+      "h": "College Tuition Fee & Scholarships After Selection"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "No Home State Quota: All seats across the 7 IISERs are filled on an All-India basis following Government of India reservation norms."
+     }
+    ],
+    "h": "IISER Seat Matrix & Reservation Rules (All 7 Campuses)",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Category Code",
+          "Category Name",
+          "Seat Share (%)",
+          "Approx. IISER Seats"
+         ],
+         [
+          "OPEN (UR)",
+          "Unreserved / General Merit (Open to all candidates)",
+          "40.5%",
+          "~950"
+         ],
+         [
+          "OBC-NCL",
+          "Other Backward Classes (Non-Creamy Layer, Central List, income < ₹8L)",
+          "27.0%",
+          "~635"
+         ],
+         [
+          "SC",
+          "Scheduled Caste",
+          "15.0%",
+          "~352"
+         ],
+         [
+          "GEN-EWS",
+          "Economically Weaker Section (General, family income < ₹8L)",
+          "10.0%",
+          "~235"
+         ],
+         [
+          "ST",
+          "Scheduled Tribe",
+          "7.5%",
+          "~176"
+         ],
+         [
+          "PwD (Horizontal)",
+          "Persons with Benchmark Disability (≥40% impairment, inside each category)",
+          "5.0%",
+          "~118 (horizontal)"
+         ],
+         [
+          "Kashmiri Migrants",
+          "Kashmiri Migrants & Kashmiri Pandits living in Kashmir Valley (Supernumerary)",
+          "3 seats / IISER",
+          "21 extra seats"
+         ]
+        ]
+       }
+      ],
+      "h": "Category-Wise Seat Reservation (%)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "#",
+          "IISER Campus & State",
+          "Programmes Offered via IAT",
+          "Seats"
+         ],
+         [
+          "1",
+          "IISER Pune, Maharashtra",
+          "5-Year BS-MS Dual Degree (Biology, Chemistry, Earth & Climate, Maths, Physics)",
+          "288"
+         ],
+         [
+          "2",
+          "IISER Kolkata, West Bengal",
+          "5-Year BS-MS Dual Degree (280 seats) + BS- MS in Computational & Data Sciences (30 seats)",
+          "310"
+         ],
+         [
+          "3",
+          "IISER Mohali, Punjab",
+          "5-Year BS-MS Dual Degree (Biological, Chemical, Mathematical, Physical Sciences)",
+          "270"
+         ],
+         [
+          "4",
+          "IISER Bhopal, Madhya Pradesh",
+          "5-Year BS-MS (300) + 4-Year B.Tech in Chemical, EECS, Data Science (140) + BS Economics (35)",
+          "475"
+         ],
+         [
+          "5",
+          "IISER Thiruvananthapuram, Kerala",
+          "5-Year BS-MS Dual Degree (Core Sciences + Integrated & Interdisciplinary Sciences)",
+          "320"
+         ],
+         [
+          "6",
+          "IISER Tirupati, Andhra Pradesh",
+          "5-Year BS-MS Dual Degree (350 seats) + 4- Year BS in Economic & Statistical Sciences (50 seats)",
+          "400"
+         ]
+        ]
+       },
+       {
+        "table": [
+         [
+          "#",
+          "IISER Campus & State",
+          "Programmes Offered via IAT",
+          "Seats"
+         ],
+         [
+          "7",
+          "IISER Berhampur, Odisha",
+          "5-Year BS-MS Dual Degree (Biological, Chemical, Mathematical, Physical, Earth Sciences)",
+          "300"
+         ],
+         [
+          "—",
+          "Total Seats Across All 7 IISERs",
+          "Combined BS-MS, BS, and B.Tech intake through IISER JAC Counselling",
+          "2,363"
+         ]
+        ]
+       }
+      ],
+      "h": "Campus-Wise & Programme-Wise Seat Distribution (All 7 IISERs)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Important Note on Separate Applications: To get into the 7 IISERs, you apply on iiseradmission.in. However, to join the premier non-IISER institutes listed below using your IAT score, you must also fill out their separate online admission forms before their respective deadlines."
+     },
+     {
+      "table": [
+       [
+        "Institute Name",
+        "Degree Programme Offered via IAT",
+        "Class 12 Requirement"
+       ],
+       [
+        "IISc Bangalore (Indian Institute of Science)",
+        "4-Year Bachelor of Science (Research) in Biology, Chemistry, Earth & Environmental Science, Materials, Maths, Physics",
+        "PCM (Maths mandatory in Class 12)"
+       ],
+       [
+        "IIT Madras (Indian Institute of Technology)",
+        "4-Year BS in Medical Sciences and Engineering (Dept. of Medical Sciences & Technology)",
+        "PCM + Biology/Biotech"
+       ],
+       [
+        "IIT Guwahati (Indian Institute of Technology)",
+        "4-Year BS in Biomedical Science and Engineering (Jyoti & Bhupat Mehta School of Health Sciences)",
+        "PCMB (75% aggregate)"
+       ],
+       [
+        "IACS Kolkata (Indian Assoc. for Cultivation of Science)",
+        "5-Year Integrated BS-MS Programme in Biological, Chemical, Mathematical, Physical & Computer Sciences",
+        "Science stream (60% aggregate)"
+       ],
+       [
+        "IIEST Shibpur (Howrah, West Bengal)",
+        "5-Year Integrated BS-MS in Physics, Chemistry, and Applied Geology (20 seats per department via IAT)",
+        "PCM / Science stream"
+       ]
+      ]
+     }
+    ],
+    "h": "Other Top Institutes Accepting IAT Scores",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Step",
+        "Stage",
+        "What the Student Must Do"
+       ],
+       [
+        "1",
+        "Online Registration (March–April)",
+        "Register at iiseradmission.in, upload Class 10/12 details and category certificates (OBC-NCL/EWS issued on or after April 1), and pay the fee."
+       ],
+       [
+        "2",
+        "Admit Card & IAT Exam (May– June)",
+        "Download hall ticket and appear for the 3-hour Computer- Based Test (60 MCQs across Physics, Chemistry, Maths, and Biology)."
+       ],
+       [
+        "3",
+        "Class 12 Marks Upload & Result (June)",
+        "Upload your final Class 12 marksheet on the portal (for appearing students). IISER JAC publishes the rank list based purely on IAT marks out of 240."
+       ],
+       [
+        "4",
+        "Campus Preference Filling (July)",
+        "Log in to the counselling portal and lock your preference order across all 7 IISERs and specialized BS/B.Tech programmes."
+       ],
+       [
+        "5",
+        "Multi-Round Seat Allotment (July– Sept)",
+        "IISER conducts 6 to 8 allotment rounds. Choose Accept & Float (for higher preference) or Accept & Freeze, pay the Seat Acceptance Fee (SAF), and join campus in August."
+       ]
+      ]
+     }
+    ],
+    "h": "Step-by-Step Timeline from Application to Admission",
+    "subs": []
+   }
+  ],
+  "title": "Complete Guide to the IISER Aptitude Test (IAT)"
+ },
+ "iit-jee": {
+  "intro": "Simple, table-by-table reference covering exam evolution, question patterns, candidate numbers, fees, seat matrix, and the 16 IITs before JEE Advanced began in 2013. The Indian Institute of Technology Joint Entrance Examination (IIT-JEE) was conducted for over five decades ( 1961 to 2012 ) as the direct single-tier admission test for undergraduate programmes at the IITs, IT-BHU (now IIT BHU), and ISM Dhanbad. Unlike today's system where JEE Main filters candidates first, any eligible Class 12 student could directly write IIT-JEE until 2012. In 2013, IIT-JEE was replaced by JEE Advanced.",
+  "kicker": "HISTORICAL PREMIER IIT ENTRANCE ARCHIVE (1961 – 2012)",
+  "sections": [
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Particular",
+        "Official Details (1961 – 2012 Era)"
+       ],
+       [
+        "Exam Name & Full Form",
+        "IIT-JEE — Indian Institute of Technology Joint Entrance Examination"
+       ],
+       [
+        "Conducting Authority",
+        "Joint Admission Board (JAB) — Conducted by one of the older zonal IITs each year on rotation (IIT Bombay, Delhi, Guwahati, Kanpur, Kharagpur, Madras, Roorkee)"
+       ],
+       [
+        "Active Years & Replacement",
+        "Conducted from 1961 to 2012 (52 years). Replaced by JEE Advanced starting in 2013."
+       ],
+       [
+        "Frequency",
+        "Once a year (held on a Sunday in April; from 2000–2005 it had a Screening + Main two-stage format)"
+       ],
+       [
+        "Exam Mode & Languages",
+        "Offline Pen-and-Paper (Objective OMR sheets from 2006–2012; subjective descriptive papers prior to 2006). Printed in English and Hindi."
+       ],
+       [
+        "Two Mandatory Papers",
+        "Paper 1 (3 Hours, Morning) + Paper 2 (3 Hours, Afternoon) on the same day. Both papers tested Physics, Chemistry, and Mathematics."
+       ],
+       [
+        "Attempt Limit & Board Rule",
+        "From 2006 onward: Maximum 2 consecutive attempts (Class 12 appearing year + next year) and minimum 60% aggregate in Class 12 boards (55% for SC/ST/PwD)."
+       ]
+      ]
+     }
+    ],
+    "h": "Exam Overview & Basic Facts",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "p": "IIT-JEE went through three distinct historical eras in how questions were asked—moving from 3-hour descriptive subjective papers to a two-stage Screening + Main exam, and finally to the fully objective 6- hour OMR format (2006–2012):"
+     }
+    ],
+    "h": "Question Paper Pattern & How IIT-JEE Evolved",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Era / Years",
+          "Exam Structure",
+          "Question Style & Marking Details"
+         ],
+         [
+          "1961 – 1999",
+          "Single Stage (Subjective Papers)",
+          "4 separate papers: Physics, Chemistry, Mathematics, and English (English was dropped later). Long step-by- step subjective derivations and numerical proofs graded manually by IIT professors."
+         ],
+         [
+          "2000 – 2005",
+          "Two-Stage: Screening + Main",
+          "Screening: 1 single 3-hour MCQ paper (PCM) to shortlist ~20,000 candidates. Main: 3 separate 2-hour subjective papers (Physics, Chemistry, Maths) for final rank."
+         ],
+         [
+          "2006 – 2012 (Final Era)",
+          "Single Stage: Paper 1 + Paper 2 (Objective OMR)",
+          "Two 3-hour objective OMR papers on the same day (6 hours total). Machine-graded optical bubble sheets with negative marking and partial marking."
+         ]
+        ]
+       }
+      ],
+      "h": "Historical Evolution of Exam Format (1961 – 2012)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Paper",
+          "Subjects Covered",
+          "Questions (2012)",
+          "Marks (2012)",
+          "Question Formats Included"
+         ],
+         [
+          "Paper 1 (3 Hours)",
+          "Physics (20 Qs) + Chemistry (20 Qs) + Maths (20 Qs)",
+          "60 Qs",
+          "210 Marks",
+          "Single-correct MCQs (+3/−1), Multiple- correct MCQs (+4/0), Integer-type 0–9 (+4/0)"
+         ],
+         [
+          "Paper 2 (3 Hours)",
+          "Physics (20 Qs) + Chemistry (20 Qs) + Maths (20 Qs)",
+          "60 Qs",
+          "198 Marks",
+          "Single-correct MCQs (+3/−1), Paragraph/Comprehension (+3/−1), Multiple-correct (+4/−1)"
+         ],
+         [
+          "Combined Total",
+          "Physics (136) + Chemistry (136) + Maths (136)",
+          "120 Qs",
+          "408 Marks",
+          "(Note: 2010 had 168 Qs / 489 marks; 2011 had 120 Qs / 480 marks)"
+         ]
+        ]
+       }
+      ],
+      "h": "Final IIT-JEE Objective Pattern (2010 – 2012 Editions)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Because there was no JEE Main filter before 2013, nearly 5 lakh students wrote IIT-JEE directly in its final years, competing for roughly 9,600 IIT seats (a ~2% selection rate)."
+     },
+     {
+      "table": [
+       [
+        "Exam Year",
+        "Registered",
+        "Appeared",
+        "Qualified (Got Rank)",
+        "Total IIT Seats"
+       ],
+       [
+        "IIT-JEE 2012 (Final)",
+        "5,06,484",
+        "4,79,651",
+        "24,112 (incl. 19,426 general/rank)",
+        "9,647 (16 Institutes)"
+       ],
+       [
+        "IIT-JEE 2011",
+        "4,85,136",
+        "4,68,240",
+        "13,196",
+        "9,618 (16 Institutes)"
+       ],
+       [
+        "IIT-JEE 2010",
+        "4,72,000",
+        "4,55,571",
+        "11,458",
+        "9,509 (16 Institutes)"
+       ],
+       [
+        "IIT-JEE 2009",
+        "3,98,000",
+        "3,84,977",
+        "10,035",
+        "8,295 (15 Institutes)"
+       ],
+       [
+        "IIT-JEE 2008",
+        "3,21,000",
+        "3,11,258",
+        "8,652",
+        "6,992 (13 Institutes)"
+       ],
+       [
+        "IIT-JEE 2006",
+        "2,99,289",
+        "2,87,564",
+        "5,914",
+        "5,537 (9 Institutes)"
+       ]
+      ]
+     }
+    ],
+    "h": "Year-Wise Registration, Appearance & Selection Numbers",
+    "subs": []
+   },
+   {
+    "blocks": [],
+    "h": "Application Fee & IIT Tuition Fees (2012 Era)",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Candidate Category",
+          "Online Application Fee",
+          "Offline OMR Form Fee"
+         ],
+         [
+          "General / OBC (Male Candidates)",
+          "₹1,600",
+          "₹1,800"
+         ],
+         [
+          "SC / ST / PwD (Male Candidates)",
+          "₹800",
+          "₹900"
+         ],
+         [
+          "All Female Candidates (Introduced in 2011–2012)",
+          "₹0 (Exempted)",
+          "₹0 (Exempted)"
+         ],
+         [
+          "Foreign Centres (Dubai / Singapore / Kathmandu)",
+          "USD 200",
+          "USD 200"
+         ]
+        ]
+       }
+      ],
+      "h": "IIT-JEE Application Fee (2012 Final Edition)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Student Category",
+          "Annual Tuition Fee (2012)",
+          "Fee Waiver & Scholarship Rule"
+         ],
+         [
+          "General / OBC Students",
+          "₹50,000 / year",
+          "₹25,000 per semester (revised to ₹90,000/yr in 2013 and ₹2,00,000/yr in 2016)"
+         ],
+         [
+          "SC / ST / PwD Students",
+          "₹0 (100% Waived)",
+          "Complete tuition fee waiver + free hostel seat rent + pocket allowance"
+         ]
+        ]
+       }
+      ],
+      "h": "Annual IIT Tuition Fee in 2012 (Before Subsequent Fee Revisions)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "IITs have always filled 100% of seats purely on All India Rank (AIR) with zero Home State quota. In 2012, the 9,647 seats across 16 participating institutes were distributed as follows:"
+     },
+     {
+      "table": [
+       [
+        "Category Code",
+        "Category Description",
+        "Seat Share (%)",
+        "Seats in 2012"
+       ],
+       [
+        "GE / OPEN",
+        "General / Unreserved Merit (Open to all candidates)",
+        "50.5%",
+        "4,872"
+       ],
+       [
+        "OBC-NCL",
+        "Other Backward Classes (Non-Creamy Layer, Central List)",
+        "27.0%",
+        "2,605"
+       ],
+       [
+        "SC",
+        "Scheduled Caste",
+        "15.0%",
+        "1,447"
+       ],
+       [
+        "ST",
+        "Scheduled Tribe",
+        "7.5%",
+        "723"
+       ],
+       [
+        "PD / PwD (Horizontal)",
+        "Persons with Disability (3% horizontal share inside each category)",
+        "3.0%",
+        "289 (within above)"
+       ],
+       [
+        "Total Seats",
+        "Combined B.Tech, B.S., Dual Degree & Integrated M.Sc./M.Tech",
+        "100.0%",
+        "9,647"
+       ]
+      ]
+     }
+    ],
+    "h": "Seat Matrix & Reservation Policy (2012 — 9,647 Seats)",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Institute Generation",
+        "Participating Institutes & 2012 Seat Count (9,647 Total)"
+       ],
+       [
+        "7 Original Zonal IITs",
+        {
+         "list": [
+          "IIT Kharagpur (1,341 seats)",
+          "IIT Bombay (880 seats)",
+          "IIT Madras (838 seats)",
+          "IIT Kanpur (827 seats)",
+          "IIT Delhi (851 seats)",
+          "IIT Guwahati (615 seats)",
+          "IIT Roorkee (1,065 seats)"
+         ]
+        }
+       ],
+       [
+        "2 Merged Legacy Institutes",
+        {
+         "list": [
+          "IT-BHU Varanasi (1,090 seats — officially converted into IIT (BHU) Varanasi in 2012)",
+          "ISM Dhanbad (1,010 seats — later converted into IIT (ISM) Dhanbad in 2016)"
+         ]
+        }
+       ],
+       [
+        "7 New IITs (Started 2008– 09)",
+        {
+         "list": [
+          "IIT Bhubaneswar (120)",
+          "IIT Gandhinagar (120)",
+          "IIT Hyderabad (140)",
+          "IIT Indore (120)",
+          "IIT Jodhpur (160)",
+          "IIT Mandi (120)",
+          "IIT Patna (120)",
+          "IIT Ropar (120) (Note: 7 of these operated alongside the 9 above to make 16 institutes in 2012; total 23 IITs today)"
+         ]
+        }
+       ],
+       [
+        "Other Institutes Using Rank",
+        {
+         "list": [
+          "IISc Bangalore (4-Year B.S. Research)",
+          "IIST Thiruvananthapuram",
+          "IISERs",
+          "RGIPT Rae Bareli"
+         ]
+        }
+       ]
+      ]
+     },
+     {
+      "p": "Transition from IIT-JEE to JEE Advanced (2013): Starting in 2013, direct registration for IIT-JEE ended. Instead, students first had to qualify in the top 1,50,000 (later raised to 2,50,000) of JEE Main to become eligible to write JEE Advanced for IIT admission."
+     }
+    ],
+    "h": "All 16 Institutes Participating in IIT-JEE (2012)",
+    "subs": []
+   }
+  ],
+  "title": "Complete Guide to the IIT-JEE Exam"
+ },
+ "jee-advanced": {
+  "intro": "Simple, table-by-table breakdown of exam structure, question patterns, candidate numbers, fees, IIT seat matrix, and top institutes. The Joint Entrance Examination (Advanced), popularly known as JEE Advanced, is the second and final stage of India's national engineering entrance system. It is the sole gateway for admission to undergraduate degrees (B.Tech, B.S., Dual Degree, Integrated M.Tech) across all 23 Indian Institutes of Technology (IITs) as well as premier research institutes like IISc Bangalore, IIST, IISERs, and RGIPT.",
+  "kicker": "NATIONAL PREMIER ENGINEERING & RESEARCH ENTRANCE HANDBOOK",
+  "sections": [
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Particular",
+        "Official Details"
+       ],
+       [
+        "Exam Name & Full Form",
+        "JEE Advanced — Joint Entrance Examination (Advanced)"
+       ],
+       [
+        "Conducting Authority",
+        "JAB (Joint Admission Board) — Conducted by one of the 7 zonal IITs every year on rotation (e.g., IIT Madras, IIT Kanpur, IIT Roorkee, IIT Delhi, IIT Bombay, IIT Kharagpur, IIT Guwahati)"
+       ],
+       [
+        "Official Website",
+        "jeeadv.ac.in"
+       ],
+       [
+        "Frequency",
+        "Once a year (usually held on a Sunday in May)"
+       ],
+       [
+        "Mandatory Two Papers",
+        "Paper 1 (Morning: 9:00 AM – 12:00 PM) and Paper 2 (Afternoon: 2:30 PM – 5:30 PM). Attempting both papers is compulsory to be considered for ranking."
+       ],
+       [
+        "Exam Mode & Languages",
+        "Online CBT (Computer-Based Test) in English and Hindi (students can switch language anytime during the exam)"
+       ],
+       [
+        "Maximum Attempts",
+        "Maximum 2 attempts in 2 consecutive years (Class 12 appearing year + immediate next year)"
+       ],
+       [
+        "Eligibility Gatekeeper",
+        "Must rank among the top 2,50,000 candidates in JEE Main Paper 1 (across categories) AND secure at least 75% aggregate in Class 12 boards (65% for SC/ST/PwD) or be in the top 20 percentile of their board."
+       ]
+      ]
+     }
+    ],
+    "h": "Exam Overview & Basic Facts",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "p": "Unlike JEE Main, JEE Advanced does not fix the exact number of questions or total marks in advance— they vary slightly every year (typically 48 to 54 questions per paper, totaling 96 to 108 questions for 360 marks across both papers). Both papers test Physics, Chemistry, and Mathematics equally."
+     }
+    ],
+    "h": "Question Paper Pattern & Number of Questions",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Paper",
+          "Subjects Covered",
+          "Typical Questions",
+          "Typical Marks",
+          "Duration"
+         ],
+         [
+          "Paper 1 (Compulsory)",
+          "Physics (16–18 Qs) + Chemistry (16–18 Qs) + Maths (16–18 Qs)",
+          "48 – 54 Qs",
+          "180 Marks",
+          "3 Hours"
+         ],
+         [
+          "Paper 2 (Compulsory)",
+          "Physics (16–18 Qs) + Chemistry (16–18 Qs) + Maths (16–18 Qs)",
+          "48 – 54 Qs",
+          "180 Marks",
+          "3 Hours"
+         ],
+         [
+          "Combined Total",
+          "Physics (120 marks) + Chemistry (120 marks) + Maths (120 marks)",
+          "96 – 108 Qs",
+          "360 Marks",
+          "6 Hours Total"
+         ]
+        ]
+       }
+      ],
+      "h": "Standard Exam Structure (Paper 1 + Paper 2)"
+     },
+     {
+      "blocks": [
+       {
+        "p": "JEE Advanced is famous for testing deep conceptual clarity with varied question formats and partial marking:"
+       },
+       {
+        "table": [
+         [
+          "Question Type",
+          "How It Works",
+          "Full Marks",
+          "Negative Marking"
+         ],
+         [
+          "Single Correct MCQs",
+          "4 options; only 1 option is correct",
+          "+3",
+          "−1"
+         ],
+         [
+          "One or More Than One Correct MCQs",
+          "4 options; 1, 2, 3, or all 4 options can be correct. Partial marks (+3, +2, +1) awarded if no wrong option is chosen.",
+          "+4",
+          "−2"
+         ],
+         [
+          "Non-Negative Integer Type",
+          "Answer is a single-digit or multi-digit whole number (e.g., 0 to 9999)",
+          "+3 or +4",
+          "0 (No negative)"
+         ],
+         [
+          "Numerical Value (Decimal) Type",
+          "Answer is rounded off to 2 decimal places (e.g., 12.35)",
+          "+3 or +4",
+          "0 (No negative)"
+         ],
+         [
+          "Matrix Match / List- Matching",
+          "Match items in List-I with List-II, then pick the right combination option",
+          "+3 or +4",
+          "−1"
+         ],
+         [
+          "Paragraph / Comprehension",
+          "A short passage/problem followed by 2 linked questions",
+          "+3",
+          "−1 or 0"
+         ]
+        ]
+       }
+      ],
+      "h": "Types of Questions & Marking Scheme"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Subject (120 Marks)",
+          "High-Weightage Units & Approximate Share"
+         ],
+         [
+          "Physics (32– 36 Qs)",
+          {
+           "list": [
+            "Mechanics & Rotational Dynamics (30%)",
+            "Electrodynamics & Magnetism (28%)",
+            "Optics & Wave Physics (15%)",
+            "Modern Physics (14%)",
+            "Heat & Thermodynamics (13%)"
+           ]
+          }
+         ],
+         [
+          "Chemistry (32–36 Qs)",
+          {
+           "list": [
+            "Organic Chemistry — Carbonyls, Aromatics, Stereochemistry, Biomolecules (35%)",
+            "Physical Chemistry — Electrochemistry, Thermodynamics, Equilibrium, Kinetics (35%)",
+            "Inorganic Chemistry — Coordination Compounds, Chemical Bonding, Metallurgy, Salt Analysis (30%)"
+           ]
+          }
+         ]
+        ]
+       },
+       {
+        "table": [
+         [
+          "Subject (120 Marks)",
+          "High-Weightage Units & Approximate Share"
+         ],
+         [
+          "Mathematics (32–36 Qs)",
+          {
+           "list": [
+            "Calculus — Definite Integration, Differential Eqns, Limits, Functions, Area (35%)",
+            "Algebra — Matrices, Determinants, Complex Numbers, Probability, Permutations (30%)",
+            "Coordinate Geometry — Conic Sections, Circles, Straight Lines (20%)",
+            "Vectors & 3D Geometry + Trigonometry (15%)"
+           ]
+          }
+         ]
+        ]
+       }
+      ],
+      "h": "Subject-Wise Chapter Weightage (Across Paper 1 + Paper 2 Combined)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Out of ~15 lakh students who write JEE Main, only the top 2.5 lakh become eligible to apply for JEE Advanced. To get an All India Rank (AIR), a candidate must clear both the minimum subject cutoff (in Physics, Chemistry, and Maths individually) and the minimum aggregate cutoff."
+     },
+     {
+      "table": [
+       [
+        "Exam Year",
+        "Registered",
+        "Appeared (Both Papers)",
+        "Qualified (Got Rank)",
+        "Total IIT Seats Filled"
+       ],
+       [
+        "JEE Advanced 2026",
+        "~1,90,000+",
+        "~1,83,000+",
+        "~50,000+",
+        "~18,160+ (23 IITs)"
+       ],
+       [
+        "JEE Advanced 2025",
+        "1,87,223",
+        "1,80,422",
+        "54,378",
+        "18,160 (23 IITs)"
+       ],
+       [
+        "JEE Advanced 2024",
+        "1,86,584",
+        "1,80,200",
+        "48,248",
+        "17,740 (23 IITs)"
+       ],
+       [
+        "JEE Advanced 2023",
+        "1,89,744",
+        "1,80,372",
+        "43,773",
+        "17,385 (23 IITs)"
+       ],
+       [
+        "JEE Advanced 2022",
+        "1,60,038",
+        "1,55,538",
+        "40,712",
+        "16,598 (23 IITs)"
+       ]
+      ]
+     }
+    ],
+    "h": "Year-Wise Registration, Attendance & Selection Numbers",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Category",
+          "2025 Cutoff (Aggregate / Per Subject)",
+          "2024 Cutoff (Aggregate / Per Subject)",
+          "2023 Cutoff (Aggregate / Per Subject)"
+         ],
+         [
+          "Common Rank List (General)",
+          "74 marks (20.5%) / 7 per subject",
+          "109 marks (30.3%) / 10 per subject",
+          "86 marks (23.9%) / 8 per subject"
+         ],
+         [
+          "GEN-EWS",
+          "66 marks (18.3%) / 6 per subject",
+          "98 marks (27.2%) / 9 per subject",
+          "77 marks (21.4%) / 7 per subject"
+         ],
+         [
+          "OBC-NCL",
+          "66 marks (18.3%) / 6 per subject",
+          "98 marks (27.2%) / 9 per subject",
+          "77 marks (21.4%) / 7 per subject"
+         ],
+         [
+          "SC / ST / PwD",
+          "37 marks (10.3%) / 3 per subject",
+          "54 marks (15.0%) / 5 per subject",
+          "43 marks (11.9%) / 4 per subject"
+         ]
+        ]
+       }
+      ],
+      "h": "Minimum Qualifying Marks Needed to Get a Rank (Out of 360 Marks)"
+     }
+    ]
+   },
+   {
+    "blocks": [],
+    "h": "Exam Registration Fee & IIT Tuition Fees",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Candidate Category",
+          "Registration Fee"
+         ],
+         [
+          "General (UR) / GEN-EWS / OBC-NCL (Male)",
+          "₹3,200"
+         ],
+         [
+          "All Female Candidates (Irrespective of Category)",
+          "₹1,600"
+         ],
+         [
+          "SC / ST / PwD Candidates (Male & Female)",
+          "₹1,600"
+         ],
+         [
+          "SAARC Countries (Foreign Nationals)",
+          "USD 100"
+         ],
+         [
+          "Non-SAARC / OCI / PIO (Foreign Centres)",
+          "USD 200"
+         ]
+        ]
+       }
+      ],
+      "h": "JEE Advanced Registration Fee (Indian Nationals)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Student Category & Annual Family Income",
+          "Annual Tuition Fee",
+          "Fee Waiver Benefit"
+         ],
+         [
+          "General / OBC / EWS (Family Income > ₹5 Lakh)",
+          "₹2,00,000 / year",
+          "Standard tuition fee (hostel, mess & institute fees extra)"
+         ],
+         [
+          "General / OBC / EWS (Income ₹1 Lakh to ₹5 Lakh)",
+          "₹66,667 / year",
+          "2/3rd (66.6%) tuition fee remission"
+         ],
+         [
+          "General / OBC / EWS (Family Income below ₹1 Lakh)",
+          "₹0 (Nil)",
+          "100% full tuition fee waiver"
+         ],
+         [
+          "All SC / ST / PwD Students",
+          "₹0 (Nil)",
+          "100% full tuition fee waiver regardless of family income"
+         ]
+        ]
+       }
+      ],
+      "h": "Annual Tuition Fee After Selection in an IIT"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Unlike NITs, IITs have NO Home State quota —100% of IIT seats are filled purely on All India Rank (AIR) through JoSAA counselling. Reservation strictly follows central government rules:"
+     },
+     {
+      "table": [
+       [
+        "Category Code",
+        "Category Description",
+        "Seat Share (%)",
+        "Approx. IIT Seats"
+       ],
+       [
+        "OPEN",
+        "Unreserved / General Merit (Open to all ranks)",
+        "40.5%",
+        "~7,355"
+       ],
+       [
+        "OBC-NCL",
+        "Other Backward Classes (Non-Creamy Layer, income < ₹8L)",
+        "27.0%",
+        "~4,903"
+       ],
+       [
+        "SC",
+        "Scheduled Caste",
+        "15.0%",
+        "~2,724"
+       ],
+       [
+        "GEN-EWS",
+        "Economically Weaker Section (General, income < ₹8L)",
+        "10.0%",
+        "~1,816"
+       ],
+       [
+        "ST",
+        "Scheduled Tribe",
+        "7.5%",
+        "~1,362"
+       ],
+       [
+        "PwD (Horizontal)",
+        "Persons with Benchmark Disability (5% inside every category)",
+        "5.0%",
+        "~908 (within above)"
+       ]
+      ]
+     },
+     {
+      "table": [
+       [
+        "Category Code",
+        "Category Description",
+        "Seat Share (%)",
+        "Approx. IIT Seats"
+       ],
+       [
+        "Female Supernumerary",
+        "Extra seats created so women hold at least 20% of total IIT seats",
+        "Min. 20%",
+        "~3,630+ total female seats"
+       ]
+      ]
+     },
+     {
+      "p": "B.Arch & B.Des Note: Students who qualify JEE Advanced and want B.Arch (at IIT Roorkee, IIT Kharagpur, IIT BHU) must also pass the AAT (Architecture Aptitude Test). Candidates seeking B.Des (at IIT Bombay, IIT Delhi, IIT Guwahati, IIT Hyderabad, IIT Roorkee) must qualify UCEED."
+     }
+    ],
+    "h": "IIT Seat Matrix & Reservation Policy (All 23 IITs)",
+    "subs": []
+   },
+   {
+    "blocks": [],
+    "h": "All 23 IITs & Other Top Institutes Accepting JEE Advanced",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "#",
+          "Institute Name & State",
+          "Est. Seats",
+          "Most Competitive Branches"
+         ],
+         [
+          "1",
+          "IIT Madras, Chennai (Tamil Nadu)",
+          "~1,128",
+          "CSE, AI & Data Science, EE, Engg Physics"
+         ],
+         [
+          "2",
+          "IIT Delhi, New Delhi",
+          "~1,209",
+          "CSE, Maths & Computing, EE, AI"
+         ],
+         [
+          "3",
+          "IIT Bombay, Mumbai (Maharashtra)",
+          "~1,368",
+          "CSE, EE, Aerospace, Mechanical"
+         ],
+         [
+          "4",
+          "IIT Kanpur, Uttar Pradesh",
+          "~1,210",
+          "CSE, Maths & Scientific Computing, EE"
+         ],
+         [
+          "5",
+          "IIT Kharagpur, West Bengal",
+          "~1,869",
+          "CSE, AI, ECE, Industrial & Systems"
+         ],
+         [
+          "6",
+          "IIT Roorkee, Uttarakhand",
+          "~1,353",
+          "CSE, Data Science & AI, ECE, EE"
+         ],
+         [
+          "7",
+          "IIT Guwahati, Assam",
+          "~962",
+          "CSE, Data Science & AI, Maths & Comp"
+         ],
+         [
+          "8",
+          "IIT Hyderabad, Telangana",
+          "~595",
+          "CSE, AI, Computational Engg, EE"
+         ],
+         [
+          "9",
+          "IIT (BHU) Varanasi, Uttar Pradesh",
+          "~1,589",
+          "CSE, Maths & Computing, ECE, EE"
+         ],
+         [
+          "10",
+          "IIT Indore, Madhya Pradesh",
+          "~480",
+          "CSE, Maths & Computing, EE"
+         ],
+         [
+          "11",
+          "IIT (ISM) Dhanbad, Jharkhand",
+          "~1,125",
+          "CSE, Maths & Computing, ECE, Petroleum"
+         ],
+         [
+          "12",
+          "IIT Gandhinagar & IIT Ropar",
+          "~400 each",
+          "CSE, AI, Electrical, Mechanical"
+         ]
+        ]
+       }
+      ],
+      "h": "Top 12 Indian Institutes of Technology (IITs)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Institute Group",
+          "Institutes Accepting JEE Advanced Ranks"
+         ],
+         [
+          "Other 11 IITs (via JoSAA)",
+          {
+           "list": [
+            "IIT Patna (Bihar)",
+            "IIT Bhubaneswar (Odisha)",
+            "IIT Mandi (Himachal Pradesh)",
+            "IIT Jodhpur (Rajasthan)",
+            "IIT Tirupati (Andhra Pradesh)",
+            "IIT Palakkad (Kerala)",
+            "IIT Bhilai (Chhattisgarh)",
+            "IIT Goa (Goa)",
+            "IIT Jammu (J&K)",
+            "IIT Dharwad (Karnataka)"
+           ]
+          }
+         ],
+         [
+          "Top Non-IIT Research Institutes (Separate Application)",
+          {
+           "list": [
+            "IISc Bangalore (Indian Institute of Science — 4-Year B.S. Research & B.Tech Maths & Computing)",
+            "IIST Thiruvananthapuram (Indian Institute of Space Science & Technology — ISRO)",
+            "IISERs (Pune, Kolkata, Mohali, Bhopal, Thiruvananthapuram, Tirupati, Berhampur — BS-MS)",
+            "RGIPT Amethi (Rajiv Gandhi Institute of Petroleum Technology) & IIPE Visakhapatnam"
+           ]
+          }
+         ]
+        ]
+       }
+      ],
+      "h": "Remaining 11 IITs & Premier Non-IIT Research Institutes"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Step",
+        "Stage",
+        "What the Student Must Do"
+       ],
+       [
+        "1",
+        "Qualify JEE Main (Jan–April)",
+        "Rank within the top 2,50,000 candidates in JEE Main Paper 1 (meeting category-specific percentile cutoffs)."
+       ],
+       [
+        "2",
+        "JEE Advanced Registration (Late April)",
+        "Register on jeeadv.ac.in using your JEE Main application number, upload documents, and pay the registration fee."
+       ],
+       [
+        "3",
+        "Write Both Papers (May)",
+        "Appear for both Paper 1 (3 hours) and Paper 2 (3 hours) on the same day. Missing either paper disqualifies you."
+       ],
+       [
+        "4",
+        "Result & Rank List (June)",
+        "Zonal IIT releases subject-wise and aggregate scores along with your Common Rank List (CRL) and Category Rank."
+       ],
+       [
+        "5",
+        "JoSAA Choice Filling (June–July)",
+        "Arrange your preferred IITs and branches in priority order on josaa.nic.in across 5–6 seat allotment rounds."
+       ],
+       [
+        "6",
+        "Fee Payment & IIT Reporting (July)",
+        "Pay the seat acceptance fee, complete online document verification, and report in person to your allotted IIT campus."
+       ]
+      ]
+     }
+    ],
+    "h": "Step-by-Step Timeline from JEE Main to IIT Admission",
+    "subs": []
+   }
+  ],
+  "title": "Complete Guide to the JEE Advanced Exam"
+ },
+ "jee-main": {
+  "intro": "Simple, table-by-table breakdown of exam structure, question counts, candidate numbers, fees, seat matrix, and top NITs & IIITs. The Joint Entrance Examination (Main), popularly known as JEE Main, is India's national-level entrance test for admission into NITs, IIITs, GFTIs, and several state engineering universities. It also serves as the qualifying gateway for JEE Advanced (for admission to the 23 IITs).",
+  "kicker": "NATIONAL UNDERGRADUATE ENGINEERING & ARCHITECTURE HANDBOOK",
+  "sections": [
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Particular",
+        "Official Details"
+       ],
+       [
+        "Exam Name & Full Form",
+        "JEE Main — Joint Entrance Examination (Main)"
+       ],
+       [
+        "Conducting Authority",
+        "NTA — National Testing Agency (Ministry of Education, Govt. of India)"
+       ],
+       [
+        "Official Website",
+        "jeemain.nta.nic.in & nta.ac.in"
+       ],
+       [
+        "Frequency",
+        "Twice a year — Session 1 (January) and Session 2 (April). Best NTA score of the two sessions is used for ranking."
+       ],
+       [
+        "Exam Mode",
+        "Online CBT (Computer-Based Test), except B.Arch Drawing section which is offline pen-and-paper"
+       ],
+       [
+        "Question Paper Languages",
+        "13 Languages: English, Hindi, Assamese, Bengali, Gujarati, Kannada, Malayalam, Marathi, Odia, Punjabi, Tamil, Telugu, and Urdu"
+       ],
+       [
+        "Marking Scheme",
+        "+4 marks for every correct answer; −1 mark negative marking for wrong answers; 0 marks for unattempted questions"
+       ],
+       [
+        "Syllabus Covered",
+        "Class 11 and Class 12 NCERT Physics, Chemistry, and Mathematics syllabus"
+       ],
+       [
+        "Attempt Limit & Age",
+        "No age limit. Candidates can appear for 3 consecutive years starting from their Class 12 passing year."
+       ],
+       [
+        "Class 12 Marks Requirement",
+        "No minimum percentage to write JEE Main; however, 75% aggregate in Class 12 (65% for SC/ST) or top 20 percentile is required for NIT/IIIT/GFTI admission."
+       ]
+      ]
+     }
+    ],
+    "h": "Exam Overview & Basic Facts",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "p": "JEE Main consists of three separate papers depending on your target degree. In the revised NTA pattern, all 75 questions in Paper 1 are compulsory (optional choice in Section B has been removed)."
+     }
+    ],
+    "h": "Question Paper Pattern & Number of Questions",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Subject",
+          "Section A (MCQs)",
+          "Section B (Numerical)",
+          "Total Questions",
+          "Max Marks"
+         ],
+         [
+          "Physics",
+          "20 Qs (Compulsory)",
+          "5 Qs (Compulsory)",
+          "25 Qs",
+          "100"
+         ],
+         [
+          "Chemistry",
+          "20 Qs (Compulsory)",
+          "5 Qs (Compulsory)",
+          "25 Qs",
+          "100"
+         ],
+         [
+          "Mathematics",
+          "20 Qs (Compulsory)",
+          "5 Qs (Compulsory)",
+          "25 Qs",
+          "100"
+         ],
+         [
+          "Total (Paper 1 — 3 Hours)",
+          "60 MCQs",
+          "15 Numericals",
+          "75 Questions",
+          "300 Marks"
+         ]
+        ]
+       }
+      ],
+      "h": "Paper 1: B.E. / B.Tech (Engineering)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Paper & Degree",
+          "Subjects & Question Count",
+          "Total Qs",
+          "Max Marks",
+          "Duration"
+         ],
+         [
+          "Paper 2A — B.Arch (Architecture)",
+          "Mathematics (25 Qs — 100 marks) + General Aptitude (50 MCQs — 200 marks) + Drawing Test (2 Qs offline — 100 marks)",
+          "77 Qs",
+          "400",
+          "3 Hours"
+         ],
+         [
+          "Paper 2B — B.Planning",
+          "Mathematics (25 Qs — 100 marks) + General Aptitude (50 MCQs — 200 marks) + Planning-Based MCQs (25 Qs — 100 marks)",
+          "100 Qs",
+          "400",
+          "3 Hours"
+         ],
+         [
+          "Both Paper 2A & 2B Together",
+          "Maths + Aptitude + Drawing + Planning",
+          "102 Qs",
+          "500",
+          "3 Hrs 30 Mins"
+         ]
+        ]
+       }
+      ],
+      "h": "Paper 2A (B.Arch) & Paper 2B (B.Planning)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Subject (25 Qs)",
+          "Major Units & Expected Question Count"
+         ],
+         [
+          "Physics (25 Qs)",
+          {
+           "list": [
+            "Mechanics & Gravitation (7–8 Qs)",
+            "Electrodynamics & Magnetism (7–8 Qs)",
+            "Modern Physics & Semiconductors (4–5 Qs)",
+            "Optics & Waves (3–4 Qs)",
+            "Heat & Thermodynamics (2–3 Qs)"
+           ]
+          }
+         ],
+         [
+          "Chemistry (25 Qs)",
+          {
+           "list": [
+            "Organic Chemistry (8–9 Qs)",
+            "Physical Chemistry (8–9 Qs)",
+            "Inorganic Chemistry & Coordination Compounds (8–9 Qs)"
+           ]
+          }
+         ],
+         [
+          "Mathematics (25 Qs)",
+          {
+           "list": [
+            "Calculus — Limits, Derivatives, Integrals, Differential Eqns (7–8 Qs)",
+            "Algebra — Matrices, Determinants, Sequences, Binomial, Complex Nos (7–8 Qs)",
+            "Coordinate Geometry (4–5 Qs)",
+            "Vectors & 3D Geometry (3–4 Qs)",
+            "Probability, Statistics & Trigonometry (3–4 Qs)"
+           ]
+          }
+         ]
+        ]
+       }
+      ],
+      "h": "Chapter-Wise Question Distribution (Approximate Weightage per 25-Question Subject)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Every candidate who writes JEE Main receives an NTA Percentile Score and an All India Rank (AIR). Selection happens at two levels: (1) qualifying for JEE Advanced (top ~2,50,000 candidates), and (2) securing a seat in NITs, IIITs, and GFTIs via JoSAA counselling (~60,000+ central seats)."
+     },
+     {
+      "table": [
+       [
+        "Exam Year",
+        "Unique Registered",
+        "Appeared (Wrote Exam)",
+        "Qualified for JEE Adv",
+        "JoSAA Central Seats"
+       ],
+       [
+        "JEE Main 2026",
+        "~15,40,000+",
+        "~14,75,000+",
+        "~2,50,000",
+        "~61,500+ (NIT/IIIT/GFTI)"
+       ],
+       [
+        "JEE Main 2025",
+        "15,39,848",
+        "14,75,103",
+        "2,50,236",
+        "~60,500 (NIT/IIIT/GFTI)"
+       ],
+       [
+        "JEE Main 2024",
+        "14,76,557",
+        "14,15,110",
+        "2,50,284",
+        "~59,900 (NIT/IIIT/GFTI)"
+       ],
+       [
+        "JEE Main 2023",
+        "11,62,398",
+        "11,13,325",
+        "2,50,255",
+        "~57,100 (NIT/IIIT/GFTI)"
+       ],
+       [
+        "JEE Main 2022",
+        "10,26,799",
+        "9,05,590",
+        "2,62,179",
+        "~54,400 (NIT/IIIT/GFTI)"
+       ]
+      ]
+     }
+    ],
+    "h": "Year-Wise Registration, Attendance & Selection Numbers",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Category",
+          "2025 Cutoff Percentile",
+          "2024 Cutoff Percentile",
+          "2023 Cutoff Percentile"
+         ],
+         [
+          "General (UR)",
+          "93.1023262",
+          "93.2362181",
+          "90.7788642"
+         ],
+         [
+          "Gen-EWS",
+          "80.3830119",
+          "81.3266412",
+          "75.6229025"
+         ],
+         [
+          "OBC-NCL",
+          "79.4313582",
+          "79.6757881",
+          "73.6114227"
+         ],
+         [
+          "SC",
+          "61.1526933",
+          "60.0923182",
+          "51.9776027"
+         ],
+         [
+          "ST",
+          "47.9026465",
+          "46.6975840",
+          "37.2348772"
+         ],
+         [
+          "PwD (All Categories)",
+          "0.0079349",
+          "0.0018700",
+          "0.0013527"
+         ]
+        ]
+       }
+      ],
+      "h": "Recent JEE Main Qualifying Cutoff Percentiles (Paper 1)"
+     }
+    ]
+   },
+   {
+    "blocks": [],
+    "h": "Application Fee & College Tuition Fees",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Candidate Category",
+          "Paper 1 Only (B.E./B.Tech)",
+          "Paper 1 + Paper 2 (Both)"
+         ],
+         [
+          "General (UR) / Gen-EWS / OBC-NCL (Male)",
+          "₹1,000",
+          "₹2,000"
+         ],
+         [
+          "General (UR) / Gen-EWS / OBC-NCL (Female)",
+          "₹800",
+          "₹1,600"
+         ],
+         [
+          "SC / ST / PwD / Third Gender (Male & Female)",
+          "₹500",
+          "₹1,000"
+         ],
+         [
+          "Exam Centres Outside India (General / OBC / EWS Male)",
+          "₹5,000",
+          "₹10,000"
+         ]
+        ]
+       }
+      ],
+      "h": "JEE Main Exam Registration Fee (Per Session — Centres in India)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Institute Type & Student Income / Category",
+          "Annual Tuition Fee",
+          "Fee Waiver Benefit"
+         ],
+         [
+          "NITs & IIEST — General / OBC / EWS (Income > ₹5 Lakh)",
+          "₹1,25,000 / year",
+          "Standard tuition fee (hostel/mess extra)"
+         ],
+         [
+          "NITs & IIEST — Family Income ₹1 Lakh to ₹5 Lakh",
+          "₹41,667 / year",
+          "2/3rd (66.6%) tuition fee waiver"
+         ],
+         [
+          "NITs & IIEST — Family Income below ₹1 Lakh",
+          "₹0 (Nil)",
+          "100% full tuition fee waiver"
+         ],
+         [
+          "NITs & IIEST — All SC / ST / PwD Students",
+          "₹0 (Nil)",
+          "100% full tuition fee waiver regardless of income"
+         ],
+         [
+          "IIITs (Public-Private Partnership & Central)",
+          "₹1,50,000 – ₹3,20,000 / yr",
+          "Central scholarship schemes available for SC/ST/EWS"
+         ],
+         [
+          "GFTIs (Government-Funded Technical Institutes)",
+          "₹40,000 – ₹1,40,000 / yr",
+          "Varies by university; state/central scholarships apply"
+         ]
+        ]
+       }
+      ],
+      "h": "Annual Tuition Fee After Selection in NITs, IIITs & GFTIs"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "All central institutions participating in JoSAA follow the Government of India reservation policy. In addition, NITs divide seats 50:50 between Home State and Other State candidates."
+     }
+    ],
+    "h": "Central Seat Matrix & Reservation Rules (JoSAA / CSAB)",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Category Code",
+          "Category Name",
+          "Seat Share (%)",
+          "Eligibility / Certificate Rule"
+         ],
+         [
+          "OPEN",
+          "Unreserved / General Merit",
+          "40.5%",
+          "Open to all candidates purely on All India Rank"
+         ],
+         [
+          "OBC-NCL",
+          "Other Backward Classes (Non-Creamy Layer)",
+          "27.0%",
+          "Central OBC-NCL list + annual family income < ₹8 Lakh"
+         ],
+         [
+          "SC",
+          "Scheduled Caste",
+          "15.0%",
+          "Central/State Scheduled Caste certificate"
+         ],
+         [
+          "GEN-EWS",
+          "Economically Weaker Section (General)",
+          "10.0%",
+          "Annual family income < ₹8 Lakh + asset criteria certificate"
+         ],
+         [
+          "ST",
+          "Scheduled Tribe",
+          "7.5%",
+          "Central/State Scheduled Tribe certificate"
+         ],
+         [
+          "PwD",
+          "Persons with Benchmark Disability (Horizontal)",
+          "5.0%",
+          "5% horizontal reservation inside each of the above 5 categories"
+         ],
+         [
+          "Female Supernumerary",
+          "Female-Only Pool (Extra Seats)",
+          "Minimum 20%",
+          "Supernumerary seats created in NITs/IIITs so women hold at least 20% seats"
+         ]
+        ]
+       }
+      ],
+      "h": "Category-Wise Central Reservation (%)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Institute Group",
+          "No. of Institutes",
+          "Approx. Total Seats",
+          "Domicile / State Quota Rule"
+         ],
+         [
+          "NITs (National Institutes of Technology)",
+          "31 + IIEST Shibpur",
+          "~24,500+",
+          "50% Home State (HS) + 50% Other State (OS)"
+         ],
+         [
+          "IIITs (Indian Institutes of Information Technology)",
+          "26",
+          "~9,900+",
+          "100% All India (AI) quota (no Home State quota)"
+         ],
+         [
+          "GFTIs (Govt-Funded Technical Institutes)",
+          "40+",
+          "~9,400+",
+          "Mix of All India & Home State quotas depending on institute"
+         ],
+         [
+          "State & Private Universities (via JEE Main)",
+          "500+",
+          "~2,00,000+",
+          "DTU, NSUT, IIIT-D, IIIT-H, COEP, Thapar, RVCE (MQ), etc."
+         ]
+        ]
+       }
+      ],
+      "h": "Total Seats & State Quota Breakdown Across Participating Institutes"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "JEE Main scores open doors to India's top public engineering institutions. Below are the premier colleges ranked by academic reputation, placements, and closing ranks:"
+     }
+    ],
+    "h": "Best Colleges Accepting JEE Main Scores",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "#",
+          "Institute Name & Location",
+          "Institute Type",
+          "Flagship Branches"
+         ],
+         [
+          "1",
+          "NIT Tiruchirappalli (NIT Trichy), Tamil Nadu",
+          "NIT (Central Govt)",
+          "CSE, ECE, EEE, Mechanical"
+         ],
+         [
+          "2",
+          "NIT Karnataka (NITK Surathkal), Mangaluru",
+          "NIT (Central Govt)",
+          "CSE, IT, AI, ECE, Mechanical"
+         ],
+         [
+          "3",
+          "NIT Rourkela, Odisha",
+          "NIT (Central Govt)",
+          "CSE, ECE, Electronics, Mining"
+         ],
+         [
+          "4",
+          "NIT Warangal, Telangana",
+          "NIT (Central Govt)",
+          "CSE, Maths & Computing, ECE"
+         ],
+         [
+          "5",
+          "MNNIT Allahabad, Prayagraj (Uttar Pradesh)",
+          "NIT (Central Govt)",
+          "CSE, IT, ECE, Electrical"
+         ],
+         [
+          "6",
+          "NIT Calicut, Kozhikode (Kerala)",
+          "NIT (Central Govt)",
+          "CSE, ECE, EEE, B.Arch"
+         ],
+         [
+          "7",
+          "MNIT Jaipur, Rajasthan",
+          "NIT (Central Govt)",
+          "CSE, AI & Data Engg, ECE"
+         ],
+         [
+          "8",
+          "VNIT Nagpur, Maharashtra",
+          "NIT (Central Govt)",
+          "CSE, ECE, Electrical, Civil"
+         ],
+         [
+          "9",
+          "NIT Kurukshetra & SVNIT Surat",
+          "NIT (Central Govt)",
+          "CSE, IT, AI & ML, ECE"
+         ],
+         [
+          "10",
+          "IIEST Shibpur, Howrah (West Bengal)",
+          "INI (Central Govt)",
+          "CSE, IT, Aerospace, Civil"
+         ]
+        ]
+       }
+      ],
+      "h": "Top 10 NITs & Central Universities"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Category",
+          "Premier Colleges Accepting JEE Main"
+         ],
+         [
+          "Top IIITs (via JoSAA)",
+          {
+           "list": [
+            "IIIT Allahabad (Prayagraj)",
+            "ABV-IIITM Gwalior",
+            "IIITDM Jabalpur",
+            "IIIT Lucknow",
+            "IIIT Pune",
+            "IIITDM Kancheepuram (Chennai)",
+            "IIIT Sri City",
+            "IIIT Guwahati"
+           ]
+          }
+         ],
+         [
+          "Top GFTIs (via JoSAA)",
+          {
+           "list": [
+            "BIT Mesra (Ranchi)",
+            "PEC Chandigarh (Punjab Engineering College)",
+            "IIIT Naya Raipur",
+            "Assam University",
+            "JNU New Delhi (School of Engineering)",
+            "School of Planning & Architecture (SPA) Delhi, Bhopal, Vijayawada (for B.Arch/B.Plan)"
+           ]
+          }
+         ],
+         [
+          "Top Non-JoSAA Colleges (Separate Counselling)",
+          {
+           "list": [
+            "IIIT Hyderabad (via JEE Main mode)",
+            "IIIT Bangalore",
+            "DTU (Delhi Technological University)",
+            "NSUT Delhi",
+            "IIIT Delhi (via JAC Delhi)",
+            "Jadavpur / Thapar / LNMIIT Jaipur"
+           ]
+          }
+         ]
+        ]
+       }
+      ],
+      "h": "Top IIITs, GFTIs & Premier State Universities (via JEE Main)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Step",
+        "Stage",
+        "What the Student Must Do"
+       ],
+       [
+        "1",
+        "Session 1 Registration (Oct–Nov)",
+        "Register on jeemain.nta.nic.in, choose Paper 1 (B.Tech) or Paper 2 (B.Arch/B.Plan), upload photo/signature, and pay the exam fee."
+       ],
+       [
+        "2",
+        "Session 1 Exam & Result (Jan– Feb)",
+        "Appear for the Computer-Based Test at your allotted centre. NTA releases your Session 1 NTA Percentile Score in February."
+       ],
+       [
+        "3",
+        "Session 2 Exam & Final AIR (April)",
+        "Optionally appear in Session 2 to improve your score. NTA picks the best of your two percentiles and publishes All India Ranks (AIR)."
+       ],
+       [
+        "4",
+        "JEE Advanced (May — Optional)",
+        "If you rank in the top 2,50,000, register and appear for JEE Advanced for admission to the 23 IITs."
+       ],
+       [
+        "5",
+        "JoSAA & CSAB Counselling (June–Aug)",
+        "Fill your preferred NIT, IIIT, and GFTI choices on josaa.nic.in. Participate in 5–6 JoSAA rounds plus 2 CSAB special vacant- seat rounds."
+       ],
+       [
+        "6",
+        "Seat Acceptance & Reporting",
+        "Pay the seat acceptance fee online, upload Class 12 marksheet & category certificates for verification, and report physically to your allotted institute."
+       ]
+      ]
+     }
+    ],
+    "h": "Step-by-Step Timeline from Application to Admission",
+    "subs": []
+   }
+  ],
+  "title": "Complete Guide to the JEE Main Exam"
+ },
+ "kcet": {
+  "intro": "Simple, table-by-table breakdown of exam structure, question counts, candidate numbers, fees, seat matrix, and top colleges. The Karnataka Common Entrance Test (KCET), officially listed by the state government as UGCET, is the primary state-level entrance exam for admission into undergraduate professional degrees across Karnataka. Every detail below is organized into simple reference tables so students and parents can understand the entire admission process at a glance.",
+  "kicker": "KARNATAKA UNDERGRADUATE ENTRANCE HANDBOOK",
+  "sections": [
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Particular",
+        "Official Details"
+       ],
+       [
+        "Exam Name & Full Form",
+        "KCET — Karnataka Common Entrance Test (also called UGCET)"
+       ],
+       [
+        "Conducting Authority",
+        "KEA — Karnataka Examinations Authority (Government of Karnataka)"
+       ],
+       [
+        "Official Websites",
+        "cetonline.karnataka.gov.in/kea & kea.kar.nic.in"
+       ],
+       [
+        "Frequency",
+        "Once a year (usually held in April; registration starts in January–February)"
+       ],
+       [
+        "Exam Mode",
+        "Offline (Pen-and-paper test using OMR answer sheets)"
+       ],
+       [
+        "Question Format",
+        "Multiple Choice Questions (MCQs) with 4 options per question"
+       ],
+       [
+        "Question Paper Languages",
+        "English and Kannada (printed side by side)"
+       ],
+       [
+        "Negative Marking",
+        "None (0 marks deducted) for wrong or unattempted answers"
+       ],
+       [
+        "Syllabus Covered",
+        "1st PUC (Class 11) and 2nd PUC (Class 12) NCERT / Karnataka State Board syllabus"
+       ],
+       [
+        "Minimum Eligibility",
+        "Passed Class 12 / 2nd PUC with at least 45% aggregate in PCM/PCB (40% for Karnataka SC, ST, Category-1, and OBC 2A/2B/3A/3B candidates)"
+       ]
+      ]
+     }
+    ],
+    "h": "Exam Overview & Basic Facts",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "p": "KCET is conducted over two days in separate subject sessions. Every subject paper has 60 questions for 60 marks (+1 mark per right answer). Depending on your chosen degree stream, you write 3 or 4 papers."
+     },
+     {
+      "table": [
+       [
+        "Subject Paper",
+        "Questions",
+        "Max Marks",
+        "Duration",
+        "Who Must Write This Paper?"
+       ],
+       [
+        "Physics",
+        "60 MCQs",
+        "60",
+        "80 mins",
+        "Compulsory for all KCET courses (Engineering, Pharmacy, Agriculture, Veterinary, Nursing)"
+       ],
+       [
+        "Chemistry",
+        "60 MCQs",
+        "60",
+        "80 mins",
+        "Compulsory for all KCET courses (Engineering, Pharmacy, Agriculture, Veterinary, Nursing)"
+       ]
+      ]
+     },
+     {
+      "table": [
+       [
+        "Subject Paper",
+        "Questions",
+        "Max Marks",
+        "Duration",
+        "Who Must Write This Paper?"
+       ],
+       [
+        "Mathematics",
+        "60 MCQs",
+        "60",
+        "80 mins",
+        "Engineering (B.E./B.Tech), B.Pharm, and Farm Science (PCMB)"
+       ],
+       [
+        "Biology",
+        "60 MCQs",
+        "60",
+        "80 mins",
+        "Veterinary (B.V.Sc), Agriculture/Farm Science, B.Pharm, Pharm.D, B.Sc Nursing, BNYS"
+       ],
+       [
+        "Kannada Language Test",
+        "50 MCQs",
+        "50",
+        "60 mins",
+        "Only for Horanadu & Gadinadu Kannadiga candidates (minimum 12 marks required to qualify)"
+       ]
+      ]
+     }
+    ],
+    "h": "Question Paper Pattern & Number of Questions",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Target Stream",
+          "Subjects Attempted",
+          "Total Questions",
+          "Total Time",
+          "How KEA Calculates Your Rank"
+         ],
+         [
+          "Engineering (B.E. / B.Tech)",
+          "Physics + Chemistry + Maths",
+          "180 Qs (180 Marks)",
+          "4 Hours",
+          "50% 2nd PUC PCM marks + 50% KCET PCM score"
+         ],
+         [
+          "Farm Science / Agriculture",
+          "Physics + Chemistry + Maths + Bio",
+          "240 Qs (240 Marks)",
+          "5 Hrs 20 Mins",
+          "50% 2nd PUC PCMB marks + 50% KCET PCMB score"
+         ],
+         [
+          "Pharmacy (B.Pharm / Pharm.D)",
+          "Physics + Chemistry + (Maths or Bio)",
+          "180 Qs (180 Marks)",
+          "4 Hours",
+          "50% 2nd PUC PCM/PCB + 50% KCET score (whichever is higher)"
+         ],
+         [
+          "Veterinary (B.V.Sc & A.H.)",
+          "Physics + Chemistry + Biology",
+          "180 Qs (180 Marks)",
+          "4 Hours",
+          "100% KCET PCB score (50% in PUC PCB+English required)"
+         ],
+         [
+          "B.Sc Nursing",
+          "Physics + Chemistry + Biology",
+          "180 Qs (180 Marks)",
+          "4 Hours",
+          "100% KCET PCB score (45% in PUC PCB required; 40% reserved)"
+         ]
+        ]
+       }
+      ],
+      "h": "Stream-Wise Total Questions & Rank Formula"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Subject",
+          "Major Units & Expected Question Count (Out of 60)"
+         ],
+         [
+          "Physics (60 Qs)",
+          {
+           "list": [
+            "Mechanics (12–14 Qs)",
+            "Electricity & Magnetism (12–14 Qs)",
+            "Modern Physics & Semiconductors (8–10 Qs)",
+            "Ray & Wave Optics (6–8 Qs)",
+            "Heat, Thermodynamics & Properties of Matter (6–8 Qs)",
+            "Oscillations & Waves (4–6 Qs)"
+           ]
+          }
+         ],
+         [
+          "Chemistry (60 Qs)",
+          {
+           "list": [
+            "Organic Chemistry (18–20 Qs)",
+            "Physical Chemistry (18–20 Qs)",
+            "Inorganic Chemistry (16–18 Qs)",
+            "Biomolecules & Everyday Chemistry (4–6 Qs)"
+           ]
+          }
+         ],
+         [
+          "Mathematics (60 Qs)",
+          {
+           "list": [
+            "Calculus — Limits, Continuity, Differentiation, Integration (15–18 Qs)",
+            "Algebra — Matrices, Determinants, Complex Numbers (12–14 Qs)",
+            "Vectors & 3D Geometry (8–10 Qs)",
+            "Coordinate Geometry (6–8 Qs)",
+            "Trigonometry, Probability & Relations (8–10 Qs)"
+           ]
+          }
+         ],
+         [
+          "Biology (60 Qs)",
+          {
+           "list": [
+            "Human & Plant Physiology (14–16 Qs)",
+            "Genetics & Evolution (12–14 Qs)",
+            "Reproduction & Cell Biology (10–12 Qs)",
+            "Ecology & Environment (8–10 Qs)",
+            "Biotechnology & Human Welfare (8–10 Qs)"
+           ]
+          }
+         ]
+        ]
+       }
+      ],
+      "h": "Chapter-Wise Question Distribution (Approximate Weightage per 60-Question Paper)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "In KCET, every student who scores valid marks receives a rank and is eligible for counselling. Actual seat selection depends on total available seats across Karnataka (approximately 86,000+ seats across Engineering, Pharmacy, Agriculture, Veterinary, and Nursing)."
+     },
+     {
+      "table": [
+       [
+        "Exam Year",
+        "Registered Students",
+        "Appeared (Wrote Exam)",
+        "Qualified / Ranked",
+        "Approx. KCET Quota Seats"
+       ],
+       [
+        "KCET 2026",
+        "3,30,479",
+        "3,09,014",
+        "3,02,384 (Engg) / 2,92,782 (Vet)",
+        "~86,000+ (66,000+ Engg)"
+       ],
+       [
+        "KCET 2025",
+        "3,30,787",
+        "3,11,996",
+        "3,04,170 (Engg) / ~2,18,000 (Vet)",
+        "~85,000+ (65,000+ Engg)"
+       ],
+       [
+        "KCET 2024",
+        "3,49,653",
+        "3,10,314",
+        "2,74,595 (Engg) / 2,19,887 (Vet)",
+        "~82,000+ (63,000+ Engg)"
+       ],
+       [
+        "KCET 2023",
+        "2,61,610",
+        "2,44,345",
+        "2,03,381 (Engg)",
+        "~78,000+ (60,000+ Engg)"
+       ],
+       [
+        "KCET 2022",
+        "2,16,559",
+        "2,10,829",
+        "1,71,656 (Engg)",
+        "~75,000+ (58,000+ Engg)"
+       ]
+      ]
+     },
+     {
+      "p": "How \"Selection\" Works in KCET: Unlike pass/fail recruitment exams, KEA assigns a rank to almost all students who appear for the exam and submit their Class 12 marks. Around 85,000 to 90,000 students secure government-quota seats every year across all streams through KEA online counselling rounds."
+     }
+    ],
+    "h": "Year-Wise Registration, Attendance & Selection Numbers",
+    "subs": []
+   },
+   {
+    "blocks": [],
+    "h": "Application Fee & Annual College Tuition Fees",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Candidate Category & Domicile",
+          "Application Fee"
+         ],
+         [
+          "Karnataka Domicile — General Merit (GM) & OBC (2A, 2B, 3A, 3B) (Male)",
+          "₹500"
+         ],
+         [
+          "Karnataka Domicile — SC / ST / Category-1",
+          "₹250"
+         ],
+         [
+          "Karnataka Domicile — All Female Candidates (Irrespective of Category)",
+          "₹250"
+         ],
+         [
+          "Horanadu & Gadinadu Kannadigas (Outside Karnataka)",
+          "₹500"
+         ],
+         [
+          "Non-Karnataka Candidates (Studying Outside Karnataka)",
+          "₹750"
+         ],
+         [
+          "Foreign / NRI / OCI / PIO Candidates (Outside India)",
+          "₹5,000"
+         ]
+        ]
+       }
+      ],
+      "h": "KCET Exam Registration Fee (Paid While Applying)"
+     },
+     {
+      "blocks": [
+       {
+        "p": "Once allotted a seat through KCET counselling, students pay the fixed government-regulated annual fee instead of high private management fees:"
+       },
+       {
+        "table": [
+         [
+          "Type of College / Quota",
+          "Annual Tuition Fee (Approx.)",
+          "Key Benefit"
+         ],
+         [
+          "Government Engineering Colleges & UVCE",
+          "₹44,311 / year",
+          "100% of seats filled through KCET"
+         ],
+         [
+          "Government-Aided Private Colleges",
+          "₹44,311 / year",
+          "Top autonomous colleges at government fees"
+         ],
+         [
+          "Private Unaided Colleges (KCET Govt Quota)",
+          "₹1,13,205 – ₹1,22,300 / year",
+          "45% of total college seats reserved for KCET"
+         ],
+         [
+          "SNQ Quota (Supernumerary Income Quota)",
+          "₹21,360 – ₹31,360 / year",
+          "For families with annual income below ₹8 lakh (5% extra seats)"
+         ],
+         [
+          "SC / ST Students (Post-Matric Scholarship)",
+          "Full / Major Fee Reimbursement",
+          "Reimbursed via Karnataka SSP portal based on income rules"
+         ]
+        ]
+       }
+      ],
+      "h": "Annual College Tuition Fee After Selection (Engineering Reference)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Karnataka divides KCET government-quota seats using Vertical Reservation (based on social category) and Horizontal Reservation (applied inside every vertical category)."
+     }
+    ],
+    "h": "KCET Seat Matrix & Reservation Rules",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Category Code",
+          "Category Description",
+          "Seat Share (%)",
+          "Required Certificate"
+         ],
+         [
+          "GM",
+          "General Merit (Open to all eligible Karnataka students)",
+          "50%",
+          "Karnataka Study Certificate (7 years)"
+         ],
+         [
+          "SC",
+          "Scheduled Caste",
+          "15%",
+          "Caste Certificate (Form D) with RD Number"
+         ],
+         [
+          "ST",
+          "Scheduled Tribe",
+          "3%",
+          "Caste Certificate (Form D) with RD Number"
+         ],
+         [
+          "Cat-1",
+          "OBC — Category 1 (Most Backward)",
+          "4%",
+          "Caste & Income Certificate (Form E)"
+         ],
+         [
+          "2A",
+          "OBC — Category 2A (More Backward)",
+          "15%",
+          "Caste & Income Certificate (Form F, income < ₹8L)"
+         ],
+         [
+          "2B",
+          "OBC — Category 2B (Backward Minorities)",
+          "4%",
+          "Caste & Income Certificate (Form F, income < ₹8L)"
+         ],
+         [
+          "3A",
+          "OBC — Category 3A (Backward Communities)",
+          "4%",
+          "Caste & Income Certificate (Form F, income < ₹8L)"
+         ],
+         [
+          "3B",
+          "OBC — Category 3B (Backward Communities)",
+          "5%",
+          "Caste & Income Certificate (Form F, income < ₹8L)"
+         ]
+        ]
+       }
+      ],
+      "h": "Category-Wise Vertical Reservation (%)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Special Quota",
+          "Reserved Share",
+          "Eligibility Rule"
+         ],
+         [
+          "Women Candidates",
+          "30%",
+          "Reserved horizontally within GM, SC, ST, and every OBC category"
+         ],
+         [
+          "Rural Quota",
+          "15%",
+          "Studied Classes 1 to 10 in rural areas (outside town/city corporation limits)"
+         ],
+         [
+          "Kannada Medium",
+          "5%",
+          "Studied Classes 1 to 10 completely in Kannada medium"
+         ],
+         [
+          "Kalyana Karnataka — Art. 371(J)",
+          "70% / 8%",
+          "70% seats in Kalyana Karnataka colleges; 8% seats in rest of Karnataka"
+         ],
+         [
+          "Persons with Disability (PwD)",
+          "5%",
+          "Minimum 40% benchmark disability certified by KEA Medical Board"
+         ],
+         [
+          "Agriculturist Quota (Farm Science)",
+          "50% (in Farm Univ)",
+          "Children of practicing farmers + Practical Exam score (200 marks)"
+         ],
+         [
+          "NCC / Sports / Defence / Scouts",
+          "Special Quota",
+          "Dedicated seats allotted based on national/state certificates & merit"
+         ]
+        ]
+       }
+      ],
+      "h": "Horizontal & Special Quotas"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Institution Category",
+          "Seats Filled via KCET",
+          "Remaining Seats"
+         ],
+         [
+          "Government Colleges & Constituent University Colleges",
+          "100%",
+          "0%"
+         ],
+         [
+          "Private Aided Engineering Colleges (Aided Courses)",
+          "100%",
+          "0%"
+         ],
+         [
+          "Private Unaided Engineering Colleges",
+          "45%",
+          "30% COMEDK + 25% Management/NRI"
+         ],
+         [
+          "Religious & Linguistic Minority Private Colleges",
+          "40% – 45%",
+          "Minority Quota + Management"
+         ]
+        ]
+       }
+      ],
+      "h": "College-Type Seat Contribution to KCET"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Stream",
+        "Degree Courses Available",
+        "Duration",
+        "Class 12 Subjects"
+       ],
+       [
+        "Engineering & Technology",
+        "B.E. / B.Tech in CSE, AI & ML, Data Science, ISE, ECE, EEE, Mechanical, Civil, Aerospace, Chemical, Biotechnology",
+        "4 Years",
+        "PCM"
+       ],
+       [
+        "Pharmacy",
+        "B.Pharm (Bachelor of Pharmacy) & Pharm.D (Doctor of Pharmacy)",
+        "4 / 6 Years",
+        "PCM or PCB"
+       ],
+       [
+        "Agriculture & Farm Sciences",
+        "B.Sc (Hons) Agriculture, Horticulture, Forestry, Sericulture; B.Tech Food Tech, Dairy Tech, Agricultural Engg; B.F.Sc (Fisheries)",
+        "4 Years",
+        "PCMB"
+       ]
+      ]
+     },
+     {
+      "table": [
+       [
+        "Stream",
+        "Degree Courses Available",
+        "Duration",
+        "Class 12 Subjects"
+       ],
+       [
+        "Veterinary Science",
+        "B.V.Sc & A.H. (Bachelor of Veterinary Science & Animal Husbandry)",
+        "5.5 Years",
+        "PCB + English"
+       ],
+       [
+        "Nursing & Naturopathy",
+        "B.Sc Nursing and B.N.Y.S. (Naturopathy & Yogic Sciences)",
+        "4 / 5.5 Years",
+        "PCB"
+       ],
+       [
+        "Architecture (via KEA)",
+        "B.Arch (Admissions done via KEA using 50% NATA score + 50% PUC marks)",
+        "5 Years",
+        "PCM + NATA"
+       ]
+      ]
+     }
+    ],
+    "h": "All Courses Offered Through KCET",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "p": "More than 220 engineering colleges, 80+ pharmacy colleges, and state agricultural/veterinary universities participate in KCET. Below are the most sought-after institutions across Karnataka:"
+     }
+    ],
+    "h": "Best Colleges Accepting KCET Ranks",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "#",
+          "College Name & Location",
+          "College Type",
+          "Top Branches"
+         ],
+         [
+          "1",
+          "R.V. College of Engineering (RVCE), Bengaluru",
+          "Private Aided / Unaided",
+          "CSE, ISE, ECE, AI & ML"
+         ],
+         [
+          "2",
+          "BMS College of Engineering (BMSCE), Bengaluru",
+          "Private Aided / Unaided",
+          "CSE, ISE, ECE, Mechanical"
+         ],
+         [
+          "3",
+          "M.S. Ramaiah Institute of Technology (MSRIT), Bengaluru",
+          "Private Aided / Unaided",
+          "CSE, ISE, AI & DS, ECE"
+         ],
+         [
+          "4",
+          "PES University (Ring Road Campus), Bengaluru",
+          "Private University",
+          "CSE, AI & ML, ECE"
+         ],
+         [
+          "5",
+          "University Visvesvaraya College of Engineering (UVCE), Bengaluru",
+          "Government University",
+          "CSE, ISE, ECE, Civil"
+         ],
+         [
+          "6",
+          "JSS Science and Technology University (SJCE), Mysuru",
+          "Private Aided / Univ",
+          "CSE, ISE, ECE, Polymer"
+         ],
+         [
+          "7",
+          "The National Institute of Engineering (NIE), Mysuru",
+          "Private Aided / Unaided",
+          "CSE, ISE, Mechanical"
+         ],
+         [
+          "8",
+          "Dayananda Sagar College of Engineering (DSCE), Bengaluru",
+          "Private Unaided",
+          "CSE, ISE, ECE, Aeronautical"
+         ],
+         [
+          "9",
+          "BMS Institute of Technology & Management (BMSIT), Bengaluru",
+          "Private Unaided",
+          "CSE, ISE, AI & ML, ECE"
+         ],
+         [
+          "10",
+          "Siddaganga Institute of Technology (SIT), Tumakuru",
+          "Private Aided / Unaided",
+          "CSE, ISE, ECE, Chemical"
+         ],
+         [
+          "11",
+          "NMAM Institute of Technology, Nitte / Sahyadri, Mangaluru",
+          "Private Unaided",
+          "CSE, ISE, Robotics, ECE"
+         ],
+         [
+          "12",
+          "KLE Technological University (BVBCET), Hubballi",
+          "Private University",
+          "CSE, ECE, Automation"
+         ]
+        ]
+       }
+      ],
+      "h": "Top Engineering Colleges Under KCET"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Stream",
+          "Premier Government & Aided Colleges"
+         ],
+         [
+          "Agriculture & Farm Sciences",
+          {
+           "list": [
+            "University of Agricultural Sciences (UAS), GKVK Campus, Bengaluru",
+            "University of Agricultural Sciences (UAS), Dharwad & Raichur",
+            "College of Agriculture, V.C. Farm, Mandya & Hassan",
+            "University of Horticultural Sciences (UHS), Bagalkot"
+           ]
+          }
+         ],
+         [
+          "Veterinary & Fisheries",
+          {
+           "list": [
+            "Veterinary College, Hebbal, Bengaluru (KVAFSU)",
+            "Veterinary Colleges at Bidar, Shivamogga, Hassan & Gadag",
+            "College of Fisheries, Mangaluru"
+           ]
+          }
+         ],
+         [
+          "Pharmacy (B.Pharm / Pharm.D)",
+          {
+           "list": [
+            "Government College of Pharmacy, Bengaluru",
+            "JSS College of Pharmacy, Mysuru",
+            "Manipal / KLE College of Pharmacy, Bengaluru, Hubballi & Belagavi",
+            "Al-Ameen College of Pharmacy & MS Ramaiah Faculty of Pharmacy, Bengaluru"
+           ]
+          }
+         ]
+        ]
+       }
+      ],
+      "h": "Top Agriculture, Veterinary & Pharmacy Colleges Under KCET"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Step",
+        "Stage",
+        "What the Student Must Do"
+       ],
+       [
+        "1",
+        "Online Registration (Jan–Feb)",
+        "Fill out the UGCET form on the KEA portal, enter your 15- digit RD number for caste/income certificates, upload photo/signature, and pay the fee."
+       ],
+       [
+        "2",
+        "Admit Card & Exam (April)",
+        "Download the KCET Hall Ticket and write the offline OMR papers (Physics, Chemistry, Maths, and/or Biology) at your allotted exam centre."
+       ],
+       [
+        "3",
+        "Result & Rank Card (May–June)",
+        "KEA combines your Class 12 board marks and KCET scores (50:50 for Engineering/Agriculture) and publishes your category-wise rank."
+       ],
+       [
+        "4",
+        "Document Verification (June– July)",
+        "Verify your study certificates, marks cards, and reservation documents (online auto-verification via SATS/RD number or at KEA centres)."
+       ],
+       [
+        "5",
+        "Option Entry & Seat Allotment (July–Sept)",
+        "Enter your preferred colleges and branches in priority order. KEA runs Mock, Round 1, Round 2, and Extended Round allotments."
+       ],
+       [
+        "6",
+        "Choice Selection & Reporting",
+        "Select Choice 1 to freeze your seat, pay the KEA tuition fee online, download the Admission Order, and report to your allotted college."
+       ]
+      ]
+     }
+    ],
+    "h": "Step-by-Step Timeline from Application to Admission",
+    "subs": []
+   }
+  ],
+  "title": "Complete Guide to the KCET Exam"
+ },
+ "nda": {
+  "intro": "Simple, table-by-table breakdown of eligibility, written paper pattern, question counts, 5-day SSB interview, vacancies, and officer salary. The National Defence Academy & Naval Academy (NDA & NA) Examination is India's premier national entrance test for Class 12 students who aspire to join the Indian Army, Indian Navy, or Indian Air Force as Permanent Commissioned Officers right after school.",
+  "kicker": "INDIAN ARMED FORCES OFFICER ENTRY HANDBOOK (FOR CLASS 12 STUDENTS)",
+  "sections": [
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Particular",
+        "Official Details"
+       ],
+       [
+        "Exam Name & Full Form",
+        "NDA & NA — National Defence Academy & Naval Academy Examination"
+       ],
+       [
+        "Conducting Authority",
+        "UPSC — Union Public Service Commission (Government of India)"
+       ],
+       [
+        "Official Websites",
+        "upsc.gov.in & upsconline.nic.in (and joinindianarmy.nic.in for SSB call- ups)"
+       ],
+       [
+        "Frequency",
+        "Twice a year — NDA-I (held in April) and NDA-II (held in September)"
+       ],
+       [
+        "Exam Mode & Languages",
+        "Offline (Pen-and-paper OMR test) printed bilingually in English and Hindi"
+       ],
+       [
+        "Application Fee",
+        {
+         "list": [
+          "₹100 for General / OBC Male candidates",
+          "₹0 (Exempted) for SC, ST, all Female candidates, and wards of JCOs/NCOs/ORs"
+         ]
+        }
+       ],
+       [
+        "Training Academies",
+        "3 Years joint training at NDA, Khadakwasla (Pune) + 1 Year specialized pre-commission training at IMA Dehradun (Army), INA Ezhimala (Navy), or AFA Dundigal (Air Force)"
+       ],
+       [
+        "Academic Degree Awarded",
+        "B.Sc. / B.Sc. (Computer Science) / B.A. awarded by Jawaharlal Nehru University (JNU), New Delhi (or B.Tech. for Navy & Air Force Technical cadets)"
+       ]
+      ]
+     }
+    ],
+    "h": "Exam Overview & Basic Facts",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Criteria",
+        "Requirement"
+       ],
+       [
+        "Army Wing Qualification",
+        "Passed or appearing in Class 12 (10+2) from any recognized board in any stream (Science, Commerce, or Arts). No minimum board percentage required."
+       ],
+       [
+        "Air Force, Naval Wing & INA",
+        "Passed or appearing in Class 12 (10+2) with Physics, Chemistry, and Mathematics (PCM)."
+       ],
+       [
+        "Class 11 Students",
+        "Not eligible. Students currently studying in Class 12 (appearing candidates) can apply and write the exam."
+       ]
+      ]
+     },
+     {
+      "table": [
+       [
+        "Criteria",
+        "Requirement"
+       ],
+       [
+        "Age Limit",
+        "16.5 to 19.5 years at the start of the course (UPSC publishes exact Date of Birth brackets in every notification)."
+       ],
+       [
+        "Gender & Marital Status",
+        "Both unmarried male and unmarried female Indian citizens are eligible. Cadets cannot marry until full academy training is completed."
+       ],
+       [
+        "Number of Attempts",
+        "No fixed limit — you can appear in every NDA-I and NDA-II cycle as long as your Date of Birth falls inside UPSC's age window."
+       ]
+      ]
+     }
+    ],
+    "h": "Eligibility Rules for Class 12 Students",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "p": "The UPSC written exam is conducted on a single Sunday in two shifts (Morning & Afternoon). Both papers carry 1/3rd negative marking for wrong answers, and candidates must score at least 25% qualifying marks in each paper separately."
+     }
+    ],
+    "h": "Written Exam Pattern & Number of Questions",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Paper",
+          "Questions",
+          "Duration",
+          "Right Answer",
+          "Wrong Answer",
+          "Max Marks"
+         ],
+         [
+          "Paper 1: Mathematics",
+          "120 MCQs",
+          "2.5 Hours",
+          "+2.50",
+          "−0.83",
+          "300 Marks"
+         ],
+         [
+          "Paper 2: General Ability Test (GAT)",
+          "150 MCQs",
+          "2.5 Hours",
+          "+4.00",
+          "−1.33",
+          "600 Marks"
+         ],
+         [
+          "Total Written Exam",
+          "270 MCQs",
+          "5 Hours",
+          "—",
+          "—",
+          "900 Marks"
+         ]
+        ]
+       }
+      ],
+      "h": "Paper-Wise Structure (Total: 270 Questions / 900 Marks)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Section & Subject",
+          "Approx. Questions",
+          "Max Marks",
+          "Syllabus Scope"
+         ],
+         [
+          "Part A — English",
+          "50 Qs",
+          "200",
+          "Grammar & Usage, Vocabulary (Synonyms/Antonyms), Reading Comprehension, Sentence Ordering"
+         ],
+         [
+          "Part B — Physics",
+          "25 Qs",
+          "100",
+          "Class 9–12 Mechanics, Properties of Matter, Heat, Optics, Electricity, Magnetism"
+         ],
+         [
+          "Part B — History & Polity",
+          "20 Qs",
+          "80",
+          "Indian Freedom Movement, Ancient/Medieval/Modern History, Constitution & Five-Year Plans"
+         ],
+         [
+          "Part B — Geography",
+          "20 Qs",
+          "80",
+          "Earth's Origin, Latitudes/Longitudes, Climate, Rivers, Soils, Minerals, Indian & World Geography"
+         ],
+         [
+          "Part B — Chemistry",
+          "15 Qs",
+          "60",
+          "Physical & Chemical Changes, Elements, Mixtures, Acids/Bases, Carbon, Fertilizers"
+         ],
+         [
+          "Part B — General Science",
+          "10 Qs",
+          "40",
+          "Human Body, Food & Nutrition, Common Epidemics, Solar System, Everyday Science"
+         ]
+        ]
+       },
+       {
+        "table": [
+         [
+          "Section & Subject",
+          "Approx. Questions",
+          "Max Marks",
+          "Syllabus Scope"
+         ],
+         [
+          "Part B — Current Events",
+          "10 Qs",
+          "40",
+          "National & International Current Affairs, Defence Exercises, Awards, Sports"
+         ]
+        ]
+       }
+      ],
+      "h": "Subject-Wise Question Count in Paper 2 — GAT (150 Qs / 600 Marks)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Mathematics Unit (Class 11 & 12 NCERT Level)",
+          "Expected Questions",
+          "Marks Share"
+         ],
+         [
+          "Calculus (Limits, Continuity, Differentiation, Integration, Differential Eqns)",
+          "25 – 30 Qs",
+          "62.5 – 75"
+         ],
+         [
+          "Algebra (Sets, Relations, Complex Nos, Quadratics, Series, P&C, Binomial, Logs)",
+          "25 – 30 Qs",
+          "62.5 – 75"
+         ],
+         [
+          "Coordinate Geometry 2D & 3D (Lines, Circles, Conics, 3D Geometry)",
+          "20 – 22 Qs",
+          "50 – 55"
+         ],
+         [
+          "Trigonometry (Ratios, Identities, Inverse Trig, Heights & Distances, Triangles)",
+          "15 – 20 Qs",
+          "37.5 – 50"
+         ],
+         [
+          "Matrices & Determinants + Vector Algebra + Statistics & Probability",
+          "20 – 25 Qs",
+          "50 – 62.5"
+         ]
+        ]
+       }
+      ],
+      "h": "Topic-Wise Question Weightage in Paper 1 — Mathematics (120 Qs / 300 Marks)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Candidates who clear the written exam are called to a Services Selection Board (SSB) centre (Allahabad, Bhopal, Bengaluru, Kapurthala, Varanasi, Mysuru, Gandhinagar, or Dehradun) for a 5-day personality assessment:"
+     },
+     {
+      "table": [
+       [
+        "Day",
+        "Stage & Tests",
+        "What Assessors Look For"
+       ],
+       [
+        "Day 1",
+        "Stage I — Screening Test (OIR + PP&DT)",
+        "Verbal/Non-Verbal Intelligence Test + Picture Perception & Discussion Test. ~50–60% candidates are screened out on Day 1; the rest stay for Days 2–5."
+       ],
+       [
+        "Day 2",
+        "Stage II — Psychological Tests (TAT, WAT, SRT, SD)",
+        "Story writing on 12 pictures (TAT), 60-word association (WAT), 60 real-life situations (SRT), and Self-Description (SD) tested by a Psychologist."
+       ],
+       [
+        "Days 3 & 4",
+        "GTO Outdoor & Group Tasks",
+        "Group Discussion, Group Planning Exercise (GPE), Progressive & Half Group Tasks, Individual Obstacles, Command Task, and 3-minute Lecturette."
+       ],
+       [
+        "Days 2–4",
+        "Personal Interview (45–60 Mins)",
+        "One-on-one rapid-fire and situational interview with the Interviewing Officer covering academics, family, hobbies, and current affairs."
+       ],
+       [
+        "Day 5",
+        "Final Board Conference",
+        "All three assessors (Psychologist, GTO, Interviewing Officer) review your 15 Officer-Like Qualities (OLQs) and announce recommended candidates."
+       ]
+      ]
+     },
+     {
+      "p": "Air Force Flying Extra Test (CPSS): Candidates who opt for the Air Force Flying Branch and get recommended by SSB must also pass the Computerised Pilot Selection System (CPSS) and PABT (conducted only once in a lifetime)."
+     }
+    ],
+    "h": "The 5-Day SSB Interview Process (900 Marks)",
+    "subs": []
+   },
+   {
+    "blocks": [],
+    "h": "Competition, Vacancies, Cutoffs & Reservation Rules",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Selection Stage",
+          "Candidates Per Cycle",
+          "Annual Total (2 Cycles)",
+          "Selection Notes"
+         ],
+         [
+          "Total Registered Applicants",
+          "~5,00,000 – 6,50,000",
+          "~11,00,000+",
+          "Class 12 appearing and passed students across India"
+         ],
+         [
+          "Written Exam Qualifiers (SSB Call)",
+          "~7,500 – 8,200",
+          "~15,500+",
+          "Must score ≥25% in each paper + clear overall written cutoff"
+         ],
+         [
+          "SSB Recommended + Medically Fit",
+          "~500 – 600",
+          "~1,100+",
+          "Clear 5-day SSB + Special Military Medical Board"
+         ],
+         [
+          "Final Merit List (Selected Cadets)",
+          "~394 – 404",
+          "~800",
+          "Ranked out of 1,800 marks (Written 900 + SSB 900)"
+         ]
+        ]
+       }
+      ],
+      "h": "Selection Funnel Per Exam Cycle (Held Twice a Year)"
+     },
+     {
+      "blocks": [
+       {
+        "p": "There is NO caste-based reservation in NDA (General, OBC, SC, and ST candidates compete purely on open merit). However, specific seats are earmarked for female candidates:"
+       },
+       {
+        "table": [
+         [
+          "Wing / Academy",
+          "Total Seats / Cycle",
+          "Female Seats (Included)",
+          "Required Class 12 Stream"
+         ],
+         [
+          "NDA — Army Wing",
+          "208",
+          "10",
+          "Any Stream (Science / Commerce / Arts)"
+         ],
+         [
+          "NDA — Air Force (Flying)",
+          "92",
+          "02",
+          "Physics & Maths (PCM)"
+         ],
+         [
+          "NDA — Navy Wing",
+          "42",
+          "05",
+          "Physics, Chemistry & Maths (PCM)"
+         ],
+         [
+          "NDA — Air Force Ground Duty (Tech / Non-Tech)",
+          "28 (18 Tech + 10 Non-Tech)",
+          "04 (02 + 02)",
+          "PCM (for Tech) / Any Stream (Non-Tech)"
+         ],
+         [
+          "Indian Naval Academy (10+2 Cadet Entry)",
+          "24 – 36",
+          "03 – 04",
+          "Physics, Chemistry & Maths (PCM)"
+         ],
+         [
+          "Total Vacancies Per Cycle",
+          "394 – 404",
+          "24 – 25",
+          "—"
+         ]
+        ]
+       }
+      ],
+      "h": "Wing-Wise Vacancy Breakup & Reservation Policy"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Exam Cycle",
+          "Written Cutoff (Out of 900)",
+          "Final Merit Cutoff (Out of 1,800)",
+          "Safe Target Score (Written)"
+         ],
+         [
+          "NDA-I & II (2025–2026 Range)",
+          "305 – 325 marks",
+          "680 – 710 marks",
+          "400+ out of 900"
+         ],
+         [
+          "NDA-I & II (2023–2024 Range)",
+          "291 – 342 marks",
+          "654 – 722 marks",
+          "400+ out of 900"
+         ]
+        ]
+       }
+      ],
+      "h": "Recent UPSC NDA Cutoff Trends"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Stage / Service",
+        "Rank / Status",
+        "Fee, Stipend & Pay Details (7th Pay Commission)"
+       ],
+       [
+        "Years 1 to 3 (At NDA Pune)",
+        "NDA Cadet",
+        "100% Free Training: Government pays for accommodation, food, uniforms, books, and medical care (only minor pocket-money deposit required)."
+       ],
+       [
+        "Year 4 (At IMA / INA / AFA)",
+        "Gentleman / Lady Cadet",
+        "Cadets receive a fixed training stipend of ₹56,100 per month throughout the final year."
+       ],
+       [
+        "Indian Army (On Commissioning)",
+        "Lieutenant (Level 10)",
+        "Basic Pay ₹56,100 + Military Service Pay (MSP) ₹15,500 + DA & Allowances = ₹1,00,000 – ₹1,20,000 / month in-hand."
+       ],
+       [
+        "Indian Navy (On Commissioning)",
+        "Sub-Lieutenant (Level 10)",
+        "Basic Pay ₹56,100 + MSP ₹15,500 + Sea/Submarine Allowances = ₹1,00,000 – ₹1,25,000 / month in-hand."
+       ],
+       [
+        "Indian Air Force (On Commissioning)",
+        "Flying Officer (Level 10)",
+        "Basic Pay ₹56,100 + MSP ₹15,500 + Flying Allowance (up to ₹25,000) = ₹1,15,000 – ₹1,40,000 / month in-hand."
+       ]
+      ]
+     }
+    ],
+    "h": "Training Cost, Stipend & Officer Salary Structure",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Step",
+        "Stage",
+        "What the Student Must Do"
+       ],
+       [
+        "1",
+        "UPSC Notification & Form (Dec / May)",
+        "Apply on upsconline.nic.in (December for NDA-I in April; May for NDA-II in September). Select service preferences carefully."
+       ],
+       [
+        "2",
+        "Write UPSC Exam (April / Sept)",
+        "Attempt Maths (120 Qs in 150 mins) and GAT (150 Qs in 150 mins) on the same day. Focus on accuracy to avoid 1/3rd negative marks."
+       ],
+       [
+        "3",
+        "Written Result & SSB Date Selection",
+        "Within 3–4 weeks, UPSC publishes roll numbers of qualified candidates. Register on the service portal and pick your SSB interview date."
+       ],
+       [
+        "4",
+        "5-Day SSB & Medical Board",
+        "Attend SSB (travel allowance for AC-3 tier train is reimbursed for first-timers). If recommended, undergo a 5–7 day Military Hospital medical checkup."
+       ],
+       [
+        "5",
+        "Final Merit List & Joining NDA",
+        "UPSC combines Written + SSB scores (out of 1,800). Selected candidates receive joining instructions for NDA Khadakwasla (January or July term)."
+       ]
+      ]
+     }
+    ],
+    "h": "Step-by-Step Timeline & Action Plan for Class 12 Students",
+    "subs": []
+   }
+  ],
+  "title": "Complete Guide to the NDA Exam"
+ }
+}
