@@ -1,5 +1,12 @@
 [
   {
+    "v": "953",
+    "date": "17 Nov 2026",
+    "items": [
+      "My Tests: a PDF, Word or PowerPoint exported from a test now shows the test name with \"Test paper\" in the header (it said \"Worksheet\" before). Saved worksheets still say \"Worksheet\"."
+    ]
+  },
+  {
     "v": "952",
     "date": "17 Nov 2026",
     "items": [
