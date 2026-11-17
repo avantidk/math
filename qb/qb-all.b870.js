@@ -1015,11 +1015,15 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     if (c1 >= 0 && c2 > c1) {
       if (c1 > 0) renderRich(target, ls.slice(0, c1).join('\n'), fig);
       var colA = ls.slice(c1 + 1, c2).filter(function (l) { return l.trim(); }), colB = ls.slice(c2 + 1).filter(function (l) { return l.trim(); });
-      var grid = el('div', 'qb-match'); var wideB = colB.some(function (l) { return String(l).replace(/\\\(|\\\)|\\[a-z]+|[{}^_ ]/gi, '').length > 40; });
-      grid.style.cssText = 'display:grid;grid-template-columns:' + (wideB ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,3fr) minmax(140px,1fr)') + ';column-gap:40px;row-gap:0;margin:10px 0 6px;align-items:stretch';
+      var grid = el('div', 'qb-match');
+      /* how much room List-II needs: short answers (numbers, a word) get a narrow column so List-I can use the rest of the width */
+      var vis = function (l) { return String(l).replace(/\\\(|\\\)|\\(left|right|frac|dfrac|tfrac|cdot|times|sqrt|rightarrow|text|mathrm|operatorname|quad|,|;|!)|\\[a-z]+|[{}^_ ]/gi, '').length; };
+      var maxB = colB.reduce(function (m, l) { return Math.max(m, vis(l)); }, 0), wideB = maxB > 40;
+      var cols = wideB ? 'minmax(0,1fr) minmax(0,1fr)' : maxB <= 14 ? 'minmax(0,1fr) auto' : 'minmax(0,3fr) minmax(min(120px,35%),2fr)';
+      grid.style.cssText = 'display:grid;grid-template-columns:' + cols + ';column-gap:clamp(12px,3.5vw,40px);row-gap:0;margin:10px 0 6px;align-items:stretch;max-width:100%';
       var h1 = el('div', 'qb-mh', mw + ' I'), h2 = el('div', 'qb-mh', mw + ' II'); h1.style.fontWeight = h2.style.fontWeight = '700'; h1.style.paddingBottom = h2.style.paddingBottom = '6px'; grid.appendChild(h1); grid.appendChild(h2);
       for (var r = 0; r < Math.max(colA.length, colB.length); r++) {
-        [colA[r], colB[r]].forEach(function (ln) { var cell = el('div', 'qb-mc'); cell.style.cssText = 'padding:10px 0;border-top:1px solid var(--qb-line, rgba(128,128,128,.22));min-width:0;display:flex;flex-direction:column;justify-content:center'; var inner = el('div', 'qb-mci'); cell.appendChild(inner); if (ln != null) renderRich(inner, ln, fig); grid.appendChild(cell); });
+        [colA[r], colB[r]].forEach(function (ln) { var cell = el('div', 'qb-mc'); cell.style.cssText = 'padding:10px 0;border-top:1px solid var(--qb-line, rgba(128,128,128,.22));min-width:0;overflow-x:auto;overflow-y:hidden;display:flex;flex-direction:column;justify-content:center'; var inner = el('div', 'qb-mci'); cell.appendChild(inner); if (ln != null) renderRich(inner, ln, fig); grid.appendChild(cell); });
       }
       target.appendChild(grid); return;
     }
@@ -1711,7 +1715,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       try {
         var inl = Array.prototype.slice.call(document.querySelectorAll('.qb-qt .mx:not(.mxd):not(.mxw), .qb-sol-b .mx:not(.mxd):not(.mxw)'));
         inl.forEach(function (sp) { if (sp.style.fontSize) sp.style.fontSize = ''; });
-        var meas = inl.map(function (sp) { var h = sp.closest('.qb-qt, .qb-sol-b'), r = sp.getBoundingClientRect(); return { sp: sp, w: h ? h.clientWidth : 0, n: Math.max(r.width, sp.scrollWidth) }; });
+        var meas = inl.map(function (sp) { var h = sp.closest('.qb-mci, .qb-qt, .qb-sol-b'), r = sp.getBoundingClientRect(); /* inside a matching table the cell is the limit */ return { sp: sp, w: h ? h.clientWidth : 0, n: Math.max(r.width, sp.scrollWidth) }; });
         meas.forEach(function (m) { if (m.w > 0 && m.n > m.w + 1) m.sp.style.fontSize = Math.max(0.5, (m.w / m.n) * 0.96) * 100 + '%'; });
       } catch (e) { /* keep the page working */ }
       if (mo) mo.observe(document.body, { childList: true, subtree: true });

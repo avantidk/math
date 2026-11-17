@@ -1,5 +1,14 @@
 [
   {
+    "v": "921",
+    "date": "17 Nov 2026",
+    "items": [
+      "Matching questions: when List-II holds only short answers (numbers, a word), its column is now narrow and List-I gets the rest of the width, so the left side no longer squeezes on phones.",
+      "Long expressions inside a matching table now shrink to fit their cell (or scroll sideways) instead of running off the screen.",
+      "Allen AL-11M1-O3-9 and O3-10 merged into one question with parts (i) and (ii) sharing List I and List II."
+    ]
+  },
+  {
     "v": "920",
     "date": "17 Nov 2026",
     "items": [
