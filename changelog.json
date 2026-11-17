@@ -1,5 +1,12 @@
 [
   {
+    "v": "956",
+    "date": "17 Nov 2026",
+    "items": [
+      "Exported test papers: the details line now uses the full width with proper labels spread evenly: Questions, Time, Maximum marks, Marking (+/-) and Date."
+    ]
+  },
+  {
     "v": "955",
     "date": "17 Nov 2026",
     "items": [

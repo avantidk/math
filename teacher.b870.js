@@ -222,7 +222,7 @@ function skeleton(p, keyMode) {
       h('div', { class: 'sh-brand' }, logo),
       h('div', { class: 'sh-title', style: 'font-size:18px;font-weight:700;line-height:1.2' }, headTitle, !headSub ? null : h('small', { text: headSub, style: 'font-size:14px;font-weight:600;margin-top:3px;letter-spacing:0;color:var(--sheet-muted)' })),
       h('div', { class: 'sh-meta' }, h('div', { text: 'Mathematics', style: 'font-weight:700;font-size:12px' }), p.pyq ? h('div', { class: 'sh-badge', text: 'PYQ' }) : p.badge ? h('div', { class: 'sh-badge', text: p.badge }) : (dt ? h('div', { text: dt }) : null), p.batch ? h('div', { text: p.batch }) : null)),
-    p.infoLine && !keyMode ? h('div', { class: 'sh-info2', text: p.infoLine }) : null,
+    p.infoLine && !keyMode ? h('div', { class: 'sh-info2' }, [].concat(p.infoLine).map(x => h('span', { text: x }))) : null,
     keyMode || !test ? null : info,
     h('div', { class: 'sh-body' }),
     h('div', { class: 'sh-foot' }, h('span', { text: p.pyq ? examName + ' - ' + dateLine : p.title }), h('span', { text: keyMode ? 'Teacher copy' : test ? 'Test' + (p.pageOf ? ' \u00b7 Page ' + p.pageOf : '') : (p.pg ? 'Page ' + p.pg : '') })));
