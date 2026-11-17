@@ -52,3 +52,5 @@
 .pg-pn a{text-decoration:none;font-weight:600}
 .pg-foot{padding:18px 16px 30px}
 @media (max-width:480px){.ld{padding:4px 16px 24px}.pg-nav{gap:10px}}
+.pg-text ul{padding-left:22px}.pg-text li{margin:.45em 0}
+.pg-oos{color:var(--ld-text)}

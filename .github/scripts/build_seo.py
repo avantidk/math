@@ -52,7 +52,10 @@ def url(c): return f"{SITE}/jee-maths/{slug(c)}/"
 def short(c): return c['name']
 LEVEL = {'High': 'High', 'Medium': 'Medium', 'Low': 'Low', 'None': 'Rare'}
 
-HEAD_FONTS = ''
+# Chapters that are no longer in the JEE syllabus. They are listed (not given pages of their own: there is no syllabus data for them).
+OOS = [('12M25', 'Linear Programming Problem'), ('12M26', 'Mathematical Reasoning'), ('12M27', 'Solution of Triangle'), ('12M28', 'Height and Distance')]
+CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', 'ankitkamboj@avantifellows.org')   # the same support address the sign-in page already shows
+UPDATED = '17 November 2026'
 def page(title, desc, canon, body, depth, jsonld=None, og_title=None):
     up = '../' * depth
     ld = ''.join(f'<script type="application/ld+json">{json.dumps(j, ensure_ascii=False, separators=(",", ":"))}</script>\n' for j in (jsonld or []))
@@ -149,7 +152,7 @@ def chapter_page(i, c):
 
 def foot(depth):
     up = '../' * depth
-    return f'''<footer class="pg-foot"><p>अंक-IT Mathematics Dashboard · JEE Main, JEE Advanced, KCET, NDA and IAT maths practice.</p><p><a href="{up}">Home and sign in</a> · <a href="{up}jee-maths/">All JEE Maths chapters</a></p></footer>'''
+    return f'''<footer class="pg-foot"><p>अंक-IT Mathematics Dashboard · JEE Main, JEE Advanced, KCET, NDA and IAT maths practice.</p><p><a href="{up}">Home and sign in</a> · <a href="{up}jee-maths/">All JEE Maths chapters</a></p><p><a href="{up}about/">About us</a> · <a href="{up}contact/">Contact us</a> · <a href="{up}privacy/">Privacy policy</a> · <a href="{up}terms/">Terms of use</a></p></footer>'''
 
 def chapter_list(prefix, with_stats=False):
     out = ''
@@ -158,6 +161,8 @@ def chapter_list(prefix, with_stats=False):
             f'<li><a href="{prefix}{slug(c)}/">{E(short(c))}</a>' + (f'<span>{len(c["subs"])} subtopics · {c["m"]} Main · {c["a"]} Adv.</span>' if with_stats else '') + '</li>'
             for c in CH if sel(c))
         out += f'<h3>{label}</h3><ul class="pg-chlist">{items}</ul>'
+    oos = ''.join(f'<li><span class="pg-oos">{E(n)}</span><span>Out of syllabus · {code}</span></li>' for code, n in OOS)
+    out += f'<h3>Out of syllabus</h3><p class="pg-fine">These chapters are no longer part of the current JEE syllabus. Their questions are still in the question bank and are marked <b>Out of Syllabus</b>, so you can include or leave them out.</p><ul class="pg-chlist">{oos}</ul>'
     return out
 
 def hub_page():
@@ -168,7 +173,7 @@ def hub_page():
     body = f'''{nav(1, crumbs)}
 <main class="pg-main">
 <h1>JEE Maths: all chapters</h1>
-<p class="pg-lead">{len(CH)} chapters · {D["tot_sub"]} subtopics · Class 11 and Class 12</p>
+<p class="pg-lead">{len(CH)} chapters in the syllabus · {D["tot_sub"]} subtopics · plus {len(OOS)} out-of-syllabus chapters</p>
 <p>The JEE Maths syllabus split into chapters and subtopics. Open a chapter to see its subtopics, how often each one was asked in JEE Main and JEE Advanced, and the year-wise trend, then sign in to practise the questions with full solutions.</p>
 {chapter_list('', True)}
 {cta(1, "Choose a chapter, practise previous-year questions with solutions, and take online tests. Starting is free.")}
@@ -177,6 +182,121 @@ def hub_page():
     ld = [{'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'JEE Maths chapters', 'itemListElement': [
             {'@type': 'ListItem', 'position': k + 1, 'name': short(c), 'url': url(c)} for k, c in enumerate(CH)]}]
     return page(title, desc, f'{SITE}/jee-maths/', body, 1, ld)
+
+
+def info_page(slug_, title, h1, desc, inner, ptype='WebPage'):
+    crumbs = f'<a href="../">Home</a> &rsaquo; <span aria-current="page">{E(h1)}</span>'
+    body = f'''{nav(1, crumbs)}
+<main class="pg-main pg-text">
+<h1>{E(h1)}</h1>
+{inner}
+</main>
+{foot(1)}'''
+    canon = f'{SITE}/{slug_}/'
+    ld = [{'@context': 'https://schema.org', '@type': ptype, 'name': h1, 'url': canon, 'description': desc, 'inLanguage': 'en-IN',
+           'isPartOf': {'@type': 'WebSite', 'name': 'अंक-IT Mathematics Dashboard', 'url': SITE + '/'}}]
+    return page(title, desc, canon, body, 1, ld)
+
+MAIL = f'<a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a>'
+
+def about_page():
+    inner = f'''<p class="pg-lead">JEE Maths practice for Class 11 and 12 students, and the teachers who coach them.</p>
+<h2>What we do</h2>
+<p>अंक-IT Mathematics Dashboard is a practice platform for JEE Maths. It brings a chapter-wise question bank with solutions, previous-year papers, daily practice problems (DPPs), Must Solve lists, revision handouts and NTA-style online tests into one place, for JEE Main, JEE Advanced, KCET, NDA and IAT preparation.</p>
+<h2>Who built it</h2>
+<p>The dashboard is built and maintained by Ankit Kamboj, a maths teacher, so that students can practise the questions that matter for each chapter and teachers can set tests and see results without extra tools.</p>
+<h2>How it works</h2>
+<ul><li><b>Practise by chapter:</b> filter questions by chapter, topic, level, exam and year, and see the solution.</li>
+<li><b>Take tests:</b> an exam-like screen with a timer, a question panel, mark for review and auto-submit, followed by a report with your score, accuracy and rank.</li>
+<li><b>Teachers:</b> build a test from the question bank, share one link with a class and see every student\'s result.</li></ul>
+<h2>Free and Premium</h2>
+<p>You can start free by signing in with Google. Premium (₹299 a year for students, ₹599 for teachers) adds PDF downloads and printing, all-India ranks, comparison with all students and handouts. Students of Avanti Fellows get Premium free.</p>
+<h2>Get in touch</h2>
+<p>Questions, corrections or ideas are welcome. See the <a href="../contact/">contact page</a>.</p>
+<p><a class="pg-btn" href="../">Sign in and start practising</a></p>'''
+    return info_page('about', 'About Us | अंक-IT Mathematics Dashboard', 'About us', 'About अंक-IT Mathematics Dashboard: JEE Maths question bank, previous-year papers, DPPs, handouts and online tests for Class 11 and 12, built by Ankit Kamboj.', inner, 'AboutPage')
+
+def contact_page():
+    inner = f'''<p class="pg-lead">We read every message about the dashboard.</p>
+<h2>Email</h2>
+<p>{MAIL}</p>
+<p>Please tell us your name, the email or Student ID you sign in with, and what happened. A screenshot helps for problems with a page or a test.</p>
+<h2>What to write to us about</h2>
+<ul><li>Trouble signing in, or a problem with your account or Premium membership.</li>
+<li>A mistake in a question, answer or solution (include the question number or ID).</li>
+<li>Payment problems: include the date and the payment reference you received from Razorpay.</li>
+<li>Teachers: school approval, adding students, or help creating a test.</li>
+<li>Requests about your personal data. See the <a href="../privacy/">privacy policy</a>.</li></ul>
+<h2>Help on the sign-in page</h2>
+<p>The sign-in page also has a <b>Help &amp; Support</b> button with the same contact details.</p>
+<p><a class="pg-btn" href="../">Go to the dashboard</a></p>'''
+    return info_page('contact', 'Contact Us | अंक-IT Mathematics Dashboard', 'Contact us', 'Contact अंक-IT Mathematics Dashboard for help with sign-in, Premium, payments, corrections to questions or your personal data.', inner, 'ContactPage')
+
+def privacy_page():
+    inner = f'''<p class="pg-lead">Last updated: {UPDATED}</p>
+<p>This policy explains what information अंक-IT Mathematics Dashboard (“we”, “the website”) collects, why, and the choices you have. It applies to this website and the services behind it.</p>
+<h2>Information we collect</h2>
+<ul>
+<li><b>Account details:</b> your name and email from Google sign-in, or your Student ID if you are an Avanti student, and whether you are a teacher or a student.</li>
+<li><b>Profile details:</b> school, class, stream, batch, category and gender, where you or your school give them. Teachers add these for their students.</li>
+<li><b>Practice and test data:</b> the tests you attempt, your answers, scores, time taken, ranks and reports, and worksheets that teachers save.</li>
+<li><b>Payment records:</b> for Premium, the order and payment reference, the amount and the status. Card, UPI and bank details are entered on Razorpay’s payment window and are never seen or stored by us.</li>
+<li><b>Chat messages:</b> messages that teachers post in the teachers’ chat.</li>
+<li><b>Security information:</b> the IP address and time of Student ID sign-in attempts, used to block guessing of IDs. For Student ID sign-in we check the date of birth you enter against the school record; we do not display it.</li>
+<li><b>Browser storage:</b> your sign-in session, your light or dark theme choice and a copy of question files so the site opens faster. These stay on your device and are cleared when you sign out where possible.</li>
+</ul>
+<h2>How we use it</h2>
+<ul><li>To sign you in, give you the right plan and show your own results.</li>
+<li>To let teachers see the results of students in their approved school, and to let Avanti administrators approve schools and manage accounts.</li>
+<li>To take and confirm payments for Premium.</li>
+<li>To keep the service secure, fix problems and answer your messages.</li></ul>
+<p>We do not sell your personal information.</p>
+<h2>Who can see it</h2>
+<ul><li><b>You</b> can see your own profile, results and payments.</li>
+<li><b>Teachers</b> approved for a school can see the details and results of students of that school.</li>
+<li><b>Administrators</b> of the dashboard can see account details needed to run the service.</li>
+<li><b>Other students and the public</b> cannot see your results. Ranks compare scores without showing other students’ names.</li></ul>
+<h2>Services we rely on</h2>
+<p>We use <b>Google</b> for sign-in, <b>Supabase</b> to store accounts and results and to serve the question files, <b>Razorpay</b> to process payments and <b>GitHub Pages</b> to host the website. These providers process data as needed to provide their service and under their own privacy policies.</p>
+<h2>Cookies and similar technologies</h2>
+<p>The website uses browser storage to keep you signed in and to remember your settings. It does not use advertising or tracking cookies at the moment. If that changes, this page will be updated first.</p>
+<h2>How long we keep data</h2>
+<p>We keep your account and results while your account is active, and payment records as long as needed for accounting. Sign-in attempt records are kept for a limited time for security.</p>
+<h2>Children</h2>
+<p>The dashboard is used by school students, many of them under 18. Students usually join through their school or teacher. If you are a parent or guardian and have a concern, contact us.</p>
+<h2>Your choices</h2>
+<p>You can ask us to correct or delete your account and data, or ask what we hold about you, by writing to {MAIL} from the email or Student ID you use. We will respond as soon as we reasonably can.</p>
+<h2>Changes</h2>
+<p>If we change this policy we will update the date above. Questions? See the <a href="../contact/">contact page</a>.</p>'''
+    return info_page('privacy', 'Privacy Policy | अंक-IT Mathematics Dashboard', 'Privacy policy', 'How अंक-IT Mathematics Dashboard collects, uses and protects your information, including sign-in, test results and payments.', inner)
+
+def terms_page():
+    inner = f'''<p class="pg-lead">Last updated: {UPDATED}</p>
+<p>By signing in to or using अंक-IT Mathematics Dashboard (“the website”) you agree to these terms. If you do not agree, please do not use it.</p>
+<h2>Using the website</h2>
+<ul><li>Sign in with your own account and keep it secure. Do not share your account.</li>
+<li>Give correct details. Teachers must use the school they actually teach at; the school is approved by an administrator.</li>
+<li>Use the website for learning and teaching. Do not try to break, overload or bypass its security or plan limits, and do not use automated tools to copy the question bank.</li></ul>
+<h2>Plans and payments</h2>
+<ul><li><b>Free:</b> available to anyone who signs in.</li>
+<li><b>Premium:</b> a paid membership for one year from purchase. The price shown at checkout applies (currently ₹299 for students and ₹599 for teachers) and payment is handled by Razorpay.</li>
+<li><b>Avanti:</b> Avanti Fellows students and staff get access as part of their programme.</li>
+<li>If you were charged by mistake or something went wrong with a payment, <a href="../contact/">contact us</a> and we will look into it.</li></ul>
+<h2>Content and copyright</h2>
+<p>The questions, solutions, handouts, tests and design of the website are provided for your own study and teaching. You may not copy, resell, republish or share paid content, or share your Premium account. Previous-year questions come from the examinations of their respective conducting bodies and are included for practice.</p>
+<h2>Tests and results</h2>
+<p>Tests, scores and ranks are for practice and self-assessment. We work to keep questions and answers correct, but mistakes can happen. Please report them. We do not guarantee any result in an examination.</p>
+<h2>Availability</h2>
+<p>We try to keep the website available but it may sometimes be unavailable for maintenance or because of problems outside our control. Features and plans may change over time.</p>
+<h2>Ending access</h2>
+<p>We may suspend or close accounts that break these terms. You can stop using the website at any time and ask us to delete your account.</p>
+<h2>Limits of responsibility</h2>
+<p>The website is provided “as is”. To the extent the law allows, we are not responsible for losses that come from using it, such as a result in an examination.</p>
+<h2>Governing law</h2>
+<p>These terms are governed by the laws of India.</p>
+<h2>Changes and contact</h2>
+<p>We may update these terms and will change the date above when we do. Questions? Write to {MAIL} or see the <a href="../contact/">contact page</a>. Our <a href="../privacy/">privacy policy</a> explains how we handle your information.</p>'''
+    return info_page('terms', 'Terms of Use | अंक-IT Mathematics Dashboard', 'Terms of use', 'Terms of use for अंक-IT Mathematics Dashboard: accounts, Free and Premium plans, payments, content and acceptable use.', inner)
 
 FAQ = [
  ('Is the Mathematics Dashboard free?', 'Yes, you can start free. Sign in with Google to use the question bank with solutions, online tests and your reports. Premium adds PDF downloads and printing, all-India ranks, comparison with all students and handouts.'),
@@ -206,17 +326,17 @@ def landing_block():
 <div><h3>Avanti</h3><p>Avanti students get Premium free and sign in with their Student ID. Avanti teachers get full teaching tools.</p></div>
 </div></section>
 <section class="ld-sec"><h2>JEE Maths chapters</h2>
-<p>{len(CH)} chapters and {D["tot_sub"]} subtopics. Open a chapter to see its subtopics and how often each was asked in JEE Main and JEE Advanced.</p>
+<p>{len(CH)} chapters and {D["tot_sub"]} subtopics in the syllabus, plus {len(OOS)} out-of-syllabus chapters. Open a chapter to see its subtopics and how often each was asked in JEE Main and JEE Advanced.</p>
 {chapter_list('jee-maths/')}
 <p><a href="jee-maths/">See all chapters with question counts</a></p></section>
 <section class="ld-sec"><h2>Frequently asked questions</h2>
 <div class="ld-faq">{faq}</div></section>
-<footer class="ld-foot"><p>अंक-IT Mathematics Dashboard · JEE, CET, NDA, IAT · PYQs, DPPs, handouts and tests.</p></footer>
+<footer class="ld-foot"><p>अंक-IT Mathematics Dashboard · JEE, CET, NDA, IAT · PYQs, DPPs, handouts and tests.</p><p><a href="about/">About us</a> · <a href="contact/">Contact us</a> · <a href="privacy/">Privacy policy</a> · <a href="terms/">Terms of use</a></p></footer>
 </div>
 <!--LANDING:END-->'''
 
 def sitemap():
-    urls = [(SITE + '/', '1.0'), (SITE + '/jee-maths/', '0.9')] + [(url(c), '0.8') for c in CH]
+    urls = [(SITE + '/', '1.0'), (SITE + '/jee-maths/', '0.9')] + [(url(c), '0.8') for c in CH] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
     body = ''.join(f'<url><loc>{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}</urlset>\n'
 
@@ -227,6 +347,7 @@ def write(path, text):
 def main():
     for i, c in enumerate(CH): write(f'jee-maths/{slug(c)}/index.html', chapter_page(i, c))
     write('jee-maths/index.html', hub_page())
+    for slug_, fn in (('about', about_page), ('contact', contact_page), ('privacy', privacy_page), ('terms', terms_page)): write(f'{slug_}/index.html', fn())
     write('sitemap.xml', sitemap())
     write('robots.txt', f'User-agent: *\nAllow: /\nDisallow: /qb/\n\nSitemap: {SITE}/sitemap.xml\n')
     s = open('index.html', encoding='utf-8').read()
