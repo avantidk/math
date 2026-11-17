@@ -1,5 +1,13 @@
 [
   {
+    "v": "965",
+    "date": "17 Nov 2026",
+    "items": [
+      "Question Bank PDF, print and Word files: the question code is now printed in brackets right after the level in the grey line above each question, for example \"... · L3 (AL-11M1-O3-9)\" (it is no longer after the question).",
+      "Questions with several parts that list their own options: (A) (B) (C) (D) of each part now sit in one row."
+    ]
+  },
+  {
     "v": "964",
     "date": "17 Nov 2026",
     "items": [

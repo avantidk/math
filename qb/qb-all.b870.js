@@ -346,6 +346,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
 
   /* the card code has its own srcLabel in another block; the export needs its own copy */
   function srcLabel(q) { return q.publisher || 'Practice'; }
+  /* the line above a question in PDF, print and Word: source, chapter, topic, level, then the question code in brackets */
+  function metaLineId(q) { var m = metaLine(q); return q.id ? m + ' (' + q.id + ')' : m; }
   function metaLine(q) {
     if (q.source === 'Non-PYQ') return 'Practice · ' + srcLabel(q) + (q.ref_year ? ' [' + q.ref_year + ']' : '') + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' ' : '') + q.topic : '') + ' · ' + q.difficulty;
     return q.exam + (q.year ? ' ' + q.year : '') + ' · ' + q.paper + ' · ' + q.chapter_code + ' ' + q.chapter + (q.topic ? ' · ' + (q.topic_code && !/^UNMAPPED/.test(q.topic_code) ? q.topic_code.replace(/^JM-/, '') + ' ' : '') + q.topic : '') + ' · ' + q.difficulty + (q.attention ? ' · NEEDS ATTENTION' : '');
@@ -470,9 +472,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     var b = o.title ? para(wRun(o.title, { b: true, sz: 28 }), { after: 120 }) : '';
     qs.forEach(function (q, i) {
       FIG = (o._figs || {})[q.id] || null;
-      b += para(wRun(metaLine(q), { color: '808080', sz: 16 }), { keepNext: true, after: 0 });
-      b += richParas(figLines(q.question), wRun('Q' + (i + 1) + '. ', { b: true }), { after: q.id ? 0 : 40 });
-      if (q.id) b += para(wRun('[' + q.id + ']', { color: '808080', sz: 16, i: true }), { after: 40 });
+      b += para(wRun(metaLineId(q), { color: '808080', sz: 16 }), { keepNext: true, after: 0 });
+      b += richParas(figLines(q.question), wRun('Q' + (i + 1) + '. ', { b: true }), { after: 40 });
       b += optionsWord(q.options || []);
       if (o.answers && !o.answerKey) b += /\\\(|\\\[|\n/.test(q.answer || '') ? richParas(String(q.answer), wRun('Answer: ', { b: true }), { after: 40 }) : para(wRun('Answer: ', { b: true }) + wRun(q.answer || '—'), { after: 40 });
       if (o.pptLayout) b += pageBreak() + para('') + pageBreak();
@@ -733,8 +734,21 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       var j = from; while (j < lines.length) { var m = PART.exec(lines[j]); if (!m || m[1] !== list[j - from]) break; j++; }
       return j;
     };
+    /* answer options written inside the question text ((A) (B) (C) (D), for questions with several parts) go in one row */
+    var OPT = /^\s*\(([A-H])\)\s/;
+    var optRun = function (from) {
+      var m0 = OPT.exec(lines[from]); if (!m0 || m0[1] !== 'A') return from;
+      var j = from; while (j < lines.length) { var m = OPT.exec(lines[j]); if (!m || m[1] !== 'ABCDEFGH'.charAt(j - from)) break; j++; }
+      return j;
+    };
     var out = [], k = 0;
     while (k < lines.length) {
+      var jo = optRun(k);
+      if (jo - k >= 2) {
+        var orun = lines.slice(k, jo), olong = Math.max.apply(null, orun.map(function (x) { return x.replace(/\\[a-zA-Z]+/g, 'x').length; }));
+        out.push({ block: true, html: '<div class="cols c' + (orun.length >= 4 && olong <= 30 ? 4 : 2) + '" style="margin:2px 0">' + orun.map(function (x) { return '<div>' + lineHtml(x) + '</div>'; }).join('') + '</div>' });
+        k = jo; continue;
+      }
       var j = seqRun(k);
       if (j - k >= 6) {
         var run = lines.slice(k, j), longest = Math.max.apply(null, run.map(function (x) { return x.replace(/\\[a-zA-Z]+/g, 'x').length; }));
@@ -751,7 +765,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     return '<div class="ops c' + cols + '">' + opts.map(function (op, j) { return '<div class="op"><b>(' + LET[j] + ')</b> ' + richHtml(op) + '</div>'; }).join('') + '</div>';
   }
   function qHtml(q, i, o) {
-    return '<div class="meta">' + esc(metaLine(q)) + '</div><div class="qt"><b>Q' + (i + 1) + '.</b> ' + richHtml(q.question, q.figure) + (q.id ? ' <span class="qid">[' + esc(q.id) + ']</span>' : '') + '</div>' + optionsHtml(q.options || []) +
+    return '<div class="meta">' + esc(metaLineId(q)) + '</div><div class="qt"><b>Q' + (i + 1) + '.</b> ' + richHtml(q.question, q.figure)+ '</div>' + optionsHtml(q.options || []) +
       (o.answers && !o.answerKey ? '<div class="ans"><b>Answer:</b> ' + (q.answer ? richHtml(String(q.answer), null) : '—') + '</div>' : '');
   }
   function keyHtml(qs, from, to) {
@@ -761,7 +775,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   var PCSS = '.qbp .katex-html{display:none!important}.qbp{font-family:Arial,Helvetica,"Segoe UI",sans-serif;font-size:14px;line-height:1.55;color:#000;background:#fff}' +
     '.qbp .h1{font-size:20px;font-weight:700;margin:0}.qbp .meta{font-size:10.5px;color:#777;margin-bottom:2px}' +
     '.qbp .qt{margin-bottom:4px}.qbp .ops{display:grid;gap:2px 14px;margin-left:16px}.qbp .ops.c4{grid-template-columns:repeat(4,1fr)}.qbp .ops.c2{grid-template-columns:repeat(2,1fr)}.qbp .ops.c1{grid-template-columns:1fr}' +
-    '.qbp .cols{display:grid;column-gap:26px;margin:4px 0}.qbp .cols.c2{grid-template-columns:repeat(2,minmax(0,1fr))}.qbp .cols.c3{grid-template-columns:repeat(3,minmax(0,1fr))}.qbp .cols>div{margin:0 0 .6em;overflow-wrap:anywhere;min-width:0}.qbp .qid{font-size:10px;color:#777;font-style:italic;white-space:nowrap}.qbp .op{min-width:0}.qbp .ans{margin-top:3px}.qbp .keyh{font-size:17px;font-weight:700}.qbp .key{display:grid;grid-template-columns:repeat(6,1fr);gap:4px 12px}' +
+    '.qbp .cols{display:grid;column-gap:26px;margin:4px 0}.qbp .cols.c2{grid-template-columns:repeat(2,minmax(0,1fr))}.qbp .cols.c3{grid-template-columns:repeat(3,minmax(0,1fr))}.qbp .cols.c4{grid-template-columns:repeat(4,minmax(0,1fr))}.qbp .cols>div{margin:0 0 .6em;overflow-wrap:anywhere;min-width:0}.qbp .qid{font-size:10px;color:#777;font-style:italic;white-space:nowrap}.qbp .op{min-width:0}.qbp .ans{margin-top:3px}.qbp .keyh{font-size:17px;font-weight:700}.qbp .key{display:grid;grid-template-columns:repeat(6,1fr);gap:4px 12px}' +
     '.qbp table.mt{border-collapse:collapse;margin:6px 0 6px 16px;width:calc(100% - 16px)}.qbp .mt td,.qbp .mt th{border:1px solid #000;padding:4px 8px;text-align:left;vertical-align:middle}.qbp .mt th{background:#e7e6e6}.qbp math{font-size:1.05em}.qbp math[display=block]{margin:.25em 0}';
   var PAGE_W = 794, PAGE_H = 1123, PAD = 45, GAP = 16, CONTENT_W = PAGE_W - 2 * PAD, CONTENT_H = PAGE_H - 2 * PAD;
 
