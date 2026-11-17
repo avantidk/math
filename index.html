@@ -6,28 +6,68 @@
 <!-- Security policy: scripts only from this website (plus Razorpay's payment window), data only from our Supabase project. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' blob: https://checkout.razorpay.com https://*.razorpay.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; connect-src 'self' https://usehxhvzhdbcmnmqaxoo.supabase.co wss://usehxhvzhdbcmnmqaxoo.supabase.co https://*.razorpay.com; frame-src 'self' blob: https://*.razorpay.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>Mathematics Dashboard | अंक-IT</title>
-<link rel="icon" type="image/png" sizes="32x32" href="img/icon/icon-32.png?v=924">
-<link rel="icon" type="image/png" sizes="16x16" href="img/icon/icon-16.png?v=924">
-<link rel="apple-touch-icon" sizes="180x180" href="img/icon/icon-180.png?v=924">
+<title>JEE Maths Practice: Question Bank, PYQs, DPPs &amp; Tests | अंक-IT</title>
+<link rel="icon" type="image/png" sizes="32x32" href="img/icon/icon-32.png?v=925">
+<link rel="icon" type="image/png" sizes="16x16" href="img/icon/icon-16.png?v=925">
+<link rel="apple-touch-icon" sizes="180x180" href="img/icon/icon-180.png?v=925">
 <meta name="theme-color" content="#0c1a3d">
-<meta name="description" content="अंक-IT Mathematics Dashboard: JEE Maths question bank, DPPs, PYQs, Must Solve, handouts and online tests.">
+<meta name="description" content="Free JEE Maths practice for Class 11 and 12: question bank with solutions, previous-year papers, DPPs, handouts and NTA-style online tests for JEE Main, JEE Advanced, KCET, NDA and IAT.">
+<link rel="canonical" href="https://unkganit.com/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="अंक-IT Mathematics Dashboard">
+<meta property="og:title" content="JEE Maths Practice: Question Bank, PYQs, DPPs &amp; Tests | अंक-IT">
+<meta property="og:description" content="Free JEE Maths practice for Class 11 and 12: question bank with solutions, previous-year papers, DPPs, handouts and online tests.">
+<meta property="og:url" content="https://unkganit.com/">
+<meta property="og:image" content="https://unkganit.com/img/og-share.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="JEE Maths Practice: Question Bank, PYQs, DPPs &amp; Tests | अंक-IT">
+<meta name="twitter:description" content="Free JEE Maths practice for Class 11 and 12: question bank with solutions, previous-year papers, DPPs, handouts and online tests.">
+<meta name="twitter:image" content="https://unkganit.com/img/og-share.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://unkganit.com/#site","url":"https://unkganit.com/","name":"अंक-IT Mathematics Dashboard","inLanguage":"en-IN"},{"@type":"EducationalOrganization","@id":"https://unkganit.com/#org","name":"अंक-IT Mathematics","url":"https://unkganit.com/","logo":"https://unkganit.com/img/icon/icon-180.png","description":"JEE Maths question bank, previous-year papers, DPPs, handouts and online tests for Class 11 and 12."}]}</script>
 <style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#0c1a3d;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
-<link rel="stylesheet" href="app.css?v=924">
+<link rel="stylesheet" href="app.css?v=925">
 <link rel="preload" href="vendor/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:Inter;font-style:normal;font-weight:400 700;font-display:swap;src:url(vendor/fonts/inter-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Fraunces;font-style:normal;font-weight:500 700;font-display:swap;src:url(vendor/fonts/fraunces-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
-<link rel="stylesheet" href="skin.b3.css?v=924">
-<link rel="stylesheet" href="portal.css?v=924">
+<link rel="stylesheet" href="skin.b3.css?v=925">
+<link rel="stylesheet" href="portal.css?v=925">
+<link rel="stylesheet" href="landing.css?v=925">
 </head>
 <body>
 <!-- Before sign-in only the login page is shown; the dashboard (#app) is built after the server confirms the user. -->
 <div id="auth"><div style="padding:64px 16px;text-align:center;font-family:system-ui,sans-serif;color:#c9d4ee">Loading…</div></div>
 <div id="app" hidden></div>
+<!--LANDING:START (generated by .github/scripts/build_seo.py; edit that script, not this block)-->
+<div id="landing" class="ld">
+<section class="ld-sec">
+<h1>अंक-IT Mathematics Dashboard: JEE Maths practice for Class 11 and 12</h1>
+<p class="ld-lead">A question bank with solutions, previous-year papers, DPPs, handouts and NTA-style online tests for JEE Main, JEE Advanced, KCET, NDA and IAT mathematics. Start free.</p>
+<p><a class="ld-btn" href="#auth">Sign in to start</a></p>
+</section>
+<section class="ld-sec"><h2>Who is it for?</h2>
+<p>Students of Class 11 and Class 12 and droppers preparing for JEE Maths, and the teachers who coach them. Practise chapter by chapter, take full tests in an exam-like screen and see where you stand.</p></section>
+<section class="ld-sec"><h2>Free, Premium and Avanti</h2>
+<div class="ld-plans">
+<div><h3>Free</h3><p>Question bank with solutions, previous-year questions, online tests and your own reports. Sign in with Google.</p></div>
+<div><h3>Premium</h3><p>₹299 a year for students, ₹599 for teachers. Adds PDF downloads and printing, all-India ranks, comparison with all students and handouts. Teachers also get a student list and bulk upload.</p></div>
+<div><h3>Avanti</h3><p>Avanti students get Premium free and sign in with their Student ID. Avanti teachers get full teaching tools.</p></div>
+</div></section>
+<section class="ld-sec"><h2>JEE Maths chapters</h2>
+<p>24 chapters and 290 subtopics. Open a chapter to see its subtopics and how often each was asked in JEE Main and JEE Advanced.</p>
+<h3>Class 11</h3><ul class="pg-chlist"><li><a href="jee-maths/fundamentals-of-mathematics/">Fundamental of Mathematics</a></li><li><a href="jee-maths/sets-relations-and-functions/">Sets, Relations and Functions</a></li><li><a href="jee-maths/trigonometry/">Trigonometry</a></li><li><a href="jee-maths/quadratic-equations/">Quadratic Equations</a></li><li><a href="jee-maths/complex-numbers/">Complex Numbers</a></li><li><a href="jee-maths/sequences-and-series/">Sequences and Series</a></li><li><a href="jee-maths/permutations-and-combinations/">Permutations and Combinations</a></li><li><a href="jee-maths/binomial-theorem/">Binomial Theorem</a></li><li><a href="jee-maths/straight-lines/">Straight Lines</a></li><li><a href="jee-maths/circle/">Circle</a></li><li><a href="jee-maths/conic-sections/">Conic Sections</a></li><li><a href="jee-maths/statistics/">Statistics</a></li></ul><h3>Class 12</h3><ul class="pg-chlist"><li><a href="jee-maths/functions/">Functions</a></li><li><a href="jee-maths/inverse-trigonometric-functions/">Inverse Trigonometric Functions</a></li><li><a href="jee-maths/matrices-and-determinants/">Matrices and Determinants</a></li><li><a href="jee-maths/limits/">Limits</a></li><li><a href="jee-maths/continuity-and-differentiability/">Continuity and Differentiability</a></li><li><a href="jee-maths/application-of-derivatives/">Application of Derivative</a></li><li><a href="jee-maths/indefinite-integration/">Indefinite Integration</a></li><li><a href="jee-maths/definite-integration/">Definite Integration and Area Under the Curve</a></li><li><a href="jee-maths/differential-equations/">Differential Equations</a></li><li><a href="jee-maths/vectors/">Vectors</a></li><li><a href="jee-maths/three-dimensional-geometry/">Three Dimensional Geometry</a></li><li><a href="jee-maths/probability/">Probability</a></li></ul>
+<p><a href="jee-maths/">See all chapters with question counts</a></p></section>
+<section class="ld-sec"><h2>Frequently asked questions</h2>
+<div class="ld-faq"><details><summary>Is the Mathematics Dashboard free?</summary><p>Yes, you can start free. Sign in with Google to use the question bank with solutions, online tests and your reports. Premium adds PDF downloads and printing, all-India ranks, comparison with all students and handouts.</p></details><details><summary>Who is it for?</summary><p>Students of Class 11, Class 12 and droppers preparing JEE Maths (JEE Main and JEE Advanced), and also KCET, NDA, IAT and similar exams. Teachers can use it to make tests and track their students.</p></details><details><summary>How much does Premium cost?</summary><p>Premium is ₹299 a year for students and ₹599 a year for teachers. Avanti students get Premium free.</p></details><details><summary>What is in the question bank?</summary><p>JEE Maths questions filtered by chapter, topic, level, exam and year, with solutions, plus previous-year papers, daily practice problems (DPPs), Must Solve lists and revision handouts.</p></details><details><summary>How do I sign in?</summary><p>Use your Google account. Avanti students can sign in with their Student ID instead. You choose Student or Teacher the first time.</p></details><details><summary>Can teachers create tests?</summary><p>Yes. Teachers whose school has been approved can build an online test from the question bank, share one link with their students and see results and ranks.</p></details></div></section>
+<footer class="ld-foot"><p>अंक-IT Mathematics Dashboard · JEE, CET, NDA, IAT · PYQs, DPPs, handouts and tests.</p></footer>
+</div>
+<!--LANDING:END-->
 <noscript><p style="color:#fff;text-align:center">This page needs JavaScript.</p></noscript>
 <script src="vendor/supabase-js-2.45.4.min.js"></script>
-<script src="boot.js?v=924"></script>
-<script src="portal.js?v=924"></script>
-<script src="chat.js?v=924"></script>
-<script src="auth.js?v=924"></script>
+<script src="boot.js?v=925"></script>
+<script src="portal.js?v=925"></script>
+<script src="chat.js?v=925"></script>
+<script src="auth.js?v=925"></script>
 </body>
 </html>

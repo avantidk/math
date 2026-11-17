@@ -1,5 +1,15 @@
 [
   {
+    "v": "925",
+    "date": "17 Nov 2026",
+    "items": [
+      "The home page now has public information that search engines can read: what the dashboard is, who it is for, Free / Premium / Avanti, the chapter list and common questions. Signing in works as before.",
+      "New public page for each JEE Maths chapter (for example /jee-maths/definite-integration/) with its subtopics, how often each was asked in JEE Main and JEE Advanced, and a year-wise trend. No questions or solutions are shown on these pages.",
+      "Added a sitemap, robots file and share previews (WhatsApp, Facebook, Twitter) for the new domain.",
+      "Security: the website now refuses to run inside a frame on another website, so it cannot be disguised under a fake page (clickjacking)."
+    ]
+  },
+  {
     "v": "924",
     "date": "17 Nov 2026",
     "items": [

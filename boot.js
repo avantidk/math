@@ -6,6 +6,14 @@
    BUILD must be bumped on every release so returning visitors get the new code on their next visit. */
 (function () {
 'use strict';
+/* Clickjacking protection: GitHub Pages cannot send frame-ancestors / X-Frame-Options, so if another website has put this one
+   inside a frame, break out of it, or hide the page when the browser refuses. Frames from this same site (previews) are fine. */
+try {
+  if (window.top !== window.self) {
+    let same = false; try { same = window.top.location.origin === window.location.origin; } catch (e) { same = false; }
+    if (!same) { try { window.top.location.replace(window.location.href); } catch (e) { /* sandboxed frame */ } document.documentElement.style.display = 'none'; }
+  }
+} catch (e) { /* never block the page because of this check */ }
 /* Small helpers shared by every file of the site (one copy instead of four). */
 function h(tag, props, ...kids) {
   const e = document.createElement(tag);
@@ -24,7 +32,7 @@ function h(tag, props, ...kids) {
 }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 window.AvantiUtil = Object.freeze({ h, esc });
-const BUILD = '924';
+const BUILD = '925';
 const RELEASED = '17 Nov 2026';   /* date of this release, shown in the footer */
 const SB_URL = 'https://usehxhvzhdbcmnmqaxoo.supabase.co';
 const SB_KEY = 'sb_publishable_QQ_N_B6kl416kbGMF0DQtw_9Jg58PoN';
