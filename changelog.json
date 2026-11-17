@@ -1,5 +1,12 @@
 [
   {
+    "v": "939",
+    "date": "17 Nov 2026",
+    "items": [
+      "Home page: fixed a small white gap (about 8 pixels) around the page, so the header and the blue top section now reach the edges of the browser window."
+    ]
+  },
+  {
     "v": "938",
     "date": "17 Nov 2026",
     "items": [
