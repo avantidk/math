@@ -1060,3 +1060,5 @@ html.hv-drag .hv-pages { pointer-events: none; }
 .pt-lgi { display: inline-flex; align-items: center; gap: 6px; } .pt-lg { width: 10px; height: 10px; border-radius: 50%; display: inline-block; } .pt-lg.ok { background: var(--ok); } .pt-lg.bad { background: var(--bad); } .pt-lg.mute { background: var(--rule); }
 .pt-tpgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 14px; } .pt-tpgrid:empty { display: none; }
 .pt-tp { display: flex; flex-direction: column; gap: 8px; } .pt-tag.badtag { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); } .pt-tag.oktag { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+
+.pt-ctr { display: flex; align-items: center; gap: 6px; }

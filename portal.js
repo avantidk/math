@@ -931,8 +931,21 @@ async function pageMyTests() {
     const { error } = await sb().from('tests').delete().eq('id', t.id); if (error) toast('Could not delete: ' + error.message); else { toast('Test deleted'); pageMyTests(); }
   };
   const preview = async t => { const { data, error } = await sb().from('tests').select('title,questions').eq('id', t.id).single(); if (error) { toast(error.message); return; } previewQs(data.title, data.questions, true); };
+  const rename = async t => { const nt = await promptBox('Rename test', 'Title', t.title); if (!nt || nt === t.title) return; const { error } = await sb().from('tests').update({ title: nt }).eq('id', t.id); if (error) toast('Could not rename: ' + error.message); else { toast('Test renamed'); pageMyTests(); } };
+  /* the question IDs of a test: the same export / share menu as Saved worksheets */
+  const idsOf = async t => { const { data, error } = await sb().from('tests').select('questions').eq('id', t.id).single(); if (error) { toast(error.message); return null; } return (data.questions || []).map(q => q.id).filter(Boolean); };
+  const exp = (t, kind) => async () => { const ids = await idsOf(t); if (ids) TE().exportIds(ids, t.title, kind); };
+  const exportBtn = t => can('pdf') ? h('button', { type: 'button', class: 'btn pt-split', 'aria-haspopup': 'menu', 'aria-expanded': 'false', onclick: e => dropMenu(e.currentTarget, [
+      { icon: IC.pdf, text: 'Download PDF', sub: 'Print-ready, with the Avanti header', onclick: exp(t, 'pdf') },
+      can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable document', onclick: exp(t, 'docx') } : null,
+      can('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: exp(t, 'pptx') } : null,
+      can('share') ? '-' : null,
+      can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { const ids = await idsOf(t); if (ids) shareWorksheet({ title: t.title, question_ids: ids }); } } : null]) },
+    h('span', { html: IC.down }), 'Export', h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' })) : null;
+  const moreBtn = t => h('button', { type: 'button', class: 'btn pt-iconbtn', title: 'More', 'aria-label': 'More actions for ' + t.title, 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: IC.more,
+    onclick: e => dropMenu(e.currentTarget, [{ icon: IC.edit, text: 'Edit', onclick: () => { location.hash = '#/edit/' + t.id; } }, { icon: IC.edit, text: 'Rename', onclick: () => rename(t) }, { icon: IC.del, text: 'Delete', bad: true, onclick: () => del(t) }]) });
   show(top, h('div', { class: 'pt-cards' }, list.map(t => card(
-    h('div', { class: 'pt-ct' }, h('h3', { text: t.title }), t.is_active ? badge('Active', 'ok') : badge('Inactive', 'mute')),
+    h('div', { class: 'pt-ct' }, h('h3', { text: t.title }), h('div', { class: 'pt-ctr' }, t.is_active ? badge('Active', 'ok') : badge('Inactive', 'mute'), t.mine === false ? null : moreBtn(t))),
     t.mine === false ? h('p', { class: 'pt-meta' }, 'By ', h('b', { text: t.owner_name || 'Teacher' }), ' · ' + ([t.school].concat(t.schools || []).filter(Boolean).join(', ') || 'All schools')) : null,
     h('p', { class: 'pt-meta', text: [t.n_questions + ' questions', t.duration_min + ' min', '+' + num(t.marks_correct, 2) + ' / −' + num(t.marks_wrong, 2), 'Class ' + (t.target_classes || []).join(', '), (t.target_streams || []).join(', '), [t.school].concat(t.schools || []).filter(Boolean).join(', ') || 'All schools'].join(' · ') }),
     h('p', { class: 'pt-meta' }, h('b', { text: t.submitted }), ' submitted', t.in_progress ? ' · ' + t.in_progress + ' writing now' : '', ' · created ' + day(t.created_at)),
@@ -940,10 +953,9 @@ async function pageMyTests() {
     h('div', { class: 'pt-actions' },
       h('button', { type: 'button', class: 'btn pri', text: 'Copy link', onclick: () => copy(testLink(t.code), 'Link copied') }),
       link('#/results/' + t.id, 'Results', 'btn'),
-      t.mine === false ? null : link('#/edit/' + t.id, 'Edit', 'btn'),
       h('button', { type: 'button', class: 'btn', text: 'Preview', onclick: () => preview(t) }),
-      t.mine === false ? null : h('button', { type: 'button', class: 'btn', text: t.is_active ? 'Deactivate' : 'Activate', onclick: () => toggle(t) }),
-      t.mine === false ? null : h('button', { type: 'button', class: 'btn pt-danger', text: 'Delete', onclick: () => del(t) }))))));
+      t.mine === false ? null : exportBtn(t),
+      t.mine === false ? null : h('button', { type: 'button', class: 'btn', text: t.is_active ? 'Deactivate' : 'Activate', onclick: () => toggle(t) }))))));
 }
 
 /* ---------- Teacher results ---------- */
