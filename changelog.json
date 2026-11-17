@@ -1,5 +1,12 @@
 [
   {
+    "v": "958",
+    "date": "17 Nov 2026",
+    "items": [
+      "My Tests menu: Rename now has its own icon (a text icon), Deactivate is shown in red and Activate in green. Rename in Saved worksheets uses the new icon too."
+    ]
+  },
+  {
     "v": "957",
     "date": "17 Nov 2026",
     "items": [

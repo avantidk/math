@@ -510,7 +510,7 @@ async function myWorksheets() {
 function dropMenu(btn, items) {
   const old = document.querySelector('.pt-dmenu'); if (old) { const same = old.owner === btn; old.remove(); if (same) return; }
   const m = h('div', { class: 'pt-dmenu', role: 'menu' }, items.filter(Boolean).map(it => it === '-' ? h('div', { class: 'pt-dsep', role: 'separator' })
-    : h('button', { type: 'button', role: 'menuitem', class: 'pt-ditem' + (it.bad ? ' bad' : ''), onclick: () => { close(); it.onclick(); } }, it.icon ? h('span', { class: 'pt-dic', html: it.icon }) : null, h('span', { class: 'pt-dtx' }, h('b', { text: it.text }), it.sub ? h('small', { text: it.sub }) : null))));
+    : h('button', { type: 'button', role: 'menuitem', class: 'pt-ditem' + (it.bad ? ' bad' : '') + (it.good ? ' good' : '') + (it.red ? ' red' : ''), onclick: () => { close(); it.onclick(); } }, it.icon ? h('span', { class: 'pt-dic', html: it.icon }) : null, h('span', { class: 'pt-dtx' }, h('b', { text: it.text }), it.sub ? h('small', { text: it.sub }) : null))));
   m.owner = btn; document.body.append(m);
   const r = btn.getBoundingClientRect(), w = m.offsetWidth;
   m.style.top = Math.min(window.innerHeight - m.offsetHeight - 8, r.bottom + 6) + 'px';
@@ -527,6 +527,7 @@ const IC = {
   edit: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
   del: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
   down: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>',
+  rename: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V5h16v2M12 5v14M9 19h6"/></svg>',
   eye: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
   power: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9"/><path d="M18.4 6.6a8 8 0 1 1-12.8 0"/></svg>',
   more: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>'
@@ -569,7 +570,7 @@ async function pageWorksheets() {
       can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: () => shareWorksheet(w) } : null]) },
     h('span', { html: IC.down }), 'Export', h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' })) : null;
   const moreBtn = w => h('button', { type: 'button', class: 'btn pt-iconbtn', title: 'More', 'aria-label': 'More actions for ' + w.title, 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: IC.more,
-    onclick: e => dropMenu(e.currentTarget, [{ icon: IC.edit, text: 'Edit questions', onclick: () => { location.hash = '#/ws-edit/' + w.id; } }, { icon: IC.edit, text: 'Rename', onclick: () => rename(w) }, { icon: IC.del, text: 'Delete', bad: true, onclick: () => del(w) }]) });
+    onclick: e => dropMenu(e.currentTarget, [{ icon: IC.edit, text: 'Edit questions', onclick: () => { location.hash = '#/ws-edit/' + w.id; } }, { icon: IC.rename, text: 'Rename', onclick: () => rename(w) }, { icon: IC.del, text: 'Delete', bad: true, onclick: () => del(w) }]) });
   const body = list.length ? h('div', { class: 'pt-cards' }, list.map(w => card(
     h('div', { class: 'pt-ct' }, h('h3', { text: w.title }), moreBtn(w)),
     h('p', { class: 'pt-meta' }, h('b', { text: w.question_ids.length }), ' questions · updated ' + when(w.updated_at)),
@@ -950,8 +951,8 @@ async function pageMyTests() {
     h('span', { html: IC.down }), 'Export', h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' })) : null;
   const moreBtn = t => h('button', { type: 'button', class: 'btn pt-iconbtn pt-ctmore', title: 'More', 'aria-label': 'More actions for ' + t.title, 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: IC.more,
     onclick: e => dropMenu(e.currentTarget, t.mine === false ? [{ icon: IC.eye, text: 'Preview', onclick: () => preview(t) }]
-      : [{ icon: IC.eye, text: 'Preview', onclick: () => preview(t) }, { icon: IC.edit, text: 'Edit', onclick: () => { location.hash = '#/edit/' + t.id; } }, { icon: IC.edit, text: 'Rename', onclick: () => rename(t) },
-         { icon: IC.power, text: t.is_active ? 'Deactivate' : 'Activate', sub: t.is_active ? 'Students cannot start it' : 'Students can start it', onclick: () => toggle(t) }, '-', { icon: IC.del, text: 'Delete', bad: true, onclick: () => del(t) }]) });
+      : [{ icon: IC.eye, text: 'Preview', onclick: () => preview(t) }, { icon: IC.edit, text: 'Edit', onclick: () => { location.hash = '#/edit/' + t.id; } }, { icon: IC.rename, text: 'Rename', onclick: () => rename(t) },
+         { icon: IC.power, text: t.is_active ? 'Deactivate' : 'Activate', red: t.is_active, good: !t.is_active, sub: t.is_active ? 'Students cannot start it' : 'Students can start it', onclick: () => toggle(t) }, '-', { icon: IC.del, text: 'Delete', bad: true, onclick: () => del(t) }]) });
   show(top, h('div', { class: 'pt-cards' }, list.map(t => card(
     h('div', { class: 'pt-ct pt-cthead' }, h('div', { class: 'pt-tt' }, h('h3', { text: t.title }), t.is_active ? badge('Active', 'ok') : badge('Inactive', 'mute')), moreBtn(t)),
     t.mine === false ? h('p', { class: 'pt-meta' }, 'By ', h('b', { text: t.owner_name || 'Teacher' }), ' · ' + ([t.school].concat(t.schools || []).filter(Boolean).join(', ') || 'All schools')) : null,

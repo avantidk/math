@@ -1071,3 +1071,7 @@ html.hv-drag .hv-pages { pointer-events: none; }
 button.pt-linkcopy { width: 100%; text-align: left; cursor: pointer; font: inherit; color: inherit; }
 button.pt-linkcopy:hover { border-color: var(--accent); background: var(--panel, #fff); }
 .pt-tact { flex-wrap: nowrap; }
+
+.pt-ditem.good, .pt-ditem.good .pt-dic { color: #15803d; }
+.pt-ditem.red, .pt-ditem.red .pt-dic { color: #d92d20; }
+.pt-ditem.bad .pt-dtx small, .pt-ditem.good .pt-dtx small { color: var(--muted); }
