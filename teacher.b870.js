@@ -1570,7 +1570,7 @@ function toggleMax(btn) {
   setTimeout(rescale, 0); setTimeout(rescale, 150);
 }
 function closeMax() { const st = document.querySelector('.stage.maxed'); if (!st) return; const b = st.querySelector('[data-act="max"]'); if (b) toggleMax(b); }
-/* PDF limits for everyone except the admin: at most 90 questions in one PDF and 100 questions a day for each account. The day's total is kept
+/* PDF limits for everyone except the admin: at most 5 PDFs a day for each account, each with at most 90 questions. The day's count is kept
    by the database (claim_pdf_quota), so it follows the account, not the browser. Print and Share make the same PDF, so they count too. */
 const PDF_MAX = 90;
 async function claimPdf(pages) {

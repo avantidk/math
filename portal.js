@@ -393,7 +393,7 @@ function membershipContent(teacher) {
     eyebrow: 'Premium for teachers', title: 'Teach more. Prepare less.',
     lead: 'Every DPP, PYQ paper and handout as a ready-to-print PDF, your whole school\'s students in one place, and results you can act on.',
     feats: [
-      ['pdf', 'Every PDF, print-ready', 'DPPs, chapterwise and shift-wise PYQ papers, Must Solve lists and handouts, with answer keys and full explanations. Up to 90 questions in one PDF and 100 questions a day.'],
+      ['pdf', 'Every PDF, print-ready', 'DPPs, chapterwise and shift-wise PYQ papers, Must Solve lists and handouts, with answer keys and full explanations. Up to 5 PDFs a day, each with up to 90 questions.'],
       ['share', 'Share in one tap', 'Send any PDF to your class on WhatsApp, by email or through any app on your phone.'],
       ['folder', 'Saved worksheets', 'Keep the question sets you build and reuse them for tests or downloads whenever you need them.'],
       ['users', 'My Students', 'Every student of your school by class, stream and session, with sign-in status, tests taken, average and last test.'],
