@@ -1,5 +1,14 @@
 [
   {
+    "v": "946",
+    "date": "17 Nov 2026",
+    "items": [
+      "Question counts, Chapter-wise Count and Chapter Weightage pages: a new block \"Want to know more, in depth?\" with a Purchase Premium button.",
+      "Home page: fewer headings (28 down to 19; the card and step titles are plain text now), and the Dashboard icon has a text label for screen readers and search engines.",
+      "Exam guide pages now link to the official exam websites (NTA, JEE Advanced, UPSC, KEA, IISER, JoSAA)."
+    ]
+  },
+  {
     "v": "945",
     "date": "17 Nov 2026",
     "items": [

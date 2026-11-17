@@ -266,7 +266,7 @@ def header(depth, up=None):
     nav = exams_dd + rest
     login = f'<a class="sb sb-pri when-out" data-login href="{up}?login=1" rel="nofollow">Login</a>'
     grid_ico = svg('<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>', 22)
-    user = (f'<div class="sh-user when-in"><a class="sh-ico" href="{up}dashboard" title="Dashboard" aria-label="Open your dashboard">{grid_ico}</a>'
+    user = (f'<div class="sh-user when-in"><a class="sh-ico" href="{up}dashboard" title="Dashboard" aria-label="Open your dashboard">{grid_ico}<span class="vh">Dashboard</span></a>'
             f'<div class="sh-pf"><a class="sh-av" data-av data-profile href="{up}dashboard#/profile" aria-label="Your account" aria-haspopup="true" aria-expanded="false">&nbsp;</a><div class="pfm" role="menu"></div></div></div>')
     bars = svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', 22)
     stat = (f'<div class="sh-stat"><button type="button" class="sh-ico sh-statb" aria-haspopup="true" aria-expanded="false" title="Question bank numbers" aria-label="Question bank numbers">{bars}</button>'
@@ -445,6 +445,12 @@ def gd_blocks(blocks):
 
 GD_ICONS = ['<path d="M9 12l2 2 4-4M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>', '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', '<path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', '<path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/>', '<path d="M12 3l9 5-9 5-9-5 9-5zM7 12v5c0 1 2.2 3 5 3s5-2 5-3v-5"/>', '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', '<path d="M4 4h16v16H4zM4 10h16M10 4v16"/>']
 
+OFFICIAL = {'jee-main': [('NTA JEE Main (official site)', 'https://jeemain.nta.nic.in/'), ('JoSAA counselling', 'https://josaa.nic.in/')],
+            'jee-advanced': [('JEE Advanced (official site)', 'https://jeeadv.ac.in/'), ('JoSAA counselling', 'https://josaa.nic.in/')],
+            'nda': [('UPSC (official site)', 'https://upsc.gov.in/')],
+            'kcet': [('Karnataka Examinations Authority (official site)', 'https://cetonline.karnataka.gov.in/kea/')],
+            'iat': [('IISER admissions (official site)', 'https://iiseradmission.in/')]}
+
 def guide_page(e):
     key, name, sl, tag, about = e
     g = GUIDES[sl]; s = STATS[key]
@@ -463,13 +469,14 @@ def guide_page(e):
              f'<div><b>{s["papers"]}</b><span>papers (shifts and sessions)</span></div><div><b>{len(g["sections"])}</b><span>sections in this guide</span></div></div>')
     others = ''.join(f'<li><a href="../../{x[2]}/about/">{exlogo(x, "../../../", 32)}<span>{E(x[1])} exam guide</span></a></li>' for x in EXAMS if x[2] != sl and x[2] in GUIDES)
     crumbs = f'<a href="../../../">Home</a> &rsaquo; <a href="../../">Exams</a> &rsaquo; <a href="../">{E(name)}</a> &rsaquo; <span aria-current="page">Exam guide</span>'
+    official = ('<p class="gd-off"><b>Official websites:</b> ' + ' &middot; '.join(f'<a href="{u}" target="_blank" rel="noopener">{E(t)}</a>' for t, u in OFFICIAL[sl]) + '</p>') if sl in OFFICIAL else ''
     main = f"""<p class="gd-kick">{E(g["kicker"].title())}</p>
 <p class="pg-lead">{E(intro)}</p>
 {tiles}
 <div class="gd-go"><a class="sb sb-green" href="../">{E(name)} math analysis</a><a class="sb sb-line" href="../../">All exams</a></div>
 <nav class="gd-toc" aria-label="On this page"><p class="gd-toc-h">On this page</p><div>{toc}</div></nav>
 {secs}
-<p class="pg-fine">The figures in this guide are rounded or approximate and are compiled from the official notifications and public reports. They change from year to year, so always confirm the latest rules, dates and fees on the official website of the exam.</p>
+{official}<p class="pg-fine">The figures in this guide are rounded or approximate and are compiled from the official notifications and public reports. They change from year to year, so always confirm the latest rules, dates and fees on the official website of the exam.</p>
 {('<h2 class="gd-more-h">Other exam guides</h2><ul class="side-list gd-more">' + others + '</ul>') if others else ''}
 {cta(3, f"Practise {name} math questions chapter-wise with full solutions, build DPPs and open whole papers. Everything is inside after you sign in.", cur=f'exams/{sl}/about/', exam=e)}"""
     body = band(crumbs, f'{exlogo(e, "../../../", 44)} {E(name)}: Complete Exam Guide') + '\n' + grid(main, 3, sl)
@@ -794,7 +801,7 @@ def home_block():
      ('i-purple', svg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>'), 'Past papers 2000–2026', 'JEE Main, JEE Advanced and more, paper by paper and chapter by chapter, with answer keys.'),
      ('i-rose', svg('<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>'), 'DPPs, Must Solve and handouts', 'Daily practice sheets, hand-picked must-solve questions and handwritten revision notes for every chapter.'),
      ('i-teal', svg('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>'), 'Built for teachers', 'Make a test in minutes, share one link with your class and see every student\'s result.')]
-    feat_html = ''.join(f'<article class="fcard"><span class="ico {c}">{i}</span><h3>{E(t)}</h3><p>{E(d)}</p></article>' for c, i, t, d in feats)
+    feat_html = ''.join(f'<article class="fcard"><span class="ico {c}">{i}</span><p class="hd">{E(t)}</p><p>{E(d)}</p></article>' for c, i, t, d in feats)
     def frame(src, alt, first=False):
         load = 'fetchpriority="high"' if first else 'loading="lazy"'
         return (f'<div class="frame"><div class="frame-bar"><i></i><i></i><i></i><span>unkganit.com</span></div>'
@@ -814,7 +821,7 @@ def home_block():
         if i == 0: return frame(s[0], s[4])
         f = frame(s[0], s[4]).replace(f'src="img/shots/{s[0]}.webp"', f'src="{PIX}" data-src="img/shots/{s[0]}.webp"').replace(' loading="lazy"', '')
         return f + f'<noscript><img src="img/shots/{s[0]}.webp" width="1366" height="800" alt="{E(s[4])}"></noscript>'
-    slides = ''.join(f'<figure class="car-slide" id="car-s{i}" role="tabpanel" aria-roledescription="slide" aria-label="{i + 1} of {len(shots)}: {E(s[1])}" data-title="{E(s[1])}">{slide_img(s, i)}<figcaption><h3>{E(s[2])}</h3><p>{E(s[3])}</p></figcaption></figure>' for i, s in enumerate(shots))
+    slides = ''.join(f'<figure class="car-slide" id="car-s{i}" role="tabpanel" aria-roledescription="slide" aria-label="{i + 1} of {len(shots)}: {E(s[1])}" data-title="{E(s[1])}">{slide_img(s, i)}<figcaption><p class="hd">{E(s[2])}</p><p>{E(s[3])}</p></figcaption></figure>' for i, s in enumerate(shots))
     showcase = ('<div class="car" data-car><div class="car-tabs" hidden></div><div class="car-view">'
                 f'<div class="car-track" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Screens from the dashboard">{slides}</div>'
                 '<button type="button" class="car-btn car-prev" aria-label="Previous screen" hidden>&lsaquo;</button><button type="button" class="car-btn car-next" aria-label="Next screen" hidden>&rsaquo;</button></div>'
@@ -830,7 +837,7 @@ def home_block():
     steps = [('Create your free account', 'Click Login, choose Student or Teacher and continue with Google. Avanti students use their Student ID.'),
              ('Practise chapter by chapter', 'Open the question bank, DPPs, previous-year papers and Must Solve. Check every answer against the full solution.'),
              ('Take tests and track progress', 'Attempt NTA-style tests, see your score, rank and weak topics, and come back stronger next week.')]
-    steps_html = ''.join(f'<div class="step"><h3>{E(t)}</h3><p>{E(d)}</p></div>' for t, d in steps)
+    steps_html = ''.join(f'<div class="step"><p class="hd">{E(t)}</p><p>{E(d)}</p></div>' for t, d in steps)
     tick = lambda items: ''.join(f'<li>{CHECK}<span>{E(t)}</span></li>' for t in items)
     def plan_set(cls_, free, prem, av):
         def card(p, hot=False):
@@ -894,9 +901,15 @@ EXAM_KEY = {'JEE Main': 'JEE Main', 'JEE Advanced': 'JEE Advanced', 'AIEEE': 'AI
 
 def num(n): return f'{int(n):,}'
 
+def upgrade_block():
+    return ('<section class="upg"><div><h2>Want to know more, in depth?</h2><p>Get a one-year Premium membership: PDF downloads and printing, all handouts and all-India ranks, on top of the free question bank, DPPs and past papers. '
+            'Students pay &#8377;299 a year and teachers &#8377;599 a year. Avanti students and teachers get Premium free.</p></div>'
+            '<div class="upg-go"><a class="upg-btn when-in" href="../dashboard#/membership">Purchase Premium</a><a class="upg-btn when-out" data-login href="../?login=1" rel="nofollow">Purchase Premium</a>'
+            '<small>Login or register first, then choose Premium in your profile menu.</small></div></section>')
+
 def stat_shell(slug_, title, h1, desc, lead, inner, crumb):
     crumbs = f'<a href="../">Home</a> &rsaquo; <span aria-current="page">{E(crumb)}</span>'
-    body = band(crumbs, E(h1)) + '\n' + grid(f'<p class="pg-lead">{E(lead)}</p>' + inner + cta(1, '', cur=slug_ + '/'), 1)
+    body = band(crumbs, E(h1)) + '\n' + grid(f'<p class="pg-lead">{E(lead)}</p>' + inner + upgrade_block() + cta(1, '', cur=slug_ + '/'), 1)
     ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
         {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'}, {'@type': 'ListItem', 'position': 2, 'name': h1, 'item': f'{SITE}/{slug_}/'}]}]
     return page(title, desc, f'{SITE}/{slug_}/', body, 1, ld)
