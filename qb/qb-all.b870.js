@@ -715,11 +715,14 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     if (mt) {
       var n = Math.max(mt.a.length, mt.b.length), rows = '<tr><th>' + esc(mt.h1) + '</th><th>' + esc(mt.h2) + '</th></tr>';
       for (var r = 0; r < n; r++) rows += '<tr><td>' + (mt.a[r] != null ? richHtml(mt.a[r]) : '') + '</td><td>' + (mt.b[r] != null ? richHtml(mt.b[r]) : '') + '</td></tr>';
-      return (mt.pre.trim() ? richHtml(mt.pre, fig) : '') + '<table class="mt">' + rows + '</table>';
+      /* column widths follow the text: the column with the longer items gets more room */
+      var lenOf = function (arr) { return Math.max.apply(null, [8].concat(arr.map(function (x) { return String(x).replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}^_]/g, '').length; }))); };
+      var la = lenOf(mt.a), lb = lenOf(mt.b), wa = Math.max(34, Math.min(66, Math.round(100 * la / (la + lb))));
+      return (mt.pre.trim() ? richHtml(mt.pre, fig) : '') + '<table class="mt"><colgroup><col style="width:' + wa + '%"><col style="width:' + (100 - wa) + '%"></colgroup>' + rows + '</table>';
     }
-    var lines = String(fig ? figLines(s) : s).split('\n');
+    var lines = String(fig ? figLines(s) : s).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1').split('\n');   /* a line break next to a display formula only adds an empty line */
     var lineHtml = function (line) {
-      if (line.trim() === '{{figure}}') return fig && fig.svg ? '<div class="fig" style="margin:6px 0">' + String(fig.svg).replace(/<svg /, '<svg style="width:' + fig.w + 'px;height:' + fig.h + 'px" ') + '</div>' : '';
+      if (line.trim() === '{{figure}}') { if (!(fig && fig.svg)) return ''; var fk = Math.min(1, 300 / (fig.w || 300), 220 / (fig.h || 220)); return '<div class="fig" style="margin:6px 0">' + String(fig.svg).replace(/<svg /, '<svg style="width:' + Math.round(fig.w * fk) + 'px;height:' + Math.round(fig.h * fk) + 'px" ') + '</div>'; }
       return segments(line).map(function (sg) {
         if (sg.t === 'text') return boldParts(sg.v).map(function (bp) { return bp.b ? '<b>' + esc(bp.s) + '</b>' : esc(bp.s); }).join('');
         try { return window.__mh(sg.v, sg.display); } catch (e) { return esc(sg.v); }
@@ -776,7 +779,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     '.qbp .h1{font-size:20px;font-weight:700;margin:0}.qbp .meta{font-size:10.5px;color:#777;margin-bottom:2px}' +
     '.qbp .qt{margin-bottom:4px}.qbp .ops{display:grid;gap:2px 14px;margin-left:16px}.qbp .ops.c4{grid-template-columns:repeat(4,1fr)}.qbp .ops.c2{grid-template-columns:repeat(2,1fr)}.qbp .ops.c1{grid-template-columns:1fr}' +
     '.qbp .cols{display:grid;column-gap:26px;margin:4px 0}.qbp .cols.c2{grid-template-columns:repeat(2,minmax(0,1fr))}.qbp .cols.c3{grid-template-columns:repeat(3,minmax(0,1fr))}.qbp .cols.c4{grid-template-columns:repeat(4,minmax(0,1fr))}.qbp .cols>div{margin:0 0 .6em;overflow-wrap:anywhere;min-width:0}.qbp .qid{font-size:10px;color:#777;font-style:italic;white-space:nowrap}.qbp .op{min-width:0}.qbp .ans{margin-top:3px}.qbp .keyh{font-size:17px;font-weight:700}.qbp .key{display:grid;grid-template-columns:repeat(6,1fr);gap:4px 12px}' +
-    '.qbp table.mt{border-collapse:collapse;margin:6px 0 6px 16px;width:calc(100% - 16px)}.qbp .mt td,.qbp .mt th{border:1px solid #000;padding:4px 8px;text-align:left;vertical-align:middle}.qbp .mt th{background:#e7e6e6}.qbp math{font-size:1.05em}.qbp math[display=block]{margin:.25em 0}';
+    '.qbp table.mt{border-collapse:collapse;margin:6px 0 6px 16px;width:calc(100% - 16px);table-layout:fixed}.qbp .mt td,.qbp .mt th{overflow-wrap:anywhere}.qbp .mt td,.qbp .mt th{border:1px solid #000;padding:4px 8px;text-align:left;vertical-align:middle}.qbp .mt th{background:#e7e6e6}.qbp math{font-size:1.05em}.qbp math[display=block]{margin:.25em 0}';
   var PAGE_W = 794, PAGE_H = 1123, PAD = 45, GAP = 16, CONTENT_W = PAGE_W - 2 * PAD, CONTENT_H = PAGE_H - 2 * PAD;
 
   function blocksFor(qs, o) {

@@ -1,5 +1,13 @@
 [
   {
+    "v": "966",
+    "date": "17 Nov 2026",
+    "items": [
+      "Question Bank PDF: no extra empty space after an equation on its own line; pictures are no longer larger than needed (at most about 300 x 220 pixels); match-the-column tables give more room to the column with the longer text.",
+      "Set questions in 11M2 repaired: the two Venn-diagram matching questions (AL-11M2-O3-8 and O3-9) now have properly shaded diagrams and typed sets; the match tables that showed raw bars and dashes now show real tables; garbled formulas (for example \"midx\", \"0orx\", \"wherey\") are corrected in 17 questions."
+    ]
+  },
+  {
     "v": "965",
     "date": "17 Nov 2026",
     "items": [
