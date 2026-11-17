@@ -355,7 +355,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   var W_PAGE = 10204; /* A4 width minus 15 mm margins, in twips */
   function wRun(text, o) {
     o = o || {};
-    var pr = (o.b ? '<w:b/>' : '') + (o.color ? '<w:color w:val="' + o.color + '"/>' : '') + (o.sz ? '<w:sz w:val="' + o.sz + '"/>' : '');
+    var pr = (o.b ? '<w:b/>' : '') + (o.i ? '<w:i/>' : '') + (o.color ? '<w:color w:val="' + o.color + '"/>' : '') + (o.sz ? '<w:sz w:val="' + o.sz + '"/>' : '');
     return '<w:r>' + (pr ? '<w:rPr>' + pr + '</w:rPr>' : '') + '<w:t xml:space="preserve">' + esc(text) + '</w:t></w:r>';
   }
   function para(inner, o) {
@@ -377,7 +377,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       else if (b < 0) { mb = HB.exec(ls[k]); if (mb) b = k; }
     }
     if (a < 0 || b < 0) return null;
-    var LBL = /^\(([A-Za-z]|\d{1,2}|i{1,3}|iv|vi{0,3})\)/;
+    var LBL = /^\(([A-Za-z]|\d{1,2}|[IVXLCivxlc]{2,5})\)/;
     var grp = function (r) { if (!r.length || !LBL.test(r[0])) return r; var o = []; r.forEach(function (x) { if (LBL.test(x) || !o.length) o.push(x); else o[o.length - 1] += ' ' + x; }); return o; };
     var items = function (inline, lines) {
       var r = [];
@@ -471,7 +471,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     qs.forEach(function (q, i) {
       FIG = (o._figs || {})[q.id] || null;
       b += para(wRun(metaLine(q), { color: '808080', sz: 16 }), { keepNext: true, after: 0 });
-      b += richParas(figLines(q.question), wRun('Q' + (i + 1) + '. ', { b: true }), { after: 40 });
+      b += richParas(figLines(q.question), wRun('Q' + (i + 1) + '. ', { b: true }), { after: q.id ? 0 : 40 });
+      if (q.id) b += para(wRun('[' + q.id + ']', { color: '808080', sz: 16, i: true }), { after: 40 });
       b += optionsWord(q.options || []);
       if (o.answers && !o.answerKey) b += /\\\(|\\\[|\n/.test(q.answer || '') ? richParas(String(q.answer), wRun('Answer: ', { b: true }), { after: 40 }) : para(wRun('Answer: ', { b: true }) + wRun(q.answer || '—'), { after: 40 });
       if (o.pptLayout) b += pageBreak() + para('') + pageBreak();
@@ -724,9 +725,17 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       }).join('');
     };
     /* a question with many lettered parts ((i) ... (xvi)) is set in 2 or 3 columns, to save paper */
-    var PART = /^\s*\(([ivxlc]{1,5}|[a-z])\)\s/i, out = [], k = 0;
+    /* parts must run in order: (i) (ii) (iii) ... or (a) (b) (c) ..., so answer options (A) (B) (C) (D) are never taken for parts */
+    var PART = /^\s*\(([ivxlc]{1,5}|[a-z])\)\s/, ROM = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii', 'xiii', 'xiv', 'xv', 'xvi', 'xvii', 'xviii', 'xix', 'xx', 'xxi', 'xxii', 'xxiii', 'xxiv', 'xxv'];
+    var seqRun = function (from) {
+      var m0 = PART.exec(lines[from]); if (!m0) return from;
+      var first = m0[1], list = first === 'i' ? ROM : first === 'a' ? 'abcdefghijklmnopqrstuvwxyz'.split('') : null; if (!list) return from;
+      var j = from; while (j < lines.length) { var m = PART.exec(lines[j]); if (!m || m[1] !== list[j - from]) break; j++; }
+      return j;
+    };
+    var out = [], k = 0;
     while (k < lines.length) {
-      var j = k; while (j < lines.length && PART.test(lines[j])) j++;
+      var j = seqRun(k);
       if (j - k >= 6) {
         var run = lines.slice(k, j), longest = Math.max.apply(null, run.map(function (x) { return x.replace(/\\[a-zA-Z]+/g, 'x').length; }));
         var nc = run.length >= 9 && longest <= 70 ? 3 : 2;
@@ -742,7 +751,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     return '<div class="ops c' + cols + '">' + opts.map(function (op, j) { return '<div class="op"><b>(' + LET[j] + ')</b> ' + richHtml(op) + '</div>'; }).join('') + '</div>';
   }
   function qHtml(q, i, o) {
-    return '<div class="meta">' + esc(metaLine(q)) + '</div><div class="qt"><b>Q' + (i + 1) + '.</b> ' + richHtml(q.question, q.figure) + '</div>' + optionsHtml(q.options || []) +
+    return '<div class="meta">' + esc(metaLine(q)) + '</div><div class="qt"><b>Q' + (i + 1) + '.</b> ' + richHtml(q.question, q.figure) + (q.id ? ' <span class="qid">[' + esc(q.id) + ']</span>' : '') + '</div>' + optionsHtml(q.options || []) +
       (o.answers && !o.answerKey ? '<div class="ans"><b>Answer:</b> ' + (q.answer ? richHtml(String(q.answer), null) : '—') + '</div>' : '');
   }
   function keyHtml(qs, from, to) {
@@ -752,7 +761,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   var PCSS = '.qbp .katex-html{display:none!important}.qbp{font-family:Arial,Helvetica,"Segoe UI",sans-serif;font-size:14px;line-height:1.55;color:#000;background:#fff}' +
     '.qbp .h1{font-size:20px;font-weight:700;margin:0}.qbp .meta{font-size:10.5px;color:#777;margin-bottom:2px}' +
     '.qbp .qt{margin-bottom:4px}.qbp .ops{display:grid;gap:2px 14px;margin-left:16px}.qbp .ops.c4{grid-template-columns:repeat(4,1fr)}.qbp .ops.c2{grid-template-columns:repeat(2,1fr)}.qbp .ops.c1{grid-template-columns:1fr}' +
-    '.qbp .cols{column-gap:26px;margin:4px 0}.qbp .cols.c2{column-count:2}.qbp .cols.c3{column-count:3}.qbp .cols>div{break-inside:avoid;margin:0 0 .6em;overflow-wrap:anywhere}.qbp .op{min-width:0}.qbp .ans{margin-top:3px}.qbp .keyh{font-size:17px;font-weight:700}.qbp .key{display:grid;grid-template-columns:repeat(6,1fr);gap:4px 12px}' +
+    '.qbp .cols{display:grid;column-gap:26px;margin:4px 0}.qbp .cols.c2{grid-template-columns:repeat(2,minmax(0,1fr))}.qbp .cols.c3{grid-template-columns:repeat(3,minmax(0,1fr))}.qbp .cols>div{margin:0 0 .6em;overflow-wrap:anywhere;min-width:0}.qbp .qid{font-size:10px;color:#777;font-style:italic;white-space:nowrap}.qbp .op{min-width:0}.qbp .ans{margin-top:3px}.qbp .keyh{font-size:17px;font-weight:700}.qbp .key{display:grid;grid-template-columns:repeat(6,1fr);gap:4px 12px}' +
     '.qbp table.mt{border-collapse:collapse;margin:6px 0 6px 16px;width:calc(100% - 16px)}.qbp .mt td,.qbp .mt th{border:1px solid #000;padding:4px 8px;text-align:left;vertical-align:middle}.qbp .mt th{background:#e7e6e6}.qbp math{font-size:1.05em}.qbp math[display=block]{margin:.25em 0}';
   var PAGE_W = 794, PAGE_H = 1123, PAD = 45, GAP = 16, CONTENT_W = PAGE_W - 2 * PAD, CONTENT_H = PAGE_H - 2 * PAD;
 

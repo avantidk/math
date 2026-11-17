@@ -153,7 +153,7 @@ function matchParts(text) {
   let a = -1, b = -1, ma = null, mb = null;
   for (let k = 0; k < ls.length; k++) { if (a < 0) { ma = HA.exec(ls[k]); if (ma) a = k; } else if (b < 0) { mb = HB.exec(ls[k]); if (mb) b = k; } }
   if (a < 0 || b < 0) return null;
-  const grp = r => { if (!r.length || !/^\(?([A-Za-z]|\d+|i{1,3}|iv|vi{0,3})[).]/.test(r[0]) && !/^\(([A-Za-z]|\d+|i{1,3}|iv|vi{0,3})\)/.test(r[0])) return r; const o = []; r.forEach(x => { if (/^\(([A-Za-z]|\d{1,2}|i{1,3}|iv|vi{0,3})\)/.test(x) || !o.length) o.push(x); else o[o.length - 1] += ' ' + x; }); return o; };
+  const grp = r => { if (!r.length || !/^\(?([A-Za-z]|\d+|[IVXLCivxlc]{2,5})[).]/.test(r[0]) && !/^\(([A-Za-z]|\d+|[IVXLCivxlc]{2,5})\)/.test(r[0])) return r; const o = []; r.forEach(x => { if (/^\(([A-Za-z]|\d{1,2}|[IVXLCivxlc]{2,5})\)/.test(x) || !o.length) o.push(x); else o[o.length - 1] += ' ' + x; }); return o; };
   const items = (inline, lines) => { const r = []; if (inline && inline.trim()) inline.split(/\s;\s+(?=\()/).forEach(x => { if (x.trim()) r.push(x.trim()); }); lines.forEach(l => { if (l.trim()) r.push(l.trim()); }); return grp(r); };
   const left = items(ma[4], ls.slice(a + 1, b)), right = items(mb[4], ls.slice(b + 1));
   if (!left.length || !right.length) return null;

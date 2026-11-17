@@ -1,5 +1,14 @@
 [
   {
+    "v": "964",
+    "date": "17 Nov 2026",
+    "items": [
+      "Match-the-columns questions with Roman numerals (I), (II), (III), (IV) in List I now get one table row per item (before, all four sat in the first row).",
+      "Questions with many parts, such as (i) to (xvi), are set in 2 or 3 columns reading across row by row: (i) (ii) (iii), then (iv) (v) (vi). Answer options (A) to (D) are never mistaken for parts.",
+      "Question Bank PDF, print and Word files now show the question code, for example [AL-11M1-DY10-17], after each question."
+    ]
+  },
+  {
     "v": "963",
     "date": "17 Nov 2026",
     "items": [
