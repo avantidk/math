@@ -1,5 +1,14 @@
 [
   {
+    "v": "937",
+    "date": "17 Nov 2026",
+    "items": [
+      "The public home page is now the main address: unkganit.com. The dashboard now opens at unkganit.com/dashboard. After you sign in you land on the dashboard; the Home icon in the dashboard takes you back to the home page.",
+      "Old shared test links (unkganit.com/#/t/...) and Google sign-in returns still work: they are forwarded to the dashboard automatically.",
+      "The home page no longer loads the dashboard code, so it opens faster."
+    ]
+  },
+  {
     "v": "936",
     "date": "17 Nov 2026",
     "items": [

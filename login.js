@@ -88,7 +88,7 @@
       try {
         store.set(ROLE_KEY, role); rememberNext();
         var sb = await getSb();
-        var r = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.AvantiAuth ? location.origin + location.pathname : base, queryParams: { prompt: 'select_account' } } });
+        var r = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: base + 'dashboard', queryParams: { prompt: 'select_account' } } });
         if (r.error) throw r.error;
       } catch (e) { gBtn.disabled = false; gBtn.lastChild.textContent = 'Continue with Google'; err.textContent = 'Google sign-in did not start: ' + (e.message || e); err.hidden = false; }
     } });
@@ -114,7 +114,7 @@
           if (v.error) throw new Error('Sign-in failed: ' + v.error.message);
           store.set(ROLE_KEY, 'student');
           close();
-          if (opts.after || api.after) await (opts.after || api.after)(); else location.href = base;
+          if (opts.after || api.after) await (opts.after || api.after)(); else location.href = base + 'dashboard';
         } catch (x) { avErr.textContent = x.message || String(x); avErr.hidden = false; avBtn.disabled = false; avBtn.textContent = 'Login with Avanti ID'; }
       } },
         h('label', { 'for': 'lgId', text: 'Avanti ID' }), idIn, h('label', { 'for': 'lgDob', text: 'Date of birth' }), dobIn, avErr, avBtn));
@@ -130,7 +130,7 @@
       } }));
     var dialog = h('div', { class: 'lm-dialog' },
       h('button', { type: 'button', class: 'lm-x', 'aria-label': 'Close', text: '×', onclick: close }),
-      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=936', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
+      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=937', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
       h('h2', { id: 'lmTitle', text: 'Log in or register' }),
       h('p', { class: 'lm-sub', text: 'New here? Continue with Google and your account is created for you.' }),
       testLink ? h('p', { class: 'lm-note', text: 'Sign in to open your test.' }) : null,
@@ -151,6 +151,14 @@
   };
   api.open = open; api.close = close;
   window.AvantiLogin = api;
+  /* /?login=1 (sent by the dashboard when nobody is signed in) and test links open the pop-up straight away */
+  (function () {
+    var qs = new URLSearchParams(location.search), m = qs.get('loginmsg') || '';
+    if (!qs.has('login') && !qs.has('loginmsg')) return;
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* optional */ }
+    var go = function () { open({ msg: m }); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+  })();
   document.addEventListener('click', function (e) {
     var l = e.target.closest && e.target.closest('[data-login]');
     if (l) { e.preventDefault(); open(); }

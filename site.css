@@ -5,11 +5,6 @@
 :root{--navy:#0c1a3d;--navy2:#16307a;--blue:#2450c8;--gold:#f5b82e;--gold-d:#d99a0b;--ink:#13203f;--mute:#56637f;--line:#e2e8f4;--bg:#f5f7fc;--white:#fff;--ok:#16a06a;--head:Fraunces,Georgia,"Times New Roman",serif;--body:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 /* ---------- which view is showing ---------- */
 .site,.pg{font:16px/1.65 var(--body);color:var(--ink);-webkit-font-smoothing:antialiased}
-html.to-app #home{display:none}
-#auth:not([hidden])~#home,#app:not([hidden])~#home{display:none}
-#splash{display:none}
-html.to-app #splash{display:grid;place-items:center;min-height:100vh;color:#c9d4ee;font:15px var(--body)}
-#auth:not([hidden])~#splash,#app:not([hidden])~#splash{display:none}
 html:not(.signed-in) .when-in,html.signed-in .when-out{display:none!important}
 .swrap{max-width:1180px;margin:0 auto;padding:0 20px}
 .site a,.pg a{color:var(--blue)}
@@ -538,3 +533,5 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .stretch:focus-visible::after{outline:3px solid #8fb0ff;outline-offset:-3px;border-radius:inherit}
 .side-btn:hover,.exc:hover .exc-name a,.chc:not(.chc-oos):hover .chc-name a{color:var(--blue)!important}
 @media (max-width:820px){.sf-grid{grid-template-columns:1fr 1fr}.sf-grid>div:first-child{grid-column:1/-1}}
+
+.report-row i.w92{width:92%}.report-row i.w88{width:88%}.report-row i.w84{width:84%}.report-row i.w79{width:79%}

@@ -94,7 +94,7 @@ A.signOut = async function () {
   store.set('avanti-md-menu', null);
   try { if (window.AvantiContent) await window.AvantiContent.clearCaches(); } catch (e) { /* nothing cached */ }
   try { await sb.auth.signOut(); } catch (e) { /* the page reloads anyway */ }
-  location.hash = ''; location.reload();
+  location.replace(ROOT);
 };
 A.signInWithGoogle = async function (role) {
   store.set(ROLE_KEY, role); rememberNext();
@@ -117,36 +117,12 @@ function rememberNext() { if (/^#\/t\//.test(location.hash)) store.set(NEXT_KEY,
 /* ---------- login page ---------- */
 const GOOGLE_G = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
 
-/* ---------- login / register pop-up: built by login.js (shared with the public pages) ---------- */
-window.AvantiLogin.after = () => afterSignIn();
-function closeLogin() { window.AvantiLogin.close(); }
-function openLogin(msg) { window.AvantiLogin.open({ msg }); }
-function loginPage(msg) { showHome(); openLogin(msg); }   /* called when there is no sign-in */
-
-/* ---------- which page is on screen: the public home page or the dashboard ---------- */
-/* Signed out: always the home page. Signed in: the dashboard, except at #/home (and its own in-page links like #plans). */
-const HOME_HASH = /^#(\/home|features|how|chapters|teachers|plans|faq)$/;
-const isHomeHash = () => HOME_HASH.test(location.hash);
-function showHome() {   /* signed out: the public page is the whole screen (also drops the early 'signed-in' guess from site.js) */
-  document.documentElement.classList.remove('to-app', 'signed-in');
-  $('#auth').hidden = true; $('#auth').textContent = ''; $('#app').hidden = true;
+/* ---------- signed out: the public home page ('/') has the Login pop-up. This page is only the dashboard ('/dashboard'). ---------- */
+const ROOT = location.origin + '/';
+function loginPage(msg) {   /* called when there is no sign-in */
+  rememberNext();
+  location.replace(ROOT + '?login=1' + (msg ? '&loginmsg=' + encodeURIComponent(msg) : ''));
 }
-function applyView() {   /* signed in: switch between home and dashboard without losing the dashboard's state */
-  if (!started) return;
-  const home = isHomeHash();
-  $('#app').hidden = home;
-  if (home) document.documentElement.classList.remove('to-app');
-  else { window.dispatchEvent(new Event('resize')); window.scrollTo(0, 0); }
-}
-window.addEventListener('hashchange', () => { if (A.session) applyView(); });
-document.addEventListener('click', e => {
-  const dsh = e.target.closest && e.target.closest('[data-dash]');
-  if (dsh && A.session) {
-    e.preventDefault();
-    history.pushState(null, '', location.pathname + location.search);
-    applyView(); if (window.AvantiPortal) window.AvantiPortal.route();
-  }
-});
 
 /* Asked only when the role was never chosen (for example, the very first sign-in came from another tab). */
 function rolePage() {
@@ -244,18 +220,13 @@ async function start() {
   }
   const next = store.get(NEXT_KEY); store.set(NEXT_KEY, null);
   if (next && !location.hash) history.replaceState(null, '', location.pathname + next);
-  closeLogin(); $('#auth').hidden = true; $('#auth').textContent = '';
-  $('#app').hidden = isHomeHash(); if (isHomeHash()) document.documentElement.classList.remove('to-app');
+  $('#auth').hidden = true; $('#auth').textContent = '';
+  $('#app').hidden = false; document.documentElement.classList.remove('to-app');
   document.querySelectorAll('[data-av]').forEach(el => { el.textContent = initials(p); el.title = p.full_name || p.email || p.avanti_id || 'Your profile'; });
   if (!started) { started = true; window.AvantiBoot.start(); }
   renderMenu();
   if (window.AvantiChat) window.AvantiChat.start();
   if (window.AvantiPortal) window.AvantiPortal.route();
-}
-async function afterSignIn() {
-  const { data } = await sb.auth.getSession();
-  A.session = data.session;
-  if (data.session) await start(); else loginPage();
 }
 
 (async function init() {
@@ -263,14 +234,13 @@ async function afterSignIn() {
   const oauthErr = q.get('error_description');
   let session = null;
   try { const { data } = await sb.auth.getSession(); session = data.session; } catch (e) { session = null; }
-  const wantLogin = q.has('login') || !!oauthErr || /^#\/t\//.test(location.hash);
-  if (q.has('code') || q.has('error') || q.has('login')) history.replaceState(null, '', location.pathname + location.hash);
+  if (q.has('code') || q.has('error')) history.replaceState(null, '', location.pathname + location.hash);
   A.session = session;
   sb.auth.onAuthStateChange((evt, s) => {
     A.session = s;
     if (evt === 'SIGNED_OUT') { const go = () => { if (started) location.reload(); }; if (window.AvantiContent) window.AvantiContent.clearCaches().then(go, go); else go(); }
   });
   if (session) await start();
-  else { showHome(); if (wantLogin) openLogin(oauthErr ? 'Sign-in was not completed: ' + oauthErr : ''); }
+  else loginPage(oauthErr ? 'Sign-in was not completed: ' + oauthErr : '');
 })();
 })();
