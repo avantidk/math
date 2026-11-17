@@ -15,7 +15,7 @@ tests and results. It replaced an older Claude artifact.
 
 ## How the site is built
 - `/` (`index.html`) is the PUBLIC HOME PAGE: static HTML (so search engines can read it) that loads only `site.js` and `login.js` (the Login pop-up, also used by every
-  public page), never the dashboard code. The dashboard app is `/dashboard` (`dashboard.html`, noindex): it loads `vendor/supabase-js`, `boot.js`, `portal.js`, `chat.js` and `auth.js`.
+  public page), never the dashboard code. The dashboard app is `/dashboard` (`dashboard.html`, noindex): it loads `vendor/supabase-js`, `boot.js`, `portal.js` and `auth.js`.
   Signed out, the dashboard sends the visitor to `/?login=1` (the pop-up opens); after sign-in they land on `/dashboard`; the Home icon in the dashboard top bar goes to `/`.
   `site.js` forwards old `/#/t/<code>` test links and Google sign-in returns (`?code=`) from `/` to `/dashboard`. The home page, the 24 chapter pages (`/maths/...`; `/jee-maths/...` are redirects), the exam pages (`/exams/...`), `/syllabus-priority/`, About, Contact, Privacy, Terms, `index.html`, `sitemap.xml` and
   `robots.txt` are GENERATED from `syllabus.json` by `python3 .github/scripts/build_seo.py` (exam counts come from `.github/scripts/exam-stats.json`, made by `exam_stats.py` from the private bank: numbers only): edit that script (and `site.css`), never the generated

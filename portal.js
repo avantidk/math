@@ -363,7 +363,6 @@ const MICON = {
   users: MI('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>'),
   upload: MI('<path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>'),
   chart: MI('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
-  chat: MI('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z"/>'),
   copy: MI('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>'),
   trophy: MI('<path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M17 5h3a3 3 0 0 1-3 4M7 5H4a3 3 0 0 0 3 4"/>'),
   target: MI('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6" fill="currentColor"/>'),
@@ -400,12 +399,11 @@ function membershipContent(teacher) {
       ['users', 'My Students', 'Every student of your school by class, stream and session, with sign-in status, tests taken, average and last test.'],
       ['upload', 'Bulk upload', 'Add a whole class from Excel or CSV with a checked preview, and correct details once your school is approved.'],
       ['chart', 'Deeper results', 'Open any student\'s test history and report, and export your results to CSV.'],
-      ['chat', 'Teachers\' chat', 'Talk live with other Premium and Avanti teachers while you plan and teach.'],
       ['copy', 'Copy questions', 'Copy question text and IDs straight into your own notes and slides.']
     ],
     rows: [['View Question Bank, DPPs, PYQs, Must Solve and handouts', 1, 1], ['Create online tests for your school', 1, 1], ['Add students one by one', 1, 1], ['Results of your own tests', 1, 1],
       ['Download and print every PDF', 0, 1], ['Share PDFs on WhatsApp and email', 0, 1], ['Copy question text', 0, 1], ['Saved worksheets', 0, 1], ['My Students with performance', 0, 1],
-      ['Bulk upload and edit students', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1], ['Teachers\' chat', 0, 1]],
+      ['Bulk upload and edit students', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1]],
     faq: [['Do my students need Premium to take my tests?', 'No. Free students can take your tests and see their reports.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs can be shared straight from the phone.']]
   } : {
     eyebrow: 'Premium for students', title: 'Practise anywhere. Know where you stand.',

@@ -32,7 +32,7 @@ function h(tag, props, ...kids) {
 }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 window.AvantiUtil = Object.freeze({ h, esc });
-const BUILD = '958';
+const BUILD = '959';
 const RELEASED = '17 Nov 2026';   /* date of this release, shown in the footer */
 const SB_URL = 'https://usehxhvzhdbcmnmqaxoo.supabase.co';
 const SB_KEY = 'sb_publishable_QQ_N_B6kl416kbGMF0DQtw_9Jg58PoN';
@@ -167,7 +167,7 @@ async function start() {
   window.__qbPre = { html, js: QB_JS, data, first };
   Object.values(data).concat([html]).forEach(p => p.catch(() => {}));
   try {
-    await loadScript(TEACHER_JS);
+    for (let i = 0; ; i++) { try { await loadScript(TEACHER_JS); break; } catch (e) { if (i >= 2) throw e; await new Promise(r => setTimeout(r, 700 * (i + 1))); } }
     if (!window.AvantiTeacher) throw new Error('teacher');
   } catch (e) { fail(); return; }
   window.AvantiTeacher.start({});

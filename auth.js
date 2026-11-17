@@ -201,9 +201,11 @@ A.renderMenu = renderMenu;
 
 /* ---------- start ---------- */
 let started = false;
+/* a request that fails once (a slow or dropped connection) is tried again before the person is told anything went wrong */
+async function retry(fn) { let err; for (const wait of [0, 700, 1800]) { if (wait) await new Promise(r => setTimeout(r, wait)); try { return await fn(); } catch (e) { err = e; } } throw err; }
 async function start() {
   let p;
-  try { p = await rpc('my_profile'); }
+  try { p = await retry(() => rpc('my_profile')); }
   catch (e) { fatal('Could not load your profile (' + e.message + '). If this keeps happening, the database setup may not be finished.'); return; }
   if (!p) { fatal('Your account has no profile yet. Sign out and sign in again.'); return; }
   if (!p.role) {
@@ -225,7 +227,6 @@ async function start() {
   document.querySelectorAll('[data-av]').forEach(el => { el.textContent = initials(p); el.title = p.full_name || p.email || p.avanti_id || 'Your profile'; });
   if (!started) { started = true; window.AvantiBoot.start(); }
   renderMenu();
-  if (window.AvantiChat) window.AvantiChat.start();
   if (window.AvantiPortal) window.AvantiPortal.route();
 }
 
@@ -240,6 +241,8 @@ async function start() {
     A.session = s;
     if (evt === 'SIGNED_OUT') { const go = () => { if (started) location.reload(); }; if (window.AvantiContent) window.AvantiContent.clearCaches().then(go, go); else go(); }
   });
+  /* the saved sign-in can look empty for a moment while it is being renewed: look once more before sending anyone to the login page */
+  if (!session && !oauthErr && !q.has('code') && store.get('sb-usehxhvzhdbcmnmqaxoo-auth-token')) { await new Promise(r => setTimeout(r, 900)); try { const { data } = await sb.auth.getSession(); session = data.session; A.session = session; } catch (e) { /* login page below */ } }
   if (session) await start();
   else loginPage(oauthErr ? 'Sign-in was not completed: ' + oauthErr : '');
 })();

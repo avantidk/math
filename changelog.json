@@ -1,5 +1,13 @@
 [
   {
+    "v": "959",
+    "date": "17 Nov 2026",
+    "items": [
+      "The teachers' chat is removed everywhere (the chat button, the code, the plan lists and the privacy text).",
+      "Dashboard loading: if a request fails once because of a slow or dropped connection, the dashboard now tries again by itself (your profile, and the main script) instead of asking you to refresh. The sign-in is also checked a second time before sending you to the login page."
+    ]
+  },
+  {
     "v": "958",
     "date": "17 Nov 2026",
     "items": [

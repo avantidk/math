@@ -149,7 +149,7 @@ Google shows "Sign in to usehxhvzhdbcmnmqaxoo.supabase.co" because that is where
 ## School approval (teachers, Avanti staff and students)
 
 - Everyone chooses their school once, then waits for the admin's approval; any later change is a request the admin approves.
-  Until approved, a teacher cannot see or add students, make tests or join the chat, and a student sees no tests.
+  Until approved, a teacher cannot see or add students, make tests, and a student sees no tests.
 - Students the admin or their (approved) teacher adds, and Avanti students, are approved already.
 - Approve them in the profile menu → **Approvals** (only for admins: verified @avantifellows.org accounts in the `app_admins` table; `ankitkamboj@avantifellows.org` is added by schema.sql). To add another admin: `insert into public.app_admins (email) values ('name@avantifellows.org');`
 - "Not approve" asks the teacher to choose the school again and shows them your message.

@@ -207,14 +207,6 @@ language sql stable security definer set search_path = public as $$
                    from public.profiles p where p.id = auth.uid()), false)
 $$;
 
--- Teachers' chat: the admin, and Premium teachers / Staff whose school is approved.
-create or replace function public.chat_member() returns boolean
-language sql stable security definer set search_path = public as $$
-  select coalesce((select public.admin_of(p) or (public.approved_school(p) is not null
-                     and (p.is_staff or (p.role = 'teacher' and public.plan_of(p) = 'premium')))
-                     from public.profiles p where p.id = auth.uid()), false)
-$$;
-
 -- True while the signed-in person is writing a test (the question bank is closed to them until they submit).
 create or replace function public.in_test() returns boolean
 language plpgsql stable security definer set search_path = public as $$
@@ -1820,18 +1812,18 @@ language sql stable security definer set search_path = public as $$
                            'phone', nullif((select value from public.app_settings where key = 'support_phone'), ''))
 $$;
 
--- Teachers' chat "who is online": a private Supabase Realtime channel that only chat members may join.
+-- The teachers' chat was removed (version 959). These lines delete its policies, functions and messages if they are still in the database.
 do $$
 begin
   if to_regclass('realtime.messages') is not null then
     execute 'drop policy if exists teachers_chat_read on realtime.messages';
     execute 'drop policy if exists teachers_chat_write on realtime.messages';
-    execute $p$create policy teachers_chat_read on realtime.messages for select to authenticated
-             using (realtime.topic() = 'teachers-room' and public.chat_member())$p$;
-    execute $p$create policy teachers_chat_write on realtime.messages for insert to authenticated
-             with check (realtime.topic() = 'teachers-room' and public.chat_member())$p$;
   end if;
 end $$;
+drop function if exists public.chat_send(text);
+drop function if exists public.chat_people(uuid[]);
+drop table if exists public.chat_messages;
+drop function if exists public.chat_member();
 
 -- -------------------------------------------------------------------------------------
 -- 11d. School approval for everyone (version 870). Students and Avanti staff now also need the admin's approval of their
@@ -1845,66 +1837,6 @@ begin
    where school is not null and not school_approved and (role = 'student' or is_staff);
   insert into public.app_settings (key, value) values ('school_approval_v870', now()::text);
 end $$;
-
--- -------------------------------------------------------------------------------------
--- 11e. Teachers' chat. Messages are saved by chat_send(), which writes the sender's real name, school and role from the
---      database (nobody can pose as someone else), limits how often one person can send, and deletes messages older
---      than 24 hours. Members receive new messages live (Supabase Realtime, filtered by the policy below).
--- -------------------------------------------------------------------------------------
-create table if not exists public.chat_messages (
-  id         bigserial primary key,
-  user_id    uuid not null references public.profiles(id) on delete cascade,
-  name       text not null,
-  school     text,
-  role_label text,
-  body       text not null check (char_length(body) between 1 and 1000),
-  created_at timestamptz not null default now()
-);
-create index if not exists chat_messages_at on public.chat_messages (created_at);
-create index if not exists chat_messages_user_at on public.chat_messages (user_id, created_at);
-alter table public.chat_messages enable row level security;
-revoke all on public.chat_messages from anon, authenticated;
-grant select on public.chat_messages to authenticated;
-drop policy if exists chat_messages_read on public.chat_messages;
-create policy chat_messages_read on public.chat_messages for select to authenticated
-  using ((select public.chat_member()) and created_at > now() - interval '24 hours');
-do $$
-begin
-  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
-     and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'chat_messages') then
-    execute 'alter publication supabase_realtime add table public.chat_messages';
-  end if;
-end $$;
-
-create or replace function public.chat_send(p_body text) returns json
-language plpgsql security definer set search_path = public as $$
-declare me public.profiles; v text := trim(coalesce(p_body, '')); m public.chat_messages;
-begin
-  if not public.chat_member() then raise exception 'The chat is for Premium teachers and Avanti teachers whose school is approved'; end if;
-  if v = '' then raise exception 'Type a message'; end if;
-  perform pg_advisory_xact_lock(hashtext('chat:' || auth.uid()::text));
-  if char_length(v) > 1000 then raise exception 'A message can be up to 1000 characters'; end if;
-  if (select count(*) from public.chat_messages where user_id = auth.uid() and created_at > now() - interval '15 seconds') >= 5
-     or (select count(*) from public.chat_messages where user_id = auth.uid() and created_at > now() - interval '1 hour') >= 120 then
-    raise exception 'You are sending messages too fast. Please wait a moment.';
-  end if;
-  select * into me from public.profiles where id = auth.uid();
-  delete from public.chat_messages where created_at < now() - interval '24 hours';
-  insert into public.chat_messages (user_id, name, school, role_label, body)
-  values (me.id, coalesce(me.full_name, me.email, 'Teacher'), me.school,
-          case when public.admin_of(me) then 'Admin' when me.is_staff then 'Avanti teacher' else 'Premium teacher' end, v)
-  returning * into m;
-  return json_build_object('id', m.id, 'created_at', m.created_at);
-end $$;
-
--- Names of the chat members who are online (the browser sends only account ids; names come from here).
-create or replace function public.chat_people(p_ids uuid[]) returns json
-language sql stable security definer set search_path = public as $$
-  select case when public.chat_member() then (select coalesce(json_agg(json_build_object('id', p.id, 'name', coalesce(p.full_name, 'Teacher'),
-           'school', p.school, 'role', case when public.admin_of(p) then 'Admin' when p.is_staff then 'Avanti teacher' else 'Premium teacher' end)), '[]'::json)
-      from public.profiles p where p.id = any(p_ids[1:200]) and (public.admin_of(p) or (public.approved_school(p) is not null
-           and (p.is_staff or (p.role = 'teacher' and public.plan_of(p) = 'premium'))))) else '[]'::json end
-$$;
 
 -- -------------------------------------------------------------------------------------
 -- 11f. Question flags (Staff: "write what to correct in this question"), shared by every Staff account.
@@ -1994,7 +1926,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.request_school_change(text), public.admin_school_requests(), public.admin_school_request(uuid, text, text, text),
   public.admin_set_teacher_school(uuid, text, text, text), public.admin_update_teacher(uuid, text, text), public.admin_pending_students(),
   public.admin_schools(), public.admin_rename_school(text, text), public.admin_delete_school(text),
-  public.chat_member(), public.chat_send(text), public.chat_people(uuid[]), public.qb_flags_list(), public.qb_flag_set(text, text, jsonb),
+  public.qb_flags_list(), public.qb_flag_set(text, text, jsonb),
   public.content_allowed(text), public.in_test(), public.approved_school(public.profiles), public.admin_set_plan(uuid, text, text, date), public.premium_years(text), public.admin_add_teacher(text, text, text, text, date), public.admin_teacher_invites(), public.admin_cancel_teacher_invite(text), public.plan_label(public.profiles), public.school_teachers(text), public.menu_counts(), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
   to authenticated;
 -- (There are no PDF limits. An earlier test version made these two; they are removed if present.)

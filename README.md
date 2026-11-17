@@ -64,7 +64,7 @@ This repository is the public website. Hosting is **GitHub Pages**; sign-in, pla
 |---|---|
 | `index.html` | The public home page (generated) |
 | `dashboard.html` | The dashboard app (`/dashboard`, not indexed by search engines) |
-| `auth.js`, `boot.js`, `portal.js`, `chat.js` | Sign-in and plan permissions, loader, profile / tests / results, help chat |
+| `auth.js`, `boot.js`, `portal.js` | Sign-in and plan permissions, loader, profile / tests / results |
 | `teacher.b870.js`, `qb/` | Question Bank, DPPs, PYQs, Must Solve and Handouts |
 | `site.js`, `site.css`, `login.js`, `weightage.js` | Header, footer and Login pop-up for the public pages |
 | `.github/scripts/build_seo.py` | Generates the home page, chapter and exam pages, sitemap and `robots.txt`. Edit this script, not the generated pages |
