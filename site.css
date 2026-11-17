@@ -539,9 +539,9 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .yrl tbody th{font-weight:600;text-align:left;color:var(--navy)}.yrl .tot-row th,.yrl .tot-row td{font-weight:700;background:#eef2fb;border-top:2px solid var(--line)}
 
 /* ---------- exam guide pages (/exams/<exam>/about/) and the "Know more" banner ---------- */
-.know{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:18px 0 6px;padding:18px 22px;border-radius:16px;background:linear-gradient(120deg,#0c1a3d,#16307a);color:#fff;box-shadow:0 10px 28px rgba(12,26,61,.18)}
-.know div{display:flex;flex-direction:column;gap:4px;min-width:220px;flex:1}.know b{font:600 19px/1.3 var(--head);color:#fff}.know span{color:#c9d4ee;font-size:15px}
-.know-btn{box-shadow:0 6px 18px rgba(245,184,46,.35);transition:transform .15s}.know-btn:hover{transform:translateY(-2px)}.know-btn svg{margin-left:2px}
+.know{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:18px 0 6px;padding:18px 22px;border-radius:16px;background:linear-gradient(120deg,#0b5d57,#0f8a7e);color:#fff;box-shadow:0 10px 26px rgba(11,93,87,.22)}
+.know div{display:flex;flex-direction:column;gap:4px;min-width:220px;flex:1}.know b{font:600 19px/1.3 var(--head);color:#fff}.know span{color:#d4f3ee;font-size:15px}
+.know-btn{display:inline-flex;align-items:center;gap:9px;min-height:46px;padding:10px 20px;border-radius:999px;background:#fff;color:#0b5d57!important;font:700 15px/1.2 var(--body);text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .15s}.know-btn:hover{transform:translateY(-2px)}
 .gd-kick{margin:0 0 8px;font:700 12px/1.4 var(--body);letter-spacing:.09em;text-transform:uppercase;color:var(--gold-d)}
 .gd-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0}
 .gd-tiles div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;border-top:3px solid var(--gold)}
@@ -559,7 +559,7 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .gd-sec p{margin:0 0 14px}
 .gd-sub{margin:0 0 20px}.gd-sub h3{margin:6px 0 10px!important;padding-left:12px;border-left:4px solid var(--gold);font:600 18px/1.35 var(--head)!important}
 .gd-tbl{margin:0 0 16px}.gd-tbl table{min-width:480px;font-size:14.5px}
-.gd-tbl tbody tr:nth-child(even){background:#fafbfe}.gd-tbl tbody th{background:#f3f6fd;color:var(--navy);font-weight:600;width:30%;vertical-align:top}.gd-tbl td{vertical-align:top}
+.gd-tbl tbody tr:nth-child(even){background:#fafbfe}.gd-tbl tbody th{background:#f3f6fd;color:var(--navy);font-weight:600;width:28%;vertical-align:top}.gd-n1 tbody th,.gd-n1 thead th:first-child{width:1%;white-space:nowrap;padding-right:22px}.gd-tbl td{vertical-align:top}
 .gd-tbl thead th{background:linear-gradient(180deg,#e9effc,#dfe8fa)}
 .gd-ul{margin:0;padding-left:18px}.gd-ul li{margin:0 0 3px}
 .gd-more-h{margin:28px 0 10px!important}.gd-more{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}

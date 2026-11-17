@@ -1,5 +1,13 @@
 [
   {
+    "v": "942",
+    "date": "17 Nov 2026",
+    "items": [
+      "Exam guide pages: narrow first columns (#, Step, Day) are now narrow, so tables use the space better.",
+      "The \"Know more\" box on exam pages now has its own green colour and a white book button, so it no longer looks like a Login button."
+    ]
+  },
+  {
     "v": "941",
     "date": "17 Nov 2026",
     "items": [

@@ -58,6 +58,7 @@ LEVEL = {'High': 'High', 'Medium': 'Medium', 'Low': 'Low', 'None': 'Rare'}
 
 def svg(d, w=24, extra=''):
     return f'<svg viewBox="0 0 24 24" width="{w}" height="{w}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"{extra}>{d}</svg>'
+BOOK = svg('<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5zM19 19v2H6M9 8h6M9 12h6"/>', 20)
 ARROW = svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 20)
 CHECK = svg('<path d="M20 6 9 17l-5-5"/>', 20)
 
@@ -415,7 +416,8 @@ def gd_table(t):
             rs = span.get((ri, ci), 1); at = f' rowspan="{rs}"' if rs > 1 else ''
             tds += (f'<th scope="row"{at}>{gd_cell(c)}</th>' if ci == 0 else f'<td{at}>{gd_cell(c)}</td>')
         body += f'<tr>{tds}</tr>'
-    return f'<div class="pg-table gd-tbl"><table><thead><tr>{th}</tr></thead><tbody>{body}</tbody></table></div>'
+    short = all(isinstance(r[0], str) and len(r[0]) <= 10 for r in rows)   # a narrow first column (#, Step, Day) stays narrow
+    return f'<div class="pg-table gd-tbl{" gd-n1" if short else ""}"><table><thead><tr>{th}</tr></thead><tbody>{body}</tbody></table></div>'
 
 def gd_blocks(blocks):
     return ''.join(f'<p>{E(b["p"])}</p>' if 'p' in b else gd_table(b['table']) for b in blocks)
@@ -478,7 +480,7 @@ def exam_page(e):
     nyr = s['last'] - s['first'] + 1
     basis = f'These counts use all {E(name)} papers in this bank: {nyr} years ({s["first"]}&ndash;{s["last"]}), {s["papers"]} papers and {s["questions"]:,} questions.'
     know = (f'<div class="know"><div><b>Want the full picture of {E(name)}?</b><span>Paper pattern, fees, cutoffs, seats and reservation, top colleges and the step-by-step timeline.</span></div>'
-            f'<a class="sb sb-gold sb-lg know-btn" href="about/">Know more {ARROW}</a></div>') if sl in GUIDES else ''
+            f'<a class="know-btn" href="about/">{BOOK}Know more about {E(name)}{ARROW}</a></div>') if sl in GUIDES else ''
     crumbs = f'<a href="../../">Home</a> &rsaquo; <a href="../">Exams</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
     main = f"""<p class="pg-lead">{E(tag)}</p>
 <p>{E(about)}</p>
