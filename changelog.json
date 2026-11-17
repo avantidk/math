@@ -1,5 +1,12 @@
 [
   {
+    "v": "950",
+    "date": "17 Nov 2026",
+    "items": [
+      "Answer key: about 1,080 questions that said \"See the solution.\" now show the real answer, taken from the end of the explanation. Questions with several parts show the answer of every part, for example \"(i) 1; (ii) 0; (iii) 1\". Proof questions show \"Proved\". About 20 questions (graph and sketch questions) still say \"See the solution.\" because they have no final value."
+    ]
+  },
+  {
     "v": "949",
     "date": "17 Nov 2026",
     "items": [
