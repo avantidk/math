@@ -174,6 +174,8 @@ const scriptFrac = s => { s = String(s); let out = '', i = 0; while (i < s.lengt
 /* short fractions inside a line of text (1/a, 1/a^2) stay text size so they do not blow up the line */
 const smallFrac = x => x.replace(/\\frac\{([^{}\\]{1,3})\}\{([^{}\\]{1,3}|[^{}\\]{1,2}\^\{[^{}]{1,2}\})\}/g, '\\tfrac{$1}{$2}');
 function tallToDisplay(s) {
+  /* a line break next to a display formula (\[ ... \]) only adds an empty line: the formula already stands on its own line */
+  s = String(s).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1');
   return spaceCases(scriptFrac(s)).replace(/\\\(([\s\S]+?)\\\)/g, (m, x0, off, whole) => {
     /* a lettered part such as "(ii) formula" keeps its formula on the same line as its label (like parts (i) and (iii)) */
     const part = /^[ \t]*\(([ivxlcdm]{1,5}|[a-z]|\d{1,2})\)[ \t]*$/i.test(whole.slice(whole.lastIndexOf('\n', off - 1) + 1, off)) && !/\\begin\{/.test(x0); const x = x0.replace(/\\begin\{([bp])matrix\}([\s\S]*?)\\end\{\1matrix\}/g, (mm, k, body) => { const r = body.split('\\\\').length, big = r >= 3 ? '\\Bigg' : r === 2 ? '\\Big' : ''; return big ? big + 'l' + (k === 'b' ? '[' : '(') + '\\begin{matrix}' + body + '\\end{matrix}' + big + 'r' + (k === 'b' ? ']' : ')') : mm; }); const tall = (x.match(/\\d?frac/g) || []).length >= 2 && x.length > 24;
@@ -182,7 +184,8 @@ function tallToDisplay(s) {
 }
 function buildQ(q, n, p) {
   const maxOpt = Math.max(0, ...q.o.map(o => plain(o).length));
-  const cls = !q.o.length ? '' : (maxOpt <= 10 && p.cols === 1) ? 'c4' : maxOpt <= 26 ? 'c2' : 'c1';
+  const longF = q.o.some(o => /\\(cdots|ldots|dots)\b/.test(o)) || maxOpt > 18 && q.o.some(o => /\\(sum|prod|int|binom)\b/.test(o));
+  const cls = !q.o.length ? '' : (maxOpt <= 10 && p.cols === 1) ? 'c4' : (maxOpt <= 20 && !longF) ? 'c2' : 'c1';
   const hint = q.t === 'MSQ' ? '(one or more options correct)' : '';
   const t = p.tag ? tagText(q) : '';
   const mt = matchParts(q.q);
@@ -525,7 +528,7 @@ function paginate(qs, base) {
 function idPages(ids, title, label, info, subLine) {
   label = label || 'Worksheet';
   const qs = ids.map(i => BYID.get(i)).filter(Boolean);
-  return qs.length ? packPages(qs, (g, i, n) => ({ title, sub: label, infoLine: info || '', subLine: subLine || '', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : label })) : [];
+  return qs.length ? packPages(qs, (g, i, n) => ({ title, sub: label, tag: label === 'Worksheet' /* a test paper shows no question codes or exam names after the questions */, infoLine: info || '', subLine: subLine || '', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : label })) : [];
 }
 function packPages(qs, mk) {
   const pg = paginate(qs, BASE), out = []; let start = 0;

@@ -1,5 +1,15 @@
 [
   {
+    "v": "960",
+    "date": "17 Nov 2026",
+    "items": [
+      "Questions with formulas on their own line (for example the IAT papers) no longer have large empty gaps after each formula, in the papers, DPPs and the test window.",
+      "Answer options with a long formula (for example with \"...\") are shown one per line, not in two columns.",
+      "Exported test papers show no question code or exam name after the questions.",
+      "The \"Syllabus Priority\" button is removed from the sidebar of the public pages (it is still in the menu at the top)."
+    ]
+  },
+  {
     "v": "959",
     "date": "17 Nov 2026",
     "items": [

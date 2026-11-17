@@ -1075,3 +1075,5 @@ button.pt-linkcopy:hover { border-color: var(--accent); background: var(--panel,
 .pt-ditem.good, .pt-ditem.good .pt-dic { color: #15803d; }
 .pt-ditem.red, .pt-ditem.red .pt-dic { color: #d92d20; }
 .pt-ditem.bad .pt-dtx small, .pt-ditem.good .pt-dtx small { color: var(--muted); }
+
+.ex-q .katex-display, .pt-qt .katex-display { margin: .4em 0; }
