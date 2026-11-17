@@ -54,7 +54,7 @@ LEVEL = {'High': 'High', 'Medium': 'Medium', 'Low': 'Low', 'None': 'Rare'}
 
 # Chapters that are no longer in the JEE syllabus. They are listed (not given pages of their own: there is no syllabus data for them).
 OOS = [('12M25', 'Linear Programming Problem'), ('12M26', 'Mathematical Reasoning'), ('12M27', 'Solution of Triangle'), ('12M28', 'Height and Distance')]
-CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', 'ankitkamboj@avantifellows.org')   # the same support address the sign-in page already shows
+CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', 'unkganit@gmail.com')   # public contact address shown on the Contact, Privacy and Terms pages
 UPDATED = '17 November 2026'
 def page(title, desc, canon, body, depth, jsonld=None, og_title=None):
     up = '../' * depth
