@@ -290,7 +290,7 @@ function profileForm(p, o) {
     student ? h('div', { class: 'pt-row2' }, box('class'), box('stream')) : null,
     student ? h('div', { class: 'pt-row2' }, box('category'), box('gender')) : null,
     student && keys.some(k => locked(k)) ? h('p', { class: 'pt-hint', text: 'Saved details cannot be changed here. To move to another school, use "Request a school change" above. For other details, ask your teacher.' }) : null,
-    student && keys.some(k => !locked(k)) ? h('div', { class: 'pt-note pt-warnnote', role: 'note' }, h('b', { text: 'Please check carefully before you continue. ' }), 'Once saved, you cannot change these details yourself. Only your teacher can correct them.') : null,
+    student && keys.some(k => !locked(k)) ? h('div', { class: 'pt-note pt-warnnote', role: 'note' }, h('b', { text: 'Please check carefully before you continue. ' }), 'Once saved, you cannot change these details yourself. Only the admin can correct them.') : null,
     keys.some(k => !locked(k)) || !student ? h('div', { class: 'pt-actions' }, btn) : null, msg);
 }
 /* School once chosen: read-only, with a request to change it (approved by the admin). Only the admin changes their own directly. */
@@ -397,13 +397,13 @@ function membershipContent(teacher) {
       ['share', 'Share in one tap', 'Send any PDF to your class on WhatsApp, by email or through any app on your phone.'],
       ['folder', 'Saved worksheets', 'Keep the question sets you build and reuse them for tests or downloads whenever you need them.'],
       ['users', 'My Students', 'Every student of your school by class, stream and session, with sign-in status, tests taken, average and last test.'],
-      ['upload', 'Bulk upload', 'Add a whole class from Excel or CSV with a checked preview, and correct details once your school is approved.'],
+      ['upload', 'Bulk upload', 'Add a whole class from Excel or CSV with a checked preview.'],
       ['chart', 'Deeper results', 'Open any student\'s test history and report, and export your results to CSV.'],
       ['copy', 'Copy questions', 'Copy question text and IDs straight into your own notes and slides.']
     ],
     rows: [['View Question Bank, DPPs, PYQs, Must Solve and handouts', 1, 1], ['Create online tests for your school', 1, 1], ['Add students one by one', 1, 1], ['Results of your own tests', 1, 1],
       ['Download and print every PDF', 0, 1], ['Share PDFs on WhatsApp and email', 0, 1], ['Copy question text', 0, 1], ['Saved worksheets', 0, 1], ['My Students with performance', 0, 1],
-      ['Bulk upload and edit students', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1]],
+      ['Bulk upload students', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1]],
     faq: [['Do my students need Premium to take my tests?', 'No. Free students can take your tests and see their reports.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs can be shared straight from the phone.']]
   } : {
     eyebrow: 'Premium for students', title: 'Practise anywhere. Know where you stand.',
@@ -1451,20 +1451,53 @@ async function savePlan(target, pick) {
   const v = pick.value();
   await rpc('admin_set_plan', { p_user: target.user_id || null, p_student_id: target.user_id ? null : (target.student_id || null), p_plan: v.plan, p_until: v.until });
 }
+/* Admin only: the six account types for Edit teacher / Edit student. One choice sets the role (student or teacher) and the plan. */
+const ACCOUNT_KINDS = [['free_student', 'Free Student'], ['free_teacher', 'Free Teacher'], ['premium_student', 'Premium Student (1 year plan)'], ['premium_teacher', 'Premium Teacher (1 year plan)'], ['avanti_student', 'Avanti Student'], ['avanti_teacher', 'Avanti Teacher']];
+const kindOf = (role, planLabel) => { const r = role === 'teacher' ? 'teacher' : 'student'; return planLabel === 'staff' ? 'avanti_teacher' : planLabel === 'avanti' ? 'avanti_' + r : planLabel === 'premium' ? 'premium_' + r : 'free_' + r; };
+function accountPicker(role, planLabel, until, opt) {
+  opt = opt || {};
+  const oneYear = () => { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().slice(0, 10); };
+  const start = kindOf(role, planLabel);
+  const sel = h('select', { class: 'pt-in', id: 'acKind', 'aria-label': 'Account type' }, ACCOUNT_KINDS.map(([k, t]) => h('option', { value: k, text: t, disabled: !!opt.noTeacher && /_teacher$/.test(k) && k !== start })));
+  sel.value = start;
+  const dt = h('input', { type: 'date', class: 'pt-in', id: 'acUntil', min: new Date().toISOString().slice(0, 10), value: until ? String(until).slice(0, 10) : oneYear() });
+  const dtRow = h('label', { class: 'pt-fld', for: 'acUntil' }, h('span', { text: 'Premium until' }), dt);
+  const hint = h('small', {});
+  const HINT = { free: 'Free: view only, no downloads or printing.', premium: 'Premium: PDF downloads and printing until the date below (one year from today unless you change it).', avanti: 'Avanti: Premium included, no end date.' };
+  const sync = () => {
+    const kind = sel.value, plan = kind.split('_')[0], r = kind.split('_')[1];
+    dtRow.hidden = plan !== 'premium';
+    hint.textContent = HINT[plan] + (kind === 'avanti_teacher' ? ' Avanti Teacher has every teacher feature.' : '') + (r !== (role === 'teacher' ? 'teacher' : 'student') ? ' This also changes the account to ' + (r === 'teacher' ? 'a Teacher' : 'a Student') + '.' : '');
+  };
+  sel.addEventListener('change', sync); sync();
+  const node = h('div', { class: 'pt-plan' }, h('label', { class: 'pt-fld', for: 'acKind' }, h('span', { text: 'Account type' }), sel, hint), dtRow);
+  node.startUntil = dt.value;
+  node.changed = () => sel.value !== start || (sel.value.startsWith('premium') && dt.value !== node.startUntil);
+  node.value = () => ({ kind: sel.value, until: sel.value.startsWith('premium') ? dt.value : null });
+  return node;
+}
+async function saveAccount(target, pick) {
+  if (!pick.changed()) return;
+  const v = pick.value();
+  await rpc('admin_set_account', { p_user: target.user_id || null, p_student_id: target.user_id ? null : (target.student_id || null), p_kind: v.kind, p_until: v.until });
+}
 /* Plan badge for the admin lists: Free / Premium (with the end date) / Avanti / Avanti staff */
 function planBadge(x) {
   const k = x.plan_label || (x.plan === 'free' ? 'free' : x.plan === 'staff' ? 'staff' : 'premium');
   return h('span', {}, badge(PLAN_NAMES[k] || 'Free', k === 'free' ? null : 'mid'), k === 'premium' && x.premium_until ? h('div', { class: 'pt-hint', text: 'until ' + day(x.premium_until) }) : null);
 }
 function editStudent(st, after) {
+  if (!can('isAdmin')) { toast('Only the admin can change student details.'); return; }   /* teachers can only view their students */
   const f = studentForm({ edit: true, values: st, hideId: !st.student_id }); const msg = h('p', { class: 'pt-msg', role: 'status' });
-  const pick = AU().perm.isAdmin ? planPicker(st.plan_label, st.premium_until, true, st.class === '11' ? 2 : 1) : null;   /* only the admin changes plans */
-  modal('Edit ' + (st.full_name || 'student'), h('div', {}, st.student_id ? null : h('p', { class: 'pt-hint', text: 'Signs in with Google: ' + (st.email || '') }), f, pick, msg),
+  const sch = schoolSelect('esSchool', st.school || '', 'Choose a school', true);
+  const pick = accountPicker('student', st.plan_label, st.premium_until, { noTeacher: !st.user_id || !!st.student_id });
+  modal('Edit ' + (st.full_name || 'student'), h('div', {}, st.student_id ? null : h('p', { class: 'pt-hint', text: 'Signs in with Google: ' + (st.email || '') }), f,
+      h('div', { class: 'pt-fld' }, h('span', { text: 'School' }), sch, h('small', { text: 'Not in the list? Choose "Other" and type it.' })), pick, msg),
     [{ text: 'Cancel', onclick: () => {} }, { text: 'Save changes', pri: true, onclick: close => {
       const miss = f.missing(); if (miss.length) { msg.textContent = 'Please fill in: ' + miss.join(', '); msg.className = 'pt-msg bad'; return false; }
-      const v = f.values(); delete v.student_id; if (!v.dob || v.dob === st.dob) delete v.dob;
+      const v = f.values(); delete v.student_id; if (!v.dob || v.dob === st.dob) delete v.dob; if (sch.value()) v.school = sch.value();
       rpc('teacher_update_student', { p_user: st.student_id ? null : st.user_id, p_student_id: st.student_id || null, p: v })
-        .then(() => pick ? savePlan(st, pick) : null)
+        .then(() => saveAccount(st, pick))
         .then(() => { close(); toast('Saved'); if (after) after(); }).catch(e => { msg.textContent = e.message; msg.className = 'pt-msg bad'; });
       return false;
     } }]);
@@ -1517,7 +1550,7 @@ async function pageStudents() {
       IS_ADMIN ? h('td', {}, planBadge(x)) : null,
       h('td', { class: 'pt-num', text: x.tests }), h('td', { class: 'pt-num pt-barcell' }, x.avg_pct == null ? '—' : [h('span', { text: pct(x.avg_pct) }), bar(x.avg_pct, x.avg_pct < 40 ? 'bad' : x.avg_pct < 70 ? 'mid' : 'ok')]),
       h('td', { class: 'pt-num', text: x.last_at ? day(x.last_at) : '—' }),
-      h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, can('schoolApproved') ? h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editStudent(x, reload) }) : null,
+      h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, can('isAdmin') ? h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editStudent(x, reload) }) : null,
         x.user_id && x.tests ? h('button', { type: 'button', class: 'btn', text: 'Tests', onclick: () => studentTests(x) }) : null)))));
   };
   const mkSel = (label, all1, list, key) => h('select', { class: 'pt-in', 'aria-label': label, onchange: e => { F[key] = e.target.value; draw(); } }, h('option', { value: '', text: all1 }), list.map(v => h('option', { value: v, text: v })));
@@ -1670,16 +1703,17 @@ async function pageApprovals() {
   const editTeacher = t => {
     const name = h('input', { type: 'text', class: 'pt-in', id: 'etName', maxlength: 120, value: t.full_name || '', autocomplete: 'off' });
     const sch = schoolSelect('etSchool', t.school, 'Choose a school', true, { notWorking: true }); const msg = h('p', { class: 'pt-msg', role: 'status' });
-    const pick = t.is_staff ? null : planPicker(t.plan_label, t.premium_until, true);
+    const fixedStaff = t.is_staff && /@avantifellows\.org$/i.test(t.email || '');
+    const pick = fixedStaff ? null : accountPicker('teacher', t.plan_label, t.premium_until);
     modal('Edit teacher', h('div', {},
       h('p', { class: 'pt-hint', text: 'Signs in with Google: ' + (t.email || '') + (t.is_staff ? ' · Avanti staff' : '') }),
       h('label', { class: 'pt-fld', for: 'etName' }, h('span', { text: 'Full name' }), name),
       h('div', { class: 'pt-fld' }, h('span', { text: 'School' }), sch, h('small', { text: 'Not in the list? Choose "Other" and type it. The approval status stays as it is.' })),
-      t.is_staff ? h('p', { class: 'pt-hint', text: 'Plan: Avanti staff always have full access. This cannot be changed.' }) : pick, msg),
+      fixedStaff ? h('p', { class: 'pt-hint', text: 'Account: Avanti staff (@avantifellows.org) always have full access. This cannot be changed.' }) : pick, msg),
       [{ text: 'Cancel', onclick: () => {} }, { text: 'Save changes', pri: true, onclick: close => {
         if (!name.value.trim()) { msg.textContent = 'The name cannot be empty.'; msg.className = 'pt-msg bad'; name.focus(); return false; }
         rpc('admin_update_teacher', { p_user: t.id, p_full_name: name.value.trim(), p_school: sch.value() || null })
-          .then(() => pick ? savePlan({ user_id: t.id }, pick) : null)
+          .then(() => pick ? saveAccount({ user_id: t.id }, pick) : null)
           .then(() => { close(); toast('Saved'); schools(true); pageApprovals(); }).catch(e => { msg.textContent = e.message; msg.className = 'pt-msg bad'; });
         return false;
       } }]);

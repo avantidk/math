@@ -584,7 +584,7 @@ drop function if exists public.update_my_profile(text, text, text, text);
 -- Saves the signed-in user's details. Every field is required (teachers: name and school).
 -- The school is chosen once and waits for the admin's approval; after that it changes only through
 -- request_school_change (approved by the admin). Only the admin sets their own school freely.
--- Students fill each detail once; after that only their (approved) teacher or the admin can correct it from My Students.
+-- Students fill each detail once; after that only the admin can correct it (teachers can view their students).
 create or replace function public.update_my_profile(p_full_name text, p_school text, p_class text, p_stream text,
   p_category text default null, p_gender text default null) returns json
 language plpgsql security definer set search_path = public as $$
@@ -1411,11 +1411,11 @@ end $$;
 -- Premium teachers: edit a student of their school (by Student ID, or a Google-sign-in student by account).
 create or replace function public.teacher_update_student(p_user uuid, p_student_id text, p jsonb) returns json
 language plpgsql security definer set search_path = public as $$
-declare me public.profiles; r json;
+declare me public.profiles; r json; v_school text;
 begin
   select * into me from public.profiles where id = auth.uid();
-  if not public.is_premium_teacher() then raise exception 'Editing students is for Premium teachers'; end if;
-  if not public.admin_of(me) and public.approved_school(me) is null then raise exception 'Editing students is possible after the admin approves your school.'; end if;
+  -- Teachers can only view the students of their school. Only the admin changes a student's details, including the school.
+  if not public.admin_of(me) then raise exception 'Only the admin can change student details. Teachers can view the students of their school.'; end if;
   if coalesce(public.norm_class(p->>'class'), '11') not in ('11', '12', 'Dropper') then raise exception 'Class must be 11, 12 or Dropper'; end if;
   if coalesce(public.norm_stream(p->>'stream'), 'JEE') not in ('JEE', 'NEET', 'KCET (PCM)', 'KCET (PCB)') then raise exception 'Stream must be JEE, NEET, KCET (PCM) or KCET (PCB)'; end if;
   if coalesce(public.norm_category(p->>'category'), 'General') not in ('General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST') then raise exception 'Category must be General, Gen-EWS, OBC-NCL, SC or ST'; end if;
@@ -1425,14 +1425,15 @@ begin
     if not (r->>'ok')::boolean then raise exception '%', r->>'error'; end if;
     return r;
   end if;
+  v_school := left(nullif(trim(p->>'school'), ''), 160);
   update public.profiles set
     full_name = coalesce(left(nullif(trim(p->>'full_name'), ''), 120), full_name), class = coalesce(public.norm_class(left(p->>'class', 20)), class),
     stream = coalesce(public.norm_stream(left(p->>'stream', 40)), stream), category = coalesce(public.norm_category(left(p->>'category', 30)), category),
     gender = coalesce(public.norm_gender(left(p->>'gender', 30)), gender),
-    session = coalesce(case when coalesce(p->>'session', '') ~ '^\d{4}-\d{2}$' then p->>'session' end, session), updated_at = now()
-  where id = p_user and role = 'student' and avanti_id is null and school_approved
-    and (public.admin_of(me) or lower(school) = lower(public.approved_school(me)));
-  if not found then raise exception 'Student not found in your school'; end if;
+    session = coalesce(case when coalesce(p->>'session', '') ~ '^\d{4}-\d{2}$' then p->>'session' end, session),
+    school = coalesce(v_school, school), school_approved = case when v_school is not null then true else school_approved end, updated_at = now()
+  where id = p_user and role = 'student' and avanti_id is null;
+  if not found then raise exception 'Student not found'; end if;
   return json_build_object('ok', true, 'action', 'updated');
 end $$;
 
@@ -1620,6 +1621,55 @@ begin
            premium_until = case when p_plan = 'premium' then v_until end, updated_at = now() where avanti_id = t.avanti_id;
   end if;
   return json_build_object('ok', true, 'plan', p_plan);
+end $$;
+
+-- Admin only: set the account type of a teacher or a student in one step (Edit teacher / Edit student). Six types:
+--   free_student, free_teacher          : no Premium
+--   premium_student, premium_teacher    : Premium until p_until (default: one year from today)
+--   avanti_student                      : on the Avanti list, Premium included
+--   avanti_teacher                      : Avanti staff, every teacher feature (limited to their own school)
+-- It also changes the role, so a student who chose Teacher by mistake (or the other way round) can be put right.
+-- A student on the Avanti ID list who has not signed in yet can only get the student types.
+create or replace function public.admin_set_account(p_user uuid, p_student_id text, p_kind text, p_until date default null) returns json
+language plpgsql security definer set search_path = public as $$
+declare t public.profiles; v_role text; v_plan text; v_until timestamptz;
+begin
+  if not public.is_admin() then raise exception 'Only Avanti admins can change accounts'; end if;
+  if p_kind not in ('free_student', 'free_teacher', 'premium_student', 'premium_teacher', 'avanti_student', 'avanti_teacher') then
+    raise exception 'Choose one of the six account types';
+  end if;
+  v_role := case when p_kind like '%\_teacher' then 'teacher' else 'student' end;
+  v_plan := split_part(p_kind, '_', 1);
+  if p_user is null then
+    if v_role = 'teacher' then raise exception 'This student has not signed in yet, so the account type cannot be Teacher.'; end if;
+    return public.admin_set_plan(null, p_student_id, v_plan, p_until);
+  end if;
+  select * into t from public.profiles where id = p_user;
+  if t.id is null then raise exception 'Person not found'; end if;
+  if t.is_staff and lower(coalesce(t.email, '')) like '%@avantifellows.org' and p_kind <> 'avanti_teacher' then
+    raise exception 'Avanti staff (@avantifellows.org) always have full access. Their account type cannot be changed here.';
+  end if;
+  if v_role = 'teacher' and t.avanti_id is not null then
+    raise exception 'This student signs in with an Avanti ID, so the account cannot be a teacher.';
+  end if;
+  if v_plan = 'premium' then
+    v_until := coalesce(p_until::timestamptz, now() + interval '1 year');
+    if v_until <= now() then raise exception 'The Premium end date must be in the future'; end if;
+  end if;
+  update public.profiles set
+    role = v_role,
+    is_staff = (p_kind = 'avanti_teacher'),
+    is_avanti = (p_kind = 'avanti_student'),
+    premium_until = case when v_plan = 'premium' then v_until end,
+    plan = case when p_kind = 'avanti_teacher' then 'staff' when v_plan = 'free' then 'free' else 'premium' end,
+    school_approved = case when v_role = 'teacher' and role is distinct from 'teacher' and school is not null then true else school_approved end,
+    updated_at = now()
+   where id = t.id;
+  if t.avanti_id is not null then   -- keep the Avanti ID list in step, so a later sync does not undo the change
+    update public.student_allowlist set source = case when v_plan = 'avanti' then 'avanti' else 'teacher' end,
+           premium_until = case when v_plan = 'premium' then v_until end, updated_at = now() where avanti_id = t.avanti_id;
+  end if;
+  return json_build_object('ok', true, 'kind', p_kind);
 end $$;
 
 -- Admin only: add a teacher with a school and plan. If the person already has an account (not a student) it is updated now;
@@ -1927,7 +1977,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.admin_set_teacher_school(uuid, text, text, text), public.admin_update_teacher(uuid, text, text), public.admin_pending_students(),
   public.admin_schools(), public.admin_rename_school(text, text), public.admin_delete_school(text),
   public.qb_flags_list(), public.qb_flag_set(text, text, jsonb),
-  public.content_allowed(text), public.in_test(), public.approved_school(public.profiles), public.admin_set_plan(uuid, text, text, date), public.premium_years(text), public.admin_add_teacher(text, text, text, text, date), public.admin_teacher_invites(), public.admin_cancel_teacher_invite(text), public.plan_label(public.profiles), public.school_teachers(text), public.menu_counts(), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
+  public.content_allowed(text), public.in_test(), public.approved_school(public.profiles), public.admin_set_plan(uuid, text, text, date), public.admin_set_account(uuid, text, text, date), public.premium_years(text), public.admin_add_teacher(text, text, text, text, date), public.admin_teacher_invites(), public.admin_cancel_teacher_invite(text), public.plan_label(public.profiles), public.school_teachers(text), public.menu_counts(), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
   to authenticated;
 -- (There are no PDF limits. An earlier test version made these two; they are removed if present.)
 drop function if exists public.claim_pdf_quota(integer);
