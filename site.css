@@ -572,3 +572,4 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .rr-card:nth-child(2) .rr-ico{background:linear-gradient(135deg,#fff3d0,#ffe29a);color:#7a5500}.rr-card:nth-child(3) .rr-ico{background:linear-gradient(135deg,#dcf5ea,#bdebd6);color:#0b6b46}.rr-card:nth-child(4) .rr-ico{background:linear-gradient(135deg,#fde4ec,#f8c8d8);color:#a3234d}
 .pg-main .rr-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:0;margin:0}.pg-main .rr-card{margin:0;padding:16px}
 @media(max-width:560px){.pg-main .rr-grid{grid-template-columns:1fr}}
+.sb-green{background:linear-gradient(120deg,#0b5d57,#0f8a7e);color:#fff!important;border-color:transparent;box-shadow:0 6px 16px rgba(11,93,87,.25)}.sb-green:hover{filter:brightness(1.1);transform:translateY(-1px)}
