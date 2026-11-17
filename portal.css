@@ -1062,3 +1062,12 @@ html.hv-drag .hv-pages { pointer-events: none; }
 .pt-tp { display: flex; flex-direction: column; gap: 8px; } .pt-tag.badtag { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); } .pt-tag.oktag { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
 
 .pt-ctr { display: flex; align-items: center; gap: 6px; }
+
+/* My Tests card: the three dots stay at the top right whatever the title length; the link box copies on tap; Results and Export share one line */
+.pt-cthead { flex-wrap: nowrap; align-items: flex-start; }
+.pt-tt { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; min-width: 0; flex: 1 1 auto; padding-top: 6px; }
+.pt-tt h3 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.btn.pt-ctmore { flex: none; margin-left: auto; align-self: flex-start; }
+button.pt-linkcopy { width: 100%; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+button.pt-linkcopy:hover { border-color: var(--accent); background: var(--panel, #fff); }
+.pt-tact { flex-wrap: nowrap; }

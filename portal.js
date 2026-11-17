@@ -527,6 +527,8 @@ const IC = {
   edit: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
   del: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
   down: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>',
+  eye: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  power: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9"/><path d="M18.4 6.6a8 8 0 1 1-12.8 0"/></svg>',
   more: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>'
 };
 /* Share a worksheet as a PDF: the phone's share sheet when it can attach files, otherwise download + WhatsApp / email */
@@ -942,20 +944,19 @@ async function pageMyTests() {
       can('share') ? '-' : null,
       can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { const ids = await idsOf(t); if (ids) shareWorksheet({ title: t.title, question_ids: ids }); } } : null]) },
     h('span', { html: IC.down }), 'Export', h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' })) : null;
-  const moreBtn = t => h('button', { type: 'button', class: 'btn pt-iconbtn', title: 'More', 'aria-label': 'More actions for ' + t.title, 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: IC.more,
-    onclick: e => dropMenu(e.currentTarget, [{ icon: IC.edit, text: 'Edit', onclick: () => { location.hash = '#/edit/' + t.id; } }, { icon: IC.edit, text: 'Rename', onclick: () => rename(t) }, { icon: IC.del, text: 'Delete', bad: true, onclick: () => del(t) }]) });
+  const moreBtn = t => h('button', { type: 'button', class: 'btn pt-iconbtn pt-ctmore', title: 'More', 'aria-label': 'More actions for ' + t.title, 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: IC.more,
+    onclick: e => dropMenu(e.currentTarget, t.mine === false ? [{ icon: IC.eye, text: 'Preview', onclick: () => preview(t) }]
+      : [{ icon: IC.eye, text: 'Preview', onclick: () => preview(t) }, { icon: IC.edit, text: 'Edit', onclick: () => { location.hash = '#/edit/' + t.id; } }, { icon: IC.edit, text: 'Rename', onclick: () => rename(t) },
+         { icon: IC.power, text: t.is_active ? 'Deactivate' : 'Activate', sub: t.is_active ? 'Students cannot start it' : 'Students can start it', onclick: () => toggle(t) }, '-', { icon: IC.del, text: 'Delete', bad: true, onclick: () => del(t) }]) });
   show(top, h('div', { class: 'pt-cards' }, list.map(t => card(
-    h('div', { class: 'pt-ct' }, h('h3', { text: t.title }), h('div', { class: 'pt-ctr' }, t.is_active ? badge('Active', 'ok') : badge('Inactive', 'mute'), t.mine === false ? null : moreBtn(t))),
+    h('div', { class: 'pt-ct pt-cthead' }, h('div', { class: 'pt-tt' }, h('h3', { text: t.title }), t.is_active ? badge('Active', 'ok') : badge('Inactive', 'mute')), moreBtn(t)),
     t.mine === false ? h('p', { class: 'pt-meta' }, 'By ', h('b', { text: t.owner_name || 'Teacher' }), ' · ' + ([t.school].concat(t.schools || []).filter(Boolean).join(', ') || 'All schools')) : null,
     h('p', { class: 'pt-meta', text: [t.n_questions + ' questions', t.duration_min + ' min', '+' + num(t.marks_correct, 2) + ' / −' + num(t.marks_wrong, 2), 'Class ' + (t.target_classes || []).join(', '), (t.target_streams || []).join(', '), [t.school].concat(t.schools || []).filter(Boolean).join(', ') || 'All schools'].join(' · ') }),
     h('p', { class: 'pt-meta' }, h('b', { text: t.submitted }), ' submitted', t.in_progress ? ' · ' + t.in_progress + ' writing now' : '', ' · created ' + day(t.created_at)),
-    h('div', { class: 'pt-link' }, h('code', { text: testLink(t.code) })),
-    h('div', { class: 'pt-actions' },
-      h('button', { type: 'button', class: 'btn pri', text: 'Copy link', onclick: () => copy(testLink(t.code), 'Link copied') }),
+    h('button', { type: 'button', class: 'pt-link pt-linkcopy', title: 'Tap to copy the link', 'aria-label': 'Copy the test link', onclick: () => copy(testLink(t.code), 'Link copied') }, h('code', { text: testLink(t.code) })),
+    h('div', { class: 'pt-actions pt-tact' },
       link('#/results/' + t.id, 'Results', 'btn'),
-      h('button', { type: 'button', class: 'btn', text: 'Preview', onclick: () => preview(t) }),
-      t.mine === false ? null : exportBtn(t),
-      t.mine === false ? null : h('button', { type: 'button', class: 'btn', text: t.is_active ? 'Deactivate' : 'Activate', onclick: () => toggle(t) }))))));
+      t.mine === false ? null : exportBtn(t))))));
 }
 
 /* ---------- Teacher results ---------- */
