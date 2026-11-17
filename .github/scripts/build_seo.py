@@ -234,6 +234,8 @@ def trend_svg(c, TM, TA):
         return f'<polyline points="{" ".join(f"{x:.1f},{y:.1f}" for x, y in pts)}" class="{cls}"/>' + ''.join(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2" class="{cls}-d"/>' for x, y in pts[-1:])
     return f'<svg class="spark wide" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{E(c["name"])} questions per year {Y0} to {Y1}, JEE Main and JEE Advanced">{line(sm, "tr-m")}{line(sa, "tr-a")}</svg>'
 
+SHARE_FOOT = '<div class="sf-share"><span>Share अंक-IT</span><div class="share share-dark" data-share></div></div>'
+
 def exlogo(e, up, size=40):
     return f'<img class="exlogo" src="{up}img/exams/{e[2]}.webp?v={VER}" alt="" width="{size}" height="{size}" loading="lazy">'
 
@@ -263,13 +265,13 @@ def header(depth, up=None):
 <details class="sh-menu"><summary aria-label="Menu">{burger}</summary><nav aria-label="Menu">{msub}{rest}<a href="{up}maths/">All Maths chapters</a></nav></details></div>
 </div></header>"""
 
-def footer(depth, up=None):
+def footer(depth, up=None, share=False):
     up = '../' * depth if up is None else up
     a = lambda frag: up + frag
     ex = ''.join(f'<li><a href="{up}exams/{e[2]}/">{E(e[1])}</a></li>' for e in EXAMS[:4])
     return f"""<footer class="sf"><div class="swrap">
 <div class="sf-grid">
-<div><img src="{up}img/ankit-logo-dark-sm.png?v={VER}" alt="अंक-IT Mathematics" width="139" height="52"><p>JEE Maths practice for Class 11 and 12: question bank, previous-year papers, DPPs, handouts and online tests.</p></div>
+<div><img src="{up}img/ankit-logo-dark-sm.png?v={VER}" alt="अंक-IT Mathematics" width="139" height="52"><p>Maths practice for Class 11 and 12 and for JEE, KCET, NDA and IAT: a 16,000+ question bank with full solutions, past papers from 2000, DPPs, handwritten handouts and NTA-style online tests.</p>{SHARE_FOOT if share else ''}</div>
 <div><p class="sf-h">Explore</p><ul><li><a href="{up}maths/">Maths chapters</a></li><li><a href="{up}syllabus-priority/">Syllabus priority</a></li><li><a href="{up}exams/">All exams</a></li><li><a href="{a("#features")}">Features</a></li><li><a href="{a("#plans")}">Plans</a></li><li><a href="{a("#faq")}">FAQ</a></li></ul></div>
 <div><p class="sf-h">Exams</p><ul>{ex}</ul></div>
 <div><p class="sf-h">Company</p><ul><li><a href="{up}about/">About us</a></li><li><a href="{up}contact/">Contact us</a></li><li><a href="{up}privacy/">Privacy policy</a></li><li><a href="{up}terms/">Terms of use</a></li></ul></div>
@@ -286,6 +288,7 @@ def aside(depth, current=None, up=None):
     return (f'<aside class="pg-side" aria-label="Sidebar"><div class="side-cta"><h2>Practise free</h2><p>Question bank, DPPs, past papers and tests, with full solutions.</p>'
             f'<a class="sb sb-gold when-out" data-login href="{up}?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold when-in" href="{up}">Open your dashboard</a></div>'
             f'<a class="side-btn" href="{up}syllabus-priority/"><span class="ico i-gold">{svg("<path d=\"M4 20V10M10 20V4M16 20v-7M22 20H2\"/>", 22)}</span><span><b>Syllabus Priority</b><small>Which chapters are asked most</small></span></a>'
+            f'<div class="side-box side-share"><h2>Share this page</h2><div class="share" data-share></div></div>'
             f'<div class="side-box"><h2>Exams</h2><ul class="side-list">{ex}</ul></div>'
             f'<div class="side-box"><h2>Popular chapters</h2><ul class="side-list side-ch">{chs}</ul><a class="side-more" href="{up}maths/">All chapters &rarr;</a></div>'
             f'<div class="side-box side-help"><h2>Need help?</h2><p>Questions about signing in, plans or a question in the bank?</p><a href="{up}contact/">Contact us &rarr;</a></div></aside>')
@@ -780,7 +783,7 @@ def home_block():
 <section class="sec sec-alt" id="faq"><div class="swrap"><div class="sec-head"><span class="kick">FAQ</span><h2>Frequently asked questions</h2></div><div class="faq">{faq_html}</div></div></section>
 <section class="cta"><h2>Ready to practise smarter?</h2><p>Create your free account and start with any chapter today.</p><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold sb-lg when-in" data-dash href="./">Open your dashboard</a></section>
 </main>
-{footer(0)}
+{footer(0, share=True)}
 <noscript><p class="ns">Signing in needs JavaScript. Please turn it on in your browser.</p></noscript>
 </div>
 <!--HOME:END-->"""

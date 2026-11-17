@@ -1,5 +1,14 @@
 [
   {
+    "v": "933",
+    "date": "17 Nov 2026",
+    "items": [
+      "Share icons on every public page (sidebar) and in the home page footer: WhatsApp, Reddit, Discord, Instagram and Print, plus one button that opens more networks (Facebook, X, LinkedIn, Pinterest, Threads, Snapchat, Telegram, Email, Copy link). Discord and Instagram copy the link and open the app. Printing a page now prints only its content.",
+      "New footer description.",
+      "Home page carousel: no more empty space while a screen loads (it shows a loading placeholder and loads every screen once you reach it), and the pause button now looks right."
+    ]
+  },
+  {
     "v": "932",
     "date": "17 Nov 2026",
     "items": [

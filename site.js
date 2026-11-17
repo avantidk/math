@@ -89,8 +89,11 @@
       var cur = 0, paused = false, userPaused = false, visible = false, tBtns = [], dBtns = [];
       [tabs, dots, prev, next].forEach(function (el) { el.hidden = false; });
       tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Dashboard screens');
+      Array.prototype.forEach.call(car.querySelectorAll('.car-slide img'), function (im) {   /* a screen that fails to load is retried once */
+        im.addEventListener('error', function () { if (im.getAttribute('data-retry') || im.src.indexOf('data:') === 0) return; im.setAttribute('data-retry', '1'); window.setTimeout(function () { im.src = im.src.split('?')[0] + '?r=' + Date.now(); }, 1200); });
+      });
       function load(i) { var im = slides[(i + slides.length) % slides.length].querySelector('img[data-src]'); if (im) { im.src = im.getAttribute('data-src'); im.removeAttribute('data-src'); } }
-      function mark(i) { cur = i; load(i); load(i + 1); tBtns.forEach(function (b, k) { b.setAttribute('aria-selected', String(k === i)); b.tabIndex = k === i ? 0 : -1; }); dBtns.forEach(function (b, k) { if (k === i) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }); }
+      function mark(i) { cur = i; load(i - 1); load(i); load(i + 1); tBtns.forEach(function (b, k) { b.setAttribute('aria-selected', String(k === i)); b.tabIndex = k === i ? 0 : -1; }); dBtns.forEach(function (b, k) { if (k === i) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); }); }
       function go(i) { i = (i + slides.length) % slides.length; load(i); track.scrollTo({ left: i * track.clientWidth, behavior: 'smooth' }); mark(i); }
       slides.forEach(function (s, i) {
         var t = d.createElement('button'); t.type = 'button'; t.id = 'car-t' + i; t.setAttribute('role', 'tab'); t.setAttribute('aria-controls', s.id); t.textContent = s.getAttribute('data-title'); t.addEventListener('click', function () { go(i); }); tabs.appendChild(t); tBtns.push(t);
@@ -107,11 +110,51 @@
       track.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') { e.preventDefault(); go(cur + 1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); go(cur - 1); } });
       ['mouseenter', 'focusin', 'touchstart'].forEach(function (ev) { car.addEventListener(ev, function () { paused = true; }, { passive: true }); });
       ['mouseleave', 'focusout'].forEach(function (ev) { car.addEventListener(ev, function () { paused = false; }); });
-      if ('IntersectionObserver' in window) new IntersectionObserver(function (en) { visible = en[0].isIntersecting; if (visible) load(cur + 1); }, { threshold: 0.4 }).observe(car); else { visible = true; slides.forEach(function (s, i) { load(i); }); }
+      if ('IntersectionObserver' in window) new IntersectionObserver(function (en) { visible = en[0].isIntersecting; if (visible) slides.forEach(function (s, k) { load(k); }); }, { threshold: 0.4 }).observe(car); else { visible = true; slides.forEach(function (s, i) { load(i); }); }
       var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (still) { userPaused = true; paintPause(); }
       setInterval(function () { if (!paused && !userPaused && visible && !d.hidden) go(cur + 1); }, 6500);
       mark(0);
+    });
+    /* Share icons: WhatsApp and Reddit (direct), Discord and Instagram (copy the link and open the app), Print, and one button that opens every other network. */
+    Array.prototype.forEach.call(d.querySelectorAll('[data-share]'), function (box) {
+      var canon = d.querySelector('link[rel="canonical"]'), url = canon ? canon.href : window.location.href.split('#')[0].split('?')[0];
+      var title = (d.title || 'अंक-IT').replace(/\s*\|\s*अंक-IT\s*$/, ''), text = title + ' | अंक-IT';
+      var e = encodeURIComponent, U = e(url), T = e(text);
+      var ic = function (n) { return '<img src="' + ROOT + 'img/share/' + n + '.webp" width="34" height="34" alt="" loading="lazy">'; };
+      var sv = function (p) { return '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; };
+      var ICO = { print: sv('<path d="M7 9V3h10v6"/><rect x="4" y="9" width="16" height="9" rx="2"/><path d="M7 14h10v7H7z"/>'), share: sv('<circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="6" r="2.6"/><circle cx="18" cy="18" r="2.6"/><path d="m8.3 10.7 7.4-3.4M8.3 13.3l7.4 3.4"/>'),
+        copy: sv('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>'), mail: sv('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'), tg: sv('<path d="M21 4 3 11l5.5 2L10 19l3-4 5 3z"/>'), dev: sv('<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18h2"/>') };
+      var links = { whatsapp: 'https://wa.me/?text=' + e(text + ' ' + url), reddit: 'https://www.reddit.com/submit?url=' + U + '&title=' + T,
+        facebook: 'https://www.facebook.com/sharer/sharer.php?u=' + U, x: 'https://twitter.com/intent/tweet?url=' + U + '&text=' + T, linkedin: 'https://www.linkedin.com/sharing/share-offsite/?url=' + U,
+        pinterest: 'https://pinterest.com/pin/create/button/?url=' + U + '&description=' + T, threads: 'https://www.threads.net/intent/post?text=' + e(text + ' ' + url),
+        snapchat: 'https://www.snapchat.com/scan?attachmentUrl=' + U, telegram: 'https://t.me/share/url?url=' + U + '&text=' + T, mail: 'mailto:?subject=' + T + '&body=' + e(text + '\n' + url) };
+      var names = { whatsapp: 'WhatsApp', reddit: 'Reddit', facebook: 'Facebook', x: 'X', linkedin: 'LinkedIn', pinterest: 'Pinterest', threads: 'Threads', snapchat: 'Snapchat' };
+      function toast(msg) { var t = d.querySelector('.toast'); if (!t) { t = d.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.hidden = true; d.body.appendChild(t); } t.textContent = msg; t.hidden = false; window.clearTimeout(toast.h); toast.h = window.setTimeout(function () { t.hidden = true; }, 3200); }
+      function copy() { if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(url); return new Promise(function (res) { var ta = d.createElement('textarea'); ta.value = url; ta.setAttribute('readonly', ''); ta.className = 'sr'; d.body.appendChild(ta); ta.select(); try { d.execCommand('copy'); } catch (x) { /* optional */ } ta.remove(); res(); }); }
+      function link(n) { return '<a class="shi" href="' + links[n] + '" target="_blank" rel="noopener noreferrer" aria-label="Share on ' + names[n] + '" title="' + names[n] + '">' + ic(n) + '</a>'; }
+      var pop = ['facebook', 'x', 'linkedin', 'pinterest', 'threads', 'snapchat'].map(function (n) { return '<a class="sp-i" href="' + links[n] + '" target="_blank" rel="noopener noreferrer">' + ic(n) + names[n] + '</a>'; }).join('')
+        + '<a class="sp-i" href="' + links.telegram + '" target="_blank" rel="noopener noreferrer"><span class="sp-ic">' + ICO.tg + '</span>Telegram</a><a class="sp-i" href="' + links.mail + '"><span class="sp-ic">' + ICO.mail + '</span>Email</a><button type="button" class="sp-i" data-act="copy"><span class="sp-ic">' + ICO.copy + '</span>Copy link</button>'
+        + (navigator.share ? '<button type="button" class="sp-i" data-act="native"><span class="sp-ic">' + ICO.dev + '</span>More apps</button>' : '');
+      box.innerHTML = link('whatsapp') + link('reddit')
+        + '<button type="button" class="shi" data-act="discord" aria-label="Share on Discord (copies the link)" title="Discord">' + ic('discord') + '</button>'
+        + '<button type="button" class="shi" data-act="instagram" aria-label="Share on Instagram (copies the link)" title="Instagram">' + ic('instagram') + '</button>'
+        + '<button type="button" class="shi shi-svg" data-act="print" aria-label="Print this page" title="Print">' + ICO.print + '</button>'
+        + '<button type="button" class="shi shi-svg shi-more" data-act="more" aria-haspopup="true" aria-expanded="false" aria-label="More ways to share" title="More">' + ICO.share + '</button>'
+        + '<div class="share-pop" role="menu" hidden>' + pop + '</div>';
+      var more = box.querySelector('[data-act="more"]'), pp = box.querySelector('.share-pop');
+      if (box.getBoundingClientRect().left > window.innerWidth / 2) pp.classList.add('right');
+      function close() { pp.hidden = true; more.setAttribute('aria-expanded', 'false'); }
+      box.addEventListener('click', function (ev) {
+        var b = ev.target.closest('[data-act]'); if (!b) return; var a = b.getAttribute('data-act');
+        if (a === 'more') { var o = pp.hidden; pp.hidden = !o; more.setAttribute('aria-expanded', String(o)); return; }
+        if (a === 'print') { window.print(); return; }
+        if (a === 'discord' || a === 'instagram') { window.open(a === 'discord' ? 'https://discord.com/channels/@me' : 'https://www.instagram.com/', '_blank', 'noopener'); copy().then(function () { toast('Link copied. Paste it in ' + (a === 'discord' ? 'Discord' : 'Instagram') + '.'); }); return; }
+        if (a === 'copy') { copy().then(function () { toast('Link copied.'); close(); }); return; }
+        if (a === 'native') { navigator.share({ title: title, text: text, url: url }).catch(function () { /* cancelled */ }); close(); }
+      });
+      d.addEventListener('click', function (ev) { if (!pp.hidden && !box.contains(ev.target)) close(); });
+      d.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && !pp.hidden) { close(); more.focus(); } });
     });
     /* mobile menu: close it after a link is chosen */
     Array.prototype.forEach.call(d.querySelectorAll('.sh-menu a'), function (a) {
