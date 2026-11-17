@@ -1,5 +1,13 @@
 [
   {
+    "v": "948",
+    "date": "17 Nov 2026",
+    "items": [
+      "DPP and test viewer: lettered parts such as (ii), (iv) and (v) now keep their formula on the same line as the label, like (i) and (iii), with space between the lines. Fractions in exponents (for example x to the power 2/3) are now small, as they should be. The same exponent fix applies in the Question Bank.",
+      "DPP builder: new \"Question type\" filter (MCQ, MSQ, Numerical, Subjective, Comprehension, Matching) just above the Out-of-syllabus option. Leave it blank to use every type."
+    ]
+  },
+  {
     "v": "947",
     "date": "17 Nov 2026",
     "items": [

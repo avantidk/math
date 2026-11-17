@@ -139,7 +139,7 @@ function QBP(k) { var p = window.AvantiAuth && window.AvantiAuth.perm; return !!
 
 ;
 
-window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.QBX.spaceCases(tex):tex;if(window.katex){try{return window.katex.renderToString((!display&&/\\(d|t)?frac|\\sqrt/.test(tex)?'\\displaystyle ':'')+tex.replace(/\\frac(?![a-zA-Z])/g,'\\dfrac'),{displayMode:!!display,throwOnError:false,strict:false,trust:false})}catch(e){}}return window.temml?window.temml.renderToString(tex,{displayMode:!!display,throwOnError:false}):String(tex).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})};
+window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.QBX.spaceCases(tex):tex;if(window.katex){try{return window.katex.renderToString((!display&&/\\(d|t)?frac|\\sqrt/.test(tex)?'\\displaystyle ':'')+tex.replace(/([\^_])\{\\frac\{([^{}]*)\}\{([^{}]*)\}\}/g,'$1{\\genfrac{}{}{0.4pt}{}{$2}{$3}}').replace(/\\frac(?![a-zA-Z])/g,'\\dfrac'),{displayMode:!!display,throwOnError:false,strict:false,trust:false})}catch(e){}}return window.temml?window.temml.renderToString(tex,{displayMode:!!display,throwOnError:false}):String(tex).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})};
 
 
 ;

@@ -168,8 +168,14 @@ function matchTable(m) {
 /* tall formulas (matrices, cases, chains of fractions) sitting inside a line of text overlap their neighbours in the PDF picture: give them a line of their own */
 const spaceCases = t => String(t).replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, (m, b) => { const tl = /\\(d|t)?frac|\\sqrt|\\sum|\\int|\\prod|\\lim|\\binom/.test(b); return '\\begin{cases}' + b.replace(/\\\\(?!\[)(?=[\s\S]*\S)/g, '\\\\[' + (tl ? '1.3em' : '0.55em') + ']') + '\\end{cases}'; });
 const boldHtml = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>');
+/* a fraction in an exponent (x^{\frac{2}{3}}) must stay small: the \frac -> \dfrac macro would make it full size */
+const scriptFrac = s => String(s).replace(/([\^_])\{\\frac\{([^{}]*)\}\{([^{}]*)\}\}/g, '$1{\\genfrac{}{}{0.4pt}{}{$2}{$3}}');
 function tallToDisplay(s) {
-  return spaceCases(s).replace(/\\\(([\s\S]+?)\\\)/g, (m, x0) => { const x = x0.replace(/\\begin\{([bp])matrix\}([\s\S]*?)\\end\{\1matrix\}/g, (mm, k, body) => { const r = body.split('\\\\').length, big = r >= 3 ? '\\Bigg' : r === 2 ? '\\Big' : ''; return big ? big + 'l' + (k === 'b' ? '[' : '(') + '\\begin{matrix}' + body + '\\end{matrix}' + big + 'r' + (k === 'b' ? ']' : ')') : mm; }); return ((/\\begin\{/.test(x) || ((x.match(/\\d?frac/g) || []).length >= 2 && x.length > 24)) ? '\\[' + x + '\\]' : (x !== x0 ? '\\(' + x + '\\)' : m)); });
+  return spaceCases(scriptFrac(s)).replace(/\\\(([\s\S]+?)\\\)/g, (m, x0, off, whole) => {
+    /* a lettered part such as "(ii) formula" keeps its formula on the same line as its label (like parts (i) and (iii)) */
+    const part = /^[ \t]*\(([ivxlcdm]{1,5}|[a-z]|\d{1,2})\)[ \t]*$/i.test(whole.slice(whole.lastIndexOf('\n', off - 1) + 1, off)) && !/\\begin\{/.test(x0); const x = x0.replace(/\\begin\{([bp])matrix\}([\s\S]*?)\\end\{\1matrix\}/g, (mm, k, body) => { const r = body.split('\\\\').length, big = r >= 3 ? '\\Bigg' : r === 2 ? '\\Big' : ''; return big ? big + 'l' + (k === 'b' ? '[' : '(') + '\\begin{matrix}' + body + '\\end{matrix}' + big + 'r' + (k === 'b' ? ']' : ')') : mm; }); const tall = (x.match(/\\d?frac/g) || []).length >= 2 && x.length > 24;
+      if (part && (tall || ((x.match(/\\d?frac/g) || []).length >= 1 && x.length > 24))) return '\\(\\rule[-1.1em]{0pt}{2.7em}' + x + '\\)';   /* room above and below, so the lines do not touch */
+      return ((/\\begin\{/.test(x) || (!part && tall)) ? '\\[' + x + '\\]' : (x !== x0 ? '\\(' + x + '\\)' : m)); });
 }
 function buildQ(q, n, p) {
   const maxOpt = Math.max(0, ...q.o.map(o => plain(o).length));
@@ -187,7 +193,7 @@ function buildQ(q, n, p) {
   if (mt) kids.push(matchTable(mt));
   if (q.f) kids.push(h('img', { class: 'fig', alt: 'Figure', src: figSrc(q.f), width: q.f.w, height: q.f.h }));
   if (after) { const st2 = h('div', { class: 'stem' }, ...tags); st2.insertAdjacentHTML('afterbegin', boldHtml(tallToDisplay(after))); kids.push(st2); }
-  if (q.o.length) kids.push(h('div', { class: 'opts ' + cls, style: q.o.some(o => /\\d?frac/.test(o)) ? 'row-gap:.8em' : '' }, q.o.map((o, i) => h('div', { class: 'opt' }, h('b', { text: '(' + 'ABCD'[i] + ')' }), h('span', { text: o })))));
+  if (q.o.length) kids.push(h('div', { class: 'opts ' + cls, style: q.o.some(o => /\\d?frac/.test(o)) ? 'row-gap:.8em' : '' }, q.o.map((o, i) => h('div', { class: 'opt' }, h('b', { text: '(' + 'ABCD'[i] + ')' }), h('span', { text: scriptFrac(o) })))));
   const node = h('div', { class: 'sq' }, q.head ? h('div', { class: 'qhead', text: q.head }) : null, h('div', { class: 'qn', text: n + '.' }), h('div', { class: 'qb' }, kids));
   math(node);
   return node;
@@ -457,7 +463,7 @@ function buildPyqTopics() {
 /* ---------- DPP library UI ---------- */
 let SUBS = [];
 const BK = {};
-const LS = { kind: 'sub', chs: [], ids: [], idk: '', part: 'all', page: 0, key: false, shown: false, year: 'all', yrs: [], ex: [], lv: ['L1', 'L2', 'L3'], pubs: [], srcs: [], tough: 2, mixv: 2, stat: '', seed: 0 };
+const LS = { kind: 'sub', chs: [], ids: [], idk: '', part: 'all', page: 0, key: false, shown: false, year: 'all', yrs: [], ex: [], types: [], lv: ['L1', 'L2', 'L3'], pubs: [], srcs: [], tough: 2, mixv: 2, stat: '', seed: 0 };
 const PUBS = [];   /* every source tag found in the bank (Black Book and any new one) */
 function initPubs() {
   const found = [...new Set(BANK.qs.filter(q => q.s === 'N').map(q => q.pb || 'Practice'))], first = ['Black Book'];
@@ -580,7 +586,7 @@ function topicKeyOf(q) {
 const srcOf = q => q.s === 'P' ? exOf(q) : (q.pb || 'Practice');
 function dppPool(forCount) {
   const yrs = LS.yrs, chs = new Set(LS.chs), ids = new Set(LS.ids), src = new Set(LS.srcs);
-  return BANK.qs.filter(q => chs.has(q.cc) && (forCount || ids.has(topicKeyOf(q))) && src.has(srcOf(q)) && (q.s !== 'P' || !yrs.length || yrs.includes(String(q.y))) && LS.lv.includes('L' + practiceLevel(q))).map(q => Object.assign({}, q, { lvTag: true }));
+  return BANK.qs.filter(q => chs.has(q.cc) && (forCount || ids.has(topicKeyOf(q))) && src.has(srcOf(q)) && (q.s !== 'P' || !yrs.length || yrs.includes(String(q.y))) && (!LS.types.length || LS.types.includes(q.t || 'MCQ')) && LS.lv.includes('L' + practiceLevel(q))).map(q => Object.assign({}, q, { lvTag: true }));
 }
 function rrTopics(qs) {
   const g = new Map(); qs.forEach(q => { const k = topicKeyOf(q); if (!g.has(k)) g.set(k, []); g.get(k).push(q); });
@@ -680,7 +686,7 @@ function dppSwap(r, id) {
   }
   return false;
 }
-const dppKey = () => 'dpp|' + LS.chs.join(',') + '|' + LS.ids.join(',') + '|' + LS.lv.join('') + '|' + LS.srcs.join(',') + '|' + LS.yrs.join(',') + '|' + LS.tough + LS.mixv + '|' + LS.seed + '|' + (OOS.ex ? 1 : 0) + (window.katex ? 'k' : '');
+const dppKey = () => 'dpp|' + LS.chs.join(',') + '|' + LS.ids.join(',') + '|' + LS.lv.join('') + '|' + LS.srcs.join(',') + '|' + LS.yrs.join(',') + '|' + LS.types.join(',') + '|' + LS.tough + LS.mixv + '|' + LS.seed + '|' + (OOS.ex ? 1 : 0) + (window.katex ? 'k' : '');
 const dppCur = () => { const key = dppKey(); return BK[key] || (BK[key] = dppBuild()); };
 function currentPages() {
   const r = dppCur(); LS.stat = r.stat;
@@ -748,6 +754,10 @@ function renderLib() {
     const ys = Object.keys(cy).sort((a, b) => b - a);
     LS.yrs = mfill('libYr', ys.map(y => [y, y + ' (' + cy[y] + ')']), LS.yrs, v => { LS.yrs = v; renderLib(); }, 'years', { none: 'All years' });
   }
+  /* question types (MCQ, Numerical, ...) of the picked chapters and sources; none ticked means every type */
+  const tcnt = {}; BANK.qs.forEach(q => { if (LS.chs.includes(q.cc) && LS.srcs.includes(srcOf(q)) && (q.s !== 'P' || !LS.yrs.length || LS.yrs.includes(String(q.y))) && LS.lv.includes('L' + practiceLevel(q))) { const t = q.t || 'MCQ'; tcnt[t] = (tcnt[t] || 0) + 1; } });
+  const tyList = TYPES.filter(t => tcnt[t]).concat(Object.keys(tcnt).filter(t => !TYPES.includes(t)));
+  LS.types = mfill('libTy', tyList.map(t => [t, t + ' (' + tcnt[t] + ')']), LS.types, v => { LS.types = v; renderLib(); }, 'question types', { none: 'All question types', empty: 'Pick a chapter first' });
   /* subtopics of the picked chapters */
   const pool0 = dppPool(true), per = {}; pool0.forEach(q => { const k = topicKeyOf(q); per[k] = (per[k] || 0) + 1; });
   const items = []; LS.chs.slice().sort((a, b) => chOrd2(a) - chOrd2(b)).forEach(cc => {
@@ -1931,6 +1941,7 @@ function buildLib() {
         h('div', { class: 'fld', id: 'fldYear', hidden: true }, h('span', { class: 'lbl', text: 'Year of the exam (leave blank for all)' }), msel('libYr', 'years')),
         slide('toughSl', 'Toughness of the DPP', 'tough', ['1 · Easy', '2 · Mixed', '3 · Tough']),
         slide('mixSl', 'Practice questions or PYQs', 'mixv', ['N · Practice', 'O · 50 : 50', 'P · PYQ']),
+        h('div', { class: 'fld', id: 'fldTy' }, h('span', { class: 'lbl', text: 'Question type (leave blank for all)' }), msel('libTy', 'question types')),
         oosBox())),
     h('div', { class: 'rail' },
       h('div', { class: 'stage' }, h('div', { class: 'statbar' }, h('div', { class: 'msg', id: 'libMsg', 'aria-live': 'polite' }),
