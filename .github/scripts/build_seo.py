@@ -250,6 +250,8 @@ SHARE_FOOT = '<div class="sf-share"><span>Share अंक-IT</span><div class="s
 def exlogo(e, up, size=40):
     return f'<img class="exlogo" src="{up}img/exams/{e[2]}.webp?v={VER}" alt="{E(e[1])} exam logo" width="{size}" height="{size}" loading="lazy">'
 
+STAT_MENU = [('question-counts/', 'Mathematics Bank: Question Counts'), ('chapter-wise-count/', 'Chapter-wise Count'), ('syllabus-priority/', 'Syllabus Priority'), ('chapter-weightage/', 'Chapter Weightage')]
+
 def header(depth, up=None):
     up = '../' * depth if up is None else up
     home = up or './'
@@ -266,12 +268,15 @@ def header(depth, up=None):
     grid_ico = svg('<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>', 22)
     user = (f'<div class="sh-user when-in"><a class="sh-ico" href="{up}dashboard" title="Dashboard" aria-label="Open your dashboard">{grid_ico}</a>'
             f'<div class="sh-pf"><a class="sh-av" data-av data-profile href="{up}dashboard#/profile" aria-label="Your account" aria-haspopup="true" aria-expanded="false">&nbsp;</a><div class="pfm" role="menu"></div></div></div>')
+    bars = svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', 22)
+    stat = (f'<div class="sh-stat"><button type="button" class="sh-ico sh-statb" aria-haspopup="true" aria-expanded="false" title="Question bank numbers" aria-label="Question bank numbers">{bars}</button>'
+            f'<div class="sh-pop" role="menu">' + ''.join(f'<a role="menuitem" href="{up}{u}">{E(t)}</a>' for u, t in STAT_MENU) + '</div></div>')
     burger = svg('<path d="M4 7h16M4 12h16M4 17h16"/>', 22)
     return f"""<a class="skip" href="#main">Skip to content</a>
 <header class="sh"><div class="swrap sh-in">
 <a class="sh-logo" href="{home}" aria-label="अंक-IT Mathematics Dashboard, home"><img src="{up}{LOGO}?v={VER}" alt="अंक-IT Mathematics Dashboard logo" width="220" height="81"></a>
 <nav class="sh-nav" aria-label="Main">{nav}</nav>
-<div class="sh-end">{login}{user}
+<div class="sh-end">{stat}{login}{user}
 <details class="sh-menu"><summary aria-label="Menu">{burger}</summary><nav aria-label="Menu" data-built="js"></nav></details></div>
 </div></header>"""
 
@@ -880,8 +885,103 @@ def home_block():
 </main>
 {footer(0, share=True)}"""
 
+# ---------- public number pages: question counts, chapter-wise count, chapter weightage ----------
+ALL = STATS['_all']
+PYQ_N, NP_N = ALL['pyq_questions'], ALL['nonpyq_questions']
+GROUP_ORDER = [('JEE Main', 'h-main'), ('JEE Advanced', 'h-adv'), ('AIEEE', 'h-old'), ('IIT', 'h-old'), ('KCET', 'h-kcet'), ('IAT', 'h-iat'), ('NDA', 'h-nda')]
+EXAM_BY_KEY = {e[0]: e for e in EXAMS}
+EXAM_KEY = {'JEE Main': 'JEE Main', 'JEE Advanced': 'JEE Advanced', 'AIEEE': 'AIEEE', 'IIT': 'IIT', 'KCET': 'KCET', 'IAT': 'IAT', 'NDA': 'NDA'}
+
+def num(n): return f'{int(n):,}'
+
+def stat_shell(slug_, title, h1, desc, lead, inner, crumb):
+    crumbs = f'<a href="../">Home</a> &rsaquo; <span aria-current="page">{E(crumb)}</span>'
+    body = band(crumbs, E(h1)) + '\n' + grid(f'<p class="pg-lead">{E(lead)}</p>' + inner + cta(1, '', cur=slug_ + '/'), 1)
+    ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
+        {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'}, {'@type': 'ListItem', 'position': 2, 'name': h1, 'item': f'{SITE}/{slug_}/'}]}]
+    return page(title, desc, f'{SITE}/{slug_}/', body, 1, ld)
+
+def question_counts_page():
+    def tile(cls_, lbl, n, href=None):
+        l = f'<a class="stretch" href="{href}">{E(lbl)}</a>' if href else E(lbl)
+        return f'<div class="{cls_}"><div class="lbl">{l}</div><div class="num">{num(n)}</div></div>'
+    rows = f'<div class="qc-row h-all">{tile("qc-tile all", "All questions", PYQ_N + NP_N)}{tile("qc-tile", "PYQs", PYQ_N)}</div>'
+    for k, hue in GROUP_ORDER:
+        s = STATS[k]; e = EXAM_BY_KEY[k]
+        yrs = ''.join(tile('qc-y', y, n) for y, n in sorted(s['by_year'].items(), key=lambda kv: -int(kv[0])))
+        rows += f'<div class="qc-row {hue}">{tile("qc-tile", k, s["questions"], f"../exams/{e[2]}/")}{yrs}</div>'
+    oos = ALL['oos_by_exam']
+    rows += f'<div class="qc-row h-oos">{tile("qc-tile", "Out of syllabus", sum(oos.values()))}' + ''.join(tile('qc-y', 'Advanced' if k == 'JEE Advanced' else k, n) for k, n in sorted(oos.items(), key=lambda kv: -kv[1])) + '</div>'
+    rows += f'<div class="qc-row h-np">{tile("qc-tile", "Non-PYQ", NP_N)}' + ''.join(tile('qc-y', k, n) for k, n in sorted(ALL['by_source'].items(), key=lambda kv: -kv[1])) + '</div>'
+    inner = (f'<div class="qc">{rows}</div><p class="pg-fine">PYQ means a previous-year question from a real exam paper. Non-PYQ questions are practice questions from books and sheets. The numbers on this page are counts only; the questions and solutions are inside the dashboard after you sign in.</p>')
+    return stat_shell('question-counts', 'Mathematics Bank: Question Counts | अंक-IT', 'Mathematics Bank: Question Counts',
+        f'How many math questions are in the अंक-IT question bank: {num(PYQ_N + NP_N)} questions, {num(PYQ_N)} previous-year questions by exam and year, and {num(NP_N)} practice questions.',
+        f'{num(PYQ_N + NP_N)} math questions in all: {num(PYQ_N)} previous-year questions (PYQs) from JEE Main, JEE Advanced, AIEEE, IIT-JEE, KCET, IAT and NDA, shown paper year by year, and {num(NP_N)} practice questions from three practice sources.', inner, 'Question counts')
+
+def chapter_wise_page():
+    cols = [('JEE Main', lambda c: c['exams'].get('JEE Main', 0) + c['exams'].get('AIEEE', 0), 'All JEE Main questions, including AIEEE (the exam before 2013)'),
+            ('JEE Adv', lambda c: c['exams'].get('JEE Advanced', 0) + c['exams'].get('IIT', 0), 'All JEE Advanced questions, including IIT-JEE (the exam before 2013)'),
+            ('KCET', lambda c: c['exams'].get('KCET', 0), 'KCET (Karnataka CET), a separate exam'),
+            ('IAT', lambda c: c['exams'].get('IAT', 0), 'IAT (IISER Aptitude Test), math section, a separate exam'),
+            ('NDA', lambda c: c['exams'].get('NDA', 0), 'NDA (National Defence Academy), mathematics paper, a separate exam'),
+            ('Black Book', lambda c: c['src'].get('Black Book', 0), 'Practice questions from the Black Book'),
+            ('Allen Ex', lambda c: c['src'].get('Allen Ex', 0), 'Practice questions from Allen exercises'),
+            ('Allen DY', lambda c: c['src'].get('Allen DY', 0), 'Practice questions from Allen DY sheets')]
+    head = '<th scope="col">Code</th><th scope="col">Chapter</th>' + ''.join(f'<th scope="col" class="num" title="{E(t)}">{E(n)}</th>' for n, _, t in cols) + '<th scope="col" class="num">Total</th><th scope="col" class="num" title="Previous-year questions that the source lists as out of the current syllabus">Out of syllabus</th>'
+    tot = [0] * (len(cols) + 2); body = ''
+    order = [c['code'] for c in CH] + [code for code, _ in OOS]
+    for code in order:
+        c = ALL['chapter_table'].get(code)
+        if not c: continue
+        vals = [f(c) for _, f, _ in cols]; total = sum(vals); vals += [total, c['oos']]
+        for i, v in enumerate(vals): tot[i] += v
+        nm = E(CH_NAME[code]); label = f'<a href="../maths/{CH_SLUG[code]}/">{nm}</a>' if code in CH_SLUG else f'{nm} <span class="lv">out of syllabus</span>'
+        body += f'<tr><td class="nw">{code}</td><td>{label}</td>' + ''.join(f'<td class="num">{num(v) if v else "&middot;"}</td>' for v in vals) + '</tr>'
+    body += '<tr class="tot-row"><td></td><th scope="row">All chapters</th>' + ''.join(f'<td class="num">{num(v)}</td>' for v in tot) + '</tr>'
+    inner = (f'<p>Questions per chapter: previous-year questions by exam, plus practice questions from each source. Open a chapter to see its subtopics and exam-wise counts.</p>'
+             f'<div class="pg-table cw"><table class="wide"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>'
+             '<p class="pg-fine">Total is previous-year plus practice questions. Out of syllabus counts the previous-year questions that the paper lists as no longer in the current syllabus (they are also counted in the exam columns).</p>')
+    return stat_shell('chapter-wise-count', 'Chapter-wise Count of Math Questions | अंक-IT', 'Chapter-wise Count',
+        'Chapter-wise count of math questions in the अंक-IT bank: JEE Main, JEE Advanced, KCET, IAT, NDA previous-year questions and practice questions from Black Book and Allen, for every chapter.',
+        'How many questions each math chapter has, split by exam and by practice source.', inner, 'Chapter-wise count')
+
+def weightage_page():
+    W = ALL['wchart']; rows = []
+    for code in [c['code'] for c in CH] + [code for code, _ in OOS]:
+        w = W.get(code)
+        if not w: continue
+        rows.append((code, w))
+    def n_of(w): return sum(w['main'].values()) + sum(w['adv'].values())
+    rows.sort(key=lambda r: -n_of(r[1]))
+    total = sum(n_of(w) for _, w in rows); top = max(n_of(rows[0][1]), 1); third = -(-len(rows) // 3)
+    items = ''
+    for i, (code, w) in enumerate(rows, 1):
+        n = n_of(w); band_ = 'hi' if i <= third else ('mid' if i <= 2 * third else 'lo')
+        cl = f'Class {"11" if code.startswith("11") else "12"}'
+        nm = E(CH_NAME[code]); link = f'<a href="../maths/{CH_SLUG[code]}/">{nm}</a>' if code in CH_SLUG else nm
+        dm, da = E(json.dumps(w['main'], separators=(',', ':'))), E(json.dumps(w['adv'], separators=(',', ':')))
+        items += (f'<li class="wc-row" data-code="{code}" data-syl="{(order_idx := ([c["code"] for c in CH] + [x for x, _ in OOS]).index(code))}" data-main="{dm}" data-adv="{da}"><span class="wc-rk">#{i}</span>'
+                  f'<span class="wc-lbl">{link}<small>{code} &middot; {cl}</small></span><span class="wc-track"><i class="wc-seg {band_} w{round(n / top * 100)}"></i></span>'
+                  f'<span class="wc-val"><b>{n}</b><span>{n / total * 100:.1f}% of all</span></span></li>')
+    top5 = sum(n_of(w) for _, w in rows[:5])
+    btn = lambda g, v, t, on=False: f'<button type="button" class="wc-chip" data-g="{g}" data-v="{v}" aria-pressed="{"true" if on else "false"}">{t}</button>'
+    ctl = ('<div class="wc-ctl"><div><span>Exam</span>' + btn('exam', 'all', 'All', True) + btn('exam', 'main', 'JEE Main') + btn('exam', 'adv', 'JEE Advanced') + '</div>'
+           '<div><span>Period</span>' + btn('yrs', 'all', 'All years', True) + btn('yrs', '2013', 'Since 2013') + btn('yrs', '10', 'Last 10 years') + btn('yrs', '5', 'Last 5 years') + '</div>'
+           '<div><span>Sort by</span>' + btn('sort', 'count', 'Most asked', True) + btn('sort', 'syl', 'Syllabus order') + '</div></div>')
+    cards = (f'<div class="wc-cards"><div><b data-wc-total>{num(total)}</b><span>previous-year questions counted</span></div>'
+             f'<div><b data-wc-top>{E(CH_NAME[rows[0][0]])}</b><span data-wc-topn>most asked chapter ({n_of(rows[0][1])} questions)</span></div>'
+             f'<div><b data-wc-top5>{round(top5 / total * 100)}%</b><span>of all questions come from the top 5 chapters</span></div></div>')
+    inner = (f'<p class="wc-note" data-wc-note>Showing JEE Main and JEE Advanced questions from all years. A longer bar means more questions came from that chapter. Chapters whose old papers are still being added may show fewer questions.</p>'
+             f'{ctl}{cards}<ol class="wc-list" data-wc-list>{items}</ol>'
+             '<div class="wc-leg"><span class="k hi">Most asked (top third)</span><span class="k mid">Often asked</span><span class="k lo">Asked less</span></div>'
+             f'<script src="../weightage.js?v={VER}" defer></script>')
+    return stat_shell('chapter-weightage', 'Chapter Weightage: Most Asked Math Chapters | अंक-IT', 'Chapter Weightage',
+        'Chapter weightage in JEE math: how many JEE Main and JEE Advanced previous-year questions came from each chapter, since 2013, last 10 years or last 5 years.',
+        'Which math chapters matter most: how many previous-year questions came from each chapter. Choose the exam and the period.', inner, 'Chapter weightage')
+
+
 def sitemap():
-    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9')] + [(exam_url(e), '0.8') for e in EXAMS] + [(exam_url(e) + 'about/', '0.7') for e in EXAMS if e[2] in GUIDES] + [(f'{SITE}/exams/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
+    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8'), (SITE + '/question-counts/', '0.6'), (SITE + '/chapter-wise-count/', '0.6'), (SITE + '/chapter-weightage/', '0.7')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9')] + [(exam_url(e), '0.8') for e in EXAMS] + [(exam_url(e) + 'about/', '0.7') for e in EXAMS if e[2] in GUIDES] + [(f'{SITE}/exams/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
     body = ''.join(f'<url><loc>{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}</urlset>\n'
 
@@ -895,6 +995,7 @@ def main():
         write(f'jee-maths/{slug(c)}/index.html', redirect_page(f'maths/{slug(c)}/', 2))   # the old address keeps working
     write('maths/index.html', hub_page()); write('jee-maths/index.html', redirect_page('maths/', 1))
     write('syllabus-priority/index.html', priority_page())
+    write('question-counts/index.html', question_counts_page()); write('chapter-wise-count/index.html', chapter_wise_page()); write('chapter-weightage/index.html', weightage_page())
     write('404.html', not_found_page())
     write('exams/index.html', exams_hub())
     for e in EXAMS:

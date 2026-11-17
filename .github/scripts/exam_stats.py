@@ -40,5 +40,15 @@ for exam, rs in by.items():
         }
 out['_all'] = {'pyq_questions': len(rows), 'nonpyq_questions': len(nonpyq), 'topic_levels': {tc: lv([r for r in rows if r.get('topic_code') == tc]) for tc in {r.get('topic_code') for r in rows if r.get('topic_code')}},
                'chapter_levels': {c: lv([r for r in rows if r.get('chapter_code') == c]) for c in {r.get('chapter_code') for r in rows if r.get('chapter_code')}}}
+# public count pages (/question-counts/, /chapter-wise-count/, /chapter-weightage/): numbers only
+codes = sorted({r.get('chapter_code') for r in rows + nonpyq if r.get('chapter_code')})
+def cnt(rs, f): return dict(collections.Counter(f(r) for r in rs))
+out['_all']['by_source'] = cnt(nonpyq, lambda r: r.get('book') or 'Other')
+out['_all']['oos_by_exam'] = cnt([r for r in rows if r.get('oos')], lambda r: r['exam'])
+out['_all']['chapter_table'] = {c: {'exams': cnt([r for r in rows if r.get('chapter_code') == c], lambda r: r['exam']),
+                                    'src': cnt([r for r in nonpyq if r.get('chapter_code') == c], lambda r: r.get('book') or 'Other'),
+                                    'oos': sum(1 for r in rows if r.get('chapter_code') == c and r.get('oos'))} for c in codes}
+GRP = {'JEE Main': 'main', 'AIEEE': 'main', 'JEE Advanced': 'adv', 'IIT': 'adv'}
+out['_all']['wchart'] = {c: {g: cnt([r for r in rows if r.get('chapter_code') == c and GRP.get(r['exam']) == g and r.get('year')], lambda r: str(r['year'])) for g in ('main', 'adv')} for c in codes}
 json.dump(out, open('.github/scripts/exam-stats.json', 'w', encoding='utf-8'), indent=1, ensure_ascii=False, sort_keys=True)
 print({k: (v['questions'], v['first'], v['last'], v['papers']) for k, v in out.items() if k != '_all'})

@@ -1,5 +1,13 @@
 [
   {
+    "v": "945",
+    "date": "17 Nov 2026",
+    "items": [
+      "New chart icon in the header of every public page (next to the Dashboard icon) with four public pages: Mathematics Bank: Question Counts, Chapter-wise Count, Syllabus Priority and Chapter Weightage. They show counts only, no questions.",
+      "Chapter Weightage lets you choose the exam (JEE Main or JEE Advanced), the period (since 2013, last 10 or 5 years) and the sort order."
+    ]
+  },
+  {
     "v": "944",
     "date": "17 Nov 2026",
     "items": [

@@ -150,6 +150,13 @@
       d.addEventListener('click', function (ev) { if (!pp.hidden && !box.contains(ev.target)) close(); });
       d.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && !pp.hidden) { close(); more.focus(); } });
     });
+    /* question bank numbers menu: hover or keyboard focus (CSS); a tap opens it on touch screens */
+    (function () {
+      var box = d.querySelector('.sh-stat'); if (!box) return; var b = box.querySelector('.sh-statb');
+      b.addEventListener('click', function (e) { e.stopPropagation(); box.classList.toggle('open'); b.setAttribute('aria-expanded', String(box.classList.contains('open'))); });
+      d.addEventListener('click', function (e) { if (box.classList.contains('open') && !box.contains(e.target)) { box.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); } });
+      d.addEventListener('keydown', function (e) { if (e.key === 'Escape') { box.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); } });
+    })();
     /* phone menu: built from the main navigation above, so the page itself lists every link only once */
     (function () {
       var nav = d.querySelector('.sh-menu nav'), src = d.querySelector('.sh-nav'); if (!nav || !src) return;
@@ -162,6 +169,8 @@
       }
       Array.prototype.forEach.call(src.children, function (el) { if (el.tagName === 'A') nav.appendChild(mk(el.href, el.textContent)); });
       nav.appendChild(mk(ROOT + 'maths/', 'All Math chapters'));
+      var st = d.querySelector('.sh-pop');
+      if (st) { var hd = d.createElement('p'); hd.className = 'sh-sub-h'; hd.textContent = 'Question bank numbers'; nav.appendChild(hd); Array.prototype.forEach.call(st.querySelectorAll('a'), function (a) { nav.appendChild(mk(a.href, a.textContent)); }); }
     })();
     /* mobile menu: close it after a link is chosen */
     Array.prototype.forEach.call(d.querySelectorAll('.sh-menu a'), function (a) {
