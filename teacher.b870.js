@@ -49,6 +49,7 @@ const PERM = () => (window.AvantiAuth && window.AvantiAuth.perm) || {};
 function G(what) { return PERM()[what] === true; }
 function need(what) {
   if (G(what)) return true;
+  if (what === 'pdf' && G('exportPdf')) return true;   /* DPP / PYQ / Must Solve PDFs: Free accounts too (the database counts them) */
   toast(['docx', 'pptx', 'share', 'copy'].includes(what) && G('pdf') ? 'Your plan includes PDF downloads and printing only.' : 'This needs a Premium membership. Open the profile menu and choose Purchase membership.');
   return false;
 }

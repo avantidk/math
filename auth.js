@@ -27,7 +27,8 @@ function permsFor(p) {
   const staff = plan === 'staff', paid = staff || plan === 'premium', admin = !!p.is_admin;
   return Object.freeze({
     plan, staff, premium: paid, role: p.role || null,
-    pdf: paid, print: paid,                                // Premium (and Avanti teachers): PDF download and print
+    pdf: paid, print: paid,                                // Premium (and Avanti teachers): handout downloads, unlimited PDFs and print
+    exportPdf: true,                                       // every signed-in account may make DPP / PYQ / Must Solve PDFs; the database allows Free accounts 5 a day
     share: admin, copy: admin, docx: admin, pptx: admin,   // sharing, copying and editable Word / PowerPoint: the admin only
     attention: staff,                                      // Attention flags: Staff only
     createTests: !!p.can_create_tests,                     // every teacher and Staff (decided by the database)
