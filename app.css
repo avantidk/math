@@ -610,3 +610,5 @@ body.hasmax{overflow:hidden}
 .mkeybox{margin:14px 0;padding:12px 14px;border:1px solid var(--rule);border-radius:12px;background:var(--panel)}
 .mkeybox h3{margin:0 0 8px;font-size:15px}
 .mkeybox .keyflow{display:flex;flex-wrap:wrap;gap:6px 16px}
+
+.sh-info2{text-align:center;font-family:var(--font-body);font-weight:600;font-size:12.5px;color:var(--sheet-ink);padding:6px 0;border-bottom:2px solid var(--sheet-accent);margin-bottom:8px}

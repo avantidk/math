@@ -215,13 +215,14 @@ function skeleton(p, keyMode) {
   const dt = p.date ? new Date(p.date + 'T00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   /* header: logo left, exam name (18 bold) with date below (14), Mathematics top right; footer: Exam - Date left, page number right */
   const examName = p.pyq ? String(p.sub || '').replace(/\s*\u00b7\s*all topics$/, '') : p.title, dateLine = p.pyq ? p.title : sub;
-  const headTitle = p.pyq ? examName : p.title, headSub = p.pyq ? (keyMode ? dateLine + ' \u00b7 ' + (keyMode === 'exp' ? 'Explanations' : 'Answer key') : dateLine) : sub;
+  const headTitle = p.pyq ? examName : p.title, headSub = p.infoLine && !keyMode ? '' : p.pyq ? (keyMode ? dateLine + ' \u00b7 ' + (keyMode === 'exp' ? 'Explanations' : 'Answer key') : dateLine) : sub;
   const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-light.png?v=932', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
   return h('div', { class: 'sheet' },
     h('div', { class: 'sh-head' },
       h('div', { class: 'sh-brand' }, logo),
-      h('div', { class: 'sh-title', style: 'font-size:18px;font-weight:700;line-height:1.2' }, headTitle, h('small', { text: headSub, style: 'font-size:14px;font-weight:600;margin-top:3px;letter-spacing:0;color:var(--sheet-muted)' })),
+      h('div', { class: 'sh-title', style: 'font-size:18px;font-weight:700;line-height:1.2' }, headTitle, !headSub ? null : h('small', { text: headSub, style: 'font-size:14px;font-weight:600;margin-top:3px;letter-spacing:0;color:var(--sheet-muted)' })),
       h('div', { class: 'sh-meta' }, h('div', { text: 'Mathematics', style: 'font-weight:700;font-size:12px' }), p.pyq ? h('div', { class: 'sh-badge', text: 'PYQ' }) : p.badge ? h('div', { class: 'sh-badge', text: p.badge }) : (dt ? h('div', { text: dt }) : null), p.batch ? h('div', { text: p.batch }) : null)),
+    p.infoLine && !keyMode ? h('div', { class: 'sh-info2', text: p.infoLine }) : null,
     keyMode || !test ? null : info,
     h('div', { class: 'sh-body' }),
     h('div', { class: 'sh-foot' }, h('span', { text: p.pyq ? examName + ' - ' + dateLine : p.title }), h('span', { text: keyMode ? 'Teacher copy' : test ? 'Test' + (p.pageOf ? ' \u00b7 Page ' + p.pageOf : '') : (p.pg ? 'Page ' + p.pg : '') })));
@@ -524,7 +525,7 @@ function paginate(qs, base) {
 function idPages(ids, title, label, info) {
   label = label || 'Worksheet';
   const qs = ids.map(i => BYID.get(i)).filter(Boolean);
-  return qs.length ? packPages(qs, (g, i, n) => ({ title, sub: info || label, badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : label })) : [];
+  return qs.length ? packPages(qs, (g, i, n) => ({ title, sub: label, infoLine: info || '', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : label })) : [];
 }
 function packPages(qs, mk) {
   const pg = paginate(qs, BASE), out = []; let start = 0;
