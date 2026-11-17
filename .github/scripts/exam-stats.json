@@ -12604,6 +12604,8 @@
     "L3": 8
    }
   },
+  "nonpyq_questions": 7980,
+  "pyq_questions": 8772,
   "topic_levels": {
    "JM-11M1.1": {
     "L1": 3,

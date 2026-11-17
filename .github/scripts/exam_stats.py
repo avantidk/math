@@ -5,6 +5,7 @@
 import json, sys, collections
 root = sys.argv[1].rstrip('/')
 rows = json.load(open(root + '/qb/data/pyq.json', encoding='utf-8'))
+nonpyq = json.load(open(root + '/qb/data/nonpyq.json', encoding='utf-8'))
 LV = ('L1', 'L2', 'L3')
 def lv(rows):
     c = collections.Counter(r.get('difficulty') for r in rows)
@@ -31,7 +32,7 @@ for exam, rs in by.items():
             'by_level': lv(cr),
             'topics_lv': {t: dict(n=len(tr), **lv(tr)) for t in {(r.get('topic') or 'Other') for r in cr} for tr in [[r for r in cr if (r.get('topic') or 'Other') == t]]},
         }
-out['_all'] = {'topic_levels': {tc: lv([r for r in rows if r.get('topic_code') == tc]) for tc in {r.get('topic_code') for r in rows if r.get('topic_code')}},
+out['_all'] = {'pyq_questions': len(rows), 'nonpyq_questions': len(nonpyq), 'topic_levels': {tc: lv([r for r in rows if r.get('topic_code') == tc]) for tc in {r.get('topic_code') for r in rows if r.get('topic_code')}},
                'chapter_levels': {c: lv([r for r in rows if r.get('chapter_code') == c]) for c in {r.get('chapter_code') for r in rows if r.get('chapter_code')}}}
 json.dump(out, open('.github/scripts/exam-stats.json', 'w', encoding='utf-8'), indent=1, ensure_ascii=False, sort_keys=True)
 print({k: (v['questions'], v['first'], v['last'], v['papers']) for k, v in out.items() if k != '_all'})

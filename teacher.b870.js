@@ -193,7 +193,7 @@ function buildQ(q, n, p) {
   return node;
 }
 var LOGO_DATA = '';
-try { fetch('img/ankit-logo.png?v=922').then(r => r.ok ? r.blob() : null).then(bl => { if (!bl) return; const fr = new FileReader(); fr.onload = () => { LOGO_DATA = fr.result; }; fr.readAsDataURL(bl); }).catch(() => {}); } catch (e) { /* use the file path */ }
+try { fetch('img/ankit-logo-light.png?v=932').then(r => r.ok ? r.blob() : null).then(bl => { if (!bl) return; const fr = new FileReader(); fr.onload = () => { LOGO_DATA = fr.result; }; fr.readAsDataURL(bl); }).catch(() => {}); } catch (e) { /* use the file path */ }
 /* a figure that is just a picture wrapped in an SVG is drawn from the picture itself (screenshots and PDFs then never lose it) */
 function figSrc(f) { const m = /<image[^>]*?href="(data:image\/(?:png|jpeg|jpg);base64,[^"]+)"/.exec(f.svg || ''); return m ? m[1] : 'data:image/svg+xml;utf8,' + encodeURIComponent(f.svg); }
 function skeleton(p, keyMode) {
@@ -207,7 +207,7 @@ function skeleton(p, keyMode) {
   /* header: logo left, exam name (18 bold) with date below (14), Mathematics top right; footer: Exam - Date left, page number right */
   const examName = p.pyq ? String(p.sub || '').replace(/\s*\u00b7\s*all topics$/, '') : p.title, dateLine = p.pyq ? p.title : sub;
   const headTitle = p.pyq ? examName : p.title, headSub = p.pyq ? (keyMode ? dateLine + ' \u00b7 ' + (keyMode === 'exp' ? 'Explanations' : 'Answer key') : dateLine) : sub;
-  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo.png?v=922', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
+  const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-light.png?v=932', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
   return h('div', { class: 'sheet' },
     h('div', { class: 'sh-head' },
       h('div', { class: 'sh-brand' }, logo),
@@ -1177,7 +1177,7 @@ async function viewHandout(x, url) {
   try {
     const lib = await loadPdfJs();
     const res = await fetch(url);
-    if (!res.ok) throw new Error(res.status === 400 || res.status === 403 ? 'premium' : 'net');
+    if (!res.ok) throw new Error((res.status === 400 || res.status === 403) && !['11M1', '12M13'].includes(x.code) ? 'premium' : 'net');   /* the first handout of each class is free: if the server refuses it, that is a fault, not a Premium wall */
     const buf = await res.arrayBuffer(); pdfBlob = new Blob([buf], { type: 'application/pdf' });
     doc = await lib.getDocument({ data: new Uint8Array(buf.slice(0)), isEvalSupported: false }).promise;
     pof.textContent = '/ ' + doc.numPages;
@@ -1645,7 +1645,7 @@ async function buildEditable(kind, pages) {
   await Promise.all([officeCode(), loadScript(CDN.zip), kind === 'docx' ? loadScript(CDN.docx) : loadScript(CDN.pptx)]);
   const figs = {};
   for (const p of pages) for (const q of p.qs) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
-  let logo = null; try { const rs = await fetch('img/ankit-logo.png?v=922'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl); logo = { data: new Uint8Array(await bl.arrayBuffer()), w: bm.width, h: bm.height, dataUrl: await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }) }; } } catch (e) { /* no logo file: skip */ }
+  let logo = null; try { const rs = await fetch('img/ankit-logo-light.png?v=932'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl); logo = { data: new Uint8Array(await bl.arrayBuffer()), w: bm.width, h: bm.height, dataUrl: await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }) }; } } catch (e) { /* no logo file: skip */ }
   const H = { CHMAP, DIFF, tagText, keyLine, figs, matchParts, expl: eItems, logo };
   return kind === 'docx' ? window.OfficeDoc.buildDocx(window.docx, window.JSZip, pages, H) : window.OfficeDoc.buildPptx(window.PptxGenJS, window.JSZip, pages, H);
 }

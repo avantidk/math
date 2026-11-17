@@ -41,31 +41,49 @@
   }
   function rememberNext() { if (/^#\/t\//.test(location.hash)) store.set(NEXT_KEY, location.hash); }
 
-  var root = null, api = { after: null };
-  function close() { if (root) root.hidden = true; document.body.classList.remove('lm-open'); }
+  var root = null, api = { after: null }, lastFocus = null;
+  function close() { if (root) root.hidden = true; document.body.classList.remove('lm-open'); if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) { /* the page may have changed */ } } lastFocus = null; }
+  /* keep Tab inside the pop-up while it is open */
+  function trap(e) {
+    if (e.key !== 'Tab' || !root || root.hidden) return;
+    var f = Array.prototype.filter.call(root.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])'), function (x) { return !x.disabled && !x.hidden && x.offsetParent !== null; });
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1], act = document.activeElement;
+    if (!root.contains(act)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && act === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && act === last) { e.preventDefault(); first.focus(); }
+  }
 
   function open(opts) {
     opts = opts || {};
     if (!root) {
-      root = h('div', { class: 'lm', id: 'loginModal', hidden: true, role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Log in or register' });
+      root = h('div', { class: 'lm', id: 'loginModal', hidden: true, role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'lmTitle' });
       root.addEventListener('mousedown', function (e) { if (e.target === root) close(); });
-      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && root && !root.hidden) close(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && root && !root.hidden) close(); else trap(e); });
       document.body.append(root);
     }
     var testLink = /^#\/t\//.test(location.hash) || /^#\/t\//.test(store.get(NEXT_KEY) || '');
-    var role = testLink ? 'student' : (store.get(ROLE_KEY) === 'student' ? 'student' : 'teacher');
+    /* no role is pre-selected: it is saved once and cannot be changed later, so the person must choose it */
+    var saved = store.get(ROLE_KEY), role = testLink ? 'student' : (saved === 'student' || saved === 'teacher' ? saved : '');
+    if (!lastFocus && document.activeElement && document.activeElement !== document.body) lastFocus = document.activeElement;
     var msg = opts.msg || '';
     var err = h('p', { class: 'lm-err', role: 'alert', hidden: !msg, text: msg });
     var seg = h('div', { class: 'lm-seg', role: 'radiogroup', 'aria-label': 'I am a' });
     var avBox = h('section', { class: 'lm-av' });
+    var hint = h('p', { class: 'lm-hint', role: 'status' });
     function paint() {
       Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) { b.setAttribute('aria-checked', String(b.getAttribute('data-r') === role)); });
       avBox.hidden = role !== 'student';
+      hint.textContent = role ? '' : 'Choose Teacher or Student to continue.';
+      hint.hidden = !!role;
+      if (gBtn) gBtn.classList.toggle('lm-need', !role);
     }
     [['teacher', 'Teacher'], ['student', 'Student']].forEach(function (p) {
       seg.append(h('button', { type: 'button', role: 'radio', 'data-r': p[0], text: p[1], onclick: function () { role = p[0]; paint(); } }));
     });
-    var gBtn = h('button', { type: 'button', class: 'lm-google', html: GOOGLE_G + '<span>Continue with Google</span>', onclick: async function () {
+    var gBtn = null;
+    gBtn = h('button', { type: 'button', class: 'lm-google', html: GOOGLE_G + '<span>Continue with Google</span>', onclick: async function () {
+      if (!role) { err.textContent = 'Please choose Teacher or Student first. This choice is saved once and cannot be changed later.'; err.hidden = false; return; }
       err.hidden = true; gBtn.disabled = true; gBtn.lastChild.textContent = 'Opening Google…';
       try {
         store.set(ROLE_KEY, role); rememberNext();
@@ -112,16 +130,16 @@
       } }));
     var dialog = h('div', { class: 'lm-dialog' },
       h('button', { type: 'button', class: 'lm-x', 'aria-label': 'Close', text: '×', onclick: close }),
-      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=931', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
-      h('h2', { text: 'Log in or register' }),
+      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=932', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
+      h('h2', { id: 'lmTitle', text: 'Log in or register' }),
       h('p', { class: 'lm-sub', text: 'New here? Continue with Google and your account is created for you.' }),
       testLink ? h('p', { class: 'lm-note', text: 'Sign in to open your test.' }) : null,
-      h('p', { class: 'lm-sub', text: 'I am a' }), seg, gBtn, err, avBox,
-      h('p', { class: 'lm-fine', text: 'Your choice of Teacher or Student is saved the first time you sign in.' }),
+      h('p', { class: 'lm-sub', text: 'I am a' }), seg, hint, gBtn, err, avBox,
+      h('p', { class: 'lm-fine', text: 'Your choice of Teacher or Student is saved the first time you sign in and cannot be changed later, so please choose carefully.' }),
       helpBox);
     root.textContent = ''; root.append(dialog); root.hidden = false; document.body.classList.add('lm-open');
     paint();
-    setTimeout(function () { try { gBtn.focus(); } catch (e) { /* optional */ } }, 30);
+    setTimeout(function () { try { (role ? gBtn : seg.querySelector('button')).focus(); } catch (e) { /* optional */ } }, 30);
   }
 
   /* sign out from a public page (the dashboard page uses AvantiAuth.signOut, which does the same) */

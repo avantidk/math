@@ -637,7 +637,7 @@ html:not(.is-admin) .qb-sstat-link, html:not(.is-admin) #appFootLink, html:not(.
 /* Tablets and small laptops: two tight rows — logo, title and buttons; then the tabs */
 @media (min-width: 641px) and (max-width: 1199px) {
   html body .topbar { padding-top: 12px; }
-  html body .tb-head { min-height: 40px; justify-content: center; }
+  html body .tb-head { min-height: 52px; justify-content: center; }   /* tall enough that the logo never touches the tabs */
   html body .tb-logo { top: 10px; height: 46px; }
   html body .tb-title { font-size: clamp(22px, 2.6vw, 26px); }
   html body .tb-sub { margin-top: 3px; font-size: 9.5px; letter-spacing: .14em; }

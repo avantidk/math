@@ -154,8 +154,20 @@ def head(title, desc, canon, depth, jsonld=None, og_title=None, index=False):
 <meta name="twitter:image" content="{SITE}/img/og-share.png">
 {ld}'''
 
-def page(title, desc, canon, body, depth, jsonld=None, og_title=None):
-    up = '../' * depth
+def fit_title(t, n=64):
+    suffix = ' | अंक-IT'
+    if len(t) <= n: return t
+    if t.endswith(suffix): t = t[:-len(suffix)]
+    if len(t) + len(suffix) <= n: return t + suffix
+    return t if len(t) <= n else t[:n - 1].rsplit(' ', 1)[0] + '…'
+
+def fit_desc(d, n=158):
+    if len(d) <= n: return d
+    return d[:n - 1].rsplit(' ', 1)[0].rstrip(',;:. ') + '…'
+
+def page(title, desc, canon, body, depth, jsonld=None, og_title=None, up=None, noindex=False):
+    up = '../' * depth if up is None else up
+    title = fit_title(title); desc = fit_desc(desc)
     return f'''<!doctype html>
 <html lang="en">
 <head>
@@ -163,7 +175,7 @@ def page(title, desc, canon, body, depth, jsonld=None, og_title=None):
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src https://usehxhvzhdbcmnmqaxoo.supabase.co; base-uri 'self'; form-action 'none'">
 <title>{E(title)}</title>
-{head(title, desc, canon, depth, jsonld, og_title)}<meta name="theme-color" content="#0c1a3d">
+{head(title, desc, canon, depth, jsonld, og_title).replace('index, follow, max-image-preview:large', 'noindex, follow') if noindex else head(title, desc, canon, depth, jsonld, og_title)}<meta name="theme-color" content="#0c1a3d">
 <link rel="icon" type="image/png" sizes="32x32" href="{up}img/icon/icon-32.png?v={VER}">
 <link rel="apple-touch-icon" sizes="180x180" href="{up}img/icon/icon-180.png?v={VER}">
 <link rel="preload" href="{up}vendor/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -172,9 +184,9 @@ def page(title, desc, canon, body, depth, jsonld=None, og_title=None):
 <script src="{up}login.js?v={VER}" defer></script>
 </head>
 <body class="pg">
-{header(depth)}
+{header(depth, up)}
 {body}
-{footer(depth)}
+{footer(depth, up)}
 </body>
 </html>
 '''
@@ -225,10 +237,10 @@ def trend_svg(c, TM, TA):
 def exlogo(e, up, size=40):
     return f'<img class="exlogo" src="{up}img/exams/{e[2]}.webp?v={VER}" alt="" width="{size}" height="{size}" loading="lazy">'
 
-def header(depth):
-    up = '../' * depth
-    home = up + '#/home' if depth else '#/home'
-    a = lambda frag: (up + frag) if depth else frag
+def header(depth, up=None):
+    up = '../' * depth if up is None else up
+    home = up + '#/home'
+    a = lambda frag: up + frag
     chev = svg('<path d="m6 9 6 6 6-6"/>', 16)
     def lk(t, f): return f'<a href="{a("#" + f)}">{t}</a>'
     cards = ''.join(f'<a class="mega-card" href="{up}exams/{e[2]}/" role="menuitem">{exlogo(e, up, 44)}<span class="mc-body"><b>{E(e[1])}</b><span class="mc-tag">{E(e[3])}</span><span class="mc-meta">{E(exam_meta(e))}</span></span></a>' for e in EXAMS)
@@ -237,35 +249,36 @@ def header(depth):
                 f'<a class="mega-all" href="{up}exams/">View all exams &rarr;</a></div></div></div>')
     rest = lk('Features', 'features') + lk('How it works', 'how') + lk('Chapters', 'chapters') + lk('Plans', 'plans') + lk('FAQ', 'faq')
     nav = exams_dd + rest
-    login = f'<a class="sb sb-pri when-out" data-login href="{up}?login=1" rel="nofollow">Login</a>' if depth else '<a class="sb sb-pri when-out" data-login href="?login=1" rel="nofollow">Login</a>'
+    login = f'<a class="sb sb-pri when-out" data-login href="{up}?login=1" rel="nofollow">Login</a>'
     grid_ico = svg('<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>', 22)
     user = (f'<div class="sh-user when-in"><a class="sh-ico" data-dash href="{up or "./"}" title="Dashboard" aria-label="Open your dashboard">{grid_ico}</a>'
             f'<div class="sh-pf"><a class="sh-av" data-av data-profile href="{a("#/profile")}" aria-label="Your account" aria-haspopup="true" aria-expanded="false">&nbsp;</a><div class="pfm" role="menu"></div></div></div>')
     burger = svg('<path d="M4 7h16M4 12h16M4 17h16"/>', 22)
     msub = ('<details class="sh-sub"><summary>Exams ' + chev + '</summary>' + ''.join(f'<a href="{up}exams/{e[2]}/">{exlogo(e, up, 26)}{E(e[1])}</a>' for e in EXAMS) + f'<a href="{up}exams/">All exams</a></details>')
-    return f"""<header class="sh"><div class="swrap sh-in">
+    return f"""<a class="skip" href="#main">Skip to content</a>
+<header class="sh"><div class="swrap sh-in">
 <a class="sh-logo" href="{home}" aria-label="अंक-IT Mathematics Dashboard, home"><img src="{up}{LOGO}?v={VER}" alt="अंक-IT Mathematics" width="220" height="81"></a>
 <nav class="sh-nav" aria-label="Main">{nav}</nav>
 <div class="sh-end">{login}{user}
 <details class="sh-menu"><summary aria-label="Menu">{burger}</summary><nav aria-label="Menu">{msub}{rest}<a href="{up}maths/">All Maths chapters</a></nav></details></div>
 </div></header>"""
 
-def footer(depth):
-    up = '../' * depth
-    a = lambda frag: (up + frag) if depth else frag
+def footer(depth, up=None):
+    up = '../' * depth if up is None else up
+    a = lambda frag: up + frag
     ex = ''.join(f'<li><a href="{up}exams/{e[2]}/">{E(e[1])}</a></li>' for e in EXAMS[:4])
     return f"""<footer class="sf"><div class="swrap">
 <div class="sf-grid">
 <div><img src="{up}img/ankit-logo-dark-sm.png?v={VER}" alt="अंक-IT Mathematics" width="139" height="52"><p>JEE Maths practice for Class 11 and 12: question bank, previous-year papers, DPPs, handouts and online tests.</p></div>
-<div><h4>Explore</h4><ul><li><a href="{up}maths/">Maths chapters</a></li><li><a href="{up}syllabus-priority/">Syllabus priority</a></li><li><a href="{up}exams/">All exams</a></li><li><a href="{a("#features")}">Features</a></li><li><a href="{a("#plans")}">Plans</a></li><li><a href="{a("#faq")}">FAQ</a></li></ul></div>
-<div><h4>Exams</h4><ul>{ex}</ul></div>
-<div><h4>Company</h4><ul><li><a href="{up}about/">About us</a></li><li><a href="{up}contact/">Contact us</a></li><li><a href="{up}privacy/">Privacy policy</a></li><li><a href="{up}terms/">Terms of use</a></li></ul></div>
+<div><p class="sf-h">Explore</p><ul><li><a href="{up}maths/">Maths chapters</a></li><li><a href="{up}syllabus-priority/">Syllabus priority</a></li><li><a href="{up}exams/">All exams</a></li><li><a href="{a("#features")}">Features</a></li><li><a href="{a("#plans")}">Plans</a></li><li><a href="{a("#faq")}">FAQ</a></li></ul></div>
+<div><p class="sf-h">Exams</p><ul>{ex}</ul></div>
+<div><p class="sf-h">Company</p><ul><li><a href="{up}about/">About us</a></li><li><a href="{up}contact/">Contact us</a></li><li><a href="{up}privacy/">Privacy policy</a></li><li><a href="{up}terms/">Terms of use</a></li></ul></div>
 </div>
 <div class="sf-base"><span>&copy; 2026 अंक-IT Mathematics Dashboard</span><span>JEE Main · JEE Advanced · KCET · NDA · IAT</span></div>
 </div></footer>"""
 
-def aside(depth, current=None):
-    up = '../' * depth
+def aside(depth, current=None, up=None):
+    up = '../' * depth if up is None else up
     cur = ' aria-current="page"'
     ex = ''.join(f'<li><a href="{up}exams/{e[2]}/"{cur if e[2] == current else ""}>{exlogo(e, up, 34)}<span><b>{E(e[1])}</b><small>{STATS[e[0]]["questions"]:,} questions</small></span></a></li>' for e in EXAMS)
     pop = sorted(CH, key=lambda c: -c['m'])[:8]
@@ -277,8 +290,8 @@ def aside(depth, current=None):
             f'<div class="side-box"><h2>Popular chapters</h2><ul class="side-list side-ch">{chs}</ul><a class="side-more" href="{up}maths/">All chapters &rarr;</a></div>'
             f'<div class="side-box side-help"><h2>Need help?</h2><p>Questions about signing in, plans or a question in the bank?</p><a href="{up}contact/">Contact us &rarr;</a></div></aside>')
 
-def grid(main_html, depth, current=None, cls_=''):
-    return f'<div class="swrap pg-grid"><main class="pg-main {cls_}">{main_html}</main>{aside(depth, current)}</div>'
+def grid(main_html, depth, current=None, cls_='', up=None):
+    return f'<div class="swrap pg-grid"><main id="main" class="pg-main {cls_}">{main_html}</main>{aside(depth, current, up)}</div>'
 
 def tbl(head, rows, cls_='', nums=()):
     th = ''.join(h if h.startswith('<th') else f'<th scope="col"{" class=\"num\"" if i in nums else ""}>{h}</th>' for i, h in enumerate(head))
@@ -349,9 +362,9 @@ def chapter_list(prefix, with_stats=False):
         items = ''.join(
             f'<li><a href="{prefix}{slug(c)}/">{E(short(c))}</a>' + (f'<span>{len(c["subs"])} subtopics · {c["m"]} Main · {c["a"]} Adv.</span>' if with_stats else '') + '</li>'
             for c in CH if sel(c))
-        out += f'<h3>{label}</h3><ul class="pg-chlist">{items}</ul>'
+        out += f'<h2>{label}</h2><ul class="pg-chlist">{items}</ul>'
     oos = ''.join(f'<li><span class="pg-oos">{E(n)}</span><span>Out of syllabus · {code}</span></li>' for code, n in OOS)
-    out += f'<h3>Out of syllabus</h3><p class="pg-fine">These chapters are no longer part of the current JEE syllabus. Their questions are still in the question bank and are marked <b>Out of Syllabus</b>, so you can include or leave them out.</p><ul class="pg-chlist">{oos}</ul>'
+    out += f'<h2>Out of syllabus</h2><p class="pg-fine">These chapters are no longer part of the current JEE syllabus. Their questions are still in the question bank and are marked <b>Out of Syllabus</b>, so you can include or leave them out.</p><ul class="pg-chlist">{oos}</ul>'
     return out
 
 def hub_page():
@@ -375,7 +388,9 @@ def exam_page(e):
     title = f'{name} Maths Previous Year Questions {s["first"]}–{s["last"]} | अंक-IT'
     desc = f'{name} maths: who conducts it, what it is for, the pattern, and {s["questions"]:,} previous-year questions from {s["first"]} to {s["last"]} with chapter-wise and year-wise counts. Practise free on अंक-IT.'
     facts = ''.join(f'<tr><th scope="row">{E(k)}</th><td>{E(v)}</td></tr>' for k, v in FACTS[key])
-    glance = (f'<tr><th scope="row">Maths questions in this bank</th><td>{s["questions"]:,}</td></tr><tr><th scope="row">Years covered</th><td>{s["first"]}–{s["last"]}</td></tr>'
+    ins = sum(n for c, n in s['by_chapter'].items() if c in CH_SLUG); outs = s['questions'] - ins
+    split = f' ({ins:,} in the {len(CH)} syllabus chapters and {outs:,} in out-of-syllabus chapters)' if outs else f' (all in the {len(CH)} syllabus chapters)'
+    glance = (f'<tr><th scope="row">Maths questions in this bank</th><td>{s["questions"]:,}{split}</td></tr><tr><th scope="row">Years covered</th><td>{s["first"]}–{s["last"]}</td></tr>'
               f'<tr><th scope="row">Papers (shifts and sessions)</th><td>{s["papers"]}</td></tr>')
     lvd = s['by_level']; lvt = sum(lvd.values()) or 1
     glance += f'<tr><th scope="row">Question levels</th><td>L1 {lvd["L1"]:,} ({round(100 * lvd["L1"] / lvt)}%) · L2 {lvd["L2"]:,} ({round(100 * lvd["L2"] / lvt)}%) · L3 {lvd["L3"]:,} ({round(100 * lvd["L3"] / lvt)}%)</td></tr>'
@@ -462,6 +477,7 @@ def priority_page():
     desc = f'Chapter-wise priority for JEE Maths: how many JEE Main and JEE Advanced questions each chapter has had from {Y0} to {Y1}, its share, rank and yearly trend.'
     crumbs = '<a href="../#/home">Home</a> &rsaquo; <span aria-current="page">Syllabus priority</span>'
     main = f"""<p class="pg-lead">{len(CH)} chapters · {TM:,} JEE Main and {TA} JEE Advanced questions, {Y0}–{Y1}</p>
+<p class="pg-fine">These counts are for the {len(CH)} chapters in the current syllabus. The <a href="../exams/jee-main/">JEE Main exam page</a> also counts the questions of the {len(OOS)} out-of-syllabus chapters ({STATS["JEE Main"]["questions"]:,} in total).</p>
 <p>Use this to decide what to study first. Each chapter is ranked by the number of previous-year questions it has had in JEE Main and in JEE Advanced, with its share of all questions and its yearly trend. The same view is inside the dashboard.</p>
 <h2>Chapters by priority</h2>
 <div class="pg-table"><table class="prio"><thead><tr><th scope="col">Chapter</th><th scope="col" class="num">Main Qs</th><th scope="col" class="num">Share</th><th scope="col" class="num">Rank</th><th scope="col" class="num">Adv. Qs</th><th scope="col" class="num">Share</th><th scope="col" class="num">Rank</th><th scope="col">Leans</th><th scope="col">Trend</th></tr></thead><tbody>{rows}</tbody></table></div>
@@ -512,37 +528,81 @@ def info_page(slug_, title, h1, desc, inner, ptype='WebPage'):
 MAIL = f'<a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a>'
 
 def about_page():
-    inner = f'''<p class="pg-lead">JEE Maths practice for Class 11 and 12 students, and the teachers who coach them.</p>
-<h2>What we do</h2>
-<p>अंक-IT Mathematics Dashboard is a practice platform for JEE Maths. It brings a chapter-wise question bank with solutions, previous-year papers, daily practice problems (DPPs), Must Solve lists, revision handouts and NTA-style online tests into one place, for JEE Main, JEE Advanced, KCET, NDA and IAT preparation.</p>
-<h2>Who built it</h2>
-<p>The dashboard is built and maintained by Ankit Kamboj, a maths teacher, so that students can practise the questions that matter for each chapter and teachers can set tests and see results without extra tools.</p>
+    A = STATS['_all']
+    nprac = A['nonpyq_questions']
+    I = lambda d, w=26: svg(d, w)
+    offer = [
+     ('i-green', '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>', 'Question bank', 'More than 16,000 questions, filtered by chapter, topic, level, exam and year, each with its answer and a full solution.'),
+     ('i-purple', '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>', 'Past papers, 2000 to 2026', 'JEE Main, JEE Advanced, KCET, NDA, IAT and the older IIT-JEE and AIEEE, shift by shift and chapter by chapter.'),
+     ('i-rose', '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>', 'DPPs and Must Solve', 'Ready-to-print practice sheets, and hand-picked questions that keep coming back in JEE.'),
+     ('i-gold', '<path d="M12 3 3 8l9 5 9-5z"/><path d="M5 11v5c0 1.5 3 3 7 3s7-1.5 7-3v-5"/>', 'Handwritten handouts', 'Neat revision notes for every chapter of Class 11 and Class 12.'),
+     ('i-blue', '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 9h4M7 12h7"/>', 'Online tests and reports', 'An exam-like screen with a timer and question palette, then your score, rank and weak topics.'),
+     ('i-teal', '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>', 'Tools for teachers', 'Build a test, share one link, and follow every student of your school.')]
+    offer_html = ''.join(f'<article class="ab-card"><span class="ico {c}">{I(d)}</span><h3>{E(t)}</h3><p>{E(x)}</p></article>' for c, d, t, x in offer)
+    steps = [('Sign in free', 'Use Google, or your Student ID if you are an Avanti student. Choose Student or Teacher once.'),
+             ('Practise by chapter', 'Open the question bank, DPPs, past papers and Must Solve, and check every answer against its full solution.'),
+             ('Test and improve', 'Take timed tests, read your report, and go back to the topics where marks were lost.')]
+    steps_html = ''.join(f'<li class="ab-step"><b>{i + 1}</b><div><h3>{E(t)}</h3><p>{E(x)}</p></div></li>' for i, (t, x) in enumerate(steps))
+    who = [('Students', 'Class 11, Class 12 and droppers preparing for JEE Main and JEE Advanced, and also KCET, NDA and IAT.', '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/>'),
+           ('Teachers', 'Teachers who want ready questions, printable sheets and online tests for their classes, with results in one place.', '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/>'),
+           ('Avanti Fellows learners', 'Students and teachers of Avanti Fellows get Premium free and sign in with their Student ID.', '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>')]
+    who_html = ''.join(f'<article class="ab-who"><span class="ab-wi">{I(d, 22)}</span><div><h3>{E(t)}</h3><p>{E(x)}</p></div></article>' for t, x, d in who)
+    vals = [('Accuracy first', 'Every question has an answer and a worked solution. If something looks wrong, tell us and we correct it.'),
+            ('Clear, not clever', 'Solutions are written to be followed step by step, in the order a student would think.'),
+            ('Free to start', 'You can begin without paying. Premium adds extras such as PDFs, handouts and all-India ranks.')]
+    vals_html = ''.join(f'<div class="ab-val"><h3>{E(t)}</h3><p>{E(x)}</p></div>' for t, x in vals)
+    inner = f"""<p class="ab-lead">अंक-IT Mathematics Dashboard exists to make serious JEE-level maths practice <b>free to start</b> and easy to follow, for every student and for the teachers who coach them.</p>
+<ul class="pg-stats ab-stats"><li><b>16,000+</b><span>questions in the bank</span></li><li><b>{nprac:,}</b><span>Non-PYQ practice questions</span></li><li><b>{len(CH)} + {len(OOS)}</b><span>chapters in the syllabus, plus out-of-syllabus</span></li><li><b>{len(EXAMS)}</b><span>exams, with papers from 2000 to 2026</span></li></ul>
+<h2>What you get</h2>
+<div class="ab-grid">{offer_html}</div>
 <h2>How it works</h2>
-<ul><li><b>Practise by chapter:</b> filter questions by chapter, topic, level, exam and year, and see the solution.</li>
-<li><b>Take tests:</b> an exam-like screen with a timer, a question panel, mark for review and auto-submit, followed by a report with your score, accuracy and rank.</li>
-<li><b>Teachers:</b> build a test from the question bank, share one link with a class and see every student\'s result.</li></ul>
-<h2>Free and Premium</h2>
-<p>You can start free by signing in with Google. Premium (₹299 a year for students, ₹599 for teachers) adds PDF downloads and printing, all-India ranks, comparison with all students and handouts. Students of Avanti Fellows get Premium free.</p>
-<h2>Get in touch</h2>
-<p>Questions, corrections or ideas are welcome. See the <a href="../contact/">contact page</a>.</p>
-<p><a class="sb sb-pri" href="../">Go to the dashboard</a></p>'''
-    return info_page('about', 'About Us | अंक-IT Mathematics Dashboard', 'About us', 'About अंक-IT Mathematics Dashboard: JEE Maths question bank, previous-year papers, DPPs, handouts and online tests for Class 11 and 12, built by Ankit Kamboj.', inner, 'AboutPage')
+<ol class="ab-steps">{steps_html}</ol>
+<h2>Who it is for</h2>
+<div class="ab-whos">{who_html}</div>
+<h2>What we believe</h2>
+<div class="ab-vals">{vals_html}</div>
+<h2>The person behind it</h2>
+<div class="ab-person"><span class="ab-av" aria-hidden="true">AK</span><div><h3>Ankit Kamboj</h3><p>Ankit is a maths teacher and the creator of अंक-IT. He builds and maintains the dashboard so that students can practise the questions that matter for each chapter, and teachers can set tests and see results without extra tools.</p><p><a class="sb sb-pri" href="../contact/">Get in touch</a></p></div></div>
+<div class="pg-signin"><h2>Start practising today</h2><p>Create your free account and open any chapter.</p><p class="pg-ctas"><a class="sb sb-gold sb-lg when-out" data-login href="../?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold sb-lg when-in" href="../">Open your dashboard</a></p></div>"""
+    return info_page('about', 'About Us | अंक-IT Mathematics Dashboard', 'About us', 'About अंक-IT Mathematics Dashboard: a free-to-start JEE maths question bank with past papers, DPPs, handouts and online tests, built by Ankit Kamboj.', inner, 'AboutPage')
 
 def contact_page():
-    inner = f'''<p class="pg-lead">We read every message about the dashboard.</p>
-<h2>Email</h2>
-<p>{MAIL}</p>
-<p>Please tell us your name, the email or Student ID you sign in with, and what happened. A screenshot helps for problems with a page or a test.</p>
-<h2>What to write to us about</h2>
-<ul><li>Trouble signing in, or a problem with your account or Premium membership.</li>
-<li>A mistake in a question, answer or solution (include the question number or ID).</li>
-<li>Payment problems: include the date and the payment reference you received from Razorpay.</li>
-<li>Teachers: school approval, adding students, or help creating a test.</li>
-<li>Requests about your personal data. See the <a href="../privacy/">privacy policy</a>.</li></ul>
-<h2>Help in the login window</h2>
-<p>The Login window also has a <b>Help &amp; Support</b> button with the same contact details.</p>
-<p><a class="sb sb-pri" href="../">Go to the dashboard</a></p>'''
-    return info_page('contact', 'Contact Us | अंक-IT Mathematics Dashboard', 'Contact us', 'Contact अंक-IT Mathematics Dashboard for help with sign-in, Premium, payments, corrections to questions or your personal data.', inner, 'ContactPage')
+    from urllib.parse import quote
+    def mt(subject, body):
+        return E(f'mailto:{CONTACT_EMAIL}?subject={quote(subject, safe="")}&body={quote(body, safe="")}')
+    I = lambda d, w=24: svg(d, w)
+    topics = [
+     ('i-blue', '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', 'Trouble signing in', 'Google or Student ID sign-in is not working, or you chose the wrong role.', 'Help with signing in', 'Hello,\n\nMy name: \nThe email or Student ID I use: \nWhat happens when I try to sign in: \n\nThank you'),
+     ('i-gold', '<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/>', 'Premium and payments', 'A payment was taken but Premium is not showing, or you were charged by mistake.', 'Premium or payment problem', 'Hello,\n\nMy name: \nThe email or Student ID I use: \nPayment date and Razorpay reference: \nWhat went wrong: \n\nThank you'),
+     ('i-rose', '<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/>', 'A mistake in a question', 'Found a wrong answer, a typo or an unclear solution? We want to fix it.', 'Mistake in a question', 'Hello,\n\nQuestion ID (shown on the question): \nWhat is wrong: \nWhat you think is correct: \n\nThank you'),
+     ('i-teal', '<path d="M3 10 12 5l9 5-9 5z"/><path d="M7 12.5V17c0 1 2.2 2 5 2s5-1 5-2v-4.5"/>', 'Teachers and schools', 'School approval, adding students, bulk upload, or creating a test.', 'Teacher or school help', 'Hello,\n\nMy name: \nMy school: \nWhat I need help with: \n\nThank you'),
+     ('i-purple', '<path d="M12 3 4 6v6c0 4.5 3.2 7.5 8 9 4.8-1.5 8-4.5 8-9V6z"/>', 'Your personal data', 'Ask what we hold about you, correct it, or delete your account.', 'Request about my personal data', 'Hello,\n\nI would like to: (see my data / correct my data / delete my account)\nThe email or Student ID I use: \n\nThank you'),
+     ('i-green', '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>', 'Ideas and suggestions', 'A feature you would like, a chapter we should add, or feedback on the site.', 'Suggestion for the dashboard', 'Hello,\n\nMy suggestion: \n\nThank you')]
+    cards = ''.join(f'<article class="ct-card"><span class="ico {c}">{I(d)}</span><h3>{E(t)}</h3><p>{E(x)}</p><a class="sb sb-line" href="{mt(sub, body)}">Email about this</a></article>' for c, d, t, x, sub, body in topics)
+    faqs = [('I cannot sign in. What should I check?', 'Make sure you picked the right option: Google for most users, and your Avanti ID with date of birth only if you are an Avanti student. If it still fails, use the Help & Support button in the Login window or write to us.'),
+            ('I paid for Premium but it is not showing.', 'Sign out and sign in again first. If it still shows Free, write to us with the payment date and the Razorpay payment reference so we can check it.'),
+            ('I chose the wrong role (Teacher or Student).', 'The role is saved the first time you sign in. Write to us from the email you used and we will help change it.'),
+            ('How do I delete my account?', 'Write to us from the email or Student ID you use, with the subject "Request about my personal data", and tell us you want your account deleted.')]
+    faq_html = ''.join(f'<details><summary>{E(q)}</summary><p>{E(a)}</p></details>' for q, a in faqs)
+    check = ['Your name', 'The email or Student ID you sign in with', 'What you were doing and what went wrong', 'A screenshot, if it helps', 'The question ID, for a mistake in a question']
+    check_html = ''.join(f'<li>{CHECK}<span>{E(c)}</span></li>' for c in check)
+    inner = f"""<p class="ab-lead">We read every message about the dashboard. Pick the topic that fits best and we will open an email that is ready to fill in.</p>
+<div class="ct-main"><span class="ct-ic">{I('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>', 30)}</span><div><p class="ct-k">Write to us</p><p class="ct-mail">{MAIL}</p><p class="pg-fine">Replies come from this same address. Please check your spam folder if you are waiting for one.</p></div></div>
+<h2>How can we help?</h2>
+<div class="ct-grid">{cards}</div>
+<div class="ct-two"><div><h2>Before you write</h2><p>A few details help us answer you faster:</p><ul class="ticks">{check_html}</ul></div>
+<div><h2>Quick answers</h2><div class="faq faq-s">{faq_html}</div></div></div>
+<p class="pg-fine">You can also open <b>Help &amp; Support</b> in the Login window. Read how we handle your information in the <a href="../privacy/">privacy policy</a>.</p>"""
+    return info_page('contact', 'Contact Us | अंक-IT Mathematics Dashboard', 'Contact us', 'Contact अंक-IT Mathematics Dashboard for help with sign-in, Premium and payments, a mistake in a question, teacher and school help, or your personal data.', inner, 'ContactPage')
+
+def not_found_page():
+    I = '/'
+    cards = [('Home', 'The home page', I), ('Exams', 'JEE Main, JEE Advanced, KCET, NDA, IAT and more', I + 'exams/'), ('Maths chapters', 'All chapters with question counts', I + 'maths/'),
+             ('Syllabus priority', 'Which chapters are asked most', I + 'syllabus-priority/'), ('Contact us', 'Tell us what you were looking for', I + 'contact/')]
+    items = ''.join(f'<li><a href="{h}">{E(t)}</a><span>{E(d)}</span></li>' for t, d, h in cards)
+    main = f"""<p class="pg-lead">The page you opened does not exist, or it has moved.</p><p>Try one of these instead:</p><ul class="pg-chlist exam-list">{items}</ul>"""
+    body = band('<a href="/#/home">Home</a> &rsaquo; <span aria-current="page">Page not found</span>', 'Page not found') + '\n' + grid(main, 0, up=I)
+    return page('Page not found | अंक-IT', 'This page does not exist. Go to the home page, the exams, or the maths chapters on अंक-IT.', SITE + '/404.html', body, 0, up=I, noindex=True)
 
 def privacy_page():
     inner = f'''<p class="pg-lead">Last updated: {UPDATED}</p>
@@ -625,7 +685,7 @@ def home_block():
     feats = [
      ('i-blue', svg('<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 9h4M7 12h7"/>'), 'NTA-style online tests', 'A full-screen test with timer, question panel, mark for review and auto-submit, just like the real exam.'),
      ('i-gold', svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), 'Instant reports and ranks', 'Score, accuracy, rank in your school and all-India, topic-wise analysis and time per question.'),
-     ('i-green', svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'), '15,000+ question bank', 'Filter by chapter, topic, level, exam and year. Every question comes with its answer and a full solution.'),
+     ('i-green', svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'), '16,000+ question bank', 'Filter by chapter, topic, level, exam and year. Every question comes with its answer and a full solution.'),
      ('i-purple', svg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>'), 'Past papers 2000–2026', 'JEE Main, JEE Advanced and more, paper by paper and chapter by chapter, with answer keys.'),
      ('i-rose', svg('<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>'), 'DPPs, Must Solve and handouts', 'Daily practice sheets, hand-picked must-solve questions and handwritten revision notes for every chapter.'),
      ('i-teal', svg('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>'), 'Built for teachers', 'Make a test in minutes, share one link with your class and see every student\'s result.')]
@@ -644,7 +704,12 @@ def home_block():
              ('must-solve', 'Must Solve', 'Solve the questions that matter most', 'Questions that came again and again in JEE, in the same or a very similar form, plus sure-shot questions that are bound to come. Solve these first.', 'The Must Solve list showing sure-shot and must-know questions'),
              ('handouts', 'Handouts', 'Handwritten revision notes for every chapter', 'Neatly handwritten notes for all chapters of Class 11 and 12. Read them in the built-in viewer, or download them to revise offline.', 'The Handouts page with a note for every chapter'),
              ('online-test', 'Online Test', 'The real exam screen, before the real exam', 'A full-screen, timed test with the question palette, mark for review and auto-submit, followed by your score, rank and topic-wise report.', 'The online test window with timer and question palette')]
-    slides = ''.join(f'<figure class="car-slide" data-title="{E(s[1])}">{frame(s[0], s[4])}<figcaption><h3>{E(s[2])}</h3><p>{E(s[3])}</p></figcaption></figure>' for s in shots)
+    PIX = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='
+    def slide_img(s, i):
+        if i == 0: return frame(s[0], s[4])
+        f = frame(s[0], s[4]).replace(f'src="img/shots/{s[0]}.webp"', f'src="{PIX}" data-src="img/shots/{s[0]}.webp"').replace(' loading="lazy"', '')
+        return f + f'<noscript><img src="img/shots/{s[0]}.webp" width="1366" height="800" alt="{E(s[4])}"></noscript>'
+    slides = ''.join(f'<figure class="car-slide" id="car-s{i}" role="tabpanel" aria-roledescription="slide" aria-label="{i + 1} of {len(shots)}: {E(s[1])}" data-title="{E(s[1])}">{slide_img(s, i)}<figcaption><h3>{E(s[2])}</h3><p>{E(s[3])}</p></figcaption></figure>' for i, s in enumerate(shots))
     showcase = ('<div class="car" data-car><div class="car-tabs" hidden></div><div class="car-view">'
                 f'<div class="car-track" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Screens from the dashboard">{slides}</div>'
                 '<button type="button" class="car-btn car-prev" aria-label="Previous screen" hidden>&lsaquo;</button><button type="button" class="car-btn car-next" aria-label="Next screen" hidden>&rsaquo;</button></div>'
@@ -685,7 +750,7 @@ def home_block():
     return f"""<!--HOME:START (generated by .github/scripts/build_seo.py; edit that script, not this block)-->
 <div id="home" class="site">
 {header(0)}
-<main>
+<main id="main">
 <section class="hero"><div class="swrap hero-in">
 <div><span class="eyebrow"><i></i>JEE · KCET · NDA · IAT Mathematics</span>
 <h1>Practise JEE Maths the way the <em>exam asks it.</em></h1>
@@ -695,7 +760,7 @@ def home_block():
 {hero_shot}
 </div></section>
 <section class="stats" aria-label="At a glance"><div class="swrap stats-in">
-<div class="stat"><b>15,000+</b><span>Questions</span></div><div class="stat"><b>11,000+</b><span>Full solutions</span></div>
+<div class="stat"><b>16,000+</b><span>Questions in the bank</span></div><div class="stat"><b>{STATS["_all"]["nonpyq_questions"]:,}</b><span>Non-PYQ practice questions</span></div>
 <div class="stat"><b>{len(CH)}</b><span>Chapters, {D["tot_sub"]} subtopics</span></div><div class="stat"><b>2000–2026</b><span>Past papers</span></div></div></section>
 <section class="sec" id="dashboard"><div class="swrap"><div class="sec-head"><span class="kick">Inside the dashboard</span><h2>See what you get after you log in</h2><p>Real screens from the dashboard: question bank, DPP builder, past papers, Must Solve, handouts and the online test window.</p></div>{showcase}</div></section>
 <section class="sec sec-alt" id="features"><div class="swrap"><div class="sec-head"><span class="kick">Everything in one place</span><h2>Everything you need to prepare for JEE Maths</h2><p>Practise, test yourself and track your progress without juggling PDFs, apps and notebooks.</p></div>
@@ -710,7 +775,7 @@ def home_block():
 <section class="sec sec-alt" id="teachers"><div class="swrap split"><div><span class="kick">For teachers</span><h2>Set a test in minutes. See every result.</h2><p>Build an online test from the question bank, share one link with your class and get a ranked report the moment students finish.</p>
 <ul class="ticks">{tick(['Create tests from DPPs, PYQs or your own selection', 'One link for the whole class, with an exam window', 'Ranks, averages and question-wise analysis', 'Student list and bulk upload for your school'])}</ul>
 <a class="sb sb-pri when-out" data-login href="?login=1" rel="nofollow">Login as a teacher</a><a class="sb sb-pri when-in" data-dash href="./">Open your dashboard</a></div>
-<div class="report" aria-hidden="true"><h4>Class result · Mock Test 3</h4><small>Top scorers · example</small>{rep}</div></div></section>
+<div class="report" aria-hidden="true"><p class="report-h">Class result · Mock Test 3</p><small>Top scorers · example</small>{rep}</div></div></section>
 <section class="sec" id="plans"><div class="swrap"><div class="sec-head"><span class="kick">Plans</span><h2>Start free. Upgrade when you are ready.</h2><p>Premium is a one-year membership. Avanti students and teachers get it free.</p></div>{plans}</div></section>
 <section class="sec sec-alt" id="faq"><div class="swrap"><div class="sec-head"><span class="kick">FAQ</span><h2>Frequently asked questions</h2></div><div class="faq">{faq_html}</div></div></section>
 <section class="cta"><h2>Ready to practise smarter?</h2><p>Create your free account and start with any chapter today.</p><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold sb-lg when-in" data-dash href="./">Open your dashboard</a></section>
@@ -735,6 +800,7 @@ def main():
         write(f'jee-maths/{slug(c)}/index.html', redirect_page(f'maths/{slug(c)}/', 2))   # the old address keeps working
     write('maths/index.html', hub_page()); write('jee-maths/index.html', redirect_page('maths/', 1))
     write('syllabus-priority/index.html', priority_page())
+    write('404.html', not_found_page())
     write('exams/index.html', exams_hub())
     for e in EXAMS:
         write(f'exams/{e[2]}/index.html', exam_page(e))

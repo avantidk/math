@@ -1,5 +1,19 @@
 [
   {
+    "v": "932",
+    "date": "17 Nov 2026",
+    "items": [
+      "Login: no role is pre-selected any more (the choice is saved once and cannot be changed later), the pop-up keeps keyboard focus inside it and returns it when closed.",
+      "If the dashboard does not open within 8 seconds, returning users now see a message with Try again and Go to the home page, instead of \"Loading…\" forever.",
+      "The light-background logo is now used on DPP and PYQ sheets and their PDFs.",
+      "Home page: \"11,000+ full solutions\" is replaced by the number of Non-PYQ practice questions in the bank; the questions count now reads 16,000+ everywhere.",
+      "Exam pages state how many questions are in the 24 syllabus chapters and how many in out-of-syllabus chapters; the Syllabus Priority page explains its count.",
+      "Home page screenshots load only when needed; the carousel has a pause button, proper tab roles and larger dots.",
+      "New About and Contact pages, a custom 404 page, a skip-to-content link, larger breadcrumb links, and shorter page titles and descriptions for search results.",
+      "Dashboard on tablets: the logo no longer touches the tabs."
+    ]
+  },
+  {
     "v": "931",
     "date": "17 Nov 2026",
     "items": [
