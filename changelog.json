@@ -1,5 +1,13 @@
 [
   {
+    "v": "931",
+    "date": "17 Nov 2026",
+    "items": [
+      "Hovering your name icon now opens the account menu on the home page and in the dashboard too, the same as on the other pages (before, it only opened on the other pages).",
+      "The account menu on the home page now updates as soon as the dashboard knows your plan, so it never shows an old copy."
+    ]
+  },
+  {
     "v": "930",
     "date": "17 Nov 2026",
     "items": [

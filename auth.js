@@ -199,14 +199,21 @@ function renderMenu() {
     upgrade,
     items.map(([href, t]) => h('a', { class: 'tb-item pf-item', role: 'menuitem', href, 'data-count': COUNT_KEY[href] || null, onclick: close }, h('span', { text: t }), COUNT_KEY[href] ? h('span', { class: 'pf-count' }) : null)),
     h('button', { type: 'button', class: 'tb-item pf-out', role: 'menuitem', text: 'Logout', onclick: () => A.signOut() }));
+  const canHover = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
   const btn = h('button', { type: 'button', class: avatarClass(p, perm), id: 'pfBtn', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Profile menu (' + planLabel + ')', title: planLabel, text: initials(p),
-    onclick: e => { e.stopPropagation(); const open = drop.hidden; drop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); } });
+    onclick: e => { e.stopPropagation(); const open = canHover ? true : drop.hidden; drop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); } });
   function close() { drop.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
   slot.append(btn, drop);
+  if (canHover) {   /* hover opens the menu; a short delay lets the pointer cross the gap to it */
+    let hideT = null;
+    slot.onmouseenter = () => { clearTimeout(hideT); drop.hidden = false; btn.setAttribute('aria-expanded', 'true'); };
+    slot.onmouseleave = () => { hideT = setTimeout(close, 250); };
+  }
   /* the public pages show the same account menu: keep a small copy (names and links only, no tokens) */
   store.set('avanti-md-menu', JSON.stringify({ n: p.full_name || p.avanti_id || 'Your account', e: p.email || p.avanti_id || '',
     pl: perm.isAdmin || perm.plan === 'staff' ? planLabel : planLabel + ' · ' + (teacher ? 'Teacher' : 'Student'), g: perm.plan !== 'free', t: teacher ? 't' : 's',
     up: perm.plan === 'free' ? { t: 'Upgrade to Premium', s: rupees(p.price_paise) + ' a year · ' + (teacher ? 'PDFs, student list & bulk upload' : 'PDFs & all-India comparison') } : null, items }));
+  try { window.dispatchEvent(new Event('avanti-menu')); } catch (e) { /* optional */ }
   rpc('menu_counts').then(c => drop.querySelectorAll('[data-count]').forEach(a => { const n = c && c[a.dataset.count]; if (n != null) a.querySelector('.pf-count').textContent = '(' + n + ')'; })).catch(() => {});
   if (!renderMenu.bound) {
     renderMenu.bound = true;
