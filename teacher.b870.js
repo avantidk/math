@@ -521,10 +521,10 @@ function paginate(qs, base) {
   const use = even.every(r => ok(r[0], r[1])) ? even : greedy;
   return use.map(r => qs.slice(r[0], r[1]));
 }
-function idPages(ids, title, label) {
+function idPages(ids, title, label, info) {
   label = label || 'Worksheet';
   const qs = ids.map(i => BYID.get(i)).filter(Boolean);
-  return qs.length ? packPages(qs, (g, i, n) => ({ title, sub: label, badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : label })) : [];
+  return qs.length ? packPages(qs, (g, i, n) => ({ title, sub: info || label, badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : label })) : [];
 }
 function packPages(qs, mk) {
   const pg = paginate(qs, BASE), out = []; let start = 0;
@@ -2003,8 +2003,8 @@ window.AvantiTeacher = {
   /* the question bank (same data as the Question Bank, DPPs and PYQs tabs), for the test maker */
   bank: () => ensureDpp().then(() => ({ qs: BANK.all, byId: BYID, chapters: CHMAP })),
   /* saved worksheets: the same PDF / Word / PowerPoint export and share menu as DPPs (plan checks inside) */
-  exportIds: async (ids, title, kind, label) => { await ensureDpp(); const pages = idPages(ids, title, label); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } doExport(kind, { pages, file: title }); },
-  pdfIds: async (ids, title, label) => { await ensureDpp(); const pages = idPages(ids, title, label); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
+  exportIds: async (ids, title, kind, label, info) => { await ensureDpp(); const pages = idPages(ids, title, label, info); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } doExport(kind, { pages, file: title }); },
+  pdfIds: async (ids, title, label, info) => { await ensureDpp(); const pages = idPages(ids, title, label, info); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
   shareIds: async (btn, ids, title) => { await ensureDpp(); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
   math: node => math(node)
 };
