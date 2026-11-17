@@ -1,5 +1,13 @@
 [
   {
+    "v": "962",
+    "date": "17 Nov 2026",
+    "items": [
+      "Question Bank PDF export: pages no longer cut off a question, its options or a table at the bottom. The pages are now planned with the same measurements the page pictures use, with a little spare room at the bottom of every page.",
+      "94 bare questions that were only an equation or an inequality now start with \"Solve:\", and 12 systems of equations start with \"Find x and y:\"."
+    ]
+  },
+  {
     "v": "961",
     "date": "17 Nov 2026",
     "items": [

@@ -775,18 +775,35 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   /* Build a real PDF: lay the questions out on A4 pages, draw each page to an image, wrap the images in a PDF. */
   async function buildPdf(qs, o, progress) {
     o = o || {};
-    var host = document.createElement('div');
-    host.className = 'qbp';
-    host.setAttribute('aria-hidden', 'true');
-    host.style.cssText = 'position:absolute;left:-40000px;top:0;width:' + CONTENT_W + 'px;';
-    var st = document.createElement('style'); st.textContent = PCSS; host.appendChild(st);
-    (document.querySelector('#dash-root') || document.body).appendChild(host);
+    /* The page pictures are drawn from a plain document that has none of the dashboard's styles. Measure the blocks in the same kind
+       of plain document (a hidden frame), so a block never turns out taller on the page than it was when the pages were planned. */
+    var host = null, frame = null, frameUrl = null, mdoc = document;
+    try {
+      var fhtml = '<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0}' + PCSS + (window.QB_TEMML_CSS || '') + '</style></head><body><div class="qbp" id="h" style="width:' + CONTENT_W + 'px"></div></body></html>';
+      frameUrl = URL.createObjectURL(new Blob([fhtml], { type: 'text/html' }));
+      frame = document.createElement('iframe'); frame.setAttribute('aria-hidden', 'true'); frame.tabIndex = -1;
+      frame.style.cssText = 'position:absolute;left:-40000px;top:0;width:' + PAGE_W + 'px;height:' + PAGE_H + 'px;border:0';
+      await new Promise(function (res, rej) { frame.onload = res; frame.onerror = function () { rej(new Error('frame')); }; frame.src = frameUrl; (document.querySelector('#dash-root') || document.body).appendChild(frame); setTimeout(function () { rej(new Error('frame timeout')); }, 4000); });
+      mdoc = frame.contentDocument; host = mdoc.getElementById('h');
+      if (!mdoc || !host) throw new Error('frame');
+    } catch (e) {
+      if (frame) { frame.remove(); frame = null; } host = null; mdoc = document;
+    }
+    if (!host) {
+      host = document.createElement('div');
+      host.className = 'qbp';
+      host.setAttribute('aria-hidden', 'true');
+      host.style.cssText = 'position:absolute;left:-40000px;top:0;width:' + CONTENT_W + 'px;';
+      var st = document.createElement('style'); st.textContent = PCSS; host.appendChild(st);
+      (document.querySelector('#dash-root') || document.body).appendChild(host);
+    }
     try {
       var blocks = blocksFor(qs, o).map(function (b) {
-        var d = document.createElement('div'); d.innerHTML = b.html; d.style.cssText = 'margin:0 0 ' + GAP + 'px 0;break-inside:avoid'; host.appendChild(d);
+        var d = mdoc.createElement('div'); d.innerHTML = b.html; d.style.cssText = 'margin:0 0 ' + GAP + 'px 0;break-inside:avoid'; host.appendChild(d);
         b.node = d; return b;
       });
       await new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(r); }); });
+      if (mdoc.fonts && mdoc.fonts.ready) { try { await mdoc.fonts.ready; } catch (e) { /* measure anyway */ } }
       blocks.forEach(function (b) { b.h = Math.ceil(b.node.getBoundingClientRect().height); });
       /* paginate */
       var pages = [], cur = [], y = 0;
@@ -794,7 +811,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       blocks.forEach(function (b) {
         if (o.pptLayout && b.q) { flush(); pages.push([b]); pages.push([]); return; }
         if (b.breakBefore) flush();
-        if (y > 0 && y + b.h > CONTENT_H) flush();
+        if (y > 0 && y + b.h > CONTENT_H - 12) flush();   /* a few pixels of spare room at the bottom of every page */
         cur.push(b); y += b.h + GAP;
       });
       flush();
@@ -812,7 +829,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
         out.push(await renderPage(nodes, 2));
       }
       return pdfFromImages(out);
-    } finally { host.remove(); }
+    } finally { if (frame) frame.remove(); else host.remove(); if (frameUrl) URL.revokeObjectURL(frameUrl); }
   }
   function pdfFromImages(pages) {
     var enc = new TextEncoder(), chunks = [], offs = [], pos = 0, W = 595.28, H = 841.89;
