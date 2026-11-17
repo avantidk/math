@@ -1,5 +1,12 @@
 [
   {
+    "v": "920",
+    "date": "17 Nov 2026",
+    "items": [
+      "Smaller downloads: the website's scripts and style sheets are now minified when the site is published (about 15 KB less on the first page load); the source files in the repository are unchanged."
+    ]
+  },
+  {
     "v": "919",
     "date": "17 Nov 2026",
     "items": [

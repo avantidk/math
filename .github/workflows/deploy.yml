@@ -43,6 +43,14 @@ jobs:
           if find _site -name 'sol*.json' -o -name 'pyq.json' -o -name 'nonpyq.json' -o -name 'must.json' -o -name '*.pdf' -o -path '*/qb/data*' | grep -q .; then
             echo "::error::Private content found in the website files. It must stay in content/ (Supabase)."; exit 1
           fi
+      # Smaller files for visitors: remove spaces and comments from the site's own scripts and styles in the published copy only
+      # (the files in the repository stay readable; vendor/ libraries are already minified; names are kept).
+      - name: Minify scripts and styles (published copy only)
+        run: |
+          npm install --no-audit --no-fund --prefix /tmp/esb esbuild@0.25.5
+          find _site -maxdepth 2 \( -name '*.js' -o -name '*.css' \) -not -path '_site/vendor/*' | while read -r f; do
+            /tmp/esb/node_modules/.bin/esbuild "$f" --minify-whitespace --minify-syntax --allow-overwrite --outfile="$f" --log-level=error
+          done
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
