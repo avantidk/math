@@ -112,7 +112,7 @@
       } }));
     var dialog = h('div', { class: 'lm-dialog' },
       h('button', { type: 'button', class: 'lm-x', 'aria-label': 'Close', text: '×', onclick: close }),
-      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=929', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
+      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=930', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
       h('h2', { text: 'Log in or register' }),
       h('p', { class: 'lm-sub', text: 'New here? Continue with Google and your account is created for you.' }),
       testLink ? h('p', { class: 'lm-note', text: 'Sign in to open your test.' }) : null,
@@ -124,6 +124,13 @@
     setTimeout(function () { try { gBtn.focus(); } catch (e) { /* optional */ } }, 30);
   }
 
+  /* sign out from a public page (the dashboard page uses AvantiAuth.signOut, which does the same) */
+  api.signOut = async function () {
+    try { var sb = await getSb(); await sb.auth.signOut(); } catch (e) { /* the page reloads anyway */ }
+    try { if (window.caches) { var ks = await window.caches.keys(); await Promise.all(ks.filter(function (k) { return k.indexOf('avanti-c-') === 0 || k.indexOf('avanti-teacher-') === 0; }).map(function (k) { return window.caches.delete(k); })); } } catch (e) { /* nothing cached */ }
+    store.set('avanti-md-menu', null);
+    location.href = base;
+  };
   api.open = open; api.close = close;
   window.AvantiLogin = api;
   document.addEventListener('click', function (e) {

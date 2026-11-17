@@ -91,6 +91,7 @@ A.refresh = async function () {
   return p;
 };
 A.signOut = async function () {
+  store.set('avanti-md-menu', null);
   try { if (window.AvantiContent) await window.AvantiContent.clearCaches(); } catch (e) { /* nothing cached */ }
   try { await sb.auth.signOut(); } catch (e) { /* the page reloads anyway */ }
   location.hash = ''; location.reload();
@@ -202,6 +203,10 @@ function renderMenu() {
     onclick: e => { e.stopPropagation(); const open = drop.hidden; drop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); } });
   function close() { drop.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
   slot.append(btn, drop);
+  /* the public pages show the same account menu: keep a small copy (names and links only, no tokens) */
+  store.set('avanti-md-menu', JSON.stringify({ n: p.full_name || p.avanti_id || 'Your account', e: p.email || p.avanti_id || '',
+    pl: perm.isAdmin || perm.plan === 'staff' ? planLabel : planLabel + ' · ' + (teacher ? 'Teacher' : 'Student'), g: perm.plan !== 'free', t: teacher ? 't' : 's',
+    up: perm.plan === 'free' ? { t: 'Upgrade to Premium', s: rupees(p.price_paise) + ' a year · ' + (teacher ? 'PDFs, student list & bulk upload' : 'PDFs & all-India comparison') } : null, items }));
   rpc('menu_counts').then(c => drop.querySelectorAll('[data-count]').forEach(a => { const n = c && c[a.dataset.count]; if (n != null) a.querySelector('.pf-count').textContent = '(' + n + ')'; })).catch(() => {});
   if (!renderMenu.bound) {
     renderMenu.bound = true;

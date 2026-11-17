@@ -4,6 +4,7 @@
 (function () {
   'use strict';
   var d = document, de = d.documentElement, user = null;
+  var ROOT = '/'; try { ROOT = new URL('.', d.currentScript.src).href; } catch (e) { ROOT = '/'; }
   try {
     var raw = window.localStorage.getItem('sb-usehxhvzhdbcmnmqaxoo-auth-token');
     if (raw) { var o = JSON.parse(raw); if (o && o.access_token && o.user) user = o.user; }
@@ -21,6 +22,29 @@
       var parts = name.split(/[\s@._-]+/).filter(Boolean);
       var ini = ((parts[0] || '?').charAt(0) + (parts.length > 1 ? parts[1].charAt(0) : '')).toUpperCase();
       Array.prototype.forEach.call(d.querySelectorAll('[data-av]'), function (el) { el.textContent = ini; el.setAttribute('title', name || 'Your profile'); });
+    }
+    /* Signed-in account menu (the same items as the dashboard's name icon). The dashboard saves them in this browser each time it opens. */
+    var canHover0 = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
+    var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); };
+    if (user) {
+      var cache = null; try { cache = JSON.parse(window.localStorage.getItem('avanti-md-menu') || 'null'); } catch (e) { cache = null; }
+      var cm = cache || {}, mm = user.user_metadata || {};
+      var items = cm.items && cm.items.length ? cm.items : [['#/profile', 'Edit profile'], ['#/help', 'Help & Support']];
+      Array.prototype.forEach.call(d.querySelectorAll('.sh-pf'), function (pf) {
+        var av = pf.querySelector('.sh-av'), menu = pf.querySelector('.pfm');
+        av.classList.add(cm.g ? 'av-gold' : (cm.t === 't' ? 'av-t' : 'av-s')); if (cm.g) av.classList.add(cm.t === 't' ? 'ring-t' : 'ring-s');
+        var pill = cm.pl ? '<span class="pfm-plan ' + (cm.g ? 'pf-gold' : (cm.t === 't' ? 'pf-free-t' : 'pf-free-s')) + '">' + esc(cm.pl) + '</span>' : '';
+        menu.innerHTML = '<div class="pfm-who"><strong>' + esc(cm.n || mm.full_name || mm.name || user.email || 'Your account') + '</strong><span class="pfm-mail">' + esc(cm.e || user.email || '') + '</span>' + pill + '</div>'
+          + (cm.up ? '<a class="pfm-up" href="' + ROOT + '#/membership"><b>' + esc(cm.up.t) + '</b><small>' + esc(cm.up.s) + '</small></a>' : '')
+          + items.map(function (it) { return '<a class="pfm-i" role="menuitem" href="' + ROOT + esc(it[0]) + '">' + esc(it[1]) + '</a>'; }).join('')
+          + '<button type="button" class="pfm-i pfm-out" role="menuitem">Logout</button>';
+        menu.querySelector('.pfm-out').addEventListener('click', function () {
+          if (window.AvantiAuth && window.AvantiAuth.signOut) window.AvantiAuth.signOut(); else if (window.AvantiLogin && window.AvantiLogin.signOut) window.AvantiLogin.signOut(); else window.location.href = ROOT;
+        });
+        if (!canHover0) av.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); pf.classList.toggle('open'); av.setAttribute('aria-expanded', String(pf.classList.contains('open'))); });
+        d.addEventListener('click', function (e) { if (pf.classList.contains('open') && !pf.contains(e.target)) { pf.classList.remove('open'); av.setAttribute('aria-expanded', 'false'); } });
+        d.addEventListener('keydown', function (e) { if (e.key === 'Escape') { pf.classList.remove('open'); av.blur(); } });
+      });
     }
     /* Exams menu: opens on hover or keyboard focus (CSS). On touch screens (no hover) a tap opens it, another tap closes it. */
     var dd = d.querySelector('.sh-dd');

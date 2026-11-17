@@ -1,5 +1,18 @@
 [
   {
+    "v": "930",
+    "date": "17 Nov 2026",
+    "items": [
+      "Chapter pages now say \"Maths\" instead of \"JEE Maths\" (they cover every exam) and live at /maths/…; the old /jee-maths/… addresses forward to them.",
+      "Chapter pages: the year-wise trend now covers every exam (JEE Main, JEE Advanced, KCET, NDA, IAT and the older IIT-JEE and AIEEE) in one compact colour strip instead of a long table.",
+      "Question levels (L1 / L2 / L3) are shown in the subtopic, topic and exam tables.",
+      "Exam pages: the blue bars are replaced by a small dot graph of the last five years, like the dashboard's Syllabus Priority; year-wise tables are now compact strips.",
+      "The real exam icons are used everywhere (menu, home, exam pages).",
+      "New public Syllabus Priority page, with a Syllabus Priority button in the sidebar of every page.",
+      "Signed in, the header on every public page now shows a Dashboard icon and your name icon; hovering the name icon opens the same account menu as in the dashboard."
+    ]
+  },
+  {
     "v": "929",
     "date": "17 Nov 2026",
     "items": [

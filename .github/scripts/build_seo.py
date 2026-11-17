@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Builds the public, search-engine-readable pages from syllabus.json (public data only):
-   the home page (inside index.html), jee-maths/index.html, jee-maths/<chapter>/index.html, about/, contact/, privacy/, terms/,
+   the home page (inside index.html), maths/index.html, maths/<chapter>/index.html, about/, contact/, privacy/, terms/,
    robots.txt and sitemap.xml. Run from the repository root:  python3 .github/scripts/build_seo.py
    Nothing here reads the private content (questions, answers, solutions, handouts)."""
 import json, html, re, os, datetime
@@ -52,7 +52,7 @@ INTRO = {
 
 def cls(c): return '11' if int(c['no']) <= 12 else '12'
 def slug(c): return SLUG[int(c['no'])]
-def url(c): return f"{SITE}/jee-maths/{slug(c)}/"
+def url(c): return f"{SITE}/maths/{slug(c)}/"
 def short(c): return c['name']
 LEVEL = {'High': 'High', 'Medium': 'Medium', 'Low': 'Low', 'None': 'Rare'}
 
@@ -185,8 +185,45 @@ OOS_INTRO = {'12M25': 'Forming linear constraints, drawing the feasible region a
              '12M27': 'Sine and cosine rules, area, half-angle formulae and the circles related to a triangle. This chapter is no longer part of the current JEE syllabus.',
              '12M28': 'Angles of elevation and depression, and finding heights and distances with trigonometry. This chapter is no longer part of the current JEE syllabus.'}
 
+
+LV = ('L1', 'L2', 'L3')
+LVH = ''.join(f'<th scope="col" class="num lh l{k[1]}" title="Level {k[1]}">{k}</th>' for k in LV)
+def lvcells(d):
+    return ''.join(f'<td class="num lc l{k[1]}">{d.get(k, 0)}</td>' for k in LV)
+
+def heat(rows, y0, y1, label='Exam'):
+    """Compact year strip: one row per series, one small coloured cell per year (instead of a tall one-row-per-year table)."""
+    years = list(range(y0, y1 + 1))
+    th = ''.join(f'<th scope="col" title="{y}">&rsquo;{str(y)[2:]}</th>' for y in years)
+    body = ''
+    for lab, by in rows:
+        vals = [int(by.get(str(y), 0)) for y in years]; mx = max(vals) or 1
+        tds = ''.join(f'<td class="h{0 if v == 0 else min(4, 1 + int(3.999 * v / mx))}" title="{y}: {v}">{v if v else "&middot;"}</td>' for y, v in zip(years, vals))
+        body += f'<tr><th scope="row" class="exn">{lab}</th>{tds}<td class="tot">{sum(vals)}</td></tr>'
+    return f'<div class="pg-table yr"><table class="heat"><thead><tr><th scope="col">{label}</th>{th}<th scope="col" class="tot">Total</th></tr></thead><tbody>{body}</tbody></table></div>'
+
+def spark(by_year, last, n=5):
+    """Small dot graph of the last n years (same look as the dashboard's Syllabus Priority trend)."""
+    ys = [last - n + 1 + i for i in range(n)]; vals = [int(by_year.get(str(y), 0)) for y in ys]; mx = max(vals) or 1
+    W, H, P = 92, 28, 5
+    pts = [(P + i * (W - 2 * P) / (n - 1), H - P - (v / mx) * (H - 2 * P)) for i, v in enumerate(vals)]
+    line = ' '.join(f'{x:.1f},{y:.1f}' for x, y in pts)
+    dots = ''.join(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{3.3 if i == n - 1 else 2.5}" class="sp-dot"/>' for i, (x, y) in enumerate(pts))
+    tip = ', '.join(f'{y}: {v}' for y, v in zip(ys, vals))
+    return f'<svg class="spark" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Questions per year, {tip}"><title>{tip}</title><polyline points="{line}" class="sp-line"/>{dots}</svg>'
+
+def trend_svg(c, TM, TA):
+    """Both exams over all years, each as a share of its own total (like the dashboard)."""
+    years = list(range(Y0, Y1 + 1)); n = len(years); W, H, P = 150, 36, 5
+    def share(by, tot): return [int(by.get(str(y), 0)) / max(1, tot) for y in years]
+    sm, sa = share(c['ym'], TM), share(c['ya'], TA); mx = max(sm + sa + [1e-9])
+    def line(vals, cls):
+        pts = [(P + i * (W - 2 * P) / (n - 1), H - P - v / mx * (H - 2 * P)) for i, v in enumerate(vals)]
+        return f'<polyline points="{" ".join(f"{x:.1f},{y:.1f}" for x, y in pts)}" class="{cls}"/>' + ''.join(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2" class="{cls}-d"/>' for x, y in pts[-1:])
+    return f'<svg class="spark wide" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{E(c["name"])} questions per year {Y0} to {Y1}, JEE Main and JEE Advanced">{line(sm, "tr-m")}{line(sa, "tr-a")}</svg>'
+
 def exlogo(e, up, size=40):
-    return f'<img class="exlogo" src="{up}img/exams/{e[2]}.svg" alt="" width="{size}" height="{size}" loading="lazy">'
+    return f'<img class="exlogo" src="{up}img/exams/{e[2]}.webp?v={VER}" alt="" width="{size}" height="{size}" loading="lazy">'
 
 def header(depth):
     up = '../' * depth
@@ -194,22 +231,23 @@ def header(depth):
     a = lambda frag: (up + frag) if depth else frag
     chev = svg('<path d="m6 9 6 6 6-6"/>', 16)
     def lk(t, f): return f'<a href="{a("#" + f)}">{t}</a>'
-    cards = ''.join(f'<a class="mega-card" href="{up}exams/{e[2]}/" role="menuitem">{exlogo(e, up)}<span class="mc-body"><b>{E(e[1])}</b><span class="mc-tag">{E(e[3])}</span><span class="mc-meta">{E(exam_meta(e))}</span></span></a>' for e in EXAMS)
+    cards = ''.join(f'<a class="mega-card" href="{up}exams/{e[2]}/" role="menuitem">{exlogo(e, up, 44)}<span class="mc-body"><b>{E(e[1])}</b><span class="mc-tag">{E(e[3])}</span><span class="mc-meta">{E(exam_meta(e))}</span></span></a>' for e in EXAMS)
     exams_dd = (f'<div class="sh-dd"><a class="sh-ddb" href="{up}exams/" aria-haspopup="true" aria-expanded="false">Exams {chev}</a>'
                 f'<div class="sh-mega" role="menu"><div class="mega-in"><p class="mega-h">Exams we cover <span>previous-year maths questions, shift by shift</span></p><div class="mega-grid">{cards}</div>'
                 f'<a class="mega-all" href="{up}exams/">View all exams &rarr;</a></div></div></div>')
     rest = lk('Features', 'features') + lk('How it works', 'how') + lk('Chapters', 'chapters') + lk('Plans', 'plans') + lk('FAQ', 'faq')
     nav = exams_dd + rest
     login = f'<a class="sb sb-pri when-out" data-login href="{up}?login=1" rel="nofollow">Login</a>' if depth else '<a class="sb sb-pri when-out" data-login href="?login=1" rel="nofollow">Login</a>'
-    dash = f'<a class="sb sb-line when-in" data-dash href="{up or "./"}">Dashboard</a>'
-    prof = f'<a class="sh-av when-in" data-av data-profile href="{a("#/profile")}" aria-label="Your profile">&nbsp;</a>'
+    grid_ico = svg('<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>', 22)
+    user = (f'<div class="sh-user when-in"><a class="sh-ico" data-dash href="{up or "./"}" title="Dashboard" aria-label="Open your dashboard">{grid_ico}</a>'
+            f'<div class="sh-pf"><a class="sh-av" data-av data-profile href="{a("#/profile")}" aria-label="Your account" aria-haspopup="true" aria-expanded="false">&nbsp;</a><div class="pfm" role="menu" hidden></div></div></div>')
     burger = svg('<path d="M4 7h16M4 12h16M4 17h16"/>', 22)
     msub = ('<details class="sh-sub"><summary>Exams ' + chev + '</summary>' + ''.join(f'<a href="{up}exams/{e[2]}/">{exlogo(e, up, 26)}{E(e[1])}</a>' for e in EXAMS) + f'<a href="{up}exams/">All exams</a></details>')
     return f"""<header class="sh"><div class="swrap sh-in">
 <a class="sh-logo" href="{home}" aria-label="अंक-IT Mathematics Dashboard, home"><img src="{up}{LOGO}?v={VER}" alt="अंक-IT Mathematics" width="220" height="81"></a>
 <nav class="sh-nav" aria-label="Main">{nav}</nav>
-<div class="sh-end">{login}{dash}{prof}
-<details class="sh-menu"><summary aria-label="Menu">{burger}</summary><nav aria-label="Menu">{msub}{rest}<a href="{up}jee-maths/">All JEE Maths chapters</a></nav></details></div>
+<div class="sh-end">{login}{user}
+<details class="sh-menu"><summary aria-label="Menu">{burger}</summary><nav aria-label="Menu">{msub}{rest}<a href="{up}maths/">All Maths chapters</a></nav></details></div>
 </div></header>"""
 
 def footer(depth):
@@ -219,7 +257,7 @@ def footer(depth):
     return f"""<footer class="sf"><div class="swrap">
 <div class="sf-grid">
 <div><img src="{up}img/ankit-logo-dark-sm.png?v={VER}" alt="अंक-IT Mathematics" width="139" height="52"><p>JEE Maths practice for Class 11 and 12: question bank, previous-year papers, DPPs, handouts and online tests.</p></div>
-<div><h4>Explore</h4><ul><li><a href="{up}jee-maths/">JEE Maths chapters</a></li><li><a href="{up}exams/">All exams</a></li><li><a href="{a("#features")}">Features</a></li><li><a href="{a("#plans")}">Plans</a></li><li><a href="{a("#faq")}">FAQ</a></li></ul></div>
+<div><h4>Explore</h4><ul><li><a href="{up}maths/">Maths chapters</a></li><li><a href="{up}syllabus-priority/">Syllabus priority</a></li><li><a href="{up}exams/">All exams</a></li><li><a href="{a("#features")}">Features</a></li><li><a href="{a("#plans")}">Plans</a></li><li><a href="{a("#faq")}">FAQ</a></li></ul></div>
 <div><h4>Exams</h4><ul>{ex}</ul></div>
 <div><h4>Company</h4><ul><li><a href="{up}about/">About us</a></li><li><a href="{up}contact/">Contact us</a></li><li><a href="{up}privacy/">Privacy policy</a></li><li><a href="{up}terms/">Terms of use</a></li></ul></div>
 </div>
@@ -229,20 +267,21 @@ def footer(depth):
 def aside(depth, current=None):
     up = '../' * depth
     cur = ' aria-current="page"'
-    ex = ''.join(f'<li><a href="{up}exams/{e[2]}/"{cur if e[2] == current else ""}>{exlogo(e, up, 30)}<span><b>{E(e[1])}</b><small>{STATS[e[0]]["questions"]:,} questions</small></span></a></li>' for e in EXAMS)
+    ex = ''.join(f'<li><a href="{up}exams/{e[2]}/"{cur if e[2] == current else ""}>{exlogo(e, up, 34)}<span><b>{E(e[1])}</b><small>{STATS[e[0]]["questions"]:,} questions</small></span></a></li>' for e in EXAMS)
     pop = sorted(CH, key=lambda c: -c['m'])[:8]
-    chs = ''.join(f'<li><a href="{up}jee-maths/{slug(c)}/"><span>{E(short(c))}</span><small>{c["m"]} Main</small></a></li>' for c in pop)
+    chs = ''.join(f'<li><a href="{up}maths/{slug(c)}/"><span>{E(short(c))}</span><small>{c["m"]} Main</small></a></li>' for c in pop)
     return (f'<aside class="pg-side" aria-label="Sidebar"><div class="side-cta"><h2>Practise free</h2><p>Question bank, DPPs, past papers and tests, with full solutions.</p>'
             f'<a class="sb sb-gold when-out" data-login href="{up}?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold when-in" href="{up}">Open your dashboard</a></div>'
+            f'<a class="side-btn" href="{up}syllabus-priority/"><span class="ico i-gold">{svg("<path d=\"M4 20V10M10 20V4M16 20v-7M22 20H2\"/>", 22)}</span><span><b>Syllabus Priority</b><small>Which chapters are asked most</small></span></a>'
             f'<div class="side-box"><h2>Exams</h2><ul class="side-list">{ex}</ul></div>'
-            f'<div class="side-box"><h2>Popular chapters</h2><ul class="side-list side-ch">{chs}</ul><a class="side-more" href="{up}jee-maths/">All chapters &rarr;</a></div>'
+            f'<div class="side-box"><h2>Popular chapters</h2><ul class="side-list side-ch">{chs}</ul><a class="side-more" href="{up}maths/">All chapters &rarr;</a></div>'
             f'<div class="side-box side-help"><h2>Need help?</h2><p>Questions about signing in, plans or a question in the bank?</p><a href="{up}contact/">Contact us &rarr;</a></div></aside>')
 
 def grid(main_html, depth, current=None, cls_=''):
     return f'<div class="swrap pg-grid"><main class="pg-main {cls_}">{main_html}</main>{aside(depth, current)}</div>'
 
 def tbl(head, rows, cls_='', nums=()):
-    th = ''.join(f'<th scope="col"{" class=\"num\"" if i in nums else ""}>{h}</th>' for i, h in enumerate(head))
+    th = ''.join(h if h.startswith('<th') else f'<th scope="col"{" class=\"num\"" if i in nums else ""}>{h}</th>' for i, h in enumerate(head))
     return f'<div class="pg-table {cls_}"><table><thead><tr>{th}</tr></thead><tbody>{rows}</tbody></table></div>'
 
 def band(crumbs, h1):
@@ -256,16 +295,15 @@ def cta(depth, text):
 def chapter_page(i, c):
     n = int(c['no']); prev = CH[i - 1] if i > 0 else None; nxt = CH[i + 1] if i < len(CH) - 1 else None
     name = short(c); cl = cls(c)
-    title = f'JEE Maths {name}: Chapter Guide, PYQs & Practice | अंक-IT'
-    if len(title) > 70: title = f'JEE Maths {name}: PYQs & Practice | अंक-IT'
-    desc = (f'JEE Maths {name} (Class {cl}): {len(c["subs"])} subtopics, {c["m"]} JEE Main and {c["a"]} JEE Advanced previous-year questions '
-            f'tagged {Y0}–{Y1}, importance by subtopic and free practice on अंक-IT.')
+    title = f'{name}: Maths Chapter Guide, PYQs & Practice | अंक-IT'
+    if len(title) > 70: title = f'{name}: Maths PYQs & Practice | अंक-IT'
+    desc = (f'{name} (Class {cl} maths): {len(c["subs"])} subtopics, previous-year questions from every exam with levels, {c["m"]} JEE Main and {c["a"]} JEE Advanced questions '
+            f'tagged {Y0}–{Y1}, and free practice on अंक-IT.')
+    tl = STATS['_all']['topic_levels']
     rows = ''.join(
         f'<tr><td>{E(s["name"])}</td><td class="num">{s["m"]}</td><td class="num">{s["a"]}</td>'
-        f'<td><span class="lv lv-{LEVEL[s["mt"]].lower()}">{LEVEL[s["mt"]]}</span></td><td><span class="lv lv-{LEVEL[s["at"]].lower()}">{LEVEL[s["at"]]}</span></td></tr>'
+        f'<td><span class="lv lv-{LEVEL[s["mt"]].lower()}">{LEVEL[s["mt"]]}</span></td><td><span class="lv lv-{LEVEL[s["at"]].lower()}">{LEVEL[s["at"]]}</span></td>{lvcells(tl.get(s["code"], {}))}</tr>'
         for s in c['subs'])
-    yrs = [str(y) for y in range(Y0, Y1 + 1)]
-    yrow = ''.join(f'<tr><th scope="row">{y}</th><td class="num">{c["ym"].get(y, 0)}</td><td class="num">{c["ya"].get(y, 0)}</td></tr>' for y in reversed(yrs))
     top = [s for s in sorted(c['subs'], key=lambda s: -(s['m'] + s['a']))[:3] if s['m'] + s['a'] > 0]
     focus = ''
     if top:
@@ -273,34 +311,35 @@ def chapter_page(i, c):
     links = ''
     if prev: links += f'<a class="pg-prev" href="../{slug(prev)}/">&larr; {E(short(prev))}</a>'
     if nxt: links += f'<a class="pg-next" href="../{slug(nxt)}/">{E(short(nxt))} &rarr;</a>'
+    have = [e for e in EXAMS if c['code'] in STATS[e[0]]['chapters']]
     ex_rows = ''
-    for e in EXAMS:
-        d = STATS[e[0]]['chapters'].get(c['code'])
-        if d:
-            ys = sorted(int(y) for y in d['by_year'])
-            ex_rows += f'<tr><td class="exn">{exlogo(e, "../../", 28)}<a href="../../exams/{e[2]}/{slug(c)}/">{E(e[1])}</a></td><td class="num">{d["questions"]}</td><td>{ys[0]}–{ys[-1]}</td></tr>'
-    by_exam = ('<h2>Questions by exam</h2><p>How many previous-year questions of this chapter each exam has asked. Open an exam to see its topic-wise and year-wise counts for this chapter.</p>'
-               + tbl(['Exam', 'Questions', 'Years'], ex_rows, 'pg-narrow', (1,))) if ex_rows else ''
-    crumbs = f'<a href="../../#/home">Home</a> &rsaquo; <a href="../">JEE Maths</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
+    for e in have:
+        d = STATS[e[0]]['chapters'][c['code']]; ys = sorted(int(y) for y in d['by_year'])
+        ex_rows += f'<tr><td class="exn">{exlogo(e, "../../", 32)}<a href="../../exams/{e[2]}/{slug(c)}/">{E(e[1])}</a></td><td class="num">{d["questions"]}</td>{lvcells(d["by_level"])}<td>{ys[0]}–{ys[-1]}</td></tr>'
+    by_exam = ('<h2>Questions by exam</h2><p>How many previous-year questions of this chapter each exam has asked, split by level (L1 easy, L2 medium, L3 hard). Open an exam to see its topic-wise and year-wise counts for this chapter.</p>'
+               + tbl(['Exam', 'Questions', LVH, 'Years'], ex_rows, 'pg-narrow', (1,))) if ex_rows else ''
+    modern = [(f'{exlogo(e, "../../", 24)}{E(e[1])}', STATS[e[0]]['chapters'][c['code']]['by_year']) for e in have if STATS[e[0]]['last'] >= 2013]
+    legacy = [(f'{exlogo(e, "../../", 24)}{E(e[1])}', STATS[e[0]]['chapters'][c['code']]['by_year']) for e in have if STATS[e[0]]['last'] < 2013]
+    trend = '<h2>Year-wise trend</h2><p>Questions per year from this chapter in every exam. Darker cells mean more questions that year.</p>' + (heat(modern, 2013, Y1) if modern else '')
+    if legacy: trend += '<p class="pg-fine">Earlier exams, before 2013:</p>' + heat(legacy, 2000, 2012)
+    crumbs = f'<a href="../../#/home">Home</a> &rsaquo; <a href="../">Maths</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
     main = f"""<p class="pg-lead">Class {cl} · Chapter {n} of {len(CH)} · {len(c["subs"])} subtopics</p>
 <p>{E(INTRO[n])}</p>
 <ul class="pg-stats"><li><b>{c["m"]}</b><span>JEE Main questions tagged ({Y0}–{Y1})</span></li><li><b>{c["a"]}</b><span>JEE Advanced questions tagged</span></li><li><b>{len(c["subs"])}</b><span>subtopics</span></li></ul>
 {focus}
 <h2>Subtopics and how important each one is</h2>
-<p>Counts are the previous-year questions tagged to each subtopic in the अंक-IT question bank. Importance reflects how often the subtopic is asked: High, Medium, Low, or Rare when it has hardly appeared.</p>
-{tbl(['Subtopic', 'Main Qs', 'Adv. Qs', 'Main', 'Adv.'], rows, '', (1, 2))}
+<p>Counts are the previous-year questions tagged to each subtopic in the अंक-IT question bank. Importance reflects how often the subtopic is asked: High, Medium, Low, or Rare when it has hardly appeared. L1, L2 and L3 show the level of the questions (all exams together).</p>
+{tbl(['Subtopic', 'Main Qs', 'Adv. Qs', 'Main', 'Adv.', LVH], rows, '', (1, 2))}
 {by_exam}
-<h2>Year-wise trend</h2>
-<p>Number of previous-year questions from this chapter, by exam year.</p>
-{tbl(['Year', 'JEE Main', 'JEE Advanced'], yrow, 'pg-narrow', (1, 2))}
+{trend}
 {cta(2, f"Solve {name} questions chapter-wise with full solutions, take NTA-style online tests and see your rank. The question bank, previous-year papers, DPPs and handouts are inside after you sign in.")}
 <nav class="pg-pn" aria-label="Chapters">{links}</nav>"""
-    body = band(crumbs, "JEE Maths: " + E(name)) + '\n' + grid(main, 2)
+    body = band(crumbs, "Maths: " + E(name)) + '\n' + grid(main, 2)
     ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
             {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'},
-            {'@type': 'ListItem', 'position': 2, 'name': 'JEE Maths', 'item': SITE + '/jee-maths/'},
+            {'@type': 'ListItem', 'position': 2, 'name': 'Maths', 'item': SITE + '/maths/'},
             {'@type': 'ListItem', 'position': 3, 'name': name, 'item': url(c)}]},
-          {'@context': 'https://schema.org', '@type': 'WebPage', 'name': f'JEE Maths {name}', 'description': desc, 'url': url(c),
+          {'@context': 'https://schema.org', '@type': 'WebPage', 'name': f'Maths: {name}', 'description': desc, 'url': url(c),
            'inLanguage': 'en-IN', 'isPartOf': {'@type': 'WebSite', 'name': 'अंक-IT Mathematics Dashboard', 'url': SITE + '/'}}]
     return page(title, desc, url(c), body, 2, ld)
 
@@ -316,18 +355,18 @@ def chapter_list(prefix, with_stats=False):
     return out
 
 def hub_page():
-    title = 'JEE Maths Chapters: Class 11 & 12 Syllabus, PYQs & Practice | अंक-IT'
-    desc = (f'All {len(CH)} JEE Maths chapters and {D["tot_sub"]} subtopics for Class 11 and 12, with previous-year question counts for JEE Main and '
+    title = 'Maths Chapters: Class 11 & 12 Syllabus, PYQs & Practice | अंक-IT'
+    desc = (f'All {len(CH)} maths chapters and {D["tot_sub"]} subtopics for Class 11 and 12, with previous-year question counts for JEE Main and '
             f'JEE Advanced ({Y0}–{Y1}). Practise free on अंक-IT.')
-    crumbs = '<a href="../#/home">Home</a> &rsaquo; <span aria-current="page">JEE Maths</span>'
+    crumbs = '<a href="../#/home">Home</a> &rsaquo; <span aria-current="page">Maths</span>'
     main = f"""<p class="pg-lead">{len(CH)} chapters in the syllabus · {D["tot_sub"]} subtopics · plus {len(OOS)} out-of-syllabus chapters</p>
-<p>The JEE Maths syllabus split into chapters and subtopics. Open a chapter to see its subtopics, how often each one was asked in JEE Main and JEE Advanced, and the year-wise trend, then sign in to practise the questions with full solutions.</p>
+<p>The maths syllabus split into chapters and subtopics. Open a chapter to see its subtopics, how often each one was asked in JEE Main and JEE Advanced, and the year-wise trend, then sign in to practise the questions with full solutions.</p>
 {chapter_list('', True)}
 {cta(1, "Choose a chapter, practise previous-year questions with solutions, and take online tests. Starting is free.")}"""
-    body = band(crumbs, "JEE Maths: all chapters") + '\n' + grid(main, 1)
-    ld = [{'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'JEE Maths chapters', 'itemListElement': [
+    body = band(crumbs, "Maths: all chapters") + '\n' + grid(main, 1)
+    ld = [{'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'Maths chapters', 'itemListElement': [
             {'@type': 'ListItem', 'position': k + 1, 'name': short(c), 'url': url(c)} for k, c in enumerate(CH)]}]
-    return page(title, desc, f'{SITE}/jee-maths/', body, 1, ld)
+    return page(title, desc, f'{SITE}/maths/', body, 1, ld)
 
 # ---------- exam pages ----------
 def exam_page(e):
@@ -338,14 +377,14 @@ def exam_page(e):
     facts = ''.join(f'<tr><th scope="row">{E(k)}</th><td>{E(v)}</td></tr>' for k, v in FACTS[key])
     glance = (f'<tr><th scope="row">Maths questions in this bank</th><td>{s["questions"]:,}</td></tr><tr><th scope="row">Years covered</th><td>{s["first"]}–{s["last"]}</td></tr>'
               f'<tr><th scope="row">Papers (shifts and sessions)</th><td>{s["papers"]}</td></tr>')
-    yrow = ''.join(f'<tr><th scope="row">{y}</th><td class="num">{n}</td></tr>' for y, n in sorted(s['by_year'].items(), reverse=True))
-    mx = max(s['by_chapter'].values()) or 1
-    def chrow(code, n):
+    lvd = s['by_level']; lvt = sum(lvd.values()) or 1
+    glance += f'<tr><th scope="row">Question levels</th><td>L1 {lvd["L1"]:,} ({round(100 * lvd["L1"] / lvt)}%) · L2 {lvd["L2"]:,} ({round(100 * lvd["L2"] / lvt)}%) · L3 {lvd["L3"]:,} ({round(100 * lvd["L3"] / lvt)}%)</td></tr>'
+    def chrow(code, d):
         nm = E(CH_NAME.get(code, code))
         label = f'<a href="{ANY_SLUG[code]}/">{nm}</a>' + ('' if code in CH_SLUG else ' <span class="lv">out of syllabus</span>')
-        pct = round(100 * n / mx)   # drawn as SVG: these pages forbid inline styles
-        return f'<tr><td>{label}</td><td class="num">{n}</td><td class="bar"><svg viewBox="0 0 100 8" preserveAspectRatio="none" role="img" aria-label="{pct}% of the largest chapter"><rect width="100" height="8" rx="4" class="bar-bg"/><rect width="{pct}" height="8" rx="4" class="bar-fg"/></svg></td></tr>'
-    crows = ''.join(chrow(c, n) for c, n in sorted(s['by_chapter'].items(), key=lambda kv: (-kv[1], kv[0])) if c)
+        return f'<tr><td>{label}</td><td class="num">{d["questions"]}</td>{lvcells(d["by_level"])}<td class="sp">{spark(d["by_year"], s["last"])}</td></tr>'
+    crows = ''.join(chrow(c, d) for c, d in sorted(s['chapters'].items(), key=lambda kv: (-kv[1]['questions'], kv[0])))
+    yr_strip = heat([(E(name), s['by_year'])], s['first'], s['last'])
     crumbs = f'<a href="../../#/home">Home</a> &rsaquo; <a href="../">Exams</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
     main = f"""<p class="pg-lead">{E(tag)}</p>
 <p>{E(about)}</p>
@@ -356,9 +395,10 @@ def exam_page(e):
 <div class="pg-table pg-facts"><table><tbody>{glance}</tbody></table></div>
 <h2>Chapter-wise questions</h2>
 <p>How many {E(name)} maths questions come from each chapter. Open a chapter to see its topic-wise and year-wise counts for {E(name)}.</p>
-{tbl(['Chapter', 'Questions', ''], crows, '', (1,))}
+<p class="pg-fine">L1 easy, L2 medium, L3 hard. The dot graph shows the last five years of the exam, from the oldest on the left.</p>
+{tbl(['Chapter', 'Questions', LVH, 'Last 5 years'], crows, '', (1,))}
 <h2>Year-wise questions</h2>
-{tbl(['Year', 'Questions'], yrow, 'pg-narrow', (1,))}
+{yr_strip}
 {cta(2, f"Practise {name} questions chapter-wise with full solutions, build DPPs and open whole papers in exam format. Everything is inside after you sign in.")}"""
     body = band(crumbs, f'{exlogo(e, "../../", 44)} {E(name)}: maths and previous-year questions') + '\n' + grid(main, 2, sl)
     ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
@@ -372,28 +412,28 @@ def exam_chapter_page(e, code):
     d = STATS[key]['chapters'][code]; ch = CH_NAME[code]; cs = ANY_SLUG[code]
     ys = sorted(int(y) for y in d['by_year'])
     title = f'{name} {ch}: Previous Year Questions | अंक-IT'
-    desc = f'{name} {ch}: {d["questions"]} previous-year maths questions from {ys[0]} to {ys[-1]}, with topic-wise and year-wise counts. Practise free on अंक-IT.'
+    desc = f'{name} {ch}: {d["questions"]} previous-year maths questions from {ys[0]} to {ys[-1]}, with topic-wise counts, levels (L1/L2/L3) and a year-wise strip. Practise free on अंक-IT.'
     total = STATS[key]['questions']; share = round(100 * d['questions'] / total, 1)
     rank = 1 + sum(1 for k, v in STATS[key]['by_chapter'].items() if v > d['questions'])
-    topics = ''.join(f'<tr><td>{E(t)}</td><td class="num">{n}</td></tr>' for t, n in sorted(d['by_topic'].items(), key=lambda kv: (-kv[1], kv[0])))
-    yrow = ''.join(f'<tr><th scope="row">{y}</th><td class="num">{n}</td></tr>' for y, n in sorted(d['by_year'].items(), reverse=True))
+    lvd = d['by_level']
+    topics = ''.join(f'<tr><td>{E(t)}</td><td class="num">{v["n"]}</td>{lvcells(v)}</tr>' for t, v in sorted(d['topics_lv'].items(), key=lambda kv: (-kv[1]['n'], kv[0])))
     intro = INTRO[int([c for c in CH if c['code'] == code][0]['no'])] if code in CH_SLUG else OOS_INTRO[code]
     others = ''
     for x in EXAMS:
         dd = STATS[x[0]]['chapters'].get(code)
         if dd and x[2] != sl:
-            others += f'<tr><td class="exn">{exlogo(x, "../../../", 28)}<a href="../../{x[2]}/{cs}/">{E(x[1])}</a></td><td class="num">{dd["questions"]}</td></tr>'
-    general = (f'<p>See the full chapter guide with subtopics and JEE Main / Advanced counts: <a href="../../../jee-maths/{cs}/">{E(ch)}</a>.</p>' if code in CH_SLUG else '')
+            others += f'<tr><td class="exn">{exlogo(x, "../../../", 32)}<a href="../../{x[2]}/{cs}/">{E(x[1])}</a></td><td class="num">{dd["questions"]}</td>{lvcells(dd["by_level"])}</tr>'
+    general = (f'<p>See the full chapter guide with subtopics and JEE Main / Advanced counts: <a href="../../../maths/{cs}/">{E(ch)}</a>.</p>' if code in CH_SLUG else '')
     crumbs = f'<a href="../../../#/home">Home</a> &rsaquo; <a href="../../">Exams</a> &rsaquo; <a href="../">{E(name)}</a> &rsaquo; <span aria-current="page">{E(ch)}</span>'
-    main = f"""<p class="pg-lead">{d["questions"]} questions · {ys[0]}–{ys[-1]}</p>
+    main = f"""<p class="pg-lead">{d["questions"]} questions · {ys[0]}–{ys[-1]} · L1 {lvd["L1"]} · L2 {lvd["L2"]} · L3 {lvd["L3"]}</p>
 <p>{E(intro)}</p>
 <ul class="pg-stats"><li><b>{d["questions"]}</b><span>{E(name)} questions from this chapter</span></li><li><b>{share}%</b><span>of all {E(name)} maths questions</span></li><li><b>#{rank}</b><span>rank among {E(name)} chapters</span></li></ul>
-<h2>Topic-wise questions in {E(name)}</h2>
-<p>The topics of {E(ch)} that {E(name)} has asked, with the number of questions for each.</p>
-{tbl(['Topic', 'Questions'], topics, 'pg-narrow', (1,))}
 <h2>Year-wise questions</h2>
-{tbl(['Year', 'Questions'], yrow, 'pg-narrow', (1,))}
-{('<h2>The same chapter in other exams</h2>' + tbl(['Exam', 'Questions'], others, 'pg-narrow', (1,))) if others else ''}
+{heat([(E(ch), d['by_year'])], STATS[key]['first'], STATS[key]['last'], 'Chapter')}
+<h2>Topic-wise questions in {E(name)}</h2>
+<p>The topics of {E(ch)} that {E(name)} has asked, with the number of questions for each and their level (L1 easy, L2 medium, L3 hard).</p>
+{tbl(['Topic', 'Questions', LVH], topics, 'pg-narrow', (1,))}
+{('<h2>The same chapter in other exams</h2>' + tbl(['Exam', 'Questions', LVH], others, 'pg-narrow', (1,))) if others else ''}
 {general}
 {cta(3, f"Practise {name} {ch} questions with full solutions, build a DPP for this chapter and open whole papers. Everything is inside after you sign in.")}"""
     body = band(crumbs, f'{exlogo(e, "../../../", 40)} {E(name)}: {E(ch)}') + '\n' + grid(main, 3, sl)
@@ -403,11 +443,47 @@ def exam_chapter_page(e, code):
             {'@type': 'ListItem', 'position': 3, 'name': name, 'item': exam_url(e)}, {'@type': 'ListItem', 'position': 4, 'name': ch, 'item': url_}]}]
     return page(title, desc, url_, body, 3, ld)
 
+def priority_page():
+    TM = D.get('tm') or sum(c['m'] for c in CH); TA = D.get('ta') or sum(c['a'] for c in CH)
+    tm, ta = D['tiers']['m'], D['tiers']['a']
+    rk = lambda key: {c['code']: i + 1 for i, c in enumerate(sorted(CH, key=lambda c: -c[key]))}
+    rm, ra = rk('m'), rk('a')
+    def focus(c):
+        gap = c['a'] / TA * 100 - c['m'] / TM * 100
+        return ('Same in both', 'same') if abs(gap) < 1.5 else (('Advanced leans', 'adv') if gap > 0 else ('Main leans', 'main'))
+    rows = ''
+    for c in sorted(CH, key=lambda c: -c['m']):
+        f = focus(c)
+        rows += (f'<tr><td><span class="chc-code">{c["code"]}</span> <a href="../maths/{slug(c)}/">{E(short(c))}</a></td><td class="num">{c["m"]}</td><td class="num">{round(100 * c["m"] / TM, 1)}%</td><td class="num">#{rm[c["code"]]}</td>'
+                 f'<td class="num">{c["a"]}</td><td class="num">{round(100 * c["a"] / TA, 1)}%</td><td class="num">#{ra[c["code"]]}</td><td><span class="fc fc-{f[1]}">{f[0]}</span></td><td class="sp">{trend_svg(c, TM, TA)}</td></tr>')
+    subs = sorted(((s, c) for c in CH for s in c['subs']), key=lambda t: -(t[0]['m'] + t[0]['a']))[:20]
+    srows = ''.join(f'<tr><td>{E(s["name"])}<br><small><a href="../maths/{slug(c)}/">{E(short(c))}</a></small></td><td class="num">{s["m"]}</td><td><span class="lv lv-{LEVEL[s["mt"]].lower()}">{LEVEL[s["mt"]]}</span></td><td class="num">{s["a"]}</td><td><span class="lv lv-{LEVEL[s["at"]].lower()}">{LEVEL[s["at"]]}</span></td></tr>' for s, c in subs)
+    title = 'Syllabus Priority: Which Maths Chapters Are Asked Most in JEE | अंक-IT'
+    desc = f'Chapter-wise priority for JEE Maths: how many JEE Main and JEE Advanced questions each chapter has had from {Y0} to {Y1}, its share, rank and yearly trend.'
+    crumbs = '<a href="../#/home">Home</a> &rsaquo; <span aria-current="page">Syllabus priority</span>'
+    main = f"""<p class="pg-lead">{len(CH)} chapters · {TM:,} JEE Main and {TA} JEE Advanced questions, {Y0}–{Y1}</p>
+<p>Use this to decide what to study first. Each chapter is ranked by the number of previous-year questions it has had in JEE Main and in JEE Advanced, with its share of all questions and its yearly trend. The same view is inside the dashboard.</p>
+<h2>Chapters by priority</h2>
+<div class="pg-table"><table class="prio"><thead><tr><th scope="col">Chapter</th><th scope="col" class="num">Main Qs</th><th scope="col" class="num">Share</th><th scope="col" class="num">Rank</th><th scope="col" class="num">Adv. Qs</th><th scope="col" class="num">Share</th><th scope="col" class="num">Rank</th><th scope="col">Leans</th><th scope="col">Trend</th></tr></thead><tbody>{rows}</tbody></table></div>
+<p class="pg-fine">Trend lines show questions per year as a share of each exam's total (blue: JEE Main, orange: JEE Advanced). Importance tiers: JEE Main {tm[0]}+ questions is High and {tm[1]}+ is Medium; JEE Advanced {ta[0]}+ is High and {ta[1]}+ is Medium; anything lower is Low.</p>
+<h2>The 20 most-asked subtopics</h2>
+<div class="pg-table"><table><thead><tr><th scope="col">Subtopic</th><th scope="col" class="num">Main Qs</th><th scope="col">Main</th><th scope="col" class="num">Adv. Qs</th><th scope="col">Adv.</th></tr></thead><tbody>{srows}</tbody></table></div>
+{cta(1, "See the priority of every subtopic, then practise those questions with full solutions. Starting is free.")}"""
+    body = band(crumbs, "Syllabus priority") + '\n' + grid(main, 1)
+    ld = [{'@context': 'https://schema.org', '@type': 'WebPage', 'name': 'Syllabus priority', 'url': f'{SITE}/syllabus-priority/', 'description': desc, 'inLanguage': 'en-IN',
+           'isPartOf': {'@type': 'WebSite', 'name': 'अंक-IT Mathematics Dashboard', 'url': SITE + '/'}}]
+    return page(title, desc, f'{SITE}/syllabus-priority/', body, 1, ld)
+
+def redirect_page(to, depth):
+    return (f'<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Moved</title><meta name="robots" content="noindex">'
+            f'<link rel="canonical" href="{SITE}/{to}"><meta http-equiv="refresh" content="0; url={"../" * depth}{to}"></head>'
+            f'<body><p>This page moved to <a href="{"../" * depth}{to}">{SITE}/{to}</a>.</p></body></html>\n')
+
 def exams_hub():
     total = sum(STATS[e[0]]['questions'] for e in EXAMS)
     title = 'Exams: JEE Main, JEE Advanced, KCET, NDA, IAT Maths Papers | अंक-IT'
     desc = f'Compare JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA and IAT: who conducts each exam, what it is for, the mode, and {total:,} previous-year maths questions in the bank.'
-    rows = ''.join(f'<tr><td class="exn">{exlogo(e, "../", 36)}<a href="{e[2]}/">{E(e[1])}</a></td><td>{E(SHORT[e[0]][0])}</td><td>{E(SHORT[e[0]][1])}</td><td>{E(SHORT[e[0]][2])}</td>'
+    rows = ''.join(f'<tr><td class="exn">{exlogo(e, "../", 38)}<a href="{e[2]}/">{E(e[1])}</a></td><td>{E(SHORT[e[0]][0])}</td><td>{E(SHORT[e[0]][1])}</td><td>{E(SHORT[e[0]][2])}</td>'
                    f'<td class="num">{STATS[e[0]]["questions"]:,}</td><td>{STATS[e[0]]["first"]}–{STATS[e[0]]["last"]}</td></tr>' for e in EXAMS)
     cards = ''.join(f'<li><a href="{e[2]}/">{E(e[1])}</a><span>{E(e[3])}</span><span>{E(exam_meta(e))}</span></li>' for e in EXAMS)
     crumbs = '<a href="../#/home">Home</a> &rsaquo; <span aria-current="page">Exams</span>'
@@ -575,7 +651,7 @@ def home_block():
                 '<div class="car-dots" hidden></div></div>')
     # ----- chapters as cards -----
     def chcard(c):
-        return (f'<a class="chc" href="jee-maths/{slug(c)}/"><span class="chc-code">{c["code"]}</span><h3>{E(short(c))}</h3>'
+        return (f'<a class="chc" href="maths/{slug(c)}/"><span class="chc-code">{c["code"]}</span><h3>{E(short(c))}</h3>'
                 f'<p>{len(c["subs"])} subtopics</p><div class="chc-st"><span><b>{c["m"]}</b> JEE Main</span><span><b>{c["a"]}</b> Advanced</span></div><i class="chc-go" aria-hidden="true">&rarr;</i></a>')
     c11 = ''.join(chcard(c) for c in CH if cls(c) == '11'); c12 = ''.join(chcard(c) for c in CH if cls(c) == '12')
     oos = ''.join(f'<div class="chc chc-oos"><span class="chc-code">{code}</span><h3>{E(n)}</h3><p>Out of syllabus</p></div>' for code, n in OOS)
@@ -625,11 +701,11 @@ def home_block():
 <section class="sec sec-alt" id="features"><div class="swrap"><div class="sec-head"><span class="kick">Everything in one place</span><h2>Everything you need to prepare for JEE Maths</h2><p>Practise, test yourself and track your progress without juggling PDFs, apps and notebooks.</p></div>
 <div class="grid3">{feat_html}</div></div></section>
 <section class="sec" id="how"><div class="swrap"><div class="sec-head"><span class="kick">How it works</span><h2>Start in three simple steps</h2></div><div class="steps">{steps_html}</div></div></section>
-<section class="sec sec-alt" id="chapters"><div class="swrap"><div class="sec-head"><span class="kick">Syllabus</span><h2>Every JEE Maths chapter, covered</h2><p>{len(CH)} chapters and {D["tot_sub"]} subtopics, with the number of JEE Main and JEE Advanced questions asked from each. Open a chapter to see its subtopics.</p></div>
+<section class="sec sec-alt" id="chapters"><div class="swrap"><div class="sec-head"><span class="kick">Syllabus</span><h2>Every maths chapter, covered</h2><p>{len(CH)} chapters and {D["tot_sub"]} subtopics, with the number of JEE Main and JEE Advanced questions asked from each. Open a chapter to see its subtopics.</p></div>
 <h3 class="chc-h">Class 11 <small>{sum(1 for c in CH if cls(c) == "11")} chapters</small></h3><div class="chc-grid">{c11}</div>
 <h3 class="chc-h">Class 12 <small>{sum(1 for c in CH if cls(c) == "12")} chapters</small></h3><div class="chc-grid">{c12}</div>
 <h3 class="chc-h">Out of syllabus <small>no longer in the current JEE syllabus, but still in the question bank</small></h3><div class="chc-grid">{oos}</div>
-<p class="chp-note"><a class="sb sb-line" href="jee-maths/">See all chapters with question counts</a></p></div></section>
+<p class="chp-note"><a class="sb sb-line" href="maths/">See all chapters with question counts</a></p></div></section>
 <section class="sec" id="exams"><div class="swrap"><div class="sec-head"><span class="kick">Exams</span><h2>Built for the exams you are preparing for</h2><p>{sum(STATS[e[0]]["questions"] for e in EXAMS):,} previous-year maths questions, paper by paper. Open an exam to see its questions by chapter and year.</p></div><div class="exc-grid">{exam_cards}</div></div></section>
 <section class="sec sec-alt" id="teachers"><div class="swrap split"><div><span class="kick">For teachers</span><h2>Set a test in minutes. See every result.</h2><p>Build an online test from the question bank, share one link with your class and get a ranked report the moment students finish.</p>
 <ul class="ticks">{tick(['Create tests from DPPs, PYQs or your own selection', 'One link for the whole class, with an exam window', 'Ranks, averages and question-wise analysis', 'Student list and bulk upload for your school'])}</ul>
@@ -645,7 +721,7 @@ def home_block():
 <!--HOME:END-->"""
 
 def sitemap():
-    urls = [(SITE + '/', '1.0'), (SITE + '/jee-maths/', '0.9')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9')] + [(exam_url(e), '0.8') for e in EXAMS] + [(f'{SITE}/exams/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
+    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9')] + [(exam_url(e), '0.8') for e in EXAMS] + [(f'{SITE}/exams/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
     body = ''.join(f'<url><loc>{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}</urlset>\n'
 
@@ -654,8 +730,11 @@ def write(path, text):
     open(path, 'w', encoding='utf-8').write(text)
 
 def main():
-    for i, c in enumerate(CH): write(f'jee-maths/{slug(c)}/index.html', chapter_page(i, c))
-    write('jee-maths/index.html', hub_page())
+    for i, c in enumerate(CH):
+        write(f'maths/{slug(c)}/index.html', chapter_page(i, c))
+        write(f'jee-maths/{slug(c)}/index.html', redirect_page(f'maths/{slug(c)}/', 2))   # the old address keeps working
+    write('maths/index.html', hub_page()); write('jee-maths/index.html', redirect_page('maths/', 1))
+    write('syllabus-priority/index.html', priority_page())
     write('exams/index.html', exams_hub())
     for e in EXAMS:
         write(f'exams/{e[2]}/index.html', exam_page(e))
