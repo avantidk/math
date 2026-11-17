@@ -168,7 +168,7 @@
         sub.appendChild(mk(ex.href, 'All exams')); nav.appendChild(sub);
       }
       Array.prototype.forEach.call(src.children, function (el) { if (el.tagName === 'A') nav.appendChild(mk(el.href, el.textContent)); });
-      nav.appendChild(mk(ROOT + 'maths/', 'All Maths chapters'));
+      nav.appendChild(mk(ROOT + 'maths/', 'All Math chapters'));
     })();
     /* mobile menu: close it after a link is chosen */
     Array.prototype.forEach.call(d.querySelectorAll('.sh-menu a'), function (a) {
