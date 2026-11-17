@@ -393,7 +393,7 @@ function membershipContent(teacher) {
     eyebrow: 'Premium for teachers', title: 'Teach more. Prepare less.',
     lead: 'Every DPP, PYQ paper and handout as a ready-to-print PDF, your whole school\'s students in one place, and results you can act on.',
     feats: [
-      ['pdf', 'Every PDF, print-ready', 'DPPs, chapterwise and shift-wise PYQ papers, Must Solve lists and handouts, with answer keys and full explanations.'],
+      ['pdf', 'Every PDF, print-ready', 'DPPs, chapterwise and shift-wise PYQ papers, Must Solve lists, handouts and your own Question Bank picks, with answer keys and full explanations.'],
       ['share', 'Share in one tap', 'Send any PDF to your class on WhatsApp, by email or through any app on your phone.'],
       ['folder', 'Saved worksheets', 'Keep the question sets you build and reuse them for tests or downloads whenever you need them.'],
       ['users', 'My Students', 'Every student of your school by class, stream and session, with sign-in status, tests taken, average and last test.'],
@@ -402,7 +402,7 @@ function membershipContent(teacher) {
       ['chat', 'Teachers\' chat', 'Talk live with other Premium and Avanti teachers while you plan and teach.'],
       ['copy', 'Copy questions', 'Copy question text and IDs straight into your own notes and slides.']
     ],
-    rows: [['View DPPs, PYQs and Must Solve (handouts: the first of each class free)', 1, 1], ['Create online tests for your school', 1, 1], ['Add students one by one', 1, 1], ['Results of your own tests', 1, 1],
+    rows: [['View Question Bank, DPPs, PYQs, Must Solve and handouts', 1, 1], ['Create online tests for your school', 1, 1], ['Add students one by one', 1, 1], ['Results of your own tests', 1, 1],
       ['Download and print every PDF', 0, 1], ['Share PDFs on WhatsApp and email', 0, 1], ['Copy question text', 0, 1], ['Saved worksheets', 0, 1], ['My Students with performance', 0, 1],
       ['Bulk upload and edit students', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1], ['Teachers\' chat', 0, 1]],
     faq: [['Do my students need Premium to take my tests?', 'No. Free students can take your tests and see their reports.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs can be shared straight from the phone.']]
@@ -417,7 +417,7 @@ function membershipContent(teacher) {
       ['target', 'Compare with the top', 'See the average and the top score of all students on every test you take.'],
       ['copy', 'Copy questions', 'Copy questions into your own notes for revision.']
     ],
-    rows: [['View DPPs, PYQs and Must Solve (handouts: the first of each class free)', 1, 1], ['Take your school\'s tests', 1, 1], ['Question-wise review and topic analysis', 1, 1], ['Rank in your school', 1, 1],
+    rows: [['View Question Bank, DPPs, PYQs, Must Solve and handouts', 1, 1], ['Take your school\'s tests', 1, 1], ['Question-wise review and topic analysis', 1, 1], ['Rank in your school', 1, 1],
       ['Rank among all students', 0, 1], ['Average and top score of all students', 0, 1], ['Download and print every PDF', 0, 1], ['Share PDFs', 0, 1], ['Copy question text', 0, 1]],
     faq: [['I am on the Avanti list. Do I need to pay?', 'No. Students on the Avanti list get Premium free. Sign in with your Avanti ID.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs open in any PDF app.']]
   };

@@ -1,5 +1,13 @@
 [
   {
+    "v": "926",
+    "date": "17 Nov 2026",
+    "items": [
+      "The Question Bank is back for everyone, exactly as before. DPPs, PYQs and Must Solve are unchanged.",
+      "The first Class 11 handout (Fundamental of Mathematics) and the first Class 12 handout (Functions) stay free to view for every signed-in account."
+    ]
+  },
+  {
     "v": "925",
     "date": "17 Nov 2026",
     "items": [
@@ -9,7 +17,6 @@
       "Added a sitemap, robots file and share previews (WhatsApp, Facebook, Twitter) for the new domain.",
       "New About us, Contact us, Privacy policy and Terms of use pages, linked from every page footer.",
       "Security: the website now refuses to run inside a frame on another website, so it cannot be disguised under a fake page (clickjacking).",
-      "Question Bank tab is now for the admin only. Everyone else works from DPPs, PYQs and Must Solve.",
       "The first Class 11 handout (Fundamental of Mathematics) and the first Class 12 handout (Functions) can be viewed by every signed-in account. Downloading handouts stays Premium."
     ]
   },
