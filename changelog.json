@@ -1,5 +1,12 @@
 [
   {
+    "v": "961",
+    "date": "17 Nov 2026",
+    "items": [
+      "Google sign-in now returns to unkganit.com (the address that was already set up in the login service) and is then sent on to the dashboard automatically. Before, it asked to return straight to unkganit.com/dashboard, which could end in \"This site can't be reached\" for people signing in for the first time."
+    ]
+  },
+  {
     "v": "960",
     "date": "17 Nov 2026",
     "items": [

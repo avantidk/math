@@ -88,7 +88,7 @@
       try {
         store.set(ROLE_KEY, role); rememberNext();
         var sb = await getSb();
-        var r = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: base + 'dashboard', queryParams: { prompt: 'select_account' } } });
+        var r = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: base,   /* the home page forwards ?code= to /dashboard (site.js); `/` is the address already allowed in Supabase */ queryParams: { prompt: 'select_account' } } });
         if (r.error) throw r.error;
       } catch (e) { gBtn.disabled = false; gBtn.lastChild.textContent = 'Continue with Google'; err.textContent = 'Google sign-in did not start: ' + (e.message || e); err.hidden = false; }
     } });
@@ -130,7 +130,7 @@
       } }));
     var dialog = h('div', { class: 'lm-dialog' },
       h('button', { type: 'button', class: 'lm-x', 'aria-label': 'Close', text: '×', onclick: close }),
-      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=960', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
+      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=961', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
       h('h2', { id: 'lmTitle', text: 'Log in or register' }),
       h('p', { class: 'lm-sub', text: 'New here? Continue with Google and your account is created for you.' }),
       testLink ? h('p', { class: 'lm-note', text: 'Sign in to open your test.' }) : null,
