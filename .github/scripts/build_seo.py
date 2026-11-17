@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """Builds the public, search-engine-readable pages from syllabus.json (public data only):
-   jee-maths/index.html, jee-maths/<chapter>/index.html, robots.txt, sitemap.xml and the landing block inside index.html.
-   Run from the repository root:  python3 .github/scripts/build_seo.py
+   the home page (inside index.html), jee-maths/index.html, jee-maths/<chapter>/index.html, about/, contact/, privacy/, terms/,
+   robots.txt and sitemap.xml. Run from the repository root:  python3 .github/scripts/build_seo.py
    Nothing here reads the private content (questions, answers, solutions, handouts)."""
-import json, html, re, os, sys, datetime
+import json, html, re, os, datetime
 
 SITE = os.environ.get('SITE_URL', 'https://unkganit.com').rstrip('/')
 TODAY = os.environ.get('SEO_DATE', datetime.date.today().isoformat())
-VER = os.environ.get('SEO_VER', '925')
+VER = os.environ.get('SEO_VER', '927')
 E = html.escape
 D = json.load(open('syllabus.json', encoding='utf-8'))
 CH = D['chapters']
 Y0, Y1 = D['from'], D['to']
+# Chapters that are no longer in the JEE syllabus. They are listed (not given pages of their own: there is no syllabus data for them).
+OOS = [('12M25', 'Linear Programming Problem'), ('12M26', 'Mathematical Reasoning'), ('12M27', 'Solution of Triangle'), ('12M28', 'Height and Distance')]
+CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', 'unkganit@gmail.com')   # public contact address shown on the Contact, Privacy and Terms pages
+UPDATED = '17 November 2026'
 
 SLUG = {1: 'fundamentals-of-mathematics', 2: 'sets-relations-and-functions', 3: 'trigonometry', 4: 'quadratic-equations',
         5: 'complex-numbers', 6: 'sequences-and-series', 7: 'permutations-and-combinations', 8: 'binomial-theorem',
@@ -52,24 +56,17 @@ def url(c): return f"{SITE}/jee-maths/{slug(c)}/"
 def short(c): return c['name']
 LEVEL = {'High': 'High', 'Medium': 'Medium', 'Low': 'Low', 'None': 'Rare'}
 
-# Chapters that are no longer in the JEE syllabus. They are listed (not given pages of their own: there is no syllabus data for them).
-OOS = [('12M25', 'Linear Programming Problem'), ('12M26', 'Mathematical Reasoning'), ('12M27', 'Solution of Triangle'), ('12M28', 'Height and Distance')]
-CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', 'unkganit@gmail.com')   # public contact address shown on the Contact, Privacy and Terms pages
-UPDATED = '17 November 2026'
-def page(title, desc, canon, body, depth, jsonld=None, og_title=None):
+def svg(d, w=24, extra=''):
+    return f'<svg viewBox="0 0 24 24" width="{w}" height="{w}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"{extra}>{d}</svg>'
+CHECK = svg('<path d="M20 6 9 17l-5-5"/>', 20)
+
+# ---------- shared pieces ----------
+def head(title, desc, canon, depth, jsonld=None, og_title=None, index=False):
     up = '../' * depth
     ld = ''.join(f'<script type="application/ld+json">{json.dumps(j, ensure_ascii=False, separators=(",", ":"))}</script>\n' for j in (jsonld or []))
-    return f'''<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'">
-<title>{E(title)}</title>
-<meta name="description" content="{E(desc)}">
+    return f'''<meta name="description" content="{E(desc)}">
 <link rel="canonical" href="{E(canon)}">
 <meta name="robots" content="index, follow, max-image-preview:large">
-<meta name="theme-color" content="#0c1a3d">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="अंक-IT Mathematics Dashboard">
 <meta property="og:title" content="{E(og_title or title)}">
@@ -82,27 +79,70 @@ def page(title, desc, canon, body, depth, jsonld=None, og_title=None):
 <meta name="twitter:title" content="{E(og_title or title)}">
 <meta name="twitter:description" content="{E(desc)}">
 <meta name="twitter:image" content="{SITE}/img/og-share.png">
+{ld}'''
+
+def page(title, desc, canon, body, depth, jsonld=None, og_title=None):
+    up = '../' * depth
+    return f'''<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'">
+<title>{E(title)}</title>
+{head(title, desc, canon, depth, jsonld, og_title)}<meta name="theme-color" content="#0c1a3d">
 <link rel="icon" type="image/png" sizes="32x32" href="{up}img/icon/icon-32.png?v={VER}">
 <link rel="apple-touch-icon" sizes="180x180" href="{up}img/icon/icon-180.png?v={VER}">
 <link rel="preload" href="{up}vendor/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{up}landing.css?v={VER}">
-{ld}</head>
+<link rel="stylesheet" href="{up}site.css?v={VER}">
+<script src="{up}site.js?v={VER}"></script>
+</head>
 <body class="pg">
+{header(depth)}
 {body}
+{footer(depth)}
 </body>
 </html>
 '''
 
-def nav(depth, crumbs):
+def header(depth):
     up = '../' * depth
-    return f'''<header class="pg-top"><a class="pg-brand" href="{up}" aria-label="अंक-IT Mathematics Dashboard home"><img src="{up}img/ankit-logo-dark-sm.png?v={VER}" alt="अंक-IT" width="139" height="52"></a>
-<nav class="pg-nav" aria-label="Main"><a href="{up}jee-maths/">JEE Maths chapters</a><a class="pg-cta" href="{up}">Sign in</a></nav></header>
-<nav class="pg-crumbs" aria-label="Breadcrumb">{crumbs}</nav>'''
+    home = up + '#/home' if depth else '#/home'
+    a = lambda frag: (up + frag) if depth else frag
+    links = [('Features', 'features'), ('How it works', 'how'), ('Chapters', 'chapters'), ('Plans', 'plans'), ('FAQ', 'faq')]
+    nav = ''.join(f'<a href="{a("#" + f)}">{t}</a>' for t, f in links)
+    login = f'<a class="sb sb-pri when-out" data-login href="{up}?login=1" rel="nofollow">Login</a>' if depth else '<a class="sb sb-pri when-out" data-login href="?login=1" rel="nofollow">Login</a>'
+    dash = f'<a class="sb sb-line when-in" data-dash href="{up or "./"}">Dashboard</a>'
+    prof = f'<a class="sh-av when-in" data-av data-profile href="{a("#/profile")}" aria-label="Your profile">&nbsp;</a>'
+    burger = svg('<path d="M4 7h16M4 12h16M4 17h16"/>', 22)
+    return f'''<header class="sh"><div class="swrap sh-in">
+<a class="sh-logo" href="{home}" aria-label="अंक-IT Mathematics Dashboard, home"><img src="{up}img/ankit-logo-sm.png?v={VER}" alt="अंक-IT Mathematics" width="139" height="52"></a>
+<nav class="sh-nav" aria-label="Main">{nav}</nav>
+<div class="sh-end">{login}{dash}{prof}
+<details class="sh-menu"><summary aria-label="Menu">{burger}</summary><nav aria-label="Menu">{nav}<a href="{up}jee-maths/">All JEE Maths chapters</a></nav></details></div>
+</div></header>'''
+
+def footer(depth):
+    up = '../' * depth
+    a = lambda frag: (up + frag) if depth else frag
+    return f'''<footer class="sf"><div class="swrap">
+<div class="sf-grid">
+<div><img src="{up}img/ankit-logo-dark-sm.png?v={VER}" alt="अंक-IT Mathematics" width="139" height="52"><p>JEE Maths practice for Class 11 and 12: question bank, previous-year papers, DPPs, handouts and online tests.</p></div>
+<div><h4>Explore</h4><ul><li><a href="{up}jee-maths/">JEE Maths chapters</a></li><li><a href="{a("#features")}">Features</a></li><li><a href="{a("#plans")}">Plans</a></li><li><a href="{a("#faq")}">FAQ</a></li></ul></div>
+<div><h4>Company</h4><ul><li><a href="{up}about/">About us</a></li><li><a href="{up}contact/">Contact us</a></li></ul></div>
+<div><h4>Legal</h4><ul><li><a href="{up}privacy/">Privacy policy</a></li><li><a href="{up}terms/">Terms of use</a></li></ul></div>
+</div>
+<div class="sf-base"><span>&copy; 2026 अंक-IT Mathematics Dashboard</span><span>JEE Main · JEE Advanced · KCET · NDA · IAT</span></div>
+</div></footer>'''
+
+def band(crumbs, h1):
+    return f'<section class="pg-hero"><div class="swrap"><nav class="pg-crumbs" aria-label="Breadcrumb">{crumbs}</nav><h1>{h1}</h1></div></section>'
 
 def cta(depth, text):
     up = '../' * depth
-    return f'''<section class="pg-signin"><h2>Practise this free</h2><p>{E(text)}</p><a class="pg-btn" href="{up}">Sign in to start practising</a><p class="pg-fine">Sign in with Google, or with your Student ID if you are an Avanti student. Starting is free.</p></section>'''
+    return f'''<section class="pg-signin"><h2>Practise this free</h2><p>{E(text)}</p><p class="pg-ctas"><a class="sb sb-gold sb-lg when-out" data-login href="{up}?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold sb-lg when-in" href="{up}">Open your dashboard</a></p><p class="pg-fine">Sign in with Google, or with your Student ID if you are an Avanti student. Starting is free.</p></section>'''
 
+# ---------- chapter pages ----------
 def chapter_page(i, c):
     n = int(c['no']); prev = CH[i - 1] if i > 0 else None; nxt = CH[i + 1] if i < len(CH) - 1 else None
     name = short(c); cl = cls(c)
@@ -116,18 +156,16 @@ def chapter_page(i, c):
         for s in c['subs'])
     yrs = [str(y) for y in range(Y0, Y1 + 1)]
     yrow = ''.join(f'<tr><th scope="row">{y}</th><td class="num">{c["ym"].get(y, 0)}</td><td class="num">{c["ya"].get(y, 0)}</td></tr>' for y in reversed(yrs))
-    top = sorted(c['subs'], key=lambda s: -(s['m'] + s['a']))[:3]
-    top = [s for s in top if s['m'] + s['a'] > 0]
+    top = [s for s in sorted(c['subs'], key=lambda s: -(s['m'] + s['a']))[:3] if s['m'] + s['a'] > 0]
     focus = ''
     if top:
         focus = '<p>Most-tested subtopics in our previous-year data: ' + ', '.join(f'<b>{E(s["name"])}</b> ({s["m"]} Main, {s["a"]} Advanced)' for s in top) + '.</p>'
     links = ''
     if prev: links += f'<a class="pg-prev" href="../{slug(prev)}/">&larr; {E(short(prev))}</a>'
     if nxt: links += f'<a class="pg-next" href="../{slug(nxt)}/">{E(short(nxt))} &rarr;</a>'
-    crumbs = f'<a href="../../">Home</a> &rsaquo; <a href="../">JEE Maths</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
-    body = f'''{nav(2, crumbs)}
-<main class="pg-main">
-<h1>JEE Maths: {E(name)}</h1>
+    crumbs = f'<a href="../../#/home">Home</a> &rsaquo; <a href="../">JEE Maths</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
+    body = f'''{band(crumbs, "JEE Maths: " + E(name))}
+<main class="swrap pg-main">
 <p class="pg-lead">Class {cl} · Chapter {n} of {len(CH)} · {len(c["subs"])} subtopics</p>
 <p>{E(INTRO[n])}</p>
 <ul class="pg-stats"><li><b>{c["m"]}</b><span>JEE Main questions tagged ({Y0}–{Y1})</span></li><li><b>{c["a"]}</b><span>JEE Advanced questions tagged</span></li><li><b>{len(c["subs"])}</b><span>subtopics</span></li></ul>
@@ -140,8 +178,7 @@ def chapter_page(i, c):
 <div class="pg-table pg-narrow"><table><thead><tr><th scope="col">Year</th><th scope="col" class="num">JEE Main</th><th scope="col" class="num">JEE Advanced</th></tr></thead><tbody>{yrow}</tbody></table></div>
 {cta(2, f"Solve {name} questions chapter-wise with full solutions, take NTA-style online tests and see your rank. The question bank, previous-year papers, DPPs and handouts are inside after you sign in.")}
 <nav class="pg-pn" aria-label="Chapters">{links}</nav>
-</main>
-{foot(2)}'''
+</main>'''
     ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
             {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'},
             {'@type': 'ListItem', 'position': 2, 'name': 'JEE Maths', 'item': SITE + '/jee-maths/'},
@@ -149,10 +186,6 @@ def chapter_page(i, c):
           {'@context': 'https://schema.org', '@type': 'WebPage', 'name': f'JEE Maths {name}', 'description': desc, 'url': url(c),
            'inLanguage': 'en-IN', 'isPartOf': {'@type': 'WebSite', 'name': 'अंक-IT Mathematics Dashboard', 'url': SITE + '/'}}]
     return page(title, desc, url(c), body, 2, ld)
-
-def foot(depth):
-    up = '../' * depth
-    return f'''<footer class="pg-foot"><p>अंक-IT Mathematics Dashboard · JEE Main, JEE Advanced, KCET, NDA and IAT maths practice.</p><p><a href="{up}">Home and sign in</a> · <a href="{up}jee-maths/">All JEE Maths chapters</a></p><p><a href="{up}about/">About us</a> · <a href="{up}contact/">Contact us</a> · <a href="{up}privacy/">Privacy policy</a> · <a href="{up}terms/">Terms of use</a></p></footer>'''
 
 def chapter_list(prefix, with_stats=False):
     out = ''
@@ -169,29 +202,25 @@ def hub_page():
     title = 'JEE Maths Chapters: Class 11 & 12 Syllabus, PYQs & Practice | अंक-IT'
     desc = (f'All {len(CH)} JEE Maths chapters and {D["tot_sub"]} subtopics for Class 11 and 12, with previous-year question counts for JEE Main and '
             f'JEE Advanced ({Y0}–{Y1}). Practise free on अंक-IT.')
-    crumbs = '<a href="../">Home</a> &rsaquo; <span aria-current="page">JEE Maths</span>'
-    body = f'''{nav(1, crumbs)}
-<main class="pg-main">
-<h1>JEE Maths: all chapters</h1>
+    crumbs = '<a href="../#/home">Home</a> &rsaquo; <span aria-current="page">JEE Maths</span>'
+    body = f'''{band(crumbs, "JEE Maths: all chapters")}
+<main class="swrap pg-main">
 <p class="pg-lead">{len(CH)} chapters in the syllabus · {D["tot_sub"]} subtopics · plus {len(OOS)} out-of-syllabus chapters</p>
 <p>The JEE Maths syllabus split into chapters and subtopics. Open a chapter to see its subtopics, how often each one was asked in JEE Main and JEE Advanced, and the year-wise trend, then sign in to practise the questions with full solutions.</p>
 {chapter_list('', True)}
 {cta(1, "Choose a chapter, practise previous-year questions with solutions, and take online tests. Starting is free.")}
-</main>
-{foot(1)}'''
+</main>'''
     ld = [{'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'JEE Maths chapters', 'itemListElement': [
             {'@type': 'ListItem', 'position': k + 1, 'name': short(c), 'url': url(c)} for k, c in enumerate(CH)]}]
     return page(title, desc, f'{SITE}/jee-maths/', body, 1, ld)
 
-
+# ---------- About, Contact, Privacy, Terms ----------
 def info_page(slug_, title, h1, desc, inner, ptype='WebPage'):
-    crumbs = f'<a href="../">Home</a> &rsaquo; <span aria-current="page">{E(h1)}</span>'
-    body = f'''{nav(1, crumbs)}
-<main class="pg-main pg-text">
-<h1>{E(h1)}</h1>
+    crumbs = f'<a href="../#/home">Home</a> &rsaquo; <span aria-current="page">{E(h1)}</span>'
+    body = f'''{band(crumbs, E(h1))}
+<main class="swrap pg-main pg-text">
 {inner}
-</main>
-{foot(1)}'''
+</main>'''
     canon = f'{SITE}/{slug_}/'
     ld = [{'@context': 'https://schema.org', '@type': ptype, 'name': h1, 'url': canon, 'description': desc, 'inLanguage': 'en-IN',
            'isPartOf': {'@type': 'WebSite', 'name': 'अंक-IT Mathematics Dashboard', 'url': SITE + '/'}}]
@@ -213,7 +242,7 @@ def about_page():
 <p>You can start free by signing in with Google. Premium (₹299 a year for students, ₹599 for teachers) adds PDF downloads and printing, all-India ranks, comparison with all students and handouts. Students of Avanti Fellows get Premium free.</p>
 <h2>Get in touch</h2>
 <p>Questions, corrections or ideas are welcome. See the <a href="../contact/">contact page</a>.</p>
-<p><a class="pg-btn" href="../">Sign in and start practising</a></p>'''
+<p><a class="sb sb-pri" href="../">Go to the dashboard</a></p>'''
     return info_page('about', 'About Us | अंक-IT Mathematics Dashboard', 'About us', 'About अंक-IT Mathematics Dashboard: JEE Maths question bank, previous-year papers, DPPs, handouts and online tests for Class 11 and 12, built by Ankit Kamboj.', inner, 'AboutPage')
 
 def contact_page():
@@ -227,9 +256,9 @@ def contact_page():
 <li>Payment problems: include the date and the payment reference you received from Razorpay.</li>
 <li>Teachers: school approval, adding students, or help creating a test.</li>
 <li>Requests about your personal data. See the <a href="../privacy/">privacy policy</a>.</li></ul>
-<h2>Help on the sign-in page</h2>
-<p>The sign-in page also has a <b>Help &amp; Support</b> button with the same contact details.</p>
-<p><a class="pg-btn" href="../">Go to the dashboard</a></p>'''
+<h2>Help in the login window</h2>
+<p>The Login window also has a <b>Help &amp; Support</b> button with the same contact details.</p>
+<p><a class="sb sb-pri" href="../">Go to the dashboard</a></p>'''
     return info_page('contact', 'Contact Us | अंक-IT Mathematics Dashboard', 'Contact us', 'Contact अंक-IT Mathematics Dashboard for help with sign-in, Premium, payments, corrections to questions or your personal data.', inner, 'ContactPage')
 
 def privacy_page():
@@ -307,33 +336,76 @@ FAQ = [
  ('Can teachers create tests?', 'Yes. Teachers whose school has been approved can build an online test from the question bank, share one link with their students and see results and ranks.'),
 ]
 
-def landing_block():
-    c11 = [c for c in CH if cls(c) == '11']; c12 = [c for c in CH if cls(c) == '12']
-    faq = ''.join(f'<details><summary>{E(q)}</summary><p>{E(a)}</p></details>' for q, a in FAQ)
-    return f'''<!--LANDING:START (generated by .github/scripts/build_seo.py; edit that script, not this block)-->
-<div id="landing" class="ld">
-<section class="ld-sec">
-<h1>अंक-IT Mathematics Dashboard: JEE Maths practice for Class 11 and 12</h1>
-<p class="ld-lead">A question bank with solutions, previous-year papers, DPPs, handouts and NTA-style online tests for JEE Main, JEE Advanced, KCET, NDA and IAT mathematics. Start free.</p>
-<p><a class="ld-btn" href="#auth">Sign in to start</a></p>
-</section>
-<section class="ld-sec"><h2>Who is it for?</h2>
-<p>Students of Class 11 and Class 12 and droppers preparing for JEE Maths, and the teachers who coach them. Practise chapter by chapter, take full tests in an exam-like screen and see where you stand.</p></section>
-<section class="ld-sec"><h2>Free, Premium and Avanti</h2>
-<div class="ld-plans">
-<div><h3>Free</h3><p>Question bank with solutions, previous-year questions, online tests and your own reports. Sign in with Google.</p></div>
-<div><h3>Premium</h3><p>₹299 a year for students, ₹599 for teachers. Adds PDF downloads and printing, all-India ranks, comparison with all students and handouts. Teachers also get a student list and bulk upload.</p></div>
-<div><h3>Avanti</h3><p>Avanti students get Premium free and sign in with their Student ID. Avanti teachers get full teaching tools.</p></div>
+
+# ---------- the home page (goes inside index.html) ----------
+def home_block():
+    feats = [
+     ('i-blue', svg('<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 9h4M7 12h7"/>'), 'NTA-style online tests', 'A full-screen test with timer, question panel, mark for review and auto-submit, just like the real exam.'),
+     ('i-gold', svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), 'Instant reports and ranks', 'Score, accuracy, rank in your school and all-India, topic-wise analysis and time per question.'),
+     ('i-green', svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'), '15,000+ question bank', 'Filter by chapter, topic, level, exam and year. Every question comes with its answer and a full solution.'),
+     ('i-purple', svg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>'), 'Past papers 1978–2026', 'JEE Main, JEE Advanced and more, paper by paper and chapter by chapter, with answer keys.'),
+     ('i-rose', svg('<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>'), 'DPPs, Must Solve and handouts', 'Daily practice sheets, hand-picked must-solve questions and handwritten revision notes for every chapter.'),
+     ('i-teal', svg('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>'), 'Built for teachers', 'Make a test in minutes, share one link with your class and see every student\'s result.')]
+    feat_html = ''.join(f'<article class="fcard"><span class="ico {c}">{i}</span><h3>{E(t)}</h3><p>{E(d)}</p></article>' for c, i, t, d in feats)
+    pal = ['a', 'a', 'n', 'a', 'm', 'a', 'v', 'a', 'n', 'a', 'a', 'm', 'a', 'v', 'v', 'a', 'n', 'v', 'v', 'v']
+    mock = f'''<div class="mock" aria-hidden="true"><div class="mock-win"><div class="mock-bar"><i></i><i></i><i></i><span>JEE Main Mock Test · Mathematics</span><b>01:42:18</b></div>
+<div class="mock-body"><div class="mock-q"><h4><span>Question 13</span><span>+4 / −1</span></h4><p>The value of <span class="m">&int;<sub>0</sub><sup>&pi;/2</sup> sin<sup>2</sup>x dx</span> is</p>
+<div class="mock-opts"><div class="mock-opt"><b>A</b>&pi;/2</div><div class="mock-opt on"><b>B</b>&pi;/4</div><div class="mock-opt"><b>C</b>&pi;</div><div class="mock-opt"><b>D</b>1</div></div>
+<div class="mock-btns"><span class="a">Mark for review</span><span class="b">Save &amp; next</span></div></div>
+<div class="mock-pal">{''.join(f'<span class="p-{k}">{n + 1}</span>' for n, k in enumerate(pal))}</div></div></div>
+<div class="mock-float"><span class="ic">{svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', 22)}</span><div><small>Report ready · example</small><b>Score 248 / 300</b><em>Rank 3 in school · 41 all-India</em></div></div></div>'''
+    pts = ''.join(f'<li>{CHECK}{t}</li>' for t in ['Free to start', 'Questions with full solutions', 'Made for JEE Main and Advanced', 'Works on phone and laptop'])
+    c11 = ''.join(f'<li><a class="pchip" href="jee-maths/{slug(c)}/">{E(short(c))}</a></li>' for c in CH if cls(c) == '11')
+    c12 = ''.join(f'<li><a class="pchip" href="jee-maths/{slug(c)}/">{E(short(c))}</a></li>' for c in CH if cls(c) == '12')
+    oos = ''.join(f'<li><span class="pchip oos">{E(n)}</span></li>' for _, n in OOS)
+    steps = [('Create your free account', 'Click Login, choose Student or Teacher and continue with Google. Avanti students use their Student ID.'),
+             ('Practise chapter by chapter', 'Open the question bank, DPPs, previous-year papers and Must Solve. Check every answer against the full solution.'),
+             ('Take tests and track progress', 'Attempt NTA-style tests, see your score, rank and weak topics, and come back stronger next week.')]
+    steps_html = ''.join(f'<div class="step"><h3>{E(t)}</h3><p>{E(d)}</p></div>' for t, d in steps)
+    tick = lambda items: ''.join(f'<li>{CHECK}<span>{E(t)}</span></li>' for t in items)
+    plans = f'''<div class="plans">
+<div class="plan"><h3>Free</h3><div class="price">&#8377;0</div><p class="for">For every student and teacher</p><ul>{tick(['Question bank, DPPs, PYQs and Must Solve', 'Solutions for practice', 'Online tests and your own reports', 'First Class 11 and Class 12 handouts to view'])}</ul><a class="sb sb-line" data-login href="?login=1" rel="nofollow">Start free</a></div>
+<div class="plan hot"><span class="ptag">Most popular</span><h3>Premium</h3><div class="price">&#8377;299 <small>a year, students</small></div><p class="for">&#8377;599 a year for teachers</p><ul>{tick(['Everything in Free', 'PDF downloads and printing', 'All handouts', 'All-India ranks and comparison with all students', 'Teachers: student list, bulk upload, saved worksheets'])}</ul><a class="sb sb-gold" data-login href="?login=1" rel="nofollow">Get started</a></div>
+<div class="plan"><h3>Avanti</h3><div class="price">Free <small>with Avanti</small></div><p class="for">For Avanti students and teachers</p><ul>{tick(['Premium included at no cost', 'Sign in with your Student ID', 'School tests from your teacher', 'Rank in school and all-India'])}</ul><a class="sb sb-line" data-login href="?login=1" rel="nofollow">Login with Student ID</a></div></div>'''
+    faq_html = ''.join(f'<details><summary>{E(q)}</summary><p>{E(a)}</p></details>' for q, a in FAQ)
+    rows = [('1', 'Prakhar', 92), ('2', 'Ananya', 88), ('3', 'Rohan', 84), ('4', 'Meera', 79)]
+    rep = ''.join(f'<div class="report-row"><b>{r}</b><div><i style="width:{p}%"></i></div><span>{p}%</span></div>' for r, _, p in rows)
+    return f'''<!--HOME:START (generated by .github/scripts/build_seo.py; edit that script, not this block)-->
+<div id="home" class="site">
+{header(0)}
+<main>
+<section class="hero"><div class="swrap hero-in">
+<div><span class="eyebrow"><i></i>JEE · KCET · NDA · IAT Mathematics</span>
+<h1>Practise JEE Maths the way the <em>exam asks it.</em></h1>
+<p class="lead">A question bank with full solutions, previous-year papers, DPPs, handouts and NTA-style online tests, all in one place for Class 11 and 12.</p>
+<div class="hero-cta"><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Start practising free</a><a class="sb sb-gold sb-lg when-in" data-dash href="./">Open your dashboard</a><a class="sb sb-white-line sb-lg" href="#chapters">Explore chapters</a></div>
+<ul class="hero-pts">{pts}</ul></div>
+{mock}
 </div></section>
-<section class="ld-sec"><h2>JEE Maths chapters</h2>
-<p>{len(CH)} chapters and {D["tot_sub"]} subtopics in the syllabus, plus {len(OOS)} out-of-syllabus chapters. Open a chapter to see its subtopics and how often each was asked in JEE Main and JEE Advanced.</p>
-{chapter_list('jee-maths/')}
-<p><a href="jee-maths/">See all chapters with question counts</a></p></section>
-<section class="ld-sec"><h2>Frequently asked questions</h2>
-<div class="ld-faq">{faq}</div></section>
-<footer class="ld-foot"><p>अंक-IT Mathematics Dashboard · JEE, CET, NDA, IAT · PYQs, DPPs, handouts and tests.</p><p><a href="about/">About us</a> · <a href="contact/">Contact us</a> · <a href="privacy/">Privacy policy</a> · <a href="terms/">Terms of use</a></p></footer>
+<section class="stats" aria-label="At a glance"><div class="swrap stats-in">
+<div class="stat"><b>15,000+</b><span>Questions</span></div><div class="stat"><b>11,000+</b><span>Full solutions</span></div>
+<div class="stat"><b>{len(CH)}</b><span>Chapters, {D["tot_sub"]} subtopics</span></div><div class="stat"><b>1978–2026</b><span>Past papers</span></div></div></section>
+<section class="sec" id="features"><div class="swrap"><div class="sec-head"><span class="kick">Everything in one place</span><h2>Everything you need to prepare for JEE Maths</h2><p>Practise, test yourself and track your progress without juggling PDFs, apps and notebooks.</p></div>
+<div class="grid3">{feat_html}</div></div></section>
+<section class="sec sec-alt" id="how"><div class="swrap"><div class="sec-head"><span class="kick">How it works</span><h2>Start in three simple steps</h2></div><div class="steps">{steps_html}</div></div></section>
+<section class="sec" id="chapters"><div class="swrap"><div class="sec-head"><span class="kick">Syllabus</span><h2>Every JEE Maths chapter, covered</h2><p>{len(CH)} chapters and {D["tot_sub"]} subtopics. Open a chapter to see its subtopics and how often each one was asked in JEE Main and JEE Advanced.</p></div>
+<div class="chp"><div><h3>Class 11 <small>{sum(1 for c in CH if cls(c) == "11")} chapters</small></h3><ul class="pchips">{c11}</ul></div>
+<div><h3>Class 12 <small>{sum(1 for c in CH if cls(c) == "12")} chapters</small></h3><ul class="pchips">{c12}</ul></div></div>
+<div class="chp cta-sp"><div class="chp-all"><h3>Out of syllabus <small>no longer in the current JEE syllabus, but still in the question bank</small></h3><ul class="pchips">{oos}</ul></div></div>
+<p class="chp-note"><a class="sb sb-line" href="jee-maths/">See all chapters with question counts</a></p></div></section>
+<section class="sec sec-alt"><div class="swrap"><div class="sec-head"><span class="kick">Exams</span><h2>Built for the exams you are preparing for</h2></div><div class="exams"><span>JEE Main</span><span>JEE Advanced</span><span>KCET</span><span>NDA</span><span>IAT</span><span>AIEEE</span></div></div></section>
+<section class="sec" id="teachers"><div class="swrap split"><div><span class="kick">For teachers</span><h2>Set a test in minutes. See every result.</h2><p>Build an online test from the question bank, share one link with your class and get a ranked report the moment students finish.</p>
+<ul class="ticks">{tick(['Create tests from DPPs, PYQs or your own selection', 'One link for the whole class, with an exam window', 'Ranks, averages and question-wise analysis', 'Student list and bulk upload for your school'])}</ul>
+<a class="sb sb-pri when-out" data-login href="?login=1" rel="nofollow">Login as a teacher</a><a class="sb sb-pri when-in" data-dash href="./">Open your dashboard</a></div>
+<div class="report" aria-hidden="true"><h4>Class result · Mock Test 3</h4><small>Top scorers · example</small>{rep}</div></div></section>
+<section class="sec sec-alt" id="plans"><div class="swrap"><div class="sec-head"><span class="kick">Plans</span><h2>Start free. Upgrade when you are ready.</h2><p>Premium is a one-year membership. Avanti students get it free.</p></div>{plans}</div></section>
+<section class="sec" id="faq"><div class="swrap"><div class="sec-head"><span class="kick">FAQ</span><h2>Frequently asked questions</h2></div><div class="faq">{faq_html}</div></div></section>
+<section class="cta"><h2>Ready to practise smarter?</h2><p>Create your free account and start with any chapter today.</p><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold sb-lg when-in" data-dash href="./">Open your dashboard</a></section>
+</main>
+{footer(0)}
+<noscript><p style="text-align:center;padding:12px;background:#fff6dc;color:#7a5200;margin:0">Signing in needs JavaScript. Please turn it on in your browser.</p></noscript>
 </div>
-<!--LANDING:END-->'''
+<!--HOME:END-->'''
 
 def sitemap():
     urls = [(SITE + '/', '1.0'), (SITE + '/jee-maths/', '0.9')] + [(url(c), '0.8') for c in CH] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
@@ -351,13 +423,11 @@ def main():
     write('sitemap.xml', sitemap())
     write('robots.txt', f'User-agent: *\nAllow: /\nDisallow: /qb/\n\nSitemap: {SITE}/sitemap.xml\n')
     s = open('index.html', encoding='utf-8').read()
-    blk = landing_block()
-    if '<!--LANDING:START' in s:
-        s = re.sub(r'<!--LANDING:START.*?<!--LANDING:END-->', lambda m: blk, s, flags=re.S)
-    else:
-        s = s.replace('<noscript>', blk + '\n<noscript>', 1)
+    blk = home_block()
+    assert '<!--HOME:START' in s, 'index.html has no HOME markers'
+    s = re.sub(r'<!--HOME:START.*?<!--HOME:END-->', lambda m: blk, s, flags=re.S)
     write('index.html', s)
-    print('built', len(CH), 'chapter pages + hub + sitemap + robots +', 'landing in index.html')
+    print('built', len(CH), 'chapter pages + hub + about/contact/privacy/terms + sitemap + robots + home in index.html')
 
 if __name__ == '__main__':
     main()

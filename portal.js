@@ -120,6 +120,7 @@ function route() {
   const m = location.hash.match(/^#\/([a-z-]+)(?:\/([^?]+))?/);
   if (!m) { if (curRoute) { curRoute = ''; leave(true); } return; }
   const r = m[1], arg = m[2] ? decodeURIComponent(m[2]) : '';
+  if (r === 'home') return;   /* the public home page: auth.js switches the view, nothing to draw here */
   if (r !== 't') exitExam();
   curRoute = location.hash;
   const pages = { profile: pageProfile, membership: pageMembership, tests: pageAvailable, reports: pageReports, report: pageReport, t: pageTake,

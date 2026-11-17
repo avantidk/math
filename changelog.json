@@ -1,5 +1,15 @@
 [
   {
+    "v": "927",
+    "date": "17 Nov 2026",
+    "items": [
+      "New professional home page, open to everyone without signing in: what the dashboard offers, the chapter list, plans, teachers' section and FAQ.",
+      "Login and register now open in a pop-up from the Login button at the top right of every public page.",
+      "After login you land on your dashboard as before. A Home icon in the dashboard top bar takes you to the home page, where your name icon (top right) opens your profile and a Dashboard button brings you back.",
+      "All public pages (chapters, About, Contact, Privacy, Terms) share the same header and footer, ready for more pages."
+    ]
+  },
+  {
     "v": "926",
     "date": "17 Nov 2026",
     "items": [

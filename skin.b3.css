@@ -182,6 +182,7 @@ html body .msel .mi span{flex:1;min-width:0;text-align:left}
 @media (max-width:760px){html body .tb-pop{top:58px}}
 
 html body .tb-theme.tb-guide{right:calc(clamp(14px,2.5vw,30px) + 100px)}
+html body .tb-theme.tb-home{right:calc(clamp(14px,2.5vw,30px) + 150px);text-decoration:none}
 html body .gd-back{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top)) 16px;background:rgba(6,14,36,.62);backdrop-filter:blur(3px)}
 html body .gd-card{width:min(760px,100%);max-height:min(88vh,860px);display:flex;flex-direction:column;background:var(--panel);color:var(--ink);border:1px solid var(--rule);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.45);overflow:hidden;text-align:left}
 html body .gd-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--rule);background:var(--field)}

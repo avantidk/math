@@ -116,9 +116,17 @@ function rememberNext() { if (/^#\/t\//.test(location.hash)) store.set(NEXT_KEY,
 /* ---------- login page ---------- */
 const GOOGLE_G = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
 
-function loginPage(msg) {
-  const root = $('#auth'); root.hidden = false; root.textContent = '';
-  $('#app').hidden = true;
+/* ---------- login / register pop-up (opens over the public home page) ---------- */
+let lmRoot = null;
+function closeLogin() { if (lmRoot) lmRoot.hidden = true; document.body.classList.remove('lm-open'); }
+function loginPage(msg) { showHome(); openLogin(msg); }   /* called when there is no sign-in */
+function openLogin(msg) {
+  if (!lmRoot) {
+    lmRoot = h('div', { class: 'lm', id: 'loginModal', hidden: true, role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Log in or register' });
+    lmRoot.addEventListener('mousedown', e => { if (e.target === lmRoot) closeLogin(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && lmRoot && !lmRoot.hidden) closeLogin(); });
+    document.body.append(lmRoot);
+  }
   const testLink = /^#\/t\//.test(location.hash) || /^#\/t\//.test(store.get(NEXT_KEY) || '');
   let role = testLink ? 'student' : (store.get(ROLE_KEY) === 'student' ? 'student' : 'teacher');
   const err = h('p', { class: 'lg-err', role: 'alert', hidden: !msg, text: msg || '' });
@@ -143,53 +151,47 @@ function loginPage(msg) {
       catch (x) { avErr.textContent = x.message || String(x); avErr.hidden = false; avBtn.disabled = false; avBtn.textContent = 'Login with Avanti ID'; }
     } },
       h('label', { for: 'lgId', text: 'Avanti ID' }), idIn, h('label', { for: 'lgDob', text: 'Date of birth' }), dobIn, avErr, avBtn));
-  const I = d => '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
-  const FEATS = [
-    ['blue', I('<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 9h4M7 12h7"/>'), 'NTA-style online tests', 'Full screen, timer, question panel, mark for review, auto-submit.'],
-    ['gold', I('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), 'Instant reports & ranks', 'Rank in school and all-India, topic-wise analysis, time per question.'],
-    ['green', I('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'), '15,000+ question bank', 'Filter by chapter, topic, level, exam and year, with solutions.'],
-    ['purple', I('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>'), 'Past papers 1978–2026', 'Paper-wise and chapter-wise, with answer keys.'],
-    ['rose', I('<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>'), 'DPPs, Must Solve & handouts', 'Daily practice sheets and revision notes for every chapter.'],
-    ['teal', I('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>'), 'Built for teachers', 'Make a test in minutes, share one link, track every student.']
-  ];
-  // the picture of the test screen (an example, not real data)
-  const st = ['a', 'a', 'n', 'a', 'm', 'a', 'v', 'a', 'n', 'a', 'a', 'm', 'c', 'v', 'v', 'a', 'n', 'v', 'v', 'v'];
-  const mock = h('div', { class: 'lgx-mock', 'aria-hidden': 'true' },
-    h('div', { class: 'lgx-bar' }, h('i'), h('i'), h('i'), h('span', { text: 'JEE Main Mock Test · Mathematics' }), h('em', { class: 'lgx-sec', text: '🔒 Secure mode' }), h('b', { class: 'lgx-timer', text: '⏱ 01:42:18' })),
-    h('div', { class: 'lgx-body' },
-      h('div', { class: 'lgx-q' }, h('div', { class: 'lgx-qh' }, h('b', { text: 'Question 13' }), h('span', { text: '+4 / −1' })),
-        h('p', { html: 'The value of &nbsp;<span class="lgx-math">∫<sub>0</sub><sup>π/2</sup> sin<sup>2</sup>x dx</span>&nbsp; is' }),
-        h('div', { class: 'lgx-opts' }, [['A', 'π/2'], ['B', 'π/4', 1], ['C', 'π'], ['D', '1']].map(([l, t, on]) => h('div', { class: 'lgx-opt' + (on ? ' on' : '') }, h('b', { text: l }), h('span', { text: t })))),
-        h('div', { class: 'lgx-btns' }, h('span', { class: 'mk', text: 'Mark for review & next' }), h('span', { class: 'sv', text: 'Save & next' }))),
-      h('div', { class: 'lgx-pal' }, h('div', { class: 'lgx-grid' }, st.map((k, i) => h('span', { class: 'p-' + k, text: String(i + 1) }))),
-        h('ul', {}, [['a', 'Answered'], ['n', 'Not answered'], ['m', 'Marked'], ['v', 'Not visited']].map(([k, t]) => h('li', {}, h('i', { class: 'p-' + k }), t))))),
-    h('div', { class: 'lgx-float' }, h('span', { class: 'lgx-fic', html: I('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>') }),
-      h('div', {}, h('small', { text: 'Report ready · example' }), h('b', { text: 'Score 248 / 300' }), h('span', { text: 'Rank 3 in school · 41 all-India' }))));
-  const info = h('section', { class: 'lg-info lgx', 'aria-label': 'What you get' },
-    h('h2', { class: 'lgx-h' }, 'Practise like the ', h('em', { text: 'real exam.' }), h('br'), 'Improve every week.'),
-    h('p', { class: 'lgx-lead', text: 'NTA-style online tests, 15,000+ questions with solutions and every past paper since 1978, in one place for JEE Maths.' }),
-    h('div', { class: 'lgx-exams' }, ['JEE Main', 'JEE Advanced', 'KCET', 'NDA', 'IAT', 'AIEEE'].map(t => h('span', { text: t }))),
-    mock,
-    h('div', { class: 'lgx-stats' }, [['15,000+', 'Questions'], ['11,000+', 'Full solutions'], ['1978–2026', 'Past papers'], ['28', 'Chapters']].map(([b, t]) => h('div', {}, h('b', { text: b }), h('span', { text: t })))),
-    h('h3', { class: 'lgx-sub', text: 'Everything you need to prepare' }),
-    h('ul', { class: 'lgx-feats' }, FEATS.map(([c, ic, t, d]) => h('li', { class: 'c-' + c }, h('span', { class: 'lgx-fic', html: ic }), h('div', {}, h('b', { text: t }), h('span', { text: d }))))),
-    h('p', { class: 'lgx-free' }, h('b', { text: 'Start free. ' }), 'Premium from ₹299 a year adds PDF downloads, all-India ranks and more. Avanti students get Premium free.'));
-  root.append(h('div', { class: 'lg lg-split' },
-    h('main', { class: 'lg-main' },
-      h('header', { class: 'lg-head' }, h('img', { src: 'img/ankit-logo-sm.png?v=920', alt: 'अंक-IT', width: 139, height: 52 }),
-        h('h1', { text: 'Mathematics Dashboard' }), h('p', { text: "JEE, CET, NDA, IAT · PYQ's, DPP's, Handouts and tests" })),
-      testLink ? h('p', { class: 'lg-note', text: 'Sign in to open your test.' }) : null,
-      h('section', { class: 'lg-card' },
-        h('h2', { text: 'Sign in or create an account' }),
-        h('p', { class: 'lg-sub', text: 'I am a' }), seg,
-        gBtn, err,
-        h('p', { class: 'lg-fine', text: 'Your choice of Teacher or Student is saved the first time you sign in. अंक-IT staff (@avantifellows.org) get full access automatically.' })),
-      avBox,
-      h('p', { class: 'lgx-pillrow' }, h('span', { class: 'lgx-pill', text: '★ Free to start · by Ankit Kamboj' })),
-      h('section', { class: 'lg-help' }, h('span', { text: 'Trouble signing in?' }), h('button', { type: 'button', class: 'lg-link', text: 'Help & Support', onclick: e => showHelp(e.target) }))),
-    info));
+  const dialog = h('div', { class: 'lm-dialog' },
+    h('button', { type: 'button', class: 'lm-x', 'aria-label': 'Close', text: '\u00d7', onclick: closeLogin }),
+    h('img', { class: 'lm-logo', src: 'img/ankit-logo-sm.png?v=920', alt: 'अंक-IT Mathematics', width: 139, height: 52 }),
+    h('h2', { text: 'Log in or register' }),
+    h('p', { class: 'lg-sub', text: 'New here? Continue with Google and your account is created for you.' }),
+    testLink ? h('p', { class: 'lg-note', text: 'Sign in to open your test.' }) : null,
+    h('p', { class: 'lg-sub', text: 'I am a' }), seg, gBtn, err,
+    avBox,
+    h('p', { class: 'lg-fine', text: 'Your choice of Teacher or Student is saved the first time you sign in. अंक-IT staff (@avantifellows.org) get full access automatically.' }),
+    h('section', { class: 'lg-help' }, h('span', { text: 'Trouble signing in?' }), h('button', { type: 'button', class: 'lg-link', text: 'Help & Support', onclick: e => showHelp(e.target) })));
+  lmRoot.textContent = ''; lmRoot.append(dialog); lmRoot.hidden = false; document.body.classList.add('lm-open');
   paint();
+  setTimeout(() => { try { gBtn.focus(); } catch (e) { /* optional */ } }, 30);
 }
+
+/* ---------- which page is on screen: the public home page or the dashboard ---------- */
+/* Signed out: always the home page. Signed in: the dashboard, except at #/home (and its own in-page links like #plans). */
+const HOME_HASH = /^#(\/home|features|how|chapters|teachers|plans|faq)$/;
+const isHomeHash = () => HOME_HASH.test(location.hash);
+function showHome() {   /* signed out: the public page is the whole screen (also drops the early 'signed-in' guess from site.js) */
+  document.documentElement.classList.remove('to-app', 'signed-in');
+  $('#auth').hidden = true; $('#auth').textContent = ''; $('#app').hidden = true;
+}
+function applyView() {   /* signed in: switch between home and dashboard without losing the dashboard's state */
+  if (!started) return;
+  const home = isHomeHash();
+  $('#app').hidden = home;
+  if (home) document.documentElement.classList.remove('to-app');
+  else { window.dispatchEvent(new Event('resize')); window.scrollTo(0, 0); }
+}
+window.addEventListener('hashchange', () => { if (A.session) applyView(); });
+document.addEventListener('click', e => {
+  const l = e.target.closest && e.target.closest('[data-login]');
+  if (l) { e.preventDefault(); openLogin(); return; }
+  const dsh = e.target.closest && e.target.closest('[data-dash]');
+  if (dsh && A.session) {
+    e.preventDefault();
+    history.pushState(null, '', location.pathname + location.search);
+    applyView(); if (window.AvantiPortal) window.AvantiPortal.route();
+  }
+});
 
 /* Help & Support on the login page: contact read from the database (works without signing in) */
 async function showHelp(btn) {
@@ -288,7 +290,9 @@ async function start() {
   }
   const next = store.get(NEXT_KEY); store.set(NEXT_KEY, null);
   if (next && !location.hash) history.replaceState(null, '', location.pathname + next);
-  $('#auth').hidden = true; $('#auth').textContent = ''; $('#app').hidden = false;
+  closeLogin(); $('#auth').hidden = true; $('#auth').textContent = '';
+  $('#app').hidden = isHomeHash(); if (isHomeHash()) document.documentElement.classList.remove('to-app');
+  document.querySelectorAll('[data-av]').forEach(el => { el.textContent = initials(p); el.title = p.full_name || p.email || p.avanti_id || 'Your profile'; });
   if (!started) { started = true; window.AvantiBoot.start(); }
   renderMenu();
   if (window.AvantiChat) window.AvantiChat.start();
@@ -305,13 +309,14 @@ async function afterSignIn() {
   const oauthErr = q.get('error_description');
   let session = null;
   try { const { data } = await sb.auth.getSession(); session = data.session; } catch (e) { session = null; }
-  if (q.has('code') || q.has('error')) history.replaceState(null, '', location.pathname + location.hash);
+  const wantLogin = q.has('login') || !!oauthErr || /^#\/t\//.test(location.hash);
+  if (q.has('code') || q.has('error') || q.has('login')) history.replaceState(null, '', location.pathname + location.hash);
   A.session = session;
   sb.auth.onAuthStateChange((evt, s) => {
     A.session = s;
     if (evt === 'SIGNED_OUT') { const go = () => { if (started) location.reload(); }; if (window.AvantiContent) window.AvantiContent.clearCaches().then(go, go); else go(); }
   });
   if (session) await start();
-  else loginPage(oauthErr ? 'Sign-in was not completed: ' + oauthErr : '');
+  else { showHome(); if (wantLogin) openLogin(oauthErr ? 'Sign-in was not completed: ' + oauthErr : ''); }
 })();
 })();
