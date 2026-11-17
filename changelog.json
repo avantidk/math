@@ -1,5 +1,13 @@
 [
   {
+    "v": "947",
+    "date": "17 Nov 2026",
+    "items": [
+      "Question counts page: Non-PYQ now sits next to PYQs at the top, and the tiles fill the full width on phones.",
+      "On phones the chart icon (Question bank numbers menu) is now in the header next to Login, as on computers. The \"Question bank numbers\" list and \"All Math chapters\" are removed from the phone menu."
+    ]
+  },
+  {
     "v": "946",
     "date": "17 Nov 2026",
     "items": [

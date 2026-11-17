@@ -918,7 +918,7 @@ def question_counts_page():
     def tile(cls_, lbl, n, href=None):
         l = f'<a class="stretch" href="{href}">{E(lbl)}</a>' if href else E(lbl)
         return f'<div class="{cls_}"><div class="lbl">{l}</div><div class="num">{num(n)}</div></div>'
-    rows = f'<div class="qc-row h-all">{tile("qc-tile all", "All questions", PYQ_N + NP_N)}{tile("qc-tile", "PYQs", PYQ_N)}</div>'
+    rows = f'<div class="qc-row h-all">{tile("qc-tile all", "All questions", PYQ_N + NP_N)}{tile("qc-tile", "PYQs", PYQ_N)}{tile("qc-tile", "Non-PYQ", NP_N)}</div>'
     for k, hue in GROUP_ORDER:
         s = STATS[k]; e = EXAM_BY_KEY[k]
         yrs = ''.join(tile('qc-y', y, n) for y, n in sorted(s['by_year'].items(), key=lambda kv: -int(kv[0])))

@@ -583,7 +583,7 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .sh-pop a:hover,.sh-pop a:focus-visible{background:var(--navy);color:#fff!important;outline:0}
 .sh-stat.open .sh-pop{display:block}
 @media (hover:hover) and (pointer:fine){.sh-stat:hover .sh-pop,.sh-stat:focus-within .sh-pop{display:block}}
-@media (max-width:640px){.sh-stat{display:none}}
+@media (max-width:640px){.sh-stat{position:static}.sh-statb{width:40px;height:40px}.sh-pop{position:fixed;top:68px;left:12px;right:12px;width:auto;max-width:none}.sh-end{gap:8px}}
 /* ---------- question counts page ---------- */
 .qc{display:flex;flex-direction:column;gap:12px;margin:18px 0}
 .qc-row{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;padding:12px;border-radius:16px;background:#fff;border:1px solid var(--line);border-left:5px solid var(--blue)}
@@ -614,3 +614,9 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .upg-go{display:flex;flex-direction:column;align-items:flex-start;gap:8px}.upg-go small{max-width:230px;color:#6b5a1d;font-size:12.5px;line-height:1.4}
 .upg-btn{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:12px 28px;border-radius:12px;background:var(--navy);color:#fff!important;font:700 16px/1.2 var(--body);text-decoration:none;box-shadow:0 8px 20px rgba(12,26,61,.25);transition:transform .15s}.upg-btn:hover{transform:translateY(-2px)}
 .gd-off{margin:0 0 12px;padding:12px 16px;background:#fff;border:1px solid var(--line);border-radius:12px;font-size:15px}
+
+/* question counts: tiles fill the row (no gap on the right) */
+.qc-tile,.qc-y{flex:1 1 84px}.qc-tile{flex-basis:140px}.qc-row.h-all .qc-tile{flex-basis:130px}
+@media (max-width:640px){.qc-row{padding:10px;gap:8px}.qc-row:not(.h-all)>.qc-tile:first-child{flex:1 1 100%}}
+@media (max-width:640px){.qc-row.h-all>.qc-tile{flex:1 1 40%}.qc-row.h-all>.qc-tile:first-child{flex:1 1 100%}.qc-y{flex:1 1 60px}}
+.qc-tile,.qc-y{box-sizing:border-box}

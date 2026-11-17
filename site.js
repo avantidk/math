@@ -168,9 +168,6 @@
         sub.appendChild(mk(ex.href, 'All exams')); nav.appendChild(sub);
       }
       Array.prototype.forEach.call(src.children, function (el) { if (el.tagName === 'A') nav.appendChild(mk(el.href, el.textContent)); });
-      nav.appendChild(mk(ROOT + 'maths/', 'All Math chapters'));
-      var st = d.querySelector('.sh-pop');
-      if (st) { var hd = d.createElement('p'); hd.className = 'sh-sub-h'; hd.textContent = 'Question bank numbers'; nav.appendChild(hd); Array.prototype.forEach.call(st.querySelectorAll('a'), function (a) { nav.appendChild(mk(a.href, a.textContent)); }); }
     })();
     /* mobile menu: close it after a link is chosen */
     Array.prototype.forEach.call(d.querySelectorAll('.sh-menu a'), function (a) {
