@@ -832,6 +832,7 @@ async function pageCreate(arg, r) {
     const bad = !row.title ? 'Give the test a title.' : !S.cls.size ? 'Choose the class (or classes) that should take this test.' : !S.streams.size ? 'Choose the stream (or streams) that should take this test.' : !(row.duration_min >= 1 && row.duration_min <= 600) ? 'Duration must be 1 to 600 minutes.' : !(row.marks_correct > 0) ? 'Marks for a correct answer must be more than 0.' : row.marks_wrong < 0 ? 'Negative marks cannot be below 0.' : !S.sel.length ? 'Add at least one question.' : '';
     if (bad) { const st = /questions?\.$|^Add at least/.test(bad) ? 2 : 1; if (st === 1) { m1.textContent = bad; m1.className = 'pt-msg bad'; } else { toast(bad); } goStep(st); return; }
     if (S.locked) { delete row.questions; delete row.marks_correct; delete row.marks_wrong; }
+    if (!S.id && !row.schools) delete row.schools;   /* a new single-school test does not need the column (older databases lack it) */
     saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
     const q = S.id ? sb().from('tests').update(row).eq('id', S.id).select('id,code').single() : sb().from('tests').insert(row).select('id,code').single();
     let { data, error } = await q;

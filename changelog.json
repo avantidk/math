@@ -1,5 +1,13 @@
 [
   {
+    "v": "923",
+    "date": "17 Nov 2026",
+    "items": [
+      "Teachers can create a test again even if the database has not been updated for \"one test, several schools\" yet: a test for a single school no longer fails with \"Could not find the 'schools' column of 'tests'\".",
+      "The website now lives at unkganit.com (the old github.io address redirects there)."
+    ]
+  },
+  {
     "v": "922",
     "date": "17 Nov 2026",
     "items": [
