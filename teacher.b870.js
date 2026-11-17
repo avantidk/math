@@ -169,13 +169,16 @@ function matchTable(m) {
 const spaceCases = t => String(t).replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, (m, b) => { const tl = /\\(d|t)?frac|\\sqrt|\\sum|\\int|\\prod|\\lim|\\binom/.test(b); return '\\begin{cases}' + b.replace(/\\\\(?!\[)(?=[\s\S]*\S)/g, '\\\\[' + (tl ? '1.3em' : '0.55em') + ']') + '\\end{cases}'; });
 const boldHtml = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>');
 /* a fraction in an exponent (x^{\frac{2}{3}}) must stay small: the \frac -> \dfrac macro would make it full size */
-const scriptFrac = s => String(s).replace(/([\^_])\{\\frac\{([^{}]*)\}\{([^{}]*)\}\}/g, '$1{\\genfrac{}{}{0.4pt}{}{$2}{$3}}');
+const braceEnd = (s, i) => { let d = 0; for (let k = i; k < s.length; k++) { if (s[k] === '\\') { k++; continue; } if (s[k] === '{') d++; else if (s[k] === '}') { d--; if (!d) return k; } } return -1; };
+const scriptFrac = s => { s = String(s); let out = '', i = 0; while (i < s.length) { const c = s[i]; if (c === '\\') { out += s.substr(i, 2); i += 2; continue; } if ((c === '^' || c === '_') && s[i + 1] === '{') { const e = braceEnd(s, i + 1); if (e > 0) { out += c + '{' + s.slice(i + 2, e).replace(/\\frac(?![a-zA-Z])/g, '\\genfrac{}{}{0.4pt}{}') + '}'; i = e + 1; continue; } } out += c; i++; } return out; };
+/* short fractions inside a line of text (1/a, 1/a^2) stay text size so they do not blow up the line */
+const smallFrac = x => x.replace(/\\frac\{([^{}\\]{1,3})\}\{([^{}\\]{1,3}|[^{}\\]{1,2}\^\{[^{}]{1,2}\})\}/g, '\\tfrac{$1}{$2}');
 function tallToDisplay(s) {
   return spaceCases(scriptFrac(s)).replace(/\\\(([\s\S]+?)\\\)/g, (m, x0, off, whole) => {
     /* a lettered part such as "(ii) formula" keeps its formula on the same line as its label (like parts (i) and (iii)) */
     const part = /^[ \t]*\(([ivxlcdm]{1,5}|[a-z]|\d{1,2})\)[ \t]*$/i.test(whole.slice(whole.lastIndexOf('\n', off - 1) + 1, off)) && !/\\begin\{/.test(x0); const x = x0.replace(/\\begin\{([bp])matrix\}([\s\S]*?)\\end\{\1matrix\}/g, (mm, k, body) => { const r = body.split('\\\\').length, big = r >= 3 ? '\\Bigg' : r === 2 ? '\\Big' : ''; return big ? big + 'l' + (k === 'b' ? '[' : '(') + '\\begin{matrix}' + body + '\\end{matrix}' + big + 'r' + (k === 'b' ? ']' : ')') : mm; }); const tall = (x.match(/\\d?frac/g) || []).length >= 2 && x.length > 24;
-      if (part && (tall || ((x.match(/\\d?frac/g) || []).length >= 1 && x.length > 24))) return '\\(\\rule[-1.1em]{0pt}{2.7em}' + x + '\\)';   /* room above and below, so the lines do not touch */
-      return ((/\\begin\{/.test(x) || (!part && tall)) ? '\\[' + x + '\\]' : (x !== x0 ? '\\(' + x + '\\)' : m)); });
+      if (part && (tall || ((x.match(/\\d?frac/g) || []).length >= 1 && x.length > 24))) return '\\(\\rule[-1.1em]{0pt}{2.7em}' + smallFrac(x) + '\\)';   /* room above and below, so the lines do not touch */
+      return ((/\\begin\{/.test(x) || (!part && tall)) ? '\\[' + x + '\\]' : (smallFrac(x) !== x0 ? '\\(' + smallFrac(x) + '\\)' : m)); });
 }
 function buildQ(q, n, p) {
   const maxOpt = Math.max(0, ...q.o.map(o => plain(o).length));

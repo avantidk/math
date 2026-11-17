@@ -1,5 +1,12 @@
 [
   {
+    "v": "949",
+    "date": "17 Nov 2026",
+    "items": [
+      "DPP viewer: some questions looked far too large. Fractions in exponents with a minus sign (for example the power minus 1/2 or minus 2/3) are now small, nested brackets are no longer stretched, and short fractions such as 1/a or 1/a squared inside a line of text stay text size. The same exponent fix applies in the Question Bank."
+    ]
+  },
+  {
     "v": "948",
     "date": "17 Nov 2026",
     "items": [
