@@ -1,5 +1,13 @@
 [
   {
+    "v": "963",
+    "date": "17 Nov 2026",
+    "items": [
+      "Question Bank PDF: a question with many lettered parts, such as (i) to (xvi), is now set in 2 or 3 columns with room between the lines, so the parts no longer overlap and the question takes less space.",
+      "Two questions corrected: \"x + y = 2 and x³ + y³ = 56\" is now written as a system like the one before it (\"Find x and y\"), and the set A = {(x,y) | xy = 8 and x,y ∈ Z} showed broken text and now reads properly."
+    ]
+  },
+  {
     "v": "962",
     "date": "17 Nov 2026",
     "items": [

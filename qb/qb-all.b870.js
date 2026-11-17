@@ -715,13 +715,26 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       for (var r = 0; r < n; r++) rows += '<tr><td>' + (mt.a[r] != null ? richHtml(mt.a[r]) : '') + '</td><td>' + (mt.b[r] != null ? richHtml(mt.b[r]) : '') + '</td></tr>';
       return (mt.pre.trim() ? richHtml(mt.pre, fig) : '') + '<table class="mt">' + rows + '</table>';
     }
-    return String(fig ? figLines(s) : s).split('\n').map(function (line) {
+    var lines = String(fig ? figLines(s) : s).split('\n');
+    var lineHtml = function (line) {
       if (line.trim() === '{{figure}}') return fig && fig.svg ? '<div class="fig" style="margin:6px 0">' + String(fig.svg).replace(/<svg /, '<svg style="width:' + fig.w + 'px;height:' + fig.h + 'px" ') + '</div>' : '';
       return segments(line).map(function (sg) {
         if (sg.t === 'text') return boldParts(sg.v).map(function (bp) { return bp.b ? '<b>' + esc(bp.s) + '</b>' : esc(bp.s); }).join('');
         try { return window.__mh(sg.v, sg.display); } catch (e) { return esc(sg.v); }
       }).join('');
-    }).join('<br>');
+    };
+    /* a question with many lettered parts ((i) ... (xvi)) is set in 2 or 3 columns, to save paper */
+    var PART = /^\s*\(([ivxlc]{1,5}|[a-z])\)\s/i, out = [], k = 0;
+    while (k < lines.length) {
+      var j = k; while (j < lines.length && PART.test(lines[j])) j++;
+      if (j - k >= 6) {
+        var run = lines.slice(k, j), longest = Math.max.apply(null, run.map(function (x) { return x.replace(/\\[a-zA-Z]+/g, 'x').length; }));
+        var nc = run.length >= 9 && longest <= 70 ? 3 : 2;
+        out.push({ block: true, html: '<div class="cols c' + nc + '">' + run.map(function (x) { return '<div>' + lineHtml(x) + '</div>'; }).join('') + '</div>' });
+        k = j;
+      } else { out.push({ html: lineHtml(lines[k]) }); k++; }
+    }
+    return out.map(function (o, idx) { return o.block ? o.html : (idx && !out[idx - 1].block ? '<br>' : '') + o.html; }).join('');
   }
   function optionsHtml(opts) {
     var cols = optCols(opts);
@@ -739,7 +752,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   var PCSS = '.qbp .katex-html{display:none!important}.qbp{font-family:Arial,Helvetica,"Segoe UI",sans-serif;font-size:14px;line-height:1.55;color:#000;background:#fff}' +
     '.qbp .h1{font-size:20px;font-weight:700;margin:0}.qbp .meta{font-size:10.5px;color:#777;margin-bottom:2px}' +
     '.qbp .qt{margin-bottom:4px}.qbp .ops{display:grid;gap:2px 14px;margin-left:16px}.qbp .ops.c4{grid-template-columns:repeat(4,1fr)}.qbp .ops.c2{grid-template-columns:repeat(2,1fr)}.qbp .ops.c1{grid-template-columns:1fr}' +
-    '.qbp .op{min-width:0}.qbp .ans{margin-top:3px}.qbp .keyh{font-size:17px;font-weight:700}.qbp .key{display:grid;grid-template-columns:repeat(6,1fr);gap:4px 12px}' +
+    '.qbp .cols{column-gap:26px;margin:4px 0}.qbp .cols.c2{column-count:2}.qbp .cols.c3{column-count:3}.qbp .cols>div{break-inside:avoid;margin:0 0 .6em;overflow-wrap:anywhere}.qbp .op{min-width:0}.qbp .ans{margin-top:3px}.qbp .keyh{font-size:17px;font-weight:700}.qbp .key{display:grid;grid-template-columns:repeat(6,1fr);gap:4px 12px}' +
     '.qbp table.mt{border-collapse:collapse;margin:6px 0 6px 16px;width:calc(100% - 16px)}.qbp .mt td,.qbp .mt th{border:1px solid #000;padding:4px 8px;text-align:left;vertical-align:middle}.qbp .mt th{background:#e7e6e6}.qbp math{font-size:1.05em}.qbp math[display=block]{margin:.25em 0}';
   var PAGE_W = 794, PAGE_H = 1123, PAD = 45, GAP = 16, CONTENT_W = PAGE_W - 2 * PAD, CONTENT_H = PAGE_H - 2 * PAD;
 
