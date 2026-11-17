@@ -1,5 +1,18 @@
 [
   {
+    "v": "929",
+    "date": "17 Nov 2026",
+    "items": [
+      "Exams is now the first item in the menu. Hover opens the exam list on a computer (it no longer closes as you move the pointer down), a tap opens it on a phone, and each exam has its own logo badge.",
+      "On phones the menu collapses \"Exams\" until you tap it, and it closes when you tap anywhere else.",
+      "Every exam page now has a clear table: who conducts the exam, what it is for, who can appear, the mode, how often it is held and what the maths paper looks like. The Exams page compares all exams side by side.",
+      "Links on an exam page now open that exam only: for example NDA → Probability shows only NDA's Probability topics and years. Chapter pages show a \"Questions by exam\" table.",
+      "The dashboard showcase on the home page is now a swipeable carousel with arrows, tabs and dots, and has two new screens: Handouts and the real online test window.",
+      "A sidebar on every inner page (Login/Dashboard, exams, popular chapters, contact).",
+      "New logo for white backgrounds in the header and the Login pop-up."
+    ]
+  },
+  {
     "v": "928",
     "date": "17 Nov 2026",
     "items": [

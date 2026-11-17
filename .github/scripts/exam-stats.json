@@ -41,6 +41,609 @@
    "2011": 30,
    "2012": 150
   },
+  "chapters": {
+   "11M1": {
+    "by_topic": {
+     "Exponential Function": 1,
+     "Introduction": 1
+    },
+    "by_year": {
+     "2004": 1,
+     "2012": 1
+    },
+    "questions": 2
+   },
+   "11M10": {
+    "by_topic": {
+     "Common Chord of Two Circles": 1,
+     "Definition of Circle": 2,
+     "Different Cases of Two Circles": 5,
+     "Equation of Circle": 5,
+     "Equation of Circle With Typical Conditions": 4,
+     "Equation of the Chord Bisected at a Given Point": 1,
+     "Family of Circles": 4,
+     "Intersection of a Line and a Circle": 3,
+     "Position of a Point With Respect to a Circle": 1
+    },
+    "by_year": {
+     "2002": 2,
+     "2003": 2,
+     "2004": 4,
+     "2005": 4,
+     "2006": 2,
+     "2007": 1,
+     "2008": 2,
+     "2009": 2,
+     "2010": 1,
+     "2011": 1,
+     "2012": 5
+    },
+    "questions": 26
+   },
+   "11M11": {
+    "by_topic": {
+     "Conic Section as Locus of a Point": 1,
+     "Equation of Parabola in Different Cases": 5,
+     "Intersection of a Line and a Hyperbola": 1,
+     "Intersection of a Line and a Parabola": 6,
+     "Intersection of a Line and an Ellipse": 2,
+     "Rectangular Hyperbola": 1,
+     "Some Important Properties of Ellipse": 2,
+     "Standard Equation of Ellipse": 8,
+     "Standard Equation of Hyperbola": 4
+    },
+    "by_year": {
+     "2002": 4,
+     "2003": 2,
+     "2004": 2,
+     "2005": 3,
+     "2006": 2,
+     "2007": 2,
+     "2008": 2,
+     "2009": 1,
+     "2010": 1,
+     "2011": 1,
+     "2012": 10
+    },
+    "questions": 30
+   },
+   "11M12": {
+    "by_topic": {
+     "Combined Mean": 2,
+     "Combined Standard Deviation": 1,
+     "Introduction": 1,
+     "Mean Deviation": 3,
+     "Median": 2,
+     "Mode": 2,
+     "Standard Deviation": 8
+    },
+    "by_year": {
+     "2002": 1,
+     "2003": 2,
+     "2004": 2,
+     "2005": 2,
+     "2006": 1,
+     "2007": 1,
+     "2008": 1,
+     "2009": 2,
+     "2010": 1,
+     "2011": 1,
+     "2012": 5
+    },
+    "questions": 19
+   },
+   "11M2": {
+    "by_topic": {
+     "Operation on Sets": 1,
+     "Subsets": 1,
+     "Types of Relation": 7
+    },
+    "by_year": {
+     "2004": 1,
+     "2005": 1,
+     "2006": 1,
+     "2008": 1,
+     "2009": 1,
+     "2010": 1,
+     "2011": 1,
+     "2012": 2
+    },
+    "questions": 9
+   },
+   "11M3": {
+    "by_topic": {
+     "Conditional Identities": 1,
+     "General Solution of Some Standard Equations": 3,
+     "Problems Based on Extreme Values of Functions": 4,
+     "Some Important Results and Their Applications": 14,
+     "Transformation Formulae": 2,
+     "Trigonometric Functions of Any Angle": 1,
+     "Trigonometric Ratios for Compound Angles": 3,
+     "Trigonometric Ratios of Multiple and Sub-multiple Angles": 1
+    },
+    "by_year": {
+     "2002": 10,
+     "2003": 3,
+     "2004": 3,
+     "2005": 2,
+     "2006": 2,
+     "2009": 1,
+     "2010": 2,
+     "2011": 1,
+     "2012": 5
+    },
+    "questions": 29
+   },
+   "11M4": {
+    "by_topic": {
+     "Common Roots": 1,
+     "Location of Roots": 3,
+     "Quadratic Equation": 15,
+     "Quadratic Function": 3
+    },
+    "by_year": {
+     "2002": 2,
+     "2003": 3,
+     "2004": 3,
+     "2005": 4,
+     "2006": 3,
+     "2007": 1,
+     "2008": 1,
+     "2009": 1,
+     "2010": 1,
+     "2012": 3
+    },
+    "questions": 22
+   },
+   "11M5": {
+    "by_topic": {
+     "Algebraic Operations With Complex Numbers": 2,
+     "Conjugate of a Complex Number": 1,
+     "Cube Roots of Unity": 5,
+     "Geometrical Representation of Addition and Subtraction of Complex Numbers": 1,
+     "Geometry With Complex Numbers": 2,
+     "Integral Power of Iota (i)": 1,
+     "Properties of Arguments": 4,
+     "Properties of Modulus": 4,
+     "Solving Complex Equations": 2,
+     "Standard Loci in the Argand Plane": 3,
+     "The nth Root of Unity": 1
+    },
+    "by_year": {
+     "2002": 3,
+     "2003": 3,
+     "2004": 3,
+     "2005": 3,
+     "2006": 2,
+     "2007": 1,
+     "2008": 1,
+     "2009": 1,
+     "2010": 1,
+     "2011": 2,
+     "2012": 6
+    },
+    "questions": 26
+   },
+   "11M6": {
+    "by_topic": {
+     "Arithmetic Progression (A.P.)": 8,
+     "Geometric Progression (G.P.)": 8,
+     "Harmonic Progression (H.P.)": 1,
+     "Sum of Series by Method of Difference": 2,
+     "Sum of Some Special Series": 9,
+     "Summation by Sigma Operator": 2
+    },
+    "by_year": {
+     "2002": 6,
+     "2003": 2,
+     "2004": 3,
+     "2005": 2,
+     "2006": 2,
+     "2007": 2,
+     "2008": 1,
+     "2009": 1,
+     "2010": 1,
+     "2011": 1,
+     "2012": 9
+    },
+    "questions": 30
+   },
+   "11M7": {
+    "by_topic": {
+     "Combination": 8,
+     "Division and Distribution": 4,
+     "Permutation": 7
+    },
+    "by_year": {
+     "2002": 1,
+     "2003": 3,
+     "2004": 2,
+     "2005": 1,
+     "2006": 1,
+     "2007": 1,
+     "2008": 2,
+     "2009": 1,
+     "2010": 1,
+     "2011": 1,
+     "2012": 5
+    },
+    "questions": 19
+   },
+   "11M8": {
+    "by_topic": {
+     "Analysis of Binomial Expansion": 3,
+     "Applications of Binomial Expansion": 2,
+     "Binomial Theorem for Any Index": 5,
+     "Mathematical Induction": 1,
+     "Properties of Binomial Coefficients": 3,
+     "Some Standard Expansions": 2,
+     "Sum of Series": 5,
+     "Tips For Finding Coefficients of Required Terms": 4
+    },
+    "by_year": {
+     "2002": 2,
+     "2003": 3,
+     "2004": 3,
+     "2005": 4,
+     "2006": 2,
+     "2007": 2,
+     "2008": 2,
+     "2009": 1,
+     "2010": 1,
+     "2011": 1,
+     "2012": 4
+    },
+    "questions": 25
+   },
+   "11M9": {
+    "by_topic": {
+     "Area of Triangle and Polygon": 1,
+     "Concurrency of Three Lines": 5,
+     "Different Centers of Triangle": 3,
+     "Different Forms of Straight Line": 6,
+     "Distance Formula": 2,
+     "Distance of a Point From the Given Line": 2,
+     "Image of a Point With Respect to the Line Mirror": 1,
+     "Locus and Equation to a Locus": 3,
+     "Pair of Straight Lines": 5,
+     "Position of Points Relative to a Line": 2,
+     "Section Formula": 1,
+     "Slope (Gradient) of a Line": 3
+    },
+    "by_year": {
+     "2002": 4,
+     "2003": 5,
+     "2004": 4,
+     "2005": 3,
+     "2006": 2,
+     "2007": 3,
+     "2008": 1,
+     "2009": 2,
+     "2010": 1,
+     "2011": 1,
+     "2012": 8
+    },
+    "questions": 34
+   },
+   "12M13": {
+    "by_topic": {
+     "Different Types of Mappings": 5,
+     "Domain, Co-domain and Range": 7,
+     "Even and Odd Functions": 1,
+     "Function": 1,
+     "Functional Equations": 2,
+     "Inverse Functions": 3,
+     "Periodic Functions": 2
+    },
+    "by_year": {
+     "2002": 4,
+     "2003": 4,
+     "2004": 3,
+     "2005": 2,
+     "2008": 1,
+     "2009": 2,
+     "2011": 1,
+     "2012": 4
+    },
+    "questions": 21
+   },
+   "12M14": {
+    "by_topic": {
+     "Conversion of One Inverse Function to Another Inverse Function": 1,
+     "Domain, Range, and Graphs of Inverse Trigonometric Functions": 3,
+     "Formulas for Sum and Difference of Inverse Trigonometric Functions": 3,
+     "Properties of Inverse Trigonometric Functions": 1,
+     "Sum of Complementary Angles": 1
+    },
+    "by_year": {
+     "2002": 2,
+     "2003": 1,
+     "2004": 1,
+     "2005": 1,
+     "2007": 2,
+     "2008": 1,
+     "2012": 1
+    },
+    "questions": 9
+   },
+   "12M15": {
+    "by_topic": {
+     "Adjoint and Inverse of a Square Matrix": 5,
+     "Algebra of Matrices": 8,
+     "Determinant of a Square Matrix": 3,
+     "Properties of Determinants": 8,
+     "Special Matrices": 4,
+     "System of Linear Equations": 7
+    },
+    "by_year": {
+     "2003": 3,
+     "2004": 3,
+     "2005": 5,
+     "2006": 2,
+     "2007": 2,
+     "2008": 3,
+     "2009": 2,
+     "2010": 3,
+     "2011": 2,
+     "2012": 10
+    },
+    "questions": 35
+   },
+   "12M16": {
+    "by_topic": {
+     "Algebra of Limits": 1,
+     "Evaluation of Exponential and Logarithmic Limits": 1,
+     "Evaluation of Trigonometric Limits": 6,
+     "Limit of the form 'lim x→a (f(x))^g(x)'": 3,
+     "L’Hospital’s Rule for Evaluating Limits": 2
+    },
+    "by_year": {
+     "2002": 3,
+     "2003": 3,
+     "2004": 1,
+     "2005": 1,
+     "2010": 1,
+     "2011": 1,
+     "2012": 3
+    },
+    "questions": 13
+   },
+   "12M17": {
+    "by_topic": {
+     "Continuity": 5,
+     "Differentiability": 10,
+     "Differentiation Using Logarithm": 1,
+     "Differentiation of Composite Functions (Chain Rule)": 2,
+     "Differentiation of Implicit Functions": 4,
+     "Higher Order Derivatives": 2,
+     "Theorems on Differentiability": 5,
+     "Types of Discontinuity": 1
+    },
+    "by_year": {
+     "2002": 4,
+     "2003": 1,
+     "2004": 2,
+     "2005": 4,
+     "2006": 2,
+     "2007": 3,
+     "2008": 1,
+     "2009": 2,
+     "2010": 1,
+     "2011": 2,
+     "2012": 8
+    },
+    "questions": 30
+   },
+   "12M18": {
+    "by_topic": {
+     "Applications of Maxima and Minima": 6,
+     "Concept of Global (Absolute) Maximum and Minimum": 3,
+     "Extremum": 1,
+     "Interpretation of dy/dx as a Rate Measure": 8,
+     "Mean Value Theorem (Rolle's and Lagrange's)": 1,
+     "Monotonicity": 5,
+     "Roots of Equations and Polynomials": 2,
+     "Tangents, Normals and Angle Between Curves": 6,
+     "Tests for Local Maximum and Minimum": 5
+    },
+    "by_year": {
+     "2002": 3,
+     "2003": 2,
+     "2004": 4,
+     "2005": 5,
+     "2006": 3,
+     "2007": 2,
+     "2008": 2,
+     "2009": 1,
+     "2010": 3,
+     "2011": 2,
+     "2012": 10
+    },
+    "questions": 37
+   },
+   "12M19": {
+    "by_topic": {
+     "Elementary Integration": 1,
+     "Integration by Partial Fractions": 1,
+     "Integration by Parts": 2,
+     "Integration by Substitution": 6,
+     "Integration of Functions Which Involve Quadratic Function": 1
+    },
+    "by_year": {
+     "2002": 1,
+     "2004": 2,
+     "2005": 1,
+     "2007": 1,
+     "2008": 1,
+     "2012": 5
+    },
+    "questions": 11
+   },
+   "12M20": {
+    "by_topic": {
+     "Definite Integration of Odd and Even Functions": 5,
+     "Definite Integration of Periodic Functions": 2,
+     "Different Cases of Bounded Area": 16,
+     "Inequalities": 2,
+     "Introduction to Definite Integration": 6,
+     "Leibnitz’s Rule": 5,
+     "Limit as a Sum": 3,
+     "Properties of Definite Integration": 14
+    },
+    "by_year": {
+     "2002": 6,
+     "2003": 8,
+     "2004": 6,
+     "2005": 7,
+     "2006": 4,
+     "2007": 3,
+     "2008": 2,
+     "2009": 2,
+     "2010": 2,
+     "2011": 2,
+     "2012": 11
+    },
+    "questions": 53
+   },
+   "12M21": {
+    "by_topic": {
+     "Applications of Differential Equations": 2,
+     "Introduction to Differential Equations": 9,
+     "Solution of Differential Equations Using Variable Separation Method": 4,
+     "Solution of Homogeneous Differential Equations": 2,
+     "Solution of Linear Differential Equations": 5
+    },
+    "by_year": {
+     "2002": 3,
+     "2003": 2,
+     "2004": 2,
+     "2005": 2,
+     "2006": 1,
+     "2007": 2,
+     "2008": 1,
+     "2009": 1,
+     "2010": 1,
+     "2011": 2,
+     "2012": 5
+    },
+    "questions": 22
+   },
+   "12M22": {
+    "by_topic": {
+     "Addition of Vectors": 12,
+     "Applications of Dot (Scalar) Product": 9,
+     "Components of a Vector": 3,
+     "Dot (Scalar) Product": 3,
+     "Linear Combination, Linear Independence and Linear Dependence": 8,
+     "Mechanics: Forces, Velocity and Projectiles": 8,
+     "Scalar Triple Product": 6,
+     "Section Formula": 1,
+     "Types of Vectors": 1,
+     "Vector (or Cross) Product of Two Vectors": 10,
+     "Vector Along the Bisector of Given Two Vectors": 1,
+     "Vector Triple Product": 3
+    },
+    "by_year": {
+     "2002": 4,
+     "2003": 14,
+     "2004": 11,
+     "2005": 10,
+     "2006": 5,
+     "2007": 5,
+     "2008": 2,
+     "2009": 1,
+     "2010": 2,
+     "2011": 2,
+     "2012": 9
+    },
+    "questions": 65
+   },
+   "12M23": {
+    "by_topic": {
+     "Angle Between Two Lines": 3,
+     "Direction Cosines and Direction Ratios": 5,
+     "Distance Formula": 1,
+     "Equation of Straight Line": 7,
+     "Equation of a Plane and Distance from a Plane": 6,
+     "Image, Foot of Perpendicular and Projection": 4,
+     "Line and Plane: Intersection and Angle": 5,
+     "Shortest Distance Between Two Lines": 2,
+     "Sphere, Locus and Tetrahedron": 8,
+     "Two Planes and Family of Planes": 2
+    },
+    "by_year": {
+     "2002": 4,
+     "2003": 5,
+     "2004": 5,
+     "2005": 5,
+     "2006": 2,
+     "2007": 3,
+     "2008": 2,
+     "2009": 2,
+     "2010": 2,
+     "2011": 2,
+     "2012": 11
+    },
+    "questions": 43
+   },
+   "12M24": {
+    "by_topic": {
+     "Addition Theorem of Probability": 2,
+     "Axiomatic Approach to Probability": 1,
+     "Binomial and Poisson Distributions": 9,
+     "Conditional Probability": 3,
+     "Different Types of Events": 2,
+     "Independent Events": 4,
+     "Mathematical or Classical Definition of Probability": 7,
+     "Multiplication Theorem of Probability": 1,
+     "Random Variables and Probability Distributions": 1,
+     "Total Probability Theorem": 1
+    },
+    "by_year": {
+     "2002": 6,
+     "2003": 3,
+     "2004": 3,
+     "2005": 3,
+     "2006": 1,
+     "2007": 2,
+     "2008": 2,
+     "2009": 2,
+     "2010": 2,
+     "2011": 2,
+     "2012": 5
+    },
+    "questions": 31
+   },
+   "12M26": {
+    "by_topic": {
+     "Converse, Inverse and Contrapositive": 1,
+     "Negation and Quantifiers": 4,
+     "Truth Values, Truth Tables and Logical Equivalence": 5
+    },
+    "by_year": {
+     "2008": 2,
+     "2009": 1,
+     "2010": 1,
+     "2011": 1,
+     "2012": 5
+    },
+    "questions": 10
+   },
+   "12M28": {
+    "by_topic": {
+     "Angles of Elevation and Depression": 1,
+     "Triangular Plots and Equal Angles": 1,
+     "Two Observation Points and Moving Objects": 2
+    },
+    "by_year": {
+     "2003": 1,
+     "2004": 1,
+     "2007": 1,
+     "2008": 1
+    },
+    "questions": 4
+   }
+  },
   "first": 2002,
   "last": 2012,
   "papers": 15,
@@ -84,6 +687,391 @@
    "2024": 15,
    "2025": 15,
    "2026": 15
+  },
+  "chapters": {
+   "11M1": {
+    "by_topic": {
+     "Introduction": 1,
+     "Number Systems and Integer Counting": 2
+    },
+    "by_year": {
+     "2018": 2,
+     "2020": 1
+    },
+    "questions": 3
+   },
+   "11M10": {
+    "by_topic": {
+     "Equation of Circle With Typical Conditions": 2,
+     "Intersection of a Line and a Circle": 1
+    },
+    "by_year": {
+     "2019": 1,
+     "2020": 1,
+     "2022": 1
+    },
+    "questions": 3
+   },
+   "11M11": {
+    "by_topic": {
+     "Equation of Parabola in Different Cases": 1,
+     "Intersection of a Line and a Parabola": 2,
+     "Some Important Properties of Ellipse": 1,
+     "Standard Equation of Ellipse": 1
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2023": 1,
+     "2024": 1,
+     "2025": 1
+    },
+    "questions": 5
+   },
+   "11M12": {
+    "by_topic": {
+     "Dispersion": 2,
+     "Mean Deviation": 1,
+     "Standard Deviation": 1
+    },
+    "by_year": {
+     "2019": 1,
+     "2021": 1,
+     "2023": 1,
+     "2026": 1
+    },
+    "questions": 4
+   },
+   "11M2": {
+    "by_topic": {
+     "Binary Operations": 1,
+     "Subsets": 1,
+     "Types of Relation": 3
+    },
+    "by_year": {
+     "2019": 1,
+     "2020": 1,
+     "2022": 1,
+     "2024": 1,
+     "2026": 1
+    },
+    "questions": 5
+   },
+   "11M3": {
+    "by_topic": {
+     "General Solution of Some Standard Equations": 1,
+     "Problems Based on Extreme Values of Functions": 1,
+     "Solution or Root of a Trigonometric Equation": 2,
+     "Trigonometric Functions of Acute Angles": 1
+    },
+    "by_year": {
+     "2017": 1,
+     "2019": 1,
+     "2020": 1,
+     "2021": 1,
+     "2024": 1
+    },
+    "questions": 5
+   },
+   "11M4": {
+    "by_topic": {
+     "Quadratic Equation": 1,
+     "Relation Between Coefficients and Roots of n Degree Equation": 3,
+     "Remainder and Factor Theorem": 1
+    },
+    "by_year": {
+     "2020": 2,
+     "2021": 1,
+     "2023": 1,
+     "2026": 1
+    },
+    "questions": 5
+   },
+   "11M5": {
+    "by_topic": {
+     "Cube Roots of Unity": 1,
+     "Geometrical Representation of a Complex Number": 1,
+     "Properties of Modulus": 3,
+     "The nth Root of Unity": 2
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2019": 1,
+     "2022": 1,
+     "2024": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 7
+   },
+   "11M6": {
+    "by_topic": {
+     "Arithmetic Progression (A.P.)": 3,
+     "Defining Series and Progression": 1,
+     "Geometric Progression (G.P.)": 2,
+     "Properties of A.M. ,G.M. and H.M. of Two Positive Real Numbers": 1
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2019": 1,
+     "2022": 1,
+     "2024": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 7
+   },
+   "11M7": {
+    "by_topic": {
+     "Combination": 1,
+     "Fundamental Principle of Counting": 2,
+     "Permutation": 3
+    },
+    "by_year": {
+     "2018": 1,
+     "2019": 1,
+     "2021": 1,
+     "2023": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 6
+   },
+   "11M8": {
+    "by_topic": {
+     "Applications of Binomial Expansion": 2,
+     "Properties of Binomial Coefficients": 1,
+     "Tips For Finding Coefficients of Required Terms": 1
+    },
+    "by_year": {
+     "2017": 1,
+     "2024": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 4
+   },
+   "11M9": {
+    "by_topic": {
+     "Different Forms of Straight Line": 1,
+     "Locus and Equation to a Locus": 1,
+     "Section Formula": 1,
+     "Slope (Gradient) of a Line": 2
+    },
+    "by_year": {
+     "2019": 1,
+     "2020": 1,
+     "2021": 1,
+     "2023": 1,
+     "2024": 1
+    },
+    "questions": 5
+   },
+   "12M13": {
+    "by_topic": {
+     "Composite Function": 2,
+     "Different Types of Mappings": 3,
+     "Functional Equations": 2,
+     "Periodic Functions": 1
+    },
+    "by_year": {
+     "2017": 2,
+     "2018": 2,
+     "2020": 1,
+     "2024": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 8
+   },
+   "12M14": {
+    "by_topic": {
+     "Conversion of One Inverse Function to Another Inverse Function": 1
+    },
+    "by_year": {
+     "2025": 1
+    },
+    "questions": 1
+   },
+   "12M15": {
+    "by_topic": {
+     "Adjoint and Inverse of a Square Matrix": 1,
+     "Algebra of Matrices": 2,
+     "Determinant of a Square Matrix": 5,
+     "Properties of Determinants": 1,
+     "Special Matrices": 2,
+     "System of Linear Equations": 1
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2019": 1,
+     "2020": 2,
+     "2021": 2,
+     "2022": 1,
+     "2023": 1,
+     "2025": 2,
+     "2026": 1
+    },
+    "questions": 12
+   },
+   "12M16": {
+    "by_topic": {
+     "Concept of Limit": 2,
+     "Limit of the form 'lim x→a (f(x))^g(x)'": 1
+    },
+    "by_year": {
+     "2018": 1,
+     "2020": 1,
+     "2021": 1
+    },
+    "questions": 3
+   },
+   "12M17": {
+    "by_topic": {
+     "Continuity": 4,
+     "Differentiability": 4,
+     "Differentiation of one function w.r.t. Other function": 1,
+     "Higher Order Derivatives": 1,
+     "Theorems on Continuity": 1,
+     "Theorems on Differentiability": 1
+    },
+    "by_year": {
+     "2017": 2,
+     "2019": 1,
+     "2021": 1,
+     "2022": 1,
+     "2023": 2,
+     "2024": 1,
+     "2025": 2,
+     "2026": 2
+    },
+    "questions": 12
+   },
+   "12M18": {
+    "by_topic": {
+     "Applications of Maxima and Minima": 1,
+     "Extremum": 1,
+     "Monotonicity": 4,
+     "Roots of Equations and Polynomials": 1,
+     "Tests for Local Maximum and Minimum": 1
+    },
+    "by_year": {
+     "2017": 2,
+     "2018": 1,
+     "2022": 2,
+     "2023": 1,
+     "2024": 2
+    },
+    "questions": 8
+   },
+   "12M20": {
+    "by_topic": {
+     "Definite Integration of Odd and Even Functions": 2,
+     "Different Cases of Bounded Area": 4,
+     "Inequalities": 2,
+     "Introduction to Definite Integration": 4,
+     "Leibnitz’s Rule": 1,
+     "Limit as a Sum": 1,
+     "Properties of Definite Integration": 4
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2019": 3,
+     "2020": 2,
+     "2021": 3,
+     "2022": 3,
+     "2023": 2,
+     "2024": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 18
+   },
+   "12M21": {
+    "by_topic": {
+     "Introduction to Differential Equations": 3,
+     "Solution of Differential Equations Using Variable Separation Method": 2,
+     "Solution of Linear Differential Equations": 3
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2020": 1,
+     "2021": 1,
+     "2022": 1,
+     "2023": 1,
+     "2024": 1,
+     "2025": 1
+    },
+    "questions": 8
+   },
+   "12M22": {
+    "by_topic": {
+     "Applications of Dot (Scalar) Product": 1,
+     "Scalar Triple Product": 1,
+     "Types of Vectors": 1,
+     "Vector (or Cross) Product of Two Vectors": 1,
+     "Vector Joining Two Points": 1
+    },
+    "by_year": {
+     "2019": 1,
+     "2022": 2,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 5
+   },
+   "12M23": {
+    "by_topic": {
+     "Angle Between Two Lines": 1,
+     "Direction Cosines and Direction Ratios": 1,
+     "Equation of Straight Line": 1,
+     "Shortest Distance Between Two Lines": 1,
+     "Two Planes and Family of Planes": 1
+    },
+    "by_year": {
+     "2018": 1,
+     "2021": 1,
+     "2023": 1,
+     "2024": 1,
+     "2026": 1
+    },
+    "questions": 5
+   },
+   "12M24": {
+    "by_topic": {
+     "Bayes’ Theorem": 1,
+     "Conditional Probability": 3,
+     "Independent Events": 1,
+     "Mathematical or Classical Definition of Probability": 5
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2019": 1,
+     "2020": 1,
+     "2021": 1,
+     "2022": 1,
+     "2023": 1,
+     "2024": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 10
+   },
+   "12M25": {
+    "by_topic": {
+     "Corner Point Method and Optimal Solution": 1
+    },
+    "by_year": {
+     "2023": 1
+    },
+    "questions": 1
+   }
   },
   "first": 2017,
   "last": 2026,
@@ -133,6 +1121,591 @@
    "2011": 43,
    "2012": 40
   },
+  "chapters": {
+   "11M1": {
+    "by_topic": {
+     "Generalised Method of Interval for Solving Inequalities": 1,
+     "Inequalities": 1,
+     "Logarithmic Equation": 3
+    },
+    "by_year": {
+     "2000": 1,
+     "2001": 1,
+     "2007": 1,
+     "2011": 1,
+     "2012": 1
+    },
+    "questions": 5
+   },
+   "11M10": {
+    "by_topic": {
+     "Chord of Contact": 3,
+     "Definition of Circle": 1,
+     "Different Cases of Two Circles": 7,
+     "Director Circle": 1,
+     "Equation of Circle": 2,
+     "Equation of Circle With Typical Conditions": 4,
+     "Equation of the Chord Bisected at a Given Point": 1,
+     "Family of Circles": 1,
+     "Intersection of a Line and a Circle": 6,
+     "Position of a Point With Respect to a Circle": 2,
+     "Segments of Secants, Chords, and Tangents": 3
+    },
+    "by_year": {
+     "2000": 2,
+     "2001": 3,
+     "2002": 2,
+     "2003": 2,
+     "2004": 1,
+     "2005": 4,
+     "2006": 1,
+     "2007": 3,
+     "2008": 4,
+     "2009": 2,
+     "2010": 2,
+     "2011": 2,
+     "2012": 3
+    },
+    "questions": 31
+   },
+   "11M11": {
+    "by_topic": {
+     "Conic Section as Locus of a Point": 5,
+     "Equation of Parabola in Different Cases": 12,
+     "Intersection of a Line and a Hyperbola": 4,
+     "Intersection of a Line and a Parabola": 10,
+     "Intersection of a Line and an Ellipse": 1,
+     "Properties of Focal Chord": 1,
+     "Some Important Properties of Ellipse": 11,
+     "Standard Equation of Ellipse": 2,
+     "Standard Equation of Hyperbola": 5
+    },
+    "by_year": {
+     "2000": 4,
+     "2001": 4,
+     "2002": 3,
+     "2003": 6,
+     "2004": 1,
+     "2005": 2,
+     "2006": 6,
+     "2007": 3,
+     "2008": 3,
+     "2009": 6,
+     "2010": 5,
+     "2011": 5,
+     "2012": 3
+    },
+    "questions": 51
+   },
+   "11M2": {
+    "by_topic": {
+     "Basics of Function": 1
+    },
+    "by_year": {
+     "2005": 1
+    },
+    "questions": 1
+   },
+   "11M3": {
+    "by_topic": {
+     "Conditional Identities": 1,
+     "General Solution of Some Standard Equations": 2,
+     "Problems Based on Extreme Values of Functions": 3,
+     "Solution or Root of a Trigonometric Equation": 5,
+     "Solving Inequalities and Use of Graphs": 1,
+     "Some Important Results and Their Applications": 6,
+     "Transformation Formulae": 2,
+     "Trigonometric Ratios for Compound Angles": 1
+    },
+    "by_year": {
+     "2000": 2,
+     "2001": 2,
+     "2002": 1,
+     "2005": 1,
+     "2006": 1,
+     "2007": 1,
+     "2009": 3,
+     "2010": 6,
+     "2011": 2,
+     "2012": 2
+    },
+    "questions": 21
+   },
+   "11M4": {
+    "by_topic": {
+     "Common Roots": 2,
+     "Location of Roots": 2,
+     "Quadratic Equation": 10,
+     "Quadratic Function": 4,
+     "Relation Between Coefficients and Roots of n Degree Equation": 3
+    },
+    "by_year": {
+     "2000": 4,
+     "2001": 2,
+     "2002": 1,
+     "2003": 3,
+     "2005": 3,
+     "2006": 2,
+     "2007": 1,
+     "2008": 1,
+     "2009": 1,
+     "2010": 1,
+     "2011": 2
+    },
+    "questions": 21
+   },
+   "11M5": {
+    "by_topic": {
+     "Concept of Rotation": 3,
+     "Conjugate of a Complex Number": 2,
+     "Cube Roots of Unity": 3,
+     "De Moivre’s Theorem": 1,
+     "Geometry With Complex Numbers": 2,
+     "Properties of Arguments": 1,
+     "Properties of Modulus": 8,
+     "Solving Complex Equations": 1,
+     "Standard Loci in the Argand Plane": 5,
+     "The nth Root of Unity": 2
+    },
+    "by_year": {
+     "2000": 2,
+     "2001": 2,
+     "2002": 2,
+     "2003": 3,
+     "2004": 1,
+     "2005": 3,
+     "2006": 1,
+     "2007": 2,
+     "2008": 4,
+     "2009": 2,
+     "2010": 2,
+     "2011": 3,
+     "2012": 1
+    },
+    "questions": 28
+   },
+   "11M6": {
+    "by_topic": {
+     "Arithmetic Progression (A.P.)": 8,
+     "Defining Series and Progression": 1,
+     "Geometric Progression (G.P.)": 4,
+     "Harmonic Progression (H.P.)": 3,
+     "Properties of A.M. ,G.M. and H.M. of Two Positive Real Numbers": 11,
+     "Sum of Series by Method of Difference": 2,
+     "Summation by Sigma Operator": 1
+    },
+    "by_year": {
+     "2000": 3,
+     "2001": 4,
+     "2002": 3,
+     "2003": 2,
+     "2004": 1,
+     "2005": 1,
+     "2006": 1,
+     "2007": 6,
+     "2008": 2,
+     "2009": 1,
+     "2010": 2,
+     "2011": 3,
+     "2012": 1
+    },
+    "questions": 30
+   },
+   "11M7": {
+    "by_topic": {
+     "Combination": 3,
+     "Division and Distribution": 3,
+     "Fundamental Principle of Counting": 4,
+     "Permutation": 3
+    },
+    "by_year": {
+     "2000": 1,
+     "2001": 1,
+     "2002": 1,
+     "2004": 1,
+     "2005": 1,
+     "2006": 1,
+     "2007": 1,
+     "2008": 1,
+     "2009": 1,
+     "2010": 1,
+     "2012": 3
+    },
+    "questions": 13
+   },
+   "11M8": {
+    "by_topic": {
+     "Analysis of Binomial Expansion": 1,
+     "Mathematical Induction": 1,
+     "Properties of Binomial Coefficients": 3,
+     "Series From Multiplication of Two Series": 1,
+     "Sum of Series": 2,
+     "Tips For Finding Coefficients of Required Terms": 1
+    },
+    "by_year": {
+     "2000": 2,
+     "2001": 1,
+     "2002": 2,
+     "2003": 2,
+     "2005": 1,
+     "2010": 1
+    },
+    "questions": 9
+   },
+   "11M9": {
+    "by_topic": {
+     "Area of Triangle and Polygon": 2,
+     "Concurrency of Three Lines": 1,
+     "Different Centers of Triangle": 7,
+     "Different Forms of Straight Line": 4,
+     "Distance Formula": 2,
+     "Image of a Point With Respect to the Line Mirror": 1,
+     "Introduction": 1,
+     "Locus and Equation to a Locus": 2,
+     "Section Formula": 1,
+     "Slope (Gradient) of a Line": 1
+    },
+    "by_year": {
+     "2000": 3,
+     "2001": 2,
+     "2002": 4,
+     "2003": 2,
+     "2005": 1,
+     "2007": 4,
+     "2008": 3,
+     "2009": 1,
+     "2010": 1,
+     "2011": 1
+    },
+    "questions": 22
+   },
+   "12M13": {
+    "by_topic": {
+     "Composite Function": 4,
+     "Different Types of Mappings": 5,
+     "Domain, Co-domain and Range": 3,
+     "Even and Odd Functions": 1,
+     "Exponential and Logarithmic Functions": 1,
+     "Functional Equations": 1,
+     "Functions of the Form f(x) = max.{g1(x), g2(x), …, gn(x)} or f(x) = min.{g1(x), g2(x), …, gn(x)}": 1,
+     "Inverse Functions": 3
+    },
+    "by_year": {
+     "2000": 1,
+     "2001": 5,
+     "2002": 2,
+     "2003": 1,
+     "2005": 1,
+     "2006": 2,
+     "2007": 1,
+     "2008": 1,
+     "2011": 3,
+     "2012": 2
+    },
+    "questions": 19
+   },
+   "12M14": {
+    "by_topic": {
+     "Conversion of One Inverse Function to Another Inverse Function": 1,
+     "Domain, Range, and Graphs of Inverse Trigonometric Functions": 1,
+     "Properties of Inverse Trigonometric Functions": 1,
+     "Sum of Complementary Angles": 2,
+     "Sum of Multiple Angles": 1
+    },
+    "by_year": {
+     "2001": 1,
+     "2002": 1,
+     "2003": 1,
+     "2006": 1,
+     "2007": 1,
+     "2008": 1
+    },
+    "questions": 6
+   },
+   "12M15": {
+    "by_topic": {
+     "Adjoint and Inverse of a Square Matrix": 6,
+     "Algebra of Matrices": 5,
+     "Determinant of a Square Matrix": 3,
+     "Properties of Determinants": 5,
+     "Some Important Determinants": 1,
+     "Special Matrices": 5,
+     "System of Linear Equations": 6,
+     "System of Simultaneous Linear Equations": 5
+    },
+    "by_year": {
+     "2000": 2,
+     "2001": 2,
+     "2002": 2,
+     "2003": 3,
+     "2004": 2,
+     "2005": 2,
+     "2006": 3,
+     "2007": 1,
+     "2008": 2,
+     "2009": 4,
+     "2010": 6,
+     "2011": 4,
+     "2012": 3
+    },
+    "questions": 36
+   },
+   "12M16": {
+    "by_topic": {
+     "Evaluation of Algebraic Limits": 3,
+     "Evaluation of Exponential and Logarithmic Limits": 1,
+     "Evaluation of Trigonometric Limits": 2,
+     "Finding Limit Using Expansion Formula": 2,
+     "Limit of the form 'lim x→a (f(x))^g(x)'": 4,
+     "L’Hospital’s Rule for Evaluating Limits": 2
+    },
+    "by_year": {
+     "2000": 1,
+     "2001": 1,
+     "2002": 2,
+     "2003": 1,
+     "2004": 1,
+     "2006": 1,
+     "2008": 2,
+     "2009": 1,
+     "2010": 1,
+     "2011": 1,
+     "2012": 2
+    },
+    "questions": 14
+   },
+   "12M17": {
+    "by_topic": {
+     "Continuity": 4,
+     "Differentiability": 15,
+     "Differentiation of Implicit Functions": 2,
+     "Differentiation of one function w.r.t. Other function": 1,
+     "Higher Order Derivatives": 3,
+     "Theorems on Continuity": 1,
+     "Theorems on Derivatives": 4,
+     "Theorems on Differentiability": 10
+    },
+    "by_year": {
+     "2000": 2,
+     "2001": 5,
+     "2002": 2,
+     "2003": 4,
+     "2004": 2,
+     "2005": 7,
+     "2006": 2,
+     "2007": 3,
+     "2008": 4,
+     "2009": 2,
+     "2010": 2,
+     "2011": 3,
+     "2012": 2
+    },
+    "questions": 40
+   },
+   "12M18": {
+    "by_topic": {
+     "Applications of Maxima and Minima": 1,
+     "Concept of Global (Absolute) Maximum and Minimum": 3,
+     "Extremum": 4,
+     "Introduction": 1,
+     "Monotonicity": 14,
+     "Roots of Equations and Polynomials": 6,
+     "Tangents, Normals and Angle Between Curves": 4,
+     "Tests for Local Maximum and Minimum": 8
+    },
+    "by_year": {
+     "2000": 5,
+     "2001": 5,
+     "2002": 3,
+     "2003": 2,
+     "2004": 1,
+     "2005": 2,
+     "2006": 3,
+     "2007": 4,
+     "2008": 2,
+     "2009": 4,
+     "2010": 4,
+     "2011": 1,
+     "2012": 5
+    },
+    "questions": 41
+   },
+   "12M19": {
+    "by_topic": {
+     "Elementary Integration": 1,
+     "Integration by Parts": 1,
+     "Integration by Substitution": 3,
+     "Integration of Typical Irrational Functions": 1
+    },
+    "by_year": {
+     "2001": 1,
+     "2002": 1,
+     "2006": 1,
+     "2007": 1,
+     "2008": 1,
+     "2012": 1
+    },
+    "questions": 6
+   },
+   "12M20": {
+    "by_topic": {
+     "Definite Integration of Odd and Even Functions": 7,
+     "Definite Integration of Periodic Functions": 2,
+     "Different Cases of Bounded Area": 12,
+     "Inequalities": 4,
+     "Introduction to Definite Integration": 4,
+     "Leibnitz’s Rule": 8,
+     "Properties of Definite Integration": 9
+    },
+    "by_year": {
+     "2000": 4,
+     "2001": 3,
+     "2002": 5,
+     "2003": 3,
+     "2004": 2,
+     "2005": 5,
+     "2006": 5,
+     "2007": 2,
+     "2008": 5,
+     "2009": 3,
+     "2010": 3,
+     "2011": 4,
+     "2012": 2
+    },
+    "questions": 46
+   },
+   "12M21": {
+    "by_topic": {
+     "Applications of Differential Equations": 4,
+     "Introduction to Differential Equations": 1,
+     "Solution of Differential Equations Using Variable Separation Method": 5,
+     "Solution of Homogeneous Differential Equations": 2,
+     "Solution of Linear Differential Equations": 8
+    },
+    "by_year": {
+     "2000": 2,
+     "2001": 1,
+     "2003": 3,
+     "2004": 1,
+     "2005": 3,
+     "2006": 1,
+     "2007": 2,
+     "2008": 1,
+     "2009": 2,
+     "2010": 1,
+     "2011": 2,
+     "2012": 1
+    },
+    "questions": 20
+   },
+   "12M22": {
+    "by_topic": {
+     "Applications of Dot (Scalar) Product": 5,
+     "Dot (Scalar) Product": 7,
+     "Linear Combination, Linear Independence and Linear Dependence": 1,
+     "Scalar Triple Product": 8,
+     "Vector (or Cross) Product of Two Vectors": 10,
+     "Vector Along the Bisector of Given Two Vectors": 1,
+     "Vector Joining Two Points": 1,
+     "Vector Triple Product": 2
+    },
+    "by_year": {
+     "2000": 4,
+     "2001": 4,
+     "2002": 3,
+     "2003": 2,
+     "2004": 3,
+     "2005": 2,
+     "2006": 2,
+     "2007": 3,
+     "2008": 3,
+     "2009": 1,
+     "2010": 3,
+     "2011": 3,
+     "2012": 2
+    },
+    "questions": 35
+   },
+   "12M23": {
+    "by_topic": {
+     "Equation of Straight Line": 3,
+     "Equation of a Plane and Distance from a Plane": 7,
+     "Image, Foot of Perpendicular and Projection": 1,
+     "Line and Plane: Intersection and Angle": 4,
+     "Shortest Distance Between Two Lines": 1,
+     "Two Planes and Family of Planes": 3
+    },
+    "by_year": {
+     "2003": 2,
+     "2004": 1,
+     "2005": 2,
+     "2006": 1,
+     "2007": 1,
+     "2008": 3,
+     "2009": 2,
+     "2010": 4,
+     "2012": 3
+    },
+    "questions": 19
+   },
+   "12M24": {
+    "by_topic": {
+     "Algebra of Events": 1,
+     "Bayes’ Theorem": 6,
+     "Conditional Probability": 6,
+     "Independent Events": 8,
+     "Mathematical or Classical Definition of Probability": 7,
+     "Multiplication Theorem of Probability": 1,
+     "Total Probability Theorem": 3
+    },
+    "by_year": {
+     "2000": 2,
+     "2001": 2,
+     "2002": 1,
+     "2003": 4,
+     "2004": 2,
+     "2005": 2,
+     "2006": 3,
+     "2007": 3,
+     "2008": 2,
+     "2009": 3,
+     "2010": 2,
+     "2011": 3,
+     "2012": 3
+    },
+    "questions": 32
+   },
+   "12M27": {
+    "by_topic": {
+     "Ambiguous Case and Solving a Triangle": 1,
+     "Basic Relations of a Triangle (Sine, Cosine, Projection Rules)": 3,
+     "Circumcircle and Incircle (R and r)": 3,
+     "Maximum-Minimum and Inequalities in a Triangle": 1,
+     "Medians, Altitudes and Angle Bisectors": 1,
+     "Regular Polygons and Miscellaneous Triangle Problems": 2
+    },
+    "by_year": {
+     "2000": 3,
+     "2001": 1,
+     "2002": 1,
+     "2003": 2,
+     "2005": 2,
+     "2006": 2
+    },
+    "questions": 11
+   },
+   "12M28": {
+    "by_topic": {
+     "Triangular Plots and Equal Angles": 1,
+     "Two Observation Points and Moving Objects": 1
+    },
+    "by_year": {
+     "2000": 1,
+     "2001": 1
+    },
+    "questions": 2
+   }
+  },
   "first": 2000,
   "last": 2012,
   "papers": 24,
@@ -179,6 +1752,550 @@
    "2024": 34,
    "2025": 32,
    "2026": 34
+  },
+  "chapters": {
+   "11M1": {
+    "by_topic": {
+     "Fundamental Laws of Logarithm": 2,
+     "Logarithmic Equation": 2
+    },
+    "by_year": {
+     "2013": 1,
+     "2018": 1,
+     "2022": 1,
+     "2024": 1
+    },
+    "questions": 4
+   },
+   "11M10": {
+    "by_topic": {
+     "Chord of Contact": 1,
+     "Different Cases of Two Circles": 6,
+     "Equation of Circle With Typical Conditions": 8,
+     "Equation of the Chord Bisected at a Given Point": 1,
+     "Intercepts Made on the Axes by a Circle": 2,
+     "Intersection of a Line and a Circle": 2
+    },
+    "by_year": {
+     "2013": 1,
+     "2014": 1,
+     "2016": 1,
+     "2017": 1,
+     "2018": 3,
+     "2019": 4,
+     "2020": 1,
+     "2021": 3,
+     "2022": 2,
+     "2023": 1,
+     "2024": 1,
+     "2026": 1
+    },
+    "questions": 20
+   },
+   "11M11": {
+    "by_topic": {
+     "Equation of Chord Whose Mid Point is (x₁, y₁)": 2,
+     "Equation of Chord of Contact": 3,
+     "Equation of Parabola in Different Cases": 10,
+     "Intersection of a Line and a Hyperbola": 5,
+     "Intersection of a Line and a Parabola": 9,
+     "Intersection of a Line and an Ellipse": 4,
+     "Properties of Focal Chord": 3,
+     "Some Important Properties of Ellipse": 4,
+     "Standard Equation of Ellipse": 1,
+     "Standard Equation of Hyperbola": 4
+    },
+    "by_year": {
+     "2013": 3,
+     "2014": 3,
+     "2015": 6,
+     "2016": 4,
+     "2017": 5,
+     "2018": 2,
+     "2019": 1,
+     "2020": 2,
+     "2021": 4,
+     "2022": 3,
+     "2023": 2,
+     "2024": 3,
+     "2025": 3,
+     "2026": 4
+    },
+    "questions": 45
+   },
+   "11M12": {
+    "by_topic": {
+     "Mean Deviation": 2,
+     "Standard Deviation": 1
+    },
+    "by_year": {
+     "2023": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 3
+   },
+   "11M2": {
+    "by_topic": {
+     "Relations": 2,
+     "Subsets": 1,
+     "Types of Relation": 2
+    },
+    "by_year": {
+     "2024": 3,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 5
+   },
+   "11M3": {
+    "by_topic": {
+     "General Solution of Some Standard Equations": 3,
+     "Solution or Root of a Trigonometric Equation": 6,
+     "Some Important Results and Their Applications": 12,
+     "Trigonometric Ratios for Compound Angles": 6
+    },
+    "by_year": {
+     "2013": 1,
+     "2014": 2,
+     "2015": 2,
+     "2016": 3,
+     "2017": 1,
+     "2018": 2,
+     "2019": 4,
+     "2020": 1,
+     "2021": 2,
+     "2022": 3,
+     "2023": 2,
+     "2024": 1,
+     "2025": 1,
+     "2026": 2
+    },
+    "questions": 27
+   },
+   "11M4": {
+    "by_topic": {
+     "Key Points in Solving an Equation": 1,
+     "Quadratic Equation": 10
+    },
+    "by_year": {
+     "2014": 1,
+     "2015": 1,
+     "2016": 1,
+     "2017": 2,
+     "2019": 1,
+     "2020": 1,
+     "2021": 1,
+     "2025": 1,
+     "2026": 2
+    },
+    "questions": 11
+   },
+   "11M5": {
+    "by_topic": {
+     "Algebraic Operations With Complex Numbers": 1,
+     "Conjugate of a Complex Number": 1,
+     "Cube Roots of Unity": 2,
+     "De Moivre’s Theorem": 1,
+     "Euler’s Form of a Complex Number": 1,
+     "Geometry With Complex Numbers": 2,
+     "Properties of Arguments": 1,
+     "Properties of Modulus": 2,
+     "Solving Complex Equations": 6,
+     "Standard Loci in the Argand Plane": 5,
+     "The nth Root of Unity": 4
+    },
+    "by_year": {
+     "2013": 4,
+     "2014": 1,
+     "2015": 1,
+     "2016": 1,
+     "2017": 1,
+     "2018": 2,
+     "2019": 2,
+     "2020": 2,
+     "2021": 2,
+     "2022": 3,
+     "2023": 3,
+     "2024": 1,
+     "2025": 2,
+     "2026": 1
+    },
+    "questions": 26
+   },
+   "11M6": {
+    "by_topic": {
+     "Arithmetic Progression (A.P.)": 7,
+     "Geometric Progression (G.P.)": 5,
+     "Properties of A.M. ,G.M. and H.M. of Two Positive Real Numbers": 1,
+     "Sum of Series by Method of Difference": 1,
+     "Sum of Some Special Series": 1,
+     "Summation by Sigma Operator": 1
+    },
+    "by_year": {
+     "2013": 2,
+     "2014": 1,
+     "2015": 1,
+     "2016": 1,
+     "2017": 1,
+     "2018": 1,
+     "2019": 1,
+     "2020": 2,
+     "2021": 2,
+     "2022": 2,
+     "2023": 1,
+     "2025": 1
+    },
+    "questions": 16
+   },
+   "11M7": {
+    "by_topic": {
+     "Combination": 6,
+     "Derangement": 1,
+     "Division and Distribution": 4,
+     "Fundamental Principle of Counting": 1,
+     "Permutation": 6
+    },
+    "by_year": {
+     "2014": 3,
+     "2015": 1,
+     "2016": 1,
+     "2017": 1,
+     "2018": 2,
+     "2019": 1,
+     "2020": 2,
+     "2021": 1,
+     "2022": 2,
+     "2024": 1,
+     "2025": 1,
+     "2026": 2
+    },
+    "questions": 18
+   },
+   "11M8": {
+    "by_topic": {
+     "Analysis of Binomial Expansion": 1,
+     "Properties of Binomial Coefficients": 3,
+     "Tips For Finding Coefficients of Required Terms": 5
+    },
+    "by_year": {
+     "2013": 1,
+     "2014": 1,
+     "2015": 1,
+     "2016": 1,
+     "2018": 1,
+     "2020": 1,
+     "2023": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 9
+   },
+   "11M9": {
+    "by_topic": {
+     "Distance Formula": 1,
+     "Distance of a Point From the Given Line": 1
+    },
+    "by_year": {
+     "2013": 1,
+     "2014": 1
+    },
+    "questions": 2
+   },
+   "12M13": {
+    "by_topic": {
+     "Composite Function": 1,
+     "Different Types of Mappings": 7,
+     "Domain, Co-domain and Range": 3,
+     "Function": 3,
+     "Functional Equations": 1,
+     "Functions of the Form f(x) = max.{g1(x), g2(x), …, gn(x)} or f(x) = min.{g1(x), g2(x), …, gn(x)}": 2,
+     "Trigonometric Functions": 1
+    },
+    "by_year": {
+     "2014": 3,
+     "2015": 1,
+     "2017": 1,
+     "2018": 2,
+     "2020": 5,
+     "2022": 1,
+     "2023": 2,
+     "2024": 2,
+     "2025": 1
+    },
+    "questions": 18
+   },
+   "12M14": {
+    "by_topic": {
+     "Conversion of One Inverse Function to Another Inverse Function": 2,
+     "Domain, Range, and Graphs of Inverse Trigonometric Functions": 2,
+     "Formulas for Sum and Difference of Inverse Trigonometric Functions": 2,
+     "Problems Based on Substitution": 2,
+     "Properties of Inverse Trigonometric Functions": 4,
+     "Sum of Complementary Angles": 1,
+     "Sum of Multiple Angles": 2
+    },
+    "by_year": {
+     "2013": 2,
+     "2014": 2,
+     "2015": 1,
+     "2018": 2,
+     "2019": 1,
+     "2021": 1,
+     "2022": 1,
+     "2023": 2,
+     "2024": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 15
+   },
+   "12M15": {
+    "by_topic": {
+     "Adjoint and Inverse of a Square Matrix": 7,
+     "Algebra of Matrices": 11,
+     "Determinant of a Square Matrix": 5,
+     "Equivalent Matrices": 1,
+     "Properties of Determinants": 4,
+     "Special Matrices": 5,
+     "System of Linear Equations": 5,
+     "System of Simultaneous Linear Equations": 3
+    },
+    "by_year": {
+     "2013": 2,
+     "2014": 2,
+     "2015": 2,
+     "2016": 5,
+     "2017": 3,
+     "2018": 2,
+     "2019": 5,
+     "2020": 2,
+     "2021": 4,
+     "2022": 3,
+     "2023": 3,
+     "2024": 3,
+     "2025": 2,
+     "2026": 3
+    },
+    "questions": 41
+   },
+   "12M16": {
+    "by_topic": {
+     "Algebra of Limits": 1,
+     "Concept of Limit": 1,
+     "Evaluation of Algebraic Limits": 2,
+     "Evaluation of Exponential and Logarithmic Limits": 1,
+     "Evaluation of Trigonometric Limits": 1,
+     "Finding Limit Using Expansion Formula": 4,
+     "Limit of the form 'lim x→a (f(x))^g(x)'": 3,
+     "L’Hospital’s Rule for Evaluating Limits": 1
+    },
+    "by_year": {
+     "2014": 1,
+     "2015": 1,
+     "2016": 1,
+     "2017": 2,
+     "2019": 1,
+     "2020": 2,
+     "2022": 2,
+     "2024": 2,
+     "2025": 2
+    },
+    "questions": 14
+   },
+   "12M17": {
+    "by_topic": {
+     "Continuity": 1,
+     "Continuity of Some Functions": 1,
+     "Differentiability": 13,
+     "Differentiation of Composite Functions (Chain Rule)": 2,
+     "Theorems on Continuity": 1,
+     "Theorems on Derivatives": 3,
+     "Theorems on Differentiability": 4,
+     "Types of Discontinuity": 1
+    },
+    "by_year": {
+     "2014": 2,
+     "2015": 1,
+     "2016": 3,
+     "2017": 3,
+     "2018": 5,
+     "2019": 1,
+     "2020": 3,
+     "2021": 1,
+     "2023": 1,
+     "2024": 2,
+     "2025": 1,
+     "2026": 3
+    },
+    "questions": 26
+   },
+   "12M18": {
+    "by_topic": {
+     "Applications of Maxima and Minima": 4,
+     "Concept of Global (Absolute) Maximum and Minimum": 3,
+     "Extremum": 4,
+     "Mean Value Theorem (Rolle's and Lagrange's)": 2,
+     "Monotonicity": 3,
+     "Roots of Equations and Polynomials": 2,
+     "Tangents, Normals and Angle Between Curves": 1,
+     "Tests for Local Maximum and Minimum": 9
+    },
+    "by_year": {
+     "2013": 7,
+     "2014": 2,
+     "2015": 2,
+     "2016": 2,
+     "2017": 5,
+     "2019": 2,
+     "2020": 1,
+     "2022": 1,
+     "2023": 2,
+     "2025": 3,
+     "2026": 1
+    },
+    "questions": 28
+   },
+   "12M20": {
+    "by_topic": {
+     "Definite Integration of Odd and Even Functions": 3,
+     "Definite Integration of Periodic Functions": 1,
+     "Different Cases of Bounded Area": 13,
+     "Inequalities": 6,
+     "Introduction to Definite Integration": 9,
+     "Leibnitz’s Rule": 14,
+     "Limit as a Sum": 5,
+     "Properties of Definite Integration": 11
+    },
+    "by_year": {
+     "2013": 3,
+     "2014": 7,
+     "2015": 9,
+     "2016": 4,
+     "2017": 3,
+     "2018": 4,
+     "2019": 4,
+     "2020": 3,
+     "2021": 9,
+     "2022": 4,
+     "2023": 3,
+     "2024": 4,
+     "2025": 2,
+     "2026": 3
+    },
+    "questions": 62
+   },
+   "12M21": {
+    "by_topic": {
+     "Introduction to Differential Equations": 1,
+     "Solution of Differential Equations Using Variable Separation Method": 8,
+     "Solution of Homogeneous Differential Equations": 2,
+     "Solution of Linear Differential Equations": 9
+    },
+    "by_year": {
+     "2013": 1,
+     "2014": 1,
+     "2015": 2,
+     "2016": 2,
+     "2017": 1,
+     "2018": 1,
+     "2019": 1,
+     "2020": 1,
+     "2021": 1,
+     "2022": 2,
+     "2023": 2,
+     "2024": 1,
+     "2025": 2,
+     "2026": 2
+    },
+    "questions": 20
+   },
+   "12M22": {
+    "by_topic": {
+     "Applications of Dot (Scalar) Product": 4,
+     "Dot (Scalar) Product": 1,
+     "Linear Combination, Linear Independence and Linear Dependence": 3,
+     "Scalar Triple Product": 5,
+     "Section Formula": 1,
+     "Vector (or Cross) Product of Two Vectors": 13,
+     "Vector Triple Product": 1
+    },
+    "by_year": {
+     "2013": 3,
+     "2014": 2,
+     "2015": 3,
+     "2016": 1,
+     "2017": 3,
+     "2018": 2,
+     "2019": 1,
+     "2020": 2,
+     "2021": 2,
+     "2022": 1,
+     "2023": 1,
+     "2024": 2,
+     "2025": 3,
+     "2026": 2
+    },
+    "questions": 28
+   },
+   "12M23": {
+    "by_topic": {
+     "Angle Between Two Lines": 2,
+     "Distance Formula": 1,
+     "Equation of Straight Line": 2,
+     "Equation of a Plane and Distance from a Plane": 1,
+     "Image, Foot of Perpendicular and Projection": 7,
+     "Line and Plane: Intersection and Angle": 2,
+     "Shortest Distance Between Two Lines": 3,
+     "Sphere, Locus and Tetrahedron": 3,
+     "Two Planes and Family of Planes": 6
+    },
+    "by_year": {
+     "2013": 4,
+     "2014": 1,
+     "2015": 2,
+     "2016": 2,
+     "2017": 1,
+     "2018": 2,
+     "2019": 3,
+     "2020": 2,
+     "2022": 2,
+     "2023": 2,
+     "2024": 3,
+     "2025": 1,
+     "2026": 2
+    },
+    "questions": 27
+   },
+   "12M24": {
+    "by_topic": {
+     "Addition Theorem of Probability": 3,
+     "Bayes’ Theorem": 7,
+     "Binomial and Poisson Distributions": 2,
+     "Conditional Probability": 6,
+     "Independent Events": 11,
+     "Mathematical or Classical Definition of Probability": 11,
+     "Multiplication Theorem of Probability": 1,
+     "Random Variables and Probability Distributions": 2
+    },
+    "by_year": {
+     "2013": 4,
+     "2014": 3,
+     "2015": 3,
+     "2016": 3,
+     "2017": 2,
+     "2018": 2,
+     "2019": 3,
+     "2020": 3,
+     "2021": 5,
+     "2022": 3,
+     "2023": 5,
+     "2024": 3,
+     "2025": 2,
+     "2026": 2
+    },
+    "questions": 43
+   }
   },
   "first": 2013,
   "last": 2026,
@@ -231,6 +2348,803 @@
    "2025": 475,
    "2026": 475
   },
+  "chapters": {
+   "11M1": {
+    "by_topic": {
+     "Absolute Values (Modulus) of Real Number": 16,
+     "Exponential Function": 11,
+     "Generalised Method of Interval for Solving Inequalities": 2,
+     "Inequalities": 3,
+     "Introduction": 1,
+     "Logarithmic Equation": 10,
+     "Logarithmic Inequalities": 1,
+     "Number Systems and Integer Counting": 1,
+     "Solving Irrational Inequalities": 1
+    },
+    "by_year": {
+     "2013": 1,
+     "2019": 2,
+     "2020": 3,
+     "2021": 8,
+     "2022": 7,
+     "2023": 13,
+     "2024": 5,
+     "2025": 4,
+     "2026": 3
+    },
+    "questions": 46
+   },
+   "11M10": {
+    "by_topic": {
+     "Chord of Contact": 10,
+     "Common Chord of Two Circles": 4,
+     "Definition of Circle": 4,
+     "Different Cases of Two Circles": 28,
+     "Equation of Circle": 28,
+     "Equation of Circle With Typical Conditions": 39,
+     "Equation of the Chord Bisected at a Given Point": 7,
+     "Family of Circles": 3,
+     "Intercepts Made on the Axes by a Circle": 12,
+     "Intersection of a Line and a Circle": 28,
+     "Position of a Point With Respect to a Circle": 12,
+     "Segments of Secants, Chords, and Tangents": 7
+    },
+    "by_year": {
+     "2013": 7,
+     "2014": 6,
+     "2015": 5,
+     "2016": 4,
+     "2017": 5,
+     "2018": 4,
+     "2019": 20,
+     "2020": 9,
+     "2021": 30,
+     "2022": 23,
+     "2023": 19,
+     "2024": 20,
+     "2025": 12,
+     "2026": 18
+    },
+    "questions": 182
+   },
+   "11M11": {
+    "by_topic": {
+     "Conic Section as Locus of a Point": 25,
+     "Equation of Chord": 6,
+     "Equation of Chord Whose Mid Point is (x₁, y₁)": 4,
+     "Equation of Chord of Contact": 6,
+     "Equation of Parabola in Different Cases": 32,
+     "Intersection of a Line and a Hyperbola": 30,
+     "Intersection of a Line and a Parabola": 74,
+     "Intersection of a Line and an Ellipse": 12,
+     "Position of a Point With Respect to a Parabola": 1,
+     "Properties of Focal Chord": 19,
+     "Rectangular Hyperbola": 1,
+     "Some Important Properties of Ellipse": 49,
+     "Standard Equation of Ellipse": 45,
+     "Standard Equation of Hyperbola": 63
+    },
+    "by_year": {
+     "2013": 10,
+     "2014": 10,
+     "2015": 6,
+     "2016": 6,
+     "2017": 7,
+     "2018": 9,
+     "2019": 40,
+     "2020": 28,
+     "2021": 43,
+     "2022": 53,
+     "2023": 40,
+     "2024": 32,
+     "2025": 42,
+     "2026": 41
+    },
+    "questions": 367
+   },
+   "11M12": {
+    "by_topic": {
+     "Arithmetic Mean": 11,
+     "Combined Mean": 2,
+     "Combined Standard Deviation": 9,
+     "Dispersion": 2,
+     "Mean Deviation": 18,
+     "Median": 8,
+     "Standard Deviation": 92
+    },
+    "by_year": {
+     "2013": 5,
+     "2014": 4,
+     "2015": 2,
+     "2016": 3,
+     "2017": 2,
+     "2018": 4,
+     "2019": 14,
+     "2020": 15,
+     "2021": 20,
+     "2022": 14,
+     "2023": 21,
+     "2024": 15,
+     "2025": 8,
+     "2026": 15
+    },
+    "questions": 142
+   },
+   "11M2": {
+    "by_topic": {
+     "Basics of Function": 2,
+     "Cartesian Product of Sets": 2,
+     "Important Results Related to Cardinal Number of Sets": 9,
+     "Intervals as a Subsets of R": 1,
+     "Inverse Relation": 1,
+     "Methods of Representing Sets": 3,
+     "Operation on Sets": 8,
+     "Power Sets": 3,
+     "Relations": 14,
+     "Subsets": 8,
+     "Types of Relation": 58,
+     "Venn Diagram": 2
+    },
+    "by_year": {
+     "2013": 2,
+     "2014": 3,
+     "2015": 3,
+     "2016": 1,
+     "2018": 3,
+     "2019": 4,
+     "2020": 9,
+     "2021": 10,
+     "2022": 11,
+     "2023": 19,
+     "2024": 16,
+     "2025": 18,
+     "2026": 12
+    },
+    "questions": 111
+   },
+   "11M3": {
+    "by_topic": {
+     "General Solution of Some Standard Equations": 44,
+     "Problems Based on Extreme Values of Functions": 15,
+     "Solution or Root of a Trigonometric Equation": 11,
+     "Solving Inequalities and Use of Graphs": 3,
+     "Some Important Results and Their Applications": 35,
+     "Transformation Formulae": 6,
+     "Trigonometric Equations: Introduction": 1,
+     "Trigonometric Functions of Any Angle": 1,
+     "Trigonometric Ratios for Compound Angles": 16,
+     "Trigonometric Ratios of Allied Angles": 3,
+     "Trigonometric Ratios of Multiple and Sub-multiple Angles": 10,
+     "Values of Trigonometric Ratios of Standard Angles": 3
+    },
+    "by_year": {
+     "2013": 5,
+     "2014": 4,
+     "2015": 2,
+     "2016": 3,
+     "2017": 1,
+     "2018": 2,
+     "2019": 18,
+     "2020": 5,
+     "2021": 24,
+     "2022": 22,
+     "2023": 13,
+     "2024": 15,
+     "2025": 14,
+     "2026": 20
+    },
+    "questions": 148
+   },
+   "11M4": {
+    "by_topic": {
+     "Common Roots": 11,
+     "Key Points in Solving an Equation": 14,
+     "Location of Roots": 9,
+     "Quadratic Equation": 100,
+     "Quadratic Function": 5,
+     "Relation Between Coefficients and Roots of n Degree Equation": 7,
+     "Remainder and Factor Theorem": 3,
+     "Repeated Roots": 1
+    },
+    "by_year": {
+     "2013": 4,
+     "2014": 8,
+     "2015": 2,
+     "2016": 3,
+     "2017": 3,
+     "2018": 6,
+     "2019": 14,
+     "2020": 14,
+     "2021": 18,
+     "2022": 19,
+     "2023": 13,
+     "2024": 14,
+     "2025": 14,
+     "2026": 18
+    },
+    "questions": 150
+   },
+   "11M5": {
+    "by_topic": {
+     "Algebraic Operations With Complex Numbers": 23,
+     "Concept of Rotation": 3,
+     "Conjugate of a Complex Number": 6,
+     "Cube Roots of Unity": 15,
+     "De Moivre’s Theorem": 15,
+     "Euler’s Form of a Complex Number": 1,
+     "Geometrical Representation of Addition and Subtraction of Complex Numbers": 5,
+     "Geometrical Representation of a Complex Number": 4,
+     "Geometry With Complex Numbers": 8,
+     "Integral Power of Iota (i)": 2,
+     "Polar Form of a Complex Number": 6,
+     "Properties of Arguments": 7,
+     "Properties of Modulus": 16,
+     "Solving Complex Equations": 31,
+     "Standard Loci in the Argand Plane": 55
+    },
+    "by_year": {
+     "2013": 5,
+     "2014": 5,
+     "2015": 4,
+     "2016": 2,
+     "2017": 3,
+     "2018": 4,
+     "2019": 17,
+     "2020": 16,
+     "2021": 28,
+     "2022": 28,
+     "2023": 24,
+     "2024": 24,
+     "2025": 19,
+     "2026": 18
+    },
+    "questions": 197
+   },
+   "11M6": {
+    "by_topic": {
+     "Arithmetic Progression (A.P.)": 103,
+     "Defining Series and Progression": 7,
+     "Geometric Progression (G.P.)": 72,
+     "Harmonic Progression (H.P.)": 4,
+     "Properties of A.M. ,G.M. and H.M. of Two Positive Real Numbers": 17,
+     "Sum of Series by Method of Difference": 38,
+     "Sum of Some Special Series": 39,
+     "Summation by Sigma Operator": 30
+    },
+    "by_year": {
+     "2013": 9,
+     "2014": 10,
+     "2015": 6,
+     "2016": 6,
+     "2017": 5,
+     "2018": 8,
+     "2019": 30,
+     "2020": 27,
+     "2021": 36,
+     "2022": 38,
+     "2023": 39,
+     "2024": 36,
+     "2025": 29,
+     "2026": 31
+    },
+    "questions": 310
+   },
+   "11M7": {
+    "by_topic": {
+     "Combination": 65,
+     "Derangement": 1,
+     "Division and Distribution": 27,
+     "Factorial Notation": 10,
+     "Fundamental Principle of Counting": 26,
+     "Permutation": 87
+    },
+    "by_year": {
+     "2013": 6,
+     "2014": 4,
+     "2015": 3,
+     "2016": 5,
+     "2017": 3,
+     "2018": 4,
+     "2019": 13,
+     "2020": 16,
+     "2021": 27,
+     "2022": 22,
+     "2023": 48,
+     "2024": 21,
+     "2025": 21,
+     "2026": 23
+    },
+    "questions": 216
+   },
+   "11M8": {
+    "by_topic": {
+     "Analysis of Binomial Expansion": 19,
+     "Applications of Binomial Expansion": 34,
+     "Binomial Theorem for Any Index": 1,
+     "Multinomial Expansions": 11,
+     "Properties of Binomial Coefficients": 35,
+     "Series From Multiplication of Two Series": 6,
+     "Some Standard Expansions": 20,
+     "Sum of Series": 38,
+     "Tips For Finding Coefficients of Required Terms": 75
+    },
+    "by_year": {
+     "2013": 5,
+     "2014": 5,
+     "2015": 3,
+     "2016": 3,
+     "2017": 3,
+     "2018": 4,
+     "2019": 21,
+     "2020": 18,
+     "2021": 39,
+     "2022": 31,
+     "2023": 45,
+     "2024": 23,
+     "2025": 22,
+     "2026": 17
+    },
+    "questions": 239
+   },
+   "11M9": {
+    "by_topic": {
+     "Area of Triangle and Polygon": 13,
+     "Concurrency of Three Lines": 4,
+     "Different Centers of Triangle": 45,
+     "Different Forms of Straight Line": 30,
+     "Distance Form of a Line (Parametric Form)": 6,
+     "Distance Formula": 2,
+     "Distance of a Point From the Given Line": 13,
+     "Image of a Point With Respect to the Line Mirror": 20,
+     "Locus and Equation to a Locus": 14,
+     "Mixed Coordinate Geometry Problems": 1,
+     "Pair of Straight Lines": 3,
+     "Position of Points Relative to a Line": 5,
+     "Section Formula": 6,
+     "Slope (Gradient) of a Line": 17
+    },
+    "by_year": {
+     "2013": 9,
+     "2014": 8,
+     "2015": 5,
+     "2016": 5,
+     "2017": 2,
+     "2018": 5,
+     "2019": 20,
+     "2020": 12,
+     "2021": 21,
+     "2022": 19,
+     "2023": 13,
+     "2024": 27,
+     "2025": 19,
+     "2026": 14
+    },
+    "questions": 179
+   },
+   "12M13": {
+    "by_topic": {
+     "Composite Function": 26,
+     "Different Types of Mappings": 43,
+     "Domain, Co-domain and Range": 29,
+     "Even and Odd Functions": 3,
+     "Exponential and Logarithmic Functions": 4,
+     "Function": 10,
+     "Functional Equations": 24,
+     "Greatest Integer and Fractional Part Function": 14,
+     "Inverse Functions": 8,
+     "Inverse Trigonometric Functions": 6,
+     "Periodic Functions": 1,
+     "Trigonometric Functions": 2
+    },
+    "by_year": {
+     "2013": 1,
+     "2014": 3,
+     "2016": 2,
+     "2017": 4,
+     "2018": 1,
+     "2019": 15,
+     "2020": 9,
+     "2021": 23,
+     "2022": 22,
+     "2023": 28,
+     "2024": 22,
+     "2025": 19,
+     "2026": 21
+    },
+    "questions": 170
+   },
+   "12M14": {
+    "by_topic": {
+     "Conversion of One Inverse Function to Another Inverse Function": 6,
+     "Domain, Range, and Graphs of Inverse Trigonometric Functions": 18,
+     "Formulas for Sum and Difference of Inverse Trigonometric Functions": 28,
+     "Inverse Trigonometric (Circular) Functions": 1,
+     "Problems Based on Substitution": 15,
+     "Properties of Inverse Trigonometric Functions": 13,
+     "Sum of Complementary Angles": 10,
+     "Sum of Multiple Angles": 7
+    },
+    "by_year": {
+     "2013": 5,
+     "2014": 2,
+     "2015": 2,
+     "2017": 2,
+     "2019": 8,
+     "2020": 3,
+     "2021": 17,
+     "2022": 21,
+     "2023": 11,
+     "2024": 8,
+     "2025": 11,
+     "2026": 8
+    },
+    "questions": 98
+   },
+   "12M15": {
+    "by_topic": {
+     "Adjoint and Inverse of a Square Matrix": 67,
+     "Algebra of Matrices": 71,
+     "Determinant of a Square Matrix": 20,
+     "Differentiation of a Determinant": 3,
+     "Equivalent Matrices": 1,
+     "Properties of Determinants": 46,
+     "Some Important Determinants": 10,
+     "Special Matrices": 30,
+     "System of Linear Equations": 105,
+     "System of Simultaneous Linear Equations": 22
+    },
+    "by_year": {
+     "2013": 10,
+     "2014": 11,
+     "2015": 6,
+     "2016": 6,
+     "2017": 6,
+     "2018": 9,
+     "2019": 32,
+     "2020": 32,
+     "2021": 62,
+     "2022": 48,
+     "2023": 48,
+     "2024": 41,
+     "2025": 33,
+     "2026": 31
+    },
+    "questions": 375
+   },
+   "12M16": {
+    "by_topic": {
+     "Concept of Limit": 12,
+     "Evaluation of Algebraic Limits": 18,
+     "Evaluation of Exponential and Logarithmic Limits": 7,
+     "Evaluation of Trigonometric Limits": 27,
+     "Finding Limit Using Expansion Formula": 22,
+     "Limit of the form 'lim x→a (f(x))^g(x)'": 19,
+     "Limits of Sequences and Series": 8,
+     "L’Hospital’s Rule for Evaluating Limits": 9
+    },
+    "by_year": {
+     "2013": 2,
+     "2014": 2,
+     "2015": 2,
+     "2016": 3,
+     "2017": 2,
+     "2018": 4,
+     "2019": 14,
+     "2020": 9,
+     "2021": 20,
+     "2022": 15,
+     "2023": 11,
+     "2024": 14,
+     "2025": 16,
+     "2026": 8
+    },
+    "questions": 122
+   },
+   "12M17": {
+    "by_topic": {
+     "Continuity": 52,
+     "Continuity of Some Functions": 7,
+     "Derivative of Some Standard Functions": 7,
+     "Differentiability": 56,
+     "Differentiation Using Logarithm": 2,
+     "Differentiation Using Some Standard Substitutions": 8,
+     "Differentiation of Composite Functions (Chain Rule)": 11,
+     "Differentiation of Functions in Parametric Form": 5,
+     "Differentiation of Implicit Functions": 12,
+     "Differentiation of one function w.r.t. Other function": 2,
+     "Geometrical Meaning of a Derivative": 4,
+     "Higher Order Derivatives": 16,
+     "Theorems on Continuity": 3,
+     "Theorems on Derivatives": 12,
+     "Theorems on Differentiability": 7,
+     "Types of Discontinuity": 12
+    },
+    "by_year": {
+     "2013": 9,
+     "2014": 9,
+     "2015": 5,
+     "2016": 3,
+     "2017": 4,
+     "2018": 7,
+     "2019": 23,
+     "2020": 26,
+     "2021": 32,
+     "2022": 27,
+     "2023": 21,
+     "2024": 27,
+     "2025": 10,
+     "2026": 13
+    },
+    "questions": 216
+   },
+   "12M18": {
+    "by_topic": {
+     "Applications of Maxima and Minima": 30,
+     "Concept of Global (Absolute) Maximum and Minimum": 24,
+     "Extremum": 17,
+     "Interpretation of dy/dx as a Rate Measure": 17,
+     "Mean Value Theorem (Rolle's and Lagrange's)": 10,
+     "Monotonicity": 43,
+     "Roots of Equations and Polynomials": 12,
+     "Tangents, Normals and Angle Between Curves": 45,
+     "Tests for Local Maximum and Minimum": 29
+    },
+    "by_year": {
+     "2013": 9,
+     "2014": 9,
+     "2015": 4,
+     "2016": 6,
+     "2017": 5,
+     "2018": 5,
+     "2019": 20,
+     "2020": 25,
+     "2021": 36,
+     "2022": 36,
+     "2023": 20,
+     "2024": 27,
+     "2025": 12,
+     "2026": 13
+    },
+    "questions": 227
+   },
+   "12M19": {
+    "by_topic": {
+     "Elementary Integration": 4,
+     "Integration by Partial Fractions": 7,
+     "Integration by Parts": 18,
+     "Integration by Substitution": 53,
+     "Integration of Functions Which Involve Quadratic Function": 5,
+     "Integration of Typical Irrational Functions": 9
+    },
+    "by_year": {
+     "2013": 5,
+     "2014": 5,
+     "2015": 3,
+     "2016": 3,
+     "2017": 3,
+     "2018": 5,
+     "2019": 16,
+     "2020": 9,
+     "2021": 10,
+     "2022": 4,
+     "2023": 9,
+     "2024": 8,
+     "2025": 8,
+     "2026": 8
+    },
+    "questions": 96
+   },
+   "12M20": {
+    "by_topic": {
+     "Definite Integration of Odd and Even Functions": 25,
+     "Definite Integration of Periodic Functions": 17,
+     "Different Cases of Bounded Area": 165,
+     "Inequalities": 6,
+     "Introduction to Definite Integration": 72,
+     "Leibnitz’s Rule": 52,
+     "Limit as a Sum": 22,
+     "Properties of Definite Integration": 115
+    },
+    "by_year": {
+     "2013": 10,
+     "2014": 9,
+     "2015": 6,
+     "2016": 6,
+     "2017": 6,
+     "2018": 7,
+     "2019": 35,
+     "2020": 30,
+     "2021": 75,
+     "2022": 72,
+     "2023": 65,
+     "2024": 64,
+     "2025": 41,
+     "2026": 48
+    },
+    "questions": 474
+   },
+   "12M21": {
+    "by_topic": {
+     "Applications of Differential Equations": 9,
+     "General Form of Variable Separation": 18,
+     "Introduction to Differential Equations": 12,
+     "Solution of Differential Equations Using Variable Separation Method": 50,
+     "Solution of Homogeneous Differential Equations": 32,
+     "Solution of Linear Differential Equations": 124
+    },
+    "by_year": {
+     "2013": 5,
+     "2014": 5,
+     "2015": 3,
+     "2016": 3,
+     "2017": 3,
+     "2018": 4,
+     "2019": 16,
+     "2020": 17,
+     "2021": 43,
+     "2022": 41,
+     "2023": 25,
+     "2024": 37,
+     "2025": 23,
+     "2026": 20
+    },
+    "questions": 245
+   },
+   "12M22": {
+    "by_topic": {
+     "Addition of Vectors": 4,
+     "Applications of Dot (Scalar) Product": 38,
+     "Components of a Vector": 2,
+     "Definition of Vector": 1,
+     "Direction Cosines": 3,
+     "Dot (Scalar) Product": 22,
+     "Linear Combination, Linear Independence and Linear Dependence": 32,
+     "Lines and Distances in Vector Form": 4,
+     "Scalar Triple Product": 17,
+     "Section Formula": 8,
+     "Vector (or Cross) Product of Two Vectors": 99,
+     "Vector Along the Bisector of Given Two Vectors": 6,
+     "Vector Joining Two Points": 1,
+     "Vector Triple Product": 16
+    },
+    "by_year": {
+     "2013": 6,
+     "2014": 5,
+     "2015": 3,
+     "2016": 3,
+     "2017": 3,
+     "2018": 4,
+     "2019": 16,
+     "2020": 16,
+     "2021": 38,
+     "2022": 29,
+     "2023": 48,
+     "2024": 35,
+     "2025": 23,
+     "2026": 24
+    },
+    "questions": 253
+   },
+   "12M23": {
+    "by_topic": {
+     "Angle Between Two Lines": 15,
+     "Direction Cosines and Direction Ratios": 10,
+     "Distance Formula": 4,
+     "Equation of Straight Line": 77,
+     "Equation of a Plane and Distance from a Plane": 32,
+     "Image, Foot of Perpendicular and Projection": 80,
+     "Line and Plane: Intersection and Angle": 59,
+     "Section Formula": 7,
+     "Shortest Distance Between Two Lines": 58,
+     "Sphere, Locus and Tetrahedron": 2,
+     "Two Planes and Family of Planes": 40
+    },
+    "by_year": {
+     "2013": 10,
+     "2014": 10,
+     "2015": 6,
+     "2016": 6,
+     "2017": 7,
+     "2018": 8,
+     "2019": 32,
+     "2020": 17,
+     "2021": 54,
+     "2022": 52,
+     "2023": 73,
+     "2024": 43,
+     "2025": 34,
+     "2026": 32
+    },
+    "questions": 384
+   },
+   "12M24": {
+    "by_topic": {
+     "Addition Theorem of Probability": 9,
+     "Axiomatic Approach to Probability": 3,
+     "Bayes’ Theorem": 24,
+     "Binomial and Poisson Distributions": 33,
+     "Conditional Probability": 16,
+     "Different Types of Events": 4,
+     "Independent Events": 30,
+     "Mathematical or Classical Definition of Probability": 72,
+     "Multiplication Theorem of Probability": 1,
+     "Random Variables and Probability Distributions": 30,
+     "Total Probability Theorem": 8
+    },
+    "by_year": {
+     "2013": 5,
+     "2014": 6,
+     "2015": 4,
+     "2016": 3,
+     "2017": 7,
+     "2018": 5,
+     "2019": 20,
+     "2020": 16,
+     "2021": 34,
+     "2022": 34,
+     "2023": 28,
+     "2024": 26,
+     "2025": 23,
+     "2026": 19
+    },
+    "questions": 230
+   },
+   "12M25": {
+    "by_topic": {
+     "Corner Point Method and Optimal Solution": 1
+    },
+    "by_year": {
+     "2021": 1
+    },
+    "questions": 1
+   },
+   "12M26": {
+    "by_topic": {
+     "Conditional and Biconditional Statements": 2,
+     "Converse, Inverse and Contrapositive": 14,
+     "Negation and Quantifiers": 22,
+     "Statements and Truth Values": 2,
+     "Tautology, Contradiction and Fallacy": 36,
+     "Truth Values, Truth Tables and Logical Equivalence": 50
+    },
+    "by_year": {
+     "2013": 5,
+     "2014": 5,
+     "2015": 3,
+     "2016": 3,
+     "2017": 3,
+     "2018": 4,
+     "2019": 15,
+     "2020": 16,
+     "2021": 24,
+     "2022": 24,
+     "2023": 24
+    },
+    "questions": 126
+   },
+   "12M28": {
+    "by_topic": {
+     "Angles of Elevation and Depression": 9,
+     "Inclined Planes, Slopes and Leaning Objects": 1,
+     "Triangular Plots and Equal Angles": 5,
+     "Two Observation Points and Moving Objects": 15,
+     "Two Towers, Poles or Objects": 6
+    },
+    "by_year": {
+     "2014": 2,
+     "2015": 2,
+     "2016": 2,
+     "2017": 1,
+     "2018": 4,
+     "2019": 5,
+     "2020": 3,
+     "2021": 7,
+     "2022": 8,
+     "2023": 2
+    },
+    "questions": 36
+   }
+  },
   "first": 2013,
   "last": 2026,
   "papers": 187,
@@ -277,6 +3191,563 @@
    "2025": 60,
    "2026": 60
   },
+  "chapters": {
+   "11M1": {
+    "by_topic": {
+     "Absolute Values (Modulus) of Real Number": 3,
+     "Inequalities": 6,
+     "Introduction": 1,
+     "Logarithmic Function": 2
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2019": 2,
+     "2021": 2,
+     "2023": 2,
+     "2024": 1,
+     "2025": 1,
+     "2026": 2
+    },
+    "questions": 12
+   },
+   "11M10": {
+    "by_topic": {
+     "Definition of Circle": 1
+    },
+    "by_year": {
+     "2024": 1
+    },
+    "questions": 1
+   },
+   "11M11": {
+    "by_topic": {
+     "Equation of Parabola in Different Cases": 3,
+     "Standard Equation of Ellipse": 3,
+     "Standard Equation of Hyperbola": 3
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2019": 1,
+     "2020": 1,
+     "2021": 1,
+     "2023": 1,
+     "2024": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 9
+   },
+   "11M12": {
+    "by_topic": {
+     "Mean Deviation": 1,
+     "Standard Deviation": 8
+    },
+    "by_year": {
+     "2017": 1,
+     "2019": 1,
+     "2020": 1,
+     "2021": 1,
+     "2022": 1,
+     "2023": 1,
+     "2024": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 9
+   },
+   "11M2": {
+    "by_topic": {
+     "Basics of Function": 2,
+     "Cartesian Product of Sets": 2,
+     "Different Types of Sets": 1,
+     "Finding Range of a Function": 1,
+     "Important Results Related to Cardinal Number of Sets": 2,
+     "Operation on Sets": 2,
+     "Relations": 3,
+     "Subsets": 7,
+     "Types of Relation": 5
+    },
+    "by_year": {
+     "2017": 2,
+     "2019": 2,
+     "2020": 3,
+     "2021": 2,
+     "2022": 4,
+     "2023": 2,
+     "2024": 2,
+     "2025": 4,
+     "2026": 4
+    },
+    "questions": 25
+   },
+   "11M3": {
+    "by_topic": {
+     "General Solution of Some Standard Equations": 2,
+     "Graph and Other Useful Data of Trigonometric Functions": 1,
+     "Measurement of an Angle": 1,
+     "Some Important Results and Their Applications": 2,
+     "Transformation Formulae": 1,
+     "Trigonometric Functions of Acute Angles": 1,
+     "Trigonometric Functions of Any Angle": 1,
+     "Trigonometric Ratios for Compound Angles": 1,
+     "Trigonometric Ratios of Allied Angles": 2,
+     "Trigonometric Ratios of Multiple and Sub-multiple Angles": 1,
+     "Values of Trigonometric Ratios of Standard Angles": 4
+    },
+    "by_year": {
+     "2017": 1,
+     "2019": 2,
+     "2020": 2,
+     "2021": 2,
+     "2022": 4,
+     "2023": 1,
+     "2024": 1,
+     "2025": 3,
+     "2026": 1
+    },
+    "questions": 17
+   },
+   "11M4": {
+    "by_topic": {
+     "Quadratic Equation": 2
+    },
+    "by_year": {
+     "2019": 1,
+     "2024": 1
+    },
+    "questions": 2
+   },
+   "11M5": {
+    "by_topic": {
+     "Algebraic Operations With Complex Numbers": 4,
+     "Integral Power of Iota (i)": 3,
+     "Properties of Modulus": 1,
+     "Standard Loci in the Argand Plane": 1
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2020": 1,
+     "2021": 1,
+     "2022": 1,
+     "2023": 1,
+     "2024": 1,
+     "2025": 1,
+     "2026": 1
+    },
+    "questions": 9
+   },
+   "11M6": {
+    "by_topic": {
+     "Arithmetic Progression (A.P.)": 5,
+     "Geometric Progression (G.P.)": 6,
+     "Sum of Some Special Series": 1
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2019": 1,
+     "2020": 1,
+     "2021": 1,
+     "2022": 1,
+     "2023": 2,
+     "2024": 1,
+     "2025": 1,
+     "2026": 2
+    },
+    "questions": 12
+   },
+   "11M7": {
+    "by_topic": {
+     "Combination": 7,
+     "Permutation": 6
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 2,
+     "2019": 1,
+     "2020": 1,
+     "2021": 1,
+     "2022": 1,
+     "2023": 1,
+     "2024": 1,
+     "2025": 2,
+     "2026": 2
+    },
+    "questions": 13
+   },
+   "11M8": {
+    "by_topic": {
+     "Analysis of Binomial Expansion": 3,
+     "Mathematical Induction": 3,
+     "Multinomial Expansions": 1,
+     "Properties of Binomial Coefficients": 1,
+     "Tips For Finding Coefficients of Required Terms": 2
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 2,
+     "2019": 2,
+     "2020": 2,
+     "2023": 1,
+     "2024": 1,
+     "2025": 1
+    },
+    "questions": 10
+   },
+   "11M9": {
+    "by_topic": {
+     "Area of Triangle and Polygon": 3,
+     "Different Forms of Straight Line": 6,
+     "Section Formula": 1,
+     "Slope (Gradient) of a Line": 3
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2019": 1,
+     "2020": 1,
+     "2021": 1,
+     "2022": 2,
+     "2023": 2,
+     "2024": 1,
+     "2025": 1,
+     "2026": 2
+    },
+    "questions": 13
+   },
+   "12M13": {
+    "by_topic": {
+     "Binary Operations": 3,
+     "Composite Function": 6,
+     "Different Types of Mappings": 5,
+     "Domain, Co-domain and Range": 7,
+     "Function": 4,
+     "Greatest Integer and Fractional Part Function": 3,
+     "Inverse Functions": 2
+    },
+    "by_year": {
+     "2017": 3,
+     "2018": 4,
+     "2019": 3,
+     "2020": 2,
+     "2021": 5,
+     "2022": 1,
+     "2023": 4,
+     "2024": 3,
+     "2025": 3,
+     "2026": 2
+    },
+    "questions": 30
+   },
+   "12M14": {
+    "by_topic": {
+     "Conversion of One Inverse Function to Another Inverse Function": 3,
+     "Domain, Range, and Graphs of Inverse Trigonometric Functions": 5,
+     "Formulas for Sum and Difference of Inverse Trigonometric Functions": 1,
+     "Inverse Trigonometric (Circular) Functions": 1,
+     "Problems Based on Substitution": 3,
+     "Properties of Inverse Trigonometric Functions": 2,
+     "Sum of Complementary Angles": 5
+    },
+    "by_year": {
+     "2017": 2,
+     "2018": 2,
+     "2019": 2,
+     "2020": 2,
+     "2021": 2,
+     "2022": 1,
+     "2023": 2,
+     "2024": 3,
+     "2025": 2,
+     "2026": 2
+    },
+    "questions": 20
+   },
+   "12M15": {
+    "by_topic": {
+     "Adjoint and Inverse of a Square Matrix": 16,
+     "Algebra of Matrices": 12,
+     "Classification of Matrices": 4,
+     "Determinant of a Square Matrix": 2,
+     "Differentiation of a Determinant": 4,
+     "Properties of Determinants": 18,
+     "Special Matrices": 8,
+     "System of Linear Equations": 4
+    },
+    "by_year": {
+     "2017": 7,
+     "2018": 7,
+     "2019": 6,
+     "2020": 6,
+     "2021": 6,
+     "2022": 7,
+     "2023": 6,
+     "2024": 6,
+     "2025": 9,
+     "2026": 8
+    },
+    "questions": 68
+   },
+   "12M16": {
+    "by_topic": {
+     "Algebra of Limits": 2,
+     "Evaluation of Algebraic Limits": 5,
+     "Evaluation of Trigonometric Limits": 4,
+     "Limits of Sequences and Series": 1
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2019": 1,
+     "2020": 2,
+     "2021": 1,
+     "2022": 1,
+     "2023": 1,
+     "2024": 1,
+     "2025": 1,
+     "2026": 2
+    },
+    "questions": 12
+   },
+   "12M17": {
+    "by_topic": {
+     "Continuity": 10,
+     "Derivative of Some Standard Functions": 4,
+     "Differentiability": 6,
+     "Differentiation Using Logarithm": 5,
+     "Differentiation Using Some Standard Substitutions": 7,
+     "Differentiation of Composite Functions (Chain Rule)": 3,
+     "Differentiation of Determinants": 1,
+     "Differentiation of Functions in Parametric Form": 4,
+     "Differentiation of Implicit Functions": 4,
+     "Differentiation of one function w.r.t. Other function": 4,
+     "Geometrical Meaning of a Derivative": 1,
+     "Higher Order Derivatives": 5,
+     "Mixed Problems on Continuity and Differentiability": 2,
+     "Theorems on Derivatives": 1,
+     "Theorems on Differentiability": 3
+    },
+    "by_year": {
+     "2017": 8,
+     "2018": 5,
+     "2019": 6,
+     "2020": 5,
+     "2021": 7,
+     "2022": 8,
+     "2023": 6,
+     "2024": 5,
+     "2025": 6,
+     "2026": 4
+    },
+    "questions": 60
+   },
+   "12M18": {
+    "by_topic": {
+     "Applications of Maxima and Minima": 6,
+     "Approximations": 3,
+     "Extremum": 7,
+     "Interpretation of dy/dx as a Rate Measure": 7,
+     "Monotonicity": 6,
+     "Tangents, Normals and Angle Between Curves": 2
+    },
+    "by_year": {
+     "2017": 2,
+     "2018": 4,
+     "2019": 3,
+     "2020": 3,
+     "2021": 3,
+     "2022": 3,
+     "2023": 4,
+     "2024": 5,
+     "2025": 1,
+     "2026": 3
+    },
+    "questions": 31
+   },
+   "12M19": {
+    "by_topic": {
+     "Elementary Integration": 1,
+     "Integration by Partial Fractions": 4,
+     "Integration by Parts": 7,
+     "Integration by Substitution": 9,
+     "Integration of Functions Which Involve Quadratic Function": 4,
+     "Integration of Typical Irrational Functions": 4
+    },
+    "by_year": {
+     "2017": 3,
+     "2018": 3,
+     "2019": 3,
+     "2020": 3,
+     "2021": 4,
+     "2022": 2,
+     "2023": 3,
+     "2024": 3,
+     "2025": 2,
+     "2026": 3
+    },
+    "questions": 29
+   },
+   "12M20": {
+    "by_topic": {
+     "Definite Integration of Odd and Even Functions": 8,
+     "Different Cases of Bounded Area": 19,
+     "Introduction to Definite Integration": 9,
+     "Limit as a Sum": 2,
+     "Properties of Definite Integration": 13
+    },
+    "by_year": {
+     "2017": 7,
+     "2018": 5,
+     "2019": 5,
+     "2020": 5,
+     "2021": 4,
+     "2022": 6,
+     "2023": 5,
+     "2024": 5,
+     "2025": 5,
+     "2026": 4
+    },
+    "questions": 51
+   },
+   "12M21": {
+    "by_topic": {
+     "Applications of Differential Equations": 4,
+     "General Form of Variable Separation": 1,
+     "Introduction to Differential Equations": 8,
+     "Solution of Differential Equations Using Variable Separation Method": 6,
+     "Solution of Linear Differential Equations": 8
+    },
+    "by_year": {
+     "2017": 3,
+     "2018": 3,
+     "2019": 3,
+     "2020": 3,
+     "2021": 2,
+     "2022": 4,
+     "2023": 2,
+     "2024": 2,
+     "2025": 2,
+     "2026": 3
+    },
+    "questions": 27
+   },
+   "12M22": {
+    "by_topic": {
+     "Applications of Dot (Scalar) Product": 13,
+     "Direction Cosines": 1,
+     "Dot (Scalar) Product": 6,
+     "Linear Combination, Linear Independence and Linear Dependence": 2,
+     "Scalar Triple Product": 3,
+     "Vector (or Cross) Product of Two Vectors": 13
+    },
+    "by_year": {
+     "2017": 3,
+     "2018": 4,
+     "2019": 4,
+     "2020": 4,
+     "2021": 5,
+     "2022": 3,
+     "2023": 4,
+     "2024": 4,
+     "2025": 3,
+     "2026": 4
+    },
+    "questions": 38
+   },
+   "12M23": {
+    "by_topic": {
+     "Angle Between Two Lines": 5,
+     "Direction Cosines and Direction Ratios": 3,
+     "Distance Formula": 3,
+     "Equation of Straight Line": 5,
+     "Equation of a Plane and Distance from a Plane": 4,
+     "Image, Foot of Perpendicular and Projection": 4,
+     "Introduction": 3,
+     "Line and Plane: Intersection and Angle": 6,
+     "Section Formula": 2,
+     "Shortest Distance Between Two Lines": 1,
+     "Sphere, Locus and Tetrahedron": 2,
+     "Two Planes and Family of Planes": 1
+    },
+    "by_year": {
+     "2017": 4,
+     "2018": 4,
+     "2019": 4,
+     "2020": 4,
+     "2021": 4,
+     "2022": 4,
+     "2023": 5,
+     "2024": 5,
+     "2025": 3,
+     "2026": 2
+    },
+    "questions": 39
+   },
+   "12M24": {
+    "by_topic": {
+     "Addition Theorem of Probability": 6,
+     "Bayes’ Theorem": 3,
+     "Binomial and Poisson Distributions": 3,
+     "Conditional Probability": 8,
+     "Different Types of Events": 1,
+     "Independent Events": 7,
+     "Mathematical or Classical Definition of Probability": 8,
+     "Multiplication Theorem of Probability": 1,
+     "Random Variables and Probability Distributions": 5,
+     "Total Probability Theorem": 2
+    },
+    "by_year": {
+     "2017": 3,
+     "2018": 6,
+     "2019": 5,
+     "2020": 5,
+     "2021": 5,
+     "2022": 4,
+     "2023": 3,
+     "2024": 3,
+     "2025": 5,
+     "2026": 5
+    },
+    "questions": 44
+   },
+   "12M25": {
+    "by_topic": {
+     "Applications: Diet, Production and Transportation Problems": 1,
+     "Corner Point Method and Optimal Solution": 6,
+     "Graphical Method and Feasible Region": 2,
+     "Introduction and Terminology": 1,
+     "Unbounded, Infeasible and Multiple Optimal Solutions": 3
+    },
+    "by_year": {
+     "2017": 2,
+     "2018": 2,
+     "2020": 2,
+     "2022": 2,
+     "2024": 1,
+     "2025": 2,
+     "2026": 2
+    },
+    "questions": 13
+   },
+   "12M26": {
+    "by_topic": {
+     "Converse, Inverse and Contrapositive": 2,
+     "Negation and Quantifiers": 4
+    },
+    "by_year": {
+     "2017": 1,
+     "2018": 1,
+     "2019": 1,
+     "2020": 1,
+     "2023": 1,
+     "2024": 1
+    },
+    "questions": 6
+   }
+  },
   "first": 2017,
   "last": 2026,
   "papers": 10,
@@ -316,6 +3787,476 @@
    "2024": 240,
    "2025": 240,
    "2026": 240
+  },
+  "chapters": {
+   "11M1": {
+    "by_topic": {
+     "Absolute Values (Modulus) of Real Number": 1,
+     "Fundamental Laws of Logarithm": 6,
+     "Inequalities": 1,
+     "Logarithmic Equation": 3,
+     "Number Systems and Integer Counting": 4
+    },
+    "by_year": {
+     "2023": 2,
+     "2024": 4,
+     "2025": 5,
+     "2026": 4
+    },
+    "questions": 15
+   },
+   "11M10": {
+    "by_topic": {
+     "Equation of Circle": 7,
+     "Equation of Circle With Typical Conditions": 3,
+     "Equation of the Chord Bisected at a Given Point": 1,
+     "Intercepts Made on the Axes by a Circle": 1,
+     "Intersection of a Line and a Circle": 2
+    },
+    "by_year": {
+     "2023": 4,
+     "2024": 4,
+     "2025": 3,
+     "2026": 3
+    },
+    "questions": 14
+   },
+   "11M11": {
+    "by_topic": {
+     "Equation of Parabola in Different Cases": 6,
+     "Intersection of a Line and a Parabola": 1,
+     "Some Important Properties of Ellipse": 4,
+     "Standard Equation of Ellipse": 4,
+     "Standard Equation of Hyperbola": 4
+    },
+    "by_year": {
+     "2023": 6,
+     "2024": 4,
+     "2025": 5,
+     "2026": 4
+    },
+    "questions": 19
+   },
+   "11M12": {
+    "by_topic": {
+     "Arithmetic Mean": 12,
+     "Correlation and Regression": 9,
+     "Data Representation (Pie Charts)": 1,
+     "Dispersion": 2,
+     "Introduction": 2,
+     "Mean Deviation": 3,
+     "Median": 3,
+     "Mode": 3,
+     "Standard Deviation": 14
+    },
+    "by_year": {
+     "2023": 15,
+     "2024": 11,
+     "2025": 12,
+     "2026": 11
+    },
+    "questions": 49
+   },
+   "11M2": {
+    "by_topic": {
+     "Basics of Function": 9,
+     "Cartesian Product of Sets": 4,
+     "Different Types of Sets": 1,
+     "Finding Domain of a Function": 4,
+     "Finding Range of a Function": 3,
+     "Important Results Related to Cardinal Number of Sets": 4,
+     "Operation on Sets": 5,
+     "Relations": 3,
+     "Subsets": 1,
+     "Types of Relation": 4
+    },
+    "by_year": {
+     "2023": 9,
+     "2024": 9,
+     "2025": 8,
+     "2026": 12
+    },
+    "questions": 38
+   },
+   "11M3": {
+    "by_topic": {
+     "Conditional Identities": 3,
+     "General Solution of Some Standard Equations": 10,
+     "Problems Based on Extreme Values of Functions": 9,
+     "Some Important Results and Their Applications": 7,
+     "Transformation Formulae": 6,
+     "Trigonometric Equations: Introduction": 3,
+     "Trigonometric Ratios for Compound Angles": 13,
+     "Trigonometric Ratios of Allied Angles": 2,
+     "Trigonometric Ratios of Multiple and Sub-multiple Angles": 10,
+     "Values of Trigonometric Ratios of Standard Angles": 5
+    },
+    "by_year": {
+     "2023": 16,
+     "2024": 17,
+     "2025": 19,
+     "2026": 16
+    },
+    "questions": 68
+   },
+   "11M4": {
+    "by_topic": {
+     "Common Roots": 1,
+     "Location of Roots": 1,
+     "Quadratic Equation": 18,
+     "Quadratic Function": 4,
+     "Relation Between Coefficients and Roots of n Degree Equation": 6,
+     "Repeated Roots": 2
+    },
+    "by_year": {
+     "2023": 9,
+     "2024": 9,
+     "2025": 7,
+     "2026": 7
+    },
+    "questions": 32
+   },
+   "11M5": {
+    "by_topic": {
+     "Algebraic Operations With Complex Numbers": 6,
+     "Cube Roots of Unity": 12,
+     "De Moivre’s Theorem": 1,
+     "Integral Power of Iota (i)": 3,
+     "Polar Form of a Complex Number": 2,
+     "Properties of Arguments": 1,
+     "Properties of Modulus": 4,
+     "Solving Complex Equations": 2,
+     "Standard Loci in the Argand Plane": 2
+    },
+    "by_year": {
+     "2023": 10,
+     "2024": 9,
+     "2025": 6,
+     "2026": 8
+    },
+    "questions": 33
+   },
+   "11M6": {
+    "by_topic": {
+     "Arithmetic Progression (A.P.)": 22,
+     "Geometric Progression (G.P.)": 9,
+     "Harmonic Progression (H.P.)": 8,
+     "Properties of A.M. ,G.M. and H.M. of Two Positive Real Numbers": 2
+    },
+    "by_year": {
+     "2023": 13,
+     "2024": 9,
+     "2025": 11,
+     "2026": 8
+    },
+    "questions": 41
+   },
+   "11M7": {
+    "by_topic": {
+     "Combination": 14,
+     "Division and Distribution": 1,
+     "Factorial Notation": 7,
+     "Fundamental Principle of Counting": 3,
+     "Permutation": 14
+    },
+    "by_year": {
+     "2023": 10,
+     "2024": 12,
+     "2025": 11,
+     "2026": 6
+    },
+    "questions": 39
+   },
+   "11M8": {
+    "by_topic": {
+     "Analysis of Binomial Expansion": 5,
+     "Applications of Binomial Expansion": 11,
+     "Multinomial Expansions": 1,
+     "Properties of Binomial Coefficients": 7,
+     "Tips For Finding Coefficients of Required Terms": 2
+    },
+    "by_year": {
+     "2023": 6,
+     "2024": 8,
+     "2025": 5,
+     "2026": 7
+    },
+    "questions": 26
+   },
+   "11M9": {
+    "by_topic": {
+     "Area of Triangle and Polygon": 1,
+     "Different Centers of Triangle": 2,
+     "Different Forms of Straight Line": 15,
+     "Distance Form of a Line (Parametric Form)": 1,
+     "Distance Formula": 4,
+     "Distance of a Point From the Given Line": 3,
+     "Image of a Point With Respect to the Line Mirror": 1,
+     "Locus and Equation to a Locus": 3,
+     "Pair of Straight Lines": 1,
+     "Section Formula": 3,
+     "Slope (Gradient) of a Line": 7
+    },
+    "by_year": {
+     "2023": 8,
+     "2024": 11,
+     "2025": 11,
+     "2026": 11
+    },
+    "questions": 41
+   },
+   "12M13": {
+    "by_topic": {
+     "Composite Function": 8,
+     "Domain, Co-domain and Range": 1,
+     "Even and Odd Functions": 1,
+     "Function": 3,
+     "Functional Equations": 10,
+     "Greatest Integer and Fractional Part Function": 5,
+     "Inverse Functions": 2,
+     "Periodic Functions": 1,
+     "Trigonometric Functions": 1
+    },
+    "by_year": {
+     "2023": 8,
+     "2024": 11,
+     "2025": 9,
+     "2026": 4
+    },
+    "questions": 32
+   },
+   "12M14": {
+    "by_topic": {
+     "Conversion of One Inverse Function to Another Inverse Function": 4,
+     "Formulas for Sum and Difference of Inverse Trigonometric Functions": 4,
+     "Problems Based on Substitution": 1,
+     "Properties of Inverse Trigonometric Functions": 6,
+     "Sum of Complementary Angles": 1,
+     "Sum of Multiple Angles": 1
+    },
+    "by_year": {
+     "2023": 3,
+     "2024": 5,
+     "2025": 5,
+     "2026": 4
+    },
+    "questions": 17
+   },
+   "12M15": {
+    "by_topic": {
+     "Adjoint and Inverse of a Square Matrix": 18,
+     "Algebra of Matrices": 11,
+     "Determinant of a Square Matrix": 10,
+     "Differentiation of a Determinant": 1,
+     "Product of Two Determinants": 1,
+     "Properties of Determinants": 24,
+     "Some Important Determinants": 2,
+     "Special Matrices": 9,
+     "System of Linear Equations": 3,
+     "System of Simultaneous Linear Equations": 2
+    },
+    "by_year": {
+     "2023": 21,
+     "2024": 18,
+     "2025": 21,
+     "2026": 21
+    },
+    "questions": 81
+   },
+   "12M16": {
+    "by_topic": {
+     "Concept of Limit": 8,
+     "Evaluation of Algebraic Limits": 8,
+     "Evaluation of Exponential and Logarithmic Limits": 3,
+     "Evaluation of Trigonometric Limits": 5,
+     "Limit of the form 'lim x→a (f(x))^g(x)'": 1
+    },
+    "by_year": {
+     "2023": 9,
+     "2024": 3,
+     "2025": 7,
+     "2026": 6
+    },
+    "questions": 25
+   },
+   "12M17": {
+    "by_topic": {
+     "Continuity": 9,
+     "Derivative of Some Standard Functions": 11,
+     "Differentiability": 13,
+     "Differentiation Using Logarithm": 2,
+     "Differentiation Using Some Standard Substitutions": 1,
+     "Differentiation of Composite Functions (Chain Rule)": 4,
+     "Differentiation of Functions in Parametric Form": 1,
+     "Differentiation of Implicit Functions": 2,
+     "Differentiation of one function w.r.t. Other function": 1,
+     "Geometrical Meaning of a Derivative": 1,
+     "Higher Order Derivatives": 4,
+     "Theorems on Derivatives": 2
+    },
+    "by_year": {
+     "2023": 13,
+     "2024": 6,
+     "2025": 15,
+     "2026": 17
+    },
+    "questions": 51
+   },
+   "12M18": {
+    "by_topic": {
+     "Applications of Maxima and Minima": 5,
+     "Concept of Global (Absolute) Maximum and Minimum": 8,
+     "Extremum": 3,
+     "Monotonicity": 10,
+     "Tangents, Normals and Angle Between Curves": 1,
+     "Tests for Local Maximum and Minimum": 4
+    },
+    "by_year": {
+     "2023": 8,
+     "2024": 8,
+     "2025": 8,
+     "2026": 7
+    },
+    "questions": 31
+   },
+   "12M19": {
+    "by_topic": {
+     "Elementary Integration": 2,
+     "Integration by Partial Fractions": 2,
+     "Integration by Parts": 2,
+     "Integration by Substitution": 4,
+     "Integration of Typical Irrational Functions": 4
+    },
+    "by_year": {
+     "2024": 6,
+     "2025": 4,
+     "2026": 4
+    },
+    "questions": 14
+   },
+   "12M20": {
+    "by_topic": {
+     "Curve Tracing": 1,
+     "Definite Integration of Odd and Even Functions": 3,
+     "Definite Integration of Periodic Functions": 2,
+     "Different Cases of Bounded Area": 15,
+     "Introduction to Definite Integration": 7,
+     "Leibnitz’s Rule": 1,
+     "Properties of Definite Integration": 22
+    },
+    "by_year": {
+     "2023": 12,
+     "2024": 17,
+     "2025": 9,
+     "2026": 13
+    },
+    "questions": 51
+   },
+   "12M21": {
+    "by_topic": {
+     "General Form of Variable Separation": 2,
+     "Introduction to Differential Equations": 12,
+     "Solution of Differential Equations Using Variable Separation Method": 6,
+     "Solution of Linear Differential Equations": 1
+    },
+    "by_year": {
+     "2023": 6,
+     "2024": 6,
+     "2025": 3,
+     "2026": 6
+    },
+    "questions": 21
+   },
+   "12M22": {
+    "by_topic": {
+     "Applications of Dot (Scalar) Product": 8,
+     "Direction Cosines": 1,
+     "Dot (Scalar) Product": 8,
+     "Linear Combination, Linear Independence and Linear Dependence": 2,
+     "Multiplication of a Vector by a Scalar": 1,
+     "Section Formula": 1,
+     "Vector (or Cross) Product of Two Vectors": 15,
+     "Vector Joining Two Points": 2,
+     "Vector Triple Product": 3
+    },
+    "by_year": {
+     "2023": 9,
+     "2024": 10,
+     "2025": 11,
+     "2026": 11
+    },
+    "questions": 41
+   },
+   "12M23": {
+    "by_topic": {
+     "Angle Between Two Lines": 3,
+     "Direction Cosines and Direction Ratios": 12,
+     "Distance Formula": 5,
+     "Equation of Straight Line": 3,
+     "Equation of a Plane and Distance from a Plane": 3,
+     "Image, Foot of Perpendicular and Projection": 1,
+     "Line and Plane: Intersection and Angle": 3,
+     "Section Formula": 1,
+     "Sphere, Locus and Tetrahedron": 10,
+     "Two Planes and Family of Planes": 2
+    },
+    "by_year": {
+     "2023": 11,
+     "2024": 11,
+     "2025": 10,
+     "2026": 11
+    },
+    "questions": 43
+   },
+   "12M24": {
+    "by_topic": {
+     "Addition Theorem of Probability": 11,
+     "Algebra of Events": 1,
+     "Axiomatic Approach to Probability": 4,
+     "Bayes’ Theorem": 3,
+     "Binomial and Poisson Distributions": 18,
+     "Conditional Probability": 6,
+     "Independent Events": 9,
+     "Mathematical or Classical Definition of Probability": 47,
+     "Multiplication Theorem of Probability": 3,
+     "Total Probability Theorem": 3
+    },
+    "by_year": {
+     "2023": 22,
+     "2024": 27,
+     "2025": 27,
+     "2026": 29
+    },
+    "questions": 105
+   },
+   "12M27": {
+    "by_topic": {
+     "Area of a Triangle": 3,
+     "Basic Relations of a Triangle (Sine, Cosine, Projection Rules)": 18,
+     "Circumcircle and Incircle (R and r)": 2,
+     "Napier's Analogy and Half Angle Formulas": 1,
+     "Regular Polygons and Miscellaneous Triangle Problems": 1
+    },
+    "by_year": {
+     "2023": 8,
+     "2024": 5,
+     "2025": 5,
+     "2026": 7
+    },
+    "questions": 25
+   },
+   "12M28": {
+    "by_topic": {
+     "Angles of Elevation and Depression": 6,
+     "Two Observation Points and Moving Objects": 2
+    },
+    "by_year": {
+     "2023": 2,
+     "2025": 3,
+     "2026": 3
+    },
+    "questions": 8
+   }
   },
   "first": 2023,
   "last": 2026,

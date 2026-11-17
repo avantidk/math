@@ -66,6 +66,9 @@ STATS = json.load(open('.github/scripts/exam-stats.json', encoding='utf-8'))
 CH_NAME = {c['code']: c['name'] for c in CH}
 CH_NAME.update({code: n for code, n in OOS})
 CH_SLUG = {c['code']: slug(c) for c in CH}
+OOS_SLUG = {'12M25': 'linear-programming-problem', '12M26': 'mathematical-reasoning', '12M27': 'solution-of-triangle', '12M28': 'height-and-distance'}
+ANY_SLUG = dict(CH_SLUG); ANY_SLUG.update(OOS_SLUG)
+LOGO = 'img/ankit-logo-light.png'
 EXAMS = [   # (key in the stats, name shown, url slug, short line, about)
  ('JEE Main', 'JEE Main', 'jee-main', 'Engineering entrance for NITs, IIITs and other institutes; the qualifier for JEE Advanced.',
   'JEE Main is the national-level engineering entrance examination conducted by the National Testing Agency (NTA). It is used for admission to NITs, IIITs and other centrally funded technical institutions, and its rank list decides who may appear for JEE Advanced. Mathematics is one of the three subjects.'),
@@ -82,6 +85,49 @@ EXAMS = [   # (key in the stats, name shown, url slug, short line, about)
  ('IAT', 'IAT', 'iat', 'The IISER Aptitude Test for the BS-MS programmes.',
   'The IISER Aptitude Test (IAT) is the entrance test for the BS-MS programmes of the Indian Institutes of Science Education and Research (IISERs). Mathematics is one of its sections.'),
 ]
+
+# Plain facts for the exam pages. Patterns change, so the pages tell readers to check the official notification.
+FACTS = {
+ 'JEE Main': [('Full name', 'Joint Entrance Examination (Main)'), ('Conducted by', 'National Testing Agency (NTA)'),
+   ('Held for', 'Admission to B.E. / B.Tech at NITs, IIITs and other centrally funded institutions; also the qualifying round for JEE Advanced'),
+   ('Who can appear', 'Students who have passed, or are appearing in, Class 12'), ('Mode', 'Computer-based test'),
+   ('How often', 'Twice a year (January and April sessions), held in several shifts'), ('Subjects', 'Physics, Chemistry and Mathematics'),
+   ('Maths in the paper', 'Multiple-choice and numerical-answer questions. Recent shift papers have 25 maths questions (20 multiple-choice and 5 numerical).')],
+ 'JEE Advanced': [('Full name', 'Joint Entrance Examination (Advanced)'), ('Conducted by', 'One of the IITs, chosen by rotation each year'),
+   ('Held for', 'Admission to the undergraduate programmes of the IITs'), ('Who can appear', 'Top candidates who qualify through JEE Main'),
+   ('Mode', 'Computer-based test'), ('How often', 'Once a year, in two papers (Paper 1 and Paper 2)'), ('Subjects', 'Physics, Chemistry and Mathematics in each paper'),
+   ('Maths in the paper', 'A mix of question types (single correct, multiple correct, numerical and matching). The pattern can change from year to year.')],
+ 'IIT': [('Full name', 'Joint Entrance Examination for the IITs'), ('Conducted by', 'The IITs (one IIT organised it each year)'),
+   ('Held for', 'Admission to the IITs'), ('Who can appear', 'Students who had passed, or were appearing in, Class 12'), ('Mode', 'Pen and paper'),
+   ('How often', 'Once a year until 2012. From 2013 it continued as JEE Advanced.'), ('Subjects', 'Physics, Chemistry and Mathematics'),
+   ('Maths in the paper', 'Question styles changed over the years and included single-correct, multiple-correct, integer-answer and matching questions.')],
+ 'AIEEE': [('Full name', 'All India Engineering Entrance Examination'), ('Conducted by', 'Central Board of Secondary Education (CBSE)'),
+   ('Held for', 'Admission to B.E. / B.Tech and B.Arch at NITs, IIITs and other institutions'), ('Who can appear', 'Students who had passed, or were appearing in, Class 12'),
+   ('Mode', 'Mainly pen and paper, with an online option in later years'), ('How often', 'Once a year from 2002 to 2012. From 2013 it was replaced by JEE Main.'),
+   ('Subjects', 'Physics, Chemistry and Mathematics'), ('Maths in the paper', 'Multiple-choice questions on the Class 11 and 12 syllabus')],
+ 'KCET': [('Full name', 'Karnataka Common Entrance Test'), ('Conducted by', 'Karnataka Examinations Authority (KEA)'),
+   ('Held for', 'Admission to engineering, pharmacy, farm science and other professional courses in Karnataka'), ('Who can appear', 'Students who have passed, or are appearing in, Class 12 (II PUC)'),
+   ('Mode', 'Pen and paper (OMR answer sheet)'), ('How often', 'Once a year'), ('Subjects', 'Physics, Chemistry, Mathematics and Biology (engineering uses Physics, Chemistry and Mathematics)'),
+   ('Maths in the paper', 'Multiple-choice questions based on the Class 11 and 12 (PUC) syllabus')],
+ 'NDA': [('Full name', 'National Defence Academy and Naval Academy Examination'), ('Conducted by', 'Union Public Service Commission (UPSC)'),
+   ('Held for', 'Entry to the Army, Navy and Air Force wings of the National Defence Academy and to the Indian Naval Academy'),
+   ('Who can appear', 'Candidates who have passed, or are appearing in, Class 12 and meet the age limits'), ('Mode', 'Pen and paper (OMR answer sheet)'),
+   ('How often', 'Twice a year (NDA I and NDA II)'), ('Written test', 'Mathematics paper (300 marks, 2.5 hours) and General Ability Test (600 marks)'),
+   ('Maths in the paper', 'Objective questions on algebra, matrices, trigonometry, analytical geometry, calculus, vectors, statistics and probability')],
+ 'IAT': [('Full name', 'IISER Aptitude Test'), ('Conducted by', 'The Indian Institutes of Science Education and Research (organised by one IISER)'),
+   ('Held for', 'Admission to the BS-MS dual degree programmes of the IISERs'), ('Who can appear', 'Students who have passed, or are appearing in, Class 12'),
+   ('Mode', 'Computer-based test'), ('How often', 'Once a year'), ('Subjects', 'Physics, Chemistry, Mathematics and Biology'),
+   ('Maths in the paper', 'Multiple-choice questions at Class 11 and 12 level')],
+}
+SHORT = {'JEE Main': ('NTA', 'NITs, IIITs and other institutes; qualifier for JEE Advanced', 'Computer-based'),
+         'JEE Advanced': ('One of the IITs (rotating)', 'The IITs', 'Computer-based'),
+         'IIT': ('The IITs', 'The IITs (until 2012)', 'Pen and paper'),
+         'AIEEE': ('CBSE', 'NITs, IIITs and other institutes (until 2012)', 'Pen and paper / online'),
+         'KCET': ('KEA, Karnataka', 'Professional courses in Karnataka', 'Pen and paper (OMR)'),
+         'NDA': ('UPSC', 'National Defence Academy and Naval Academy', 'Pen and paper (OMR)'),
+         'IAT': ('IISERs', 'BS-MS programmes of the IISERs', 'Computer-based')}
+def exam_logo(e, size=44):
+    return f'<img class="exlogo" src="{{up}}img/exams/{e[2]}.svg" alt="" width="{size}" height="{size}" loading="lazy">'
 def exam_url(e): return f"{SITE}/exams/{e[2]}/"
 def exam_meta(e):
     s = STATS[e[0]]
@@ -133,28 +179,37 @@ def page(title, desc, canon, body, depth, jsonld=None, og_title=None):
 </html>
 '''
 
+
+OOS_INTRO = {'12M25': 'Forming linear constraints, drawing the feasible region and finding the best value of an objective function. These problems are no longer part of the current JEE syllabus.',
+             '12M26': 'Statements, logical connectives, truth tables, tautologies and contradictions. This chapter is no longer part of the current JEE syllabus.',
+             '12M27': 'Sine and cosine rules, area, half-angle formulae and the circles related to a triangle. This chapter is no longer part of the current JEE syllabus.',
+             '12M28': 'Angles of elevation and depression, and finding heights and distances with trigonometry. This chapter is no longer part of the current JEE syllabus.'}
+
+def exlogo(e, up, size=40):
+    return f'<img class="exlogo" src="{up}img/exams/{e[2]}.svg" alt="" width="{size}" height="{size}" loading="lazy">'
+
 def header(depth):
     up = '../' * depth
     home = up + '#/home' if depth else '#/home'
     a = lambda frag: (up + frag) if depth else frag
     chev = svg('<path d="m6 9 6 6 6-6"/>', 16)
     def lk(t, f): return f'<a href="{a("#" + f)}">{t}</a>'
-    cards = ''.join(f'<a class="mega-card" href="{up}exams/{e[2]}/" role="menuitem"><b>{E(e[1])}</b><span class="mc-tag">{E(e[3])}</span><span class="mc-meta">{E(exam_meta(e))}</span></a>' for e in EXAMS)
-    mega = (f'<div class="sh-dd"><button type="button" class="sh-ddb" aria-haspopup="true" aria-expanded="false">Exams {chev}</button>'
-            f'<div class="sh-mega" role="menu"><div class="mega-in"><p class="mega-h">Exams we cover <span>previous-year maths questions, shift by shift</span></p><div class="mega-grid">{cards}</div>'
-            f'<a class="mega-all" href="{up}exams/">View all exams &rarr;</a></div></div></div>')
-    nav = lk('Features', 'features') + lk('How it works', 'how') + lk('Chapters', 'chapters') + mega + lk('Plans', 'plans') + lk('FAQ', 'faq')
+    cards = ''.join(f'<a class="mega-card" href="{up}exams/{e[2]}/" role="menuitem">{exlogo(e, up)}<span class="mc-body"><b>{E(e[1])}</b><span class="mc-tag">{E(e[3])}</span><span class="mc-meta">{E(exam_meta(e))}</span></span></a>' for e in EXAMS)
+    exams_dd = (f'<div class="sh-dd"><a class="sh-ddb" href="{up}exams/" aria-haspopup="true" aria-expanded="false">Exams {chev}</a>'
+                f'<div class="sh-mega" role="menu"><div class="mega-in"><p class="mega-h">Exams we cover <span>previous-year maths questions, shift by shift</span></p><div class="mega-grid">{cards}</div>'
+                f'<a class="mega-all" href="{up}exams/">View all exams &rarr;</a></div></div></div>')
+    rest = lk('Features', 'features') + lk('How it works', 'how') + lk('Chapters', 'chapters') + lk('Plans', 'plans') + lk('FAQ', 'faq')
+    nav = exams_dd + rest
     login = f'<a class="sb sb-pri when-out" data-login href="{up}?login=1" rel="nofollow">Login</a>' if depth else '<a class="sb sb-pri when-out" data-login href="?login=1" rel="nofollow">Login</a>'
     dash = f'<a class="sb sb-line when-in" data-dash href="{up or "./"}">Dashboard</a>'
     prof = f'<a class="sh-av when-in" data-av data-profile href="{a("#/profile")}" aria-label="Your profile">&nbsp;</a>'
     burger = svg('<path d="M4 7h16M4 12h16M4 17h16"/>', 22)
-    mlinks = lk('Features', 'features') + lk('How it works', 'how') + lk('Chapters', 'chapters') + lk('Plans', 'plans') + lk('FAQ', 'faq')
-    mexams = '<p class="sh-mh">Exams</p>' + ''.join(f'<a href="{up}exams/{e[2]}/">{E(e[1])}</a>' for e in EXAMS)
+    msub = ('<details class="sh-sub"><summary>Exams ' + chev + '</summary>' + ''.join(f'<a href="{up}exams/{e[2]}/">{exlogo(e, up, 26)}{E(e[1])}</a>' for e in EXAMS) + f'<a href="{up}exams/">All exams</a></details>')
     return f"""<header class="sh"><div class="swrap sh-in">
-<a class="sh-logo" href="{home}" aria-label="अंक-IT Mathematics Dashboard, home"><img src="{up}img/ankit-logo-sm.png?v={VER}" alt="अंक-IT Mathematics" width="139" height="52"></a>
+<a class="sh-logo" href="{home}" aria-label="अंक-IT Mathematics Dashboard, home"><img src="{up}{LOGO}?v={VER}" alt="अंक-IT Mathematics" width="220" height="81"></a>
 <nav class="sh-nav" aria-label="Main">{nav}</nav>
 <div class="sh-end">{login}{dash}{prof}
-<details class="sh-menu"><summary aria-label="Menu">{burger}</summary><nav aria-label="Menu">{mlinks}{mexams}<a href="{up}jee-maths/">All JEE Maths chapters</a></nav></details></div>
+<details class="sh-menu"><summary aria-label="Menu">{burger}</summary><nav aria-label="Menu">{msub}{rest}<a href="{up}jee-maths/">All JEE Maths chapters</a></nav></details></div>
 </div></header>"""
 
 def footer(depth):
@@ -170,6 +225,25 @@ def footer(depth):
 </div>
 <div class="sf-base"><span>&copy; 2026 अंक-IT Mathematics Dashboard</span><span>JEE Main · JEE Advanced · KCET · NDA · IAT</span></div>
 </div></footer>"""
+
+def aside(depth, current=None):
+    up = '../' * depth
+    cur = ' aria-current="page"'
+    ex = ''.join(f'<li><a href="{up}exams/{e[2]}/"{cur if e[2] == current else ""}>{exlogo(e, up, 30)}<span><b>{E(e[1])}</b><small>{STATS[e[0]]["questions"]:,} questions</small></span></a></li>' for e in EXAMS)
+    pop = sorted(CH, key=lambda c: -c['m'])[:8]
+    chs = ''.join(f'<li><a href="{up}jee-maths/{slug(c)}/"><span>{E(short(c))}</span><small>{c["m"]} Main</small></a></li>' for c in pop)
+    return (f'<aside class="pg-side" aria-label="Sidebar"><div class="side-cta"><h2>Practise free</h2><p>Question bank, DPPs, past papers and tests, with full solutions.</p>'
+            f'<a class="sb sb-gold when-out" data-login href="{up}?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold when-in" href="{up}">Open your dashboard</a></div>'
+            f'<div class="side-box"><h2>Exams</h2><ul class="side-list">{ex}</ul></div>'
+            f'<div class="side-box"><h2>Popular chapters</h2><ul class="side-list side-ch">{chs}</ul><a class="side-more" href="{up}jee-maths/">All chapters &rarr;</a></div>'
+            f'<div class="side-box side-help"><h2>Need help?</h2><p>Questions about signing in, plans or a question in the bank?</p><a href="{up}contact/">Contact us &rarr;</a></div></aside>')
+
+def grid(main_html, depth, current=None, cls_=''):
+    return f'<div class="swrap pg-grid"><main class="pg-main {cls_}">{main_html}</main>{aside(depth, current)}</div>'
+
+def tbl(head, rows, cls_='', nums=()):
+    th = ''.join(f'<th scope="col"{" class=\"num\"" if i in nums else ""}>{h}</th>' for i, h in enumerate(head))
+    return f'<div class="pg-table {cls_}"><table><thead><tr>{th}</tr></thead><tbody>{rows}</tbody></table></div>'
 
 def band(crumbs, h1):
     return f'<section class="pg-hero"><div class="swrap"><nav class="pg-crumbs" aria-label="Breadcrumb">{crumbs}</nav><h1>{h1}</h1></div></section>'
@@ -199,22 +273,29 @@ def chapter_page(i, c):
     links = ''
     if prev: links += f'<a class="pg-prev" href="../{slug(prev)}/">&larr; {E(short(prev))}</a>'
     if nxt: links += f'<a class="pg-next" href="../{slug(nxt)}/">{E(short(nxt))} &rarr;</a>'
+    ex_rows = ''
+    for e in EXAMS:
+        d = STATS[e[0]]['chapters'].get(c['code'])
+        if d:
+            ys = sorted(int(y) for y in d['by_year'])
+            ex_rows += f'<tr><td class="exn">{exlogo(e, "../../", 28)}<a href="../../exams/{e[2]}/{slug(c)}/">{E(e[1])}</a></td><td class="num">{d["questions"]}</td><td>{ys[0]}–{ys[-1]}</td></tr>'
+    by_exam = ('<h2>Questions by exam</h2><p>How many previous-year questions of this chapter each exam has asked. Open an exam to see its topic-wise and year-wise counts for this chapter.</p>'
+               + tbl(['Exam', 'Questions', 'Years'], ex_rows, 'pg-narrow', (1,))) if ex_rows else ''
     crumbs = f'<a href="../../#/home">Home</a> &rsaquo; <a href="../">JEE Maths</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
-    body = f'''{band(crumbs, "JEE Maths: " + E(name))}
-<main class="swrap pg-main">
-<p class="pg-lead">Class {cl} · Chapter {n} of {len(CH)} · {len(c["subs"])} subtopics</p>
+    main = f"""<p class="pg-lead">Class {cl} · Chapter {n} of {len(CH)} · {len(c["subs"])} subtopics</p>
 <p>{E(INTRO[n])}</p>
 <ul class="pg-stats"><li><b>{c["m"]}</b><span>JEE Main questions tagged ({Y0}–{Y1})</span></li><li><b>{c["a"]}</b><span>JEE Advanced questions tagged</span></li><li><b>{len(c["subs"])}</b><span>subtopics</span></li></ul>
 {focus}
 <h2>Subtopics and how important each one is</h2>
 <p>Counts are the previous-year questions tagged to each subtopic in the अंक-IT question bank. Importance reflects how often the subtopic is asked: High, Medium, Low, or Rare when it has hardly appeared.</p>
-<div class="pg-table"><table><thead><tr><th scope="col">Subtopic</th><th scope="col" class="num">Main Qs</th><th scope="col" class="num">Adv. Qs</th><th scope="col">Main</th><th scope="col">Adv.</th></tr></thead><tbody>{rows}</tbody></table></div>
+{tbl(['Subtopic', 'Main Qs', 'Adv. Qs', 'Main', 'Adv.'], rows, '', (1, 2))}
+{by_exam}
 <h2>Year-wise trend</h2>
 <p>Number of previous-year questions from this chapter, by exam year.</p>
-<div class="pg-table pg-narrow"><table><thead><tr><th scope="col">Year</th><th scope="col" class="num">JEE Main</th><th scope="col" class="num">JEE Advanced</th></tr></thead><tbody>{yrow}</tbody></table></div>
+{tbl(['Year', 'JEE Main', 'JEE Advanced'], yrow, 'pg-narrow', (1, 2))}
 {cta(2, f"Solve {name} questions chapter-wise with full solutions, take NTA-style online tests and see your rank. The question bank, previous-year papers, DPPs and handouts are inside after you sign in.")}
-<nav class="pg-pn" aria-label="Chapters">{links}</nav>
-</main>'''
+<nav class="pg-pn" aria-label="Chapters">{links}</nav>"""
+    body = band(crumbs, "JEE Maths: " + E(name)) + '\n' + grid(main, 2)
     ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
             {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'},
             {'@type': 'ListItem', 'position': 2, 'name': 'JEE Maths', 'item': SITE + '/jee-maths/'},
@@ -239,13 +320,11 @@ def hub_page():
     desc = (f'All {len(CH)} JEE Maths chapters and {D["tot_sub"]} subtopics for Class 11 and 12, with previous-year question counts for JEE Main and '
             f'JEE Advanced ({Y0}–{Y1}). Practise free on अंक-IT.')
     crumbs = '<a href="../#/home">Home</a> &rsaquo; <span aria-current="page">JEE Maths</span>'
-    body = f'''{band(crumbs, "JEE Maths: all chapters")}
-<main class="swrap pg-main">
-<p class="pg-lead">{len(CH)} chapters in the syllabus · {D["tot_sub"]} subtopics · plus {len(OOS)} out-of-syllabus chapters</p>
+    main = f"""<p class="pg-lead">{len(CH)} chapters in the syllabus · {D["tot_sub"]} subtopics · plus {len(OOS)} out-of-syllabus chapters</p>
 <p>The JEE Maths syllabus split into chapters and subtopics. Open a chapter to see its subtopics, how often each one was asked in JEE Main and JEE Advanced, and the year-wise trend, then sign in to practise the questions with full solutions.</p>
 {chapter_list('', True)}
-{cta(1, "Choose a chapter, practise previous-year questions with solutions, and take online tests. Starting is free.")}
-</main>'''
+{cta(1, "Choose a chapter, practise previous-year questions with solutions, and take online tests. Starting is free.")}"""
+    body = band(crumbs, "JEE Maths: all chapters") + '\n' + grid(main, 1)
     ld = [{'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'JEE Maths chapters', 'itemListElement': [
             {'@type': 'ListItem', 'position': k + 1, 'name': short(c), 'url': url(c)} for k, c in enumerate(CH)]}]
     return page(title, desc, f'{SITE}/jee-maths/', body, 1, ld)
@@ -255,50 +334,92 @@ def exam_page(e):
     key, name, sl, tag, about = e
     s = STATS[key]
     title = f'{name} Maths Previous Year Questions {s["first"]}–{s["last"]} | अंक-IT'
-    desc = f'{name} maths: {s["questions"]:,} previous-year questions from {s["first"]} to {s["last"]} across {s["papers"]} papers, with chapter-wise and year-wise counts. Practise free on अंक-IT.'
+    desc = f'{name} maths: who conducts it, what it is for, the pattern, and {s["questions"]:,} previous-year questions from {s["first"]} to {s["last"]} with chapter-wise and year-wise counts. Practise free on अंक-IT.'
+    facts = ''.join(f'<tr><th scope="row">{E(k)}</th><td>{E(v)}</td></tr>' for k, v in FACTS[key])
+    glance = (f'<tr><th scope="row">Maths questions in this bank</th><td>{s["questions"]:,}</td></tr><tr><th scope="row">Years covered</th><td>{s["first"]}–{s["last"]}</td></tr>'
+              f'<tr><th scope="row">Papers (shifts and sessions)</th><td>{s["papers"]}</td></tr>')
     yrow = ''.join(f'<tr><th scope="row">{y}</th><td class="num">{n}</td></tr>' for y, n in sorted(s['by_year'].items(), reverse=True))
     mx = max(s['by_chapter'].values()) or 1
     def chrow(code, n):
         nm = E(CH_NAME.get(code, code))
-        label = f'<a href="../../jee-maths/{CH_SLUG[code]}/">{nm}</a>' if code in CH_SLUG else f'{nm} <span class="lv">out of syllabus</span>'
+        label = f'<a href="{ANY_SLUG[code]}/">{nm}</a>' + ('' if code in CH_SLUG else ' <span class="lv">out of syllabus</span>')
         pct = round(100 * n / mx)   # drawn as SVG: these pages forbid inline styles
         return f'<tr><td>{label}</td><td class="num">{n}</td><td class="bar"><svg viewBox="0 0 100 8" preserveAspectRatio="none" role="img" aria-label="{pct}% of the largest chapter"><rect width="100" height="8" rx="4" class="bar-bg"/><rect width="{pct}" height="8" rx="4" class="bar-fg"/></svg></td></tr>'
     crows = ''.join(chrow(c, n) for c, n in sorted(s['by_chapter'].items(), key=lambda kv: (-kv[1], kv[0])) if c)
-    others = ''.join(f'<li><a href="../{x[2]}/">{E(x[1])}</a><span>{E(exam_meta(x))}</span></li>' for x in EXAMS if x[2] != sl)
     crumbs = f'<a href="../../#/home">Home</a> &rsaquo; <a href="../">Exams</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
-    body = f"""{band(crumbs, E(name) + " maths: previous-year questions")}
-<main class="swrap pg-main">
-<p class="pg-lead">{s["questions"]:,} questions · {s["first"]}–{s["last"]} · {s["papers"]} papers</p>
+    main = f"""<p class="pg-lead">{E(tag)}</p>
 <p>{E(about)}</p>
-<ul class="pg-stats"><li><b>{s["questions"]:,}</b><span>maths questions in the bank</span></li><li><b>{s["first"]}–{s["last"]}</b><span>years covered</span></li><li><b>{s["papers"]}</b><span>papers (shifts and sessions)</span></li></ul>
+<h2>{E(name)} at a glance</h2>
+<div class="pg-table pg-facts"><table><tbody>{facts}</tbody></table></div>
+<p class="pg-fine">Exam patterns change from year to year. Always check the official notification for the latest rules and dates.</p>
+<h2>{E(name)} in this question bank</h2>
+<div class="pg-table pg-facts"><table><tbody>{glance}</tbody></table></div>
 <h2>Chapter-wise questions</h2>
-<p>How many {E(name)} maths questions come from each chapter. Open a chapter to see its subtopics and how often each was asked.</p>
-<div class="pg-table"><table><thead><tr><th scope="col">Chapter</th><th scope="col" class="num">Questions</th><th scope="col"><span class="sr">Share</span></th></tr></thead><tbody>{crows}</tbody></table></div>
+<p>How many {E(name)} maths questions come from each chapter. Open a chapter to see its topic-wise and year-wise counts for {E(name)}.</p>
+{tbl(['Chapter', 'Questions', ''], crows, '', (1,))}
 <h2>Year-wise questions</h2>
-<div class="pg-table pg-narrow"><table><thead><tr><th scope="col">Year</th><th scope="col" class="num">Questions</th></tr></thead><tbody>{yrow}</tbody></table></div>
-{cta(2, f"Practise {name} questions chapter-wise with full solutions, build DPPs and open whole papers in exam format. Everything is inside after you sign in.")}
-<h2>Other exams</h2>
-<ul class="pg-chlist">{others}</ul>
-</main>"""
+{tbl(['Year', 'Questions'], yrow, 'pg-narrow', (1,))}
+{cta(2, f"Practise {name} questions chapter-wise with full solutions, build DPPs and open whole papers in exam format. Everything is inside after you sign in.")}"""
+    body = band(crumbs, f'{exlogo(e, "../../", 44)} {E(name)}: maths and previous-year questions') + '\n' + grid(main, 2, sl)
     ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
             {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'},
             {'@type': 'ListItem', 'position': 2, 'name': 'Exams', 'item': SITE + '/exams/'},
             {'@type': 'ListItem', 'position': 3, 'name': name, 'item': exam_url(e)}]}]
     return page(title, desc, exam_url(e), body, 2, ld)
 
+def exam_chapter_page(e, code):
+    key, name, sl, tag, about = e
+    d = STATS[key]['chapters'][code]; ch = CH_NAME[code]; cs = ANY_SLUG[code]
+    ys = sorted(int(y) for y in d['by_year'])
+    title = f'{name} {ch}: Previous Year Questions | अंक-IT'
+    desc = f'{name} {ch}: {d["questions"]} previous-year maths questions from {ys[0]} to {ys[-1]}, with topic-wise and year-wise counts. Practise free on अंक-IT.'
+    total = STATS[key]['questions']; share = round(100 * d['questions'] / total, 1)
+    rank = 1 + sum(1 for k, v in STATS[key]['by_chapter'].items() if v > d['questions'])
+    topics = ''.join(f'<tr><td>{E(t)}</td><td class="num">{n}</td></tr>' for t, n in sorted(d['by_topic'].items(), key=lambda kv: (-kv[1], kv[0])))
+    yrow = ''.join(f'<tr><th scope="row">{y}</th><td class="num">{n}</td></tr>' for y, n in sorted(d['by_year'].items(), reverse=True))
+    intro = INTRO[int([c for c in CH if c['code'] == code][0]['no'])] if code in CH_SLUG else OOS_INTRO[code]
+    others = ''
+    for x in EXAMS:
+        dd = STATS[x[0]]['chapters'].get(code)
+        if dd and x[2] != sl:
+            others += f'<tr><td class="exn">{exlogo(x, "../../../", 28)}<a href="../../{x[2]}/{cs}/">{E(x[1])}</a></td><td class="num">{dd["questions"]}</td></tr>'
+    general = (f'<p>See the full chapter guide with subtopics and JEE Main / Advanced counts: <a href="../../../jee-maths/{cs}/">{E(ch)}</a>.</p>' if code in CH_SLUG else '')
+    crumbs = f'<a href="../../../#/home">Home</a> &rsaquo; <a href="../../">Exams</a> &rsaquo; <a href="../">{E(name)}</a> &rsaquo; <span aria-current="page">{E(ch)}</span>'
+    main = f"""<p class="pg-lead">{d["questions"]} questions · {ys[0]}–{ys[-1]}</p>
+<p>{E(intro)}</p>
+<ul class="pg-stats"><li><b>{d["questions"]}</b><span>{E(name)} questions from this chapter</span></li><li><b>{share}%</b><span>of all {E(name)} maths questions</span></li><li><b>#{rank}</b><span>rank among {E(name)} chapters</span></li></ul>
+<h2>Topic-wise questions in {E(name)}</h2>
+<p>The topics of {E(ch)} that {E(name)} has asked, with the number of questions for each.</p>
+{tbl(['Topic', 'Questions'], topics, 'pg-narrow', (1,))}
+<h2>Year-wise questions</h2>
+{tbl(['Year', 'Questions'], yrow, 'pg-narrow', (1,))}
+{('<h2>The same chapter in other exams</h2>' + tbl(['Exam', 'Questions'], others, 'pg-narrow', (1,))) if others else ''}
+{general}
+{cta(3, f"Practise {name} {ch} questions with full solutions, build a DPP for this chapter and open whole papers. Everything is inside after you sign in.")}"""
+    body = band(crumbs, f'{exlogo(e, "../../../", 40)} {E(name)}: {E(ch)}') + '\n' + grid(main, 3, sl)
+    url_ = f'{SITE}/exams/{sl}/{cs}/'
+    ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
+            {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'}, {'@type': 'ListItem', 'position': 2, 'name': 'Exams', 'item': SITE + '/exams/'},
+            {'@type': 'ListItem', 'position': 3, 'name': name, 'item': exam_url(e)}, {'@type': 'ListItem', 'position': 4, 'name': ch, 'item': url_}]}]
+    return page(title, desc, url_, body, 3, ld)
+
 def exams_hub():
     total = sum(STATS[e[0]]['questions'] for e in EXAMS)
     title = 'Exams: JEE Main, JEE Advanced, KCET, NDA, IAT Maths Papers | अंक-IT'
-    desc = f'Previous-year maths questions from JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA and IAT: {total:,} questions with year-wise and chapter-wise counts.'
+    desc = f'Compare JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA and IAT: who conducts each exam, what it is for, the mode, and {total:,} previous-year maths questions in the bank.'
+    rows = ''.join(f'<tr><td class="exn">{exlogo(e, "../", 36)}<a href="{e[2]}/">{E(e[1])}</a></td><td>{E(SHORT[e[0]][0])}</td><td>{E(SHORT[e[0]][1])}</td><td>{E(SHORT[e[0]][2])}</td>'
+                   f'<td class="num">{STATS[e[0]]["questions"]:,}</td><td>{STATS[e[0]]["first"]}–{STATS[e[0]]["last"]}</td></tr>' for e in EXAMS)
     cards = ''.join(f'<li><a href="{e[2]}/">{E(e[1])}</a><span>{E(e[3])}</span><span>{E(exam_meta(e))}</span></li>' for e in EXAMS)
     crumbs = '<a href="../#/home">Home</a> &rsaquo; <span aria-current="page">Exams</span>'
-    body = f"""{band(crumbs, "Exams we cover")}
-<main class="swrap pg-main">
-<p class="pg-lead">{len(EXAMS)} exams · {total:,} previous-year maths questions</p>
-<p>Every previous-year maths question in the bank, grouped by exam. Open an exam to see its questions by chapter and by year.</p>
+    main = f"""<p class="pg-lead">{len(EXAMS)} exams · {total:,} previous-year maths questions</p>
+<p>Every previous-year maths question in the bank, grouped by exam. The table compares the exams at a glance. Open an exam for its details and its questions by chapter and by year.</p>
+<h2>Exams compared</h2>
+<div class="pg-table"><table class="wide"><thead><tr><th scope="col">Exam</th><th scope="col">Conducted by</th><th scope="col">For admission to</th><th scope="col">Mode</th><th scope="col" class="num">Questions</th><th scope="col">Years</th></tr></thead><tbody>{rows}</tbody></table></div>
+<p class="pg-fine">Exam patterns change from year to year. Always check the official notification for the latest rules and dates.</p>
+<h2>Open an exam</h2>
 <ul class="pg-chlist exam-list">{cards}</ul>
-{cta(1, "Pick an exam, open its papers shift by shift and practise with full solutions. Starting is free.")}
-</main>"""
+{cta(1, "Pick an exam, open its papers shift by shift and practise with full solutions. Starting is free.")}"""
+    body = band(crumbs, "Exams we cover") + '\n' + grid(main, 1)
     ld = [{'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'Exams', 'itemListElement': [
             {'@type': 'ListItem', 'position': k + 1, 'name': e[1], 'url': exam_url(e)} for k, e in enumerate(EXAMS)]}]
     return page(title, desc, f'{SITE}/exams/', body, 1, ld)
@@ -306,10 +427,7 @@ def exams_hub():
 # ---------- About, Contact, Privacy, Terms ----------
 def info_page(slug_, title, h1, desc, inner, ptype='WebPage'):
     crumbs = f'<a href="../#/home">Home</a> &rsaquo; <span aria-current="page">{E(h1)}</span>'
-    body = f'''{band(crumbs, E(h1))}
-<main class="swrap pg-main pg-text">
-{inner}
-</main>'''
+    body = band(crumbs, E(h1)) + '\n' + grid(inner, 1, cls_='pg-text')
     canon = f'{SITE}/{slug_}/'
     ld = [{'@context': 'https://schema.org', '@type': ptype, 'name': h1, 'url': canon, 'description': desc, 'inLanguage': 'en-IN',
            'isPartOf': {'@type': 'WebSite', 'name': 'अंक-IT Mathematics Dashboard', 'url': SITE + '/'}}]
@@ -443,15 +561,18 @@ def home_block():
     hero_shot = (f'<div class="hero-shot">{frame("question-bank", "The अंक-IT Question Bank: filters on the left and JEE questions with answer options on the right", True)}'
                  f'<div class="mock-float"><span class="ic">{svg("<circle cx=\'11\' cy=\'11\' r=\'7\'/><path d=\'M21 21l-4.3-4.3\'/>", 22)}</span><div><small>Question Bank</small><b>16,000+ questions</b><em>with full solutions</em></div></div></div>')
     pts = ''.join(f'<li>{CHECK}{t}</li>' for t in ['Free to start', 'Questions with full solutions', 'Made for JEE Main and Advanced', 'Works on phone and laptop'])
-    # ----- real dashboard screens, switched with plain radio buttons (no script needed) -----
+    # ----- real dashboard screens in a swipeable carousel (script adds the arrows, tabs and dots; without it the slides still swipe/scroll) -----
     shots = [('question-bank', 'Question Bank', 'Find any question in seconds', 'Filter 16,000+ questions by class, source, exam, year, chapter, level and type. Every question comes with its answer and a full solution.', 'The Question Bank with filters and JEE questions'),
              ('dpp-builder', 'DPP Builder', 'A ready-to-print DPP in one click', 'Pick chapters and subtopics, set the toughness and the mix of previous-year and practice questions, and get a clean practice sheet with answer key and explanations.', 'A generated DPP on definite integration, ready to print'),
              ('pyq-papers', 'PYQ Papers', 'Every paper, in exam format', 'Open any JEE Main shift or other past paper exactly as it was set, or go chapterwise through all years. Download with the answer key.', 'A JEE Main 2026 shift paper opened in the dashboard'),
-             ('must-solve', 'Must Solve', 'Solve the questions that matter most', 'Questions that came again and again in JEE, in the same or a very similar form, plus sure-shot questions that are bound to come. Solve these first.', 'The Must Solve list showing sure-shot and must-know questions')]
-    radios = ''.join(f'<input type="radio" name="shot" id="shot{i}" class="sr"{" checked" if i == 0 else ""}>' for i in range(4))
-    labels = ''.join(f'<label for="shot{i}">{E(s[1])}</label>' for i, s in enumerate(shots))
-    panels = ''.join(f'<figure class="shot">{frame(s[0], s[4])}<figcaption><h3>{E(s[2])}</h3><p>{E(s[3])}</p></figcaption></figure>' for s in shots)
-    showcase = f'<div class="shots">{radios}<div class="shot-tabs" role="tablist">{labels}</div><div class="shot-panels">{panels}</div></div>'
+             ('must-solve', 'Must Solve', 'Solve the questions that matter most', 'Questions that came again and again in JEE, in the same or a very similar form, plus sure-shot questions that are bound to come. Solve these first.', 'The Must Solve list showing sure-shot and must-know questions'),
+             ('handouts', 'Handouts', 'Handwritten revision notes for every chapter', 'Neatly handwritten notes for all chapters of Class 11 and 12. Read them in the built-in viewer, or download them to revise offline.', 'The Handouts page with a note for every chapter'),
+             ('online-test', 'Online Test', 'The real exam screen, before the real exam', 'A full-screen, timed test with the question palette, mark for review and auto-submit, followed by your score, rank and topic-wise report.', 'The online test window with timer and question palette')]
+    slides = ''.join(f'<figure class="car-slide" data-title="{E(s[1])}">{frame(s[0], s[4])}<figcaption><h3>{E(s[2])}</h3><p>{E(s[3])}</p></figcaption></figure>' for s in shots)
+    showcase = ('<div class="car" data-car><div class="car-tabs" hidden></div><div class="car-view">'
+                f'<div class="car-track" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Screens from the dashboard">{slides}</div>'
+                '<button type="button" class="car-btn car-prev" aria-label="Previous screen" hidden>&lsaquo;</button><button type="button" class="car-btn car-next" aria-label="Next screen" hidden>&rsaquo;</button></div>'
+                '<div class="car-dots" hidden></div></div>')
     # ----- chapters as cards -----
     def chcard(c):
         return (f'<a class="chc" href="jee-maths/{slug(c)}/"><span class="chc-code">{c["code"]}</span><h3>{E(short(c))}</h3>'
@@ -459,7 +580,7 @@ def home_block():
     c11 = ''.join(chcard(c) for c in CH if cls(c) == '11'); c12 = ''.join(chcard(c) for c in CH if cls(c) == '12')
     oos = ''.join(f'<div class="chc chc-oos"><span class="chc-code">{code}</span><h3>{E(n)}</h3><p>Out of syllabus</p></div>' for code, n in OOS)
     # ----- exams -----
-    exam_cards = ''.join(f'<a class="exc" href="exams/{e[2]}/"><h3>{E(e[1])}</h3><p>{E(e[3])}</p><div class="exc-st"><span><b>{STATS[e[0]]["questions"]:,}</b> questions</span><span><b>{STATS[e[0]]["first"]}–{STATS[e[0]]["last"]}</b></span><span><b>{STATS[e[0]]["papers"]}</b> papers</span></div></a>' for e in EXAMS)
+    exam_cards = ''.join(f'<a class="exc" href="exams/{e[2]}/"><div class="exc-top">{exlogo(e, "", 52)}<h3>{E(e[1])}</h3></div><p>{E(e[3])}</p><dl class="exc-facts"><div><dt>Conducted by</dt><dd>{E(SHORT[e[0]][0])}</dd></div><div><dt>Mode</dt><dd>{E(SHORT[e[0]][2])}</dd></div></dl><div class="exc-st"><span><b>{STATS[e[0]]["questions"]:,}</b> questions</span><span><b>{STATS[e[0]]["first"]}–{STATS[e[0]]["last"]}</b></span><span><b>{STATS[e[0]]["papers"]}</b> papers</span></div></a>' for e in EXAMS)
     steps = [('Create your free account', 'Click Login, choose Student or Teacher and continue with Google. Avanti students use their Student ID.'),
              ('Practise chapter by chapter', 'Open the question bank, DPPs, previous-year papers and Must Solve. Check every answer against the full solution.'),
              ('Take tests and track progress', 'Attempt NTA-style tests, see your score, rank and weak topics, and come back stronger next week.')]
@@ -500,7 +621,7 @@ def home_block():
 <section class="stats" aria-label="At a glance"><div class="swrap stats-in">
 <div class="stat"><b>15,000+</b><span>Questions</span></div><div class="stat"><b>11,000+</b><span>Full solutions</span></div>
 <div class="stat"><b>{len(CH)}</b><span>Chapters, {D["tot_sub"]} subtopics</span></div><div class="stat"><b>2000–2026</b><span>Past papers</span></div></div></section>
-<section class="sec" id="dashboard"><div class="swrap"><div class="sec-head"><span class="kick">Inside the dashboard</span><h2>See what you get after you log in</h2><p>Real screens from the dashboard: a question bank, a DPP builder, past papers and a Must Solve list that is built for JEE.</p></div>{showcase}</div></section>
+<section class="sec" id="dashboard"><div class="swrap"><div class="sec-head"><span class="kick">Inside the dashboard</span><h2>See what you get after you log in</h2><p>Real screens from the dashboard: question bank, DPP builder, past papers, Must Solve, handouts and the online test window.</p></div>{showcase}</div></section>
 <section class="sec sec-alt" id="features"><div class="swrap"><div class="sec-head"><span class="kick">Everything in one place</span><h2>Everything you need to prepare for JEE Maths</h2><p>Practise, test yourself and track your progress without juggling PDFs, apps and notebooks.</p></div>
 <div class="grid3">{feat_html}</div></div></section>
 <section class="sec" id="how"><div class="swrap"><div class="sec-head"><span class="kick">How it works</span><h2>Start in three simple steps</h2></div><div class="steps">{steps_html}</div></div></section>
@@ -524,7 +645,7 @@ def home_block():
 <!--HOME:END-->"""
 
 def sitemap():
-    urls = [(SITE + '/', '1.0'), (SITE + '/jee-maths/', '0.9')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9')] + [(exam_url(e), '0.8') for e in EXAMS] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
+    urls = [(SITE + '/', '1.0'), (SITE + '/jee-maths/', '0.9')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9')] + [(exam_url(e), '0.8') for e in EXAMS] + [(f'{SITE}/exams/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
     body = ''.join(f'<url><loc>{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}</urlset>\n'
 
@@ -536,7 +657,9 @@ def main():
     for i, c in enumerate(CH): write(f'jee-maths/{slug(c)}/index.html', chapter_page(i, c))
     write('jee-maths/index.html', hub_page())
     write('exams/index.html', exams_hub())
-    for e in EXAMS: write(f'exams/{e[2]}/index.html', exam_page(e))
+    for e in EXAMS:
+        write(f'exams/{e[2]}/index.html', exam_page(e))
+        for code in STATS[e[0]]['chapters']: write(f'exams/{e[2]}/{ANY_SLUG[code]}/index.html', exam_chapter_page(e, code))
     for slug_, fn in (('about', about_page), ('contact', contact_page), ('privacy', privacy_page), ('terms', terms_page)): write(f'{slug_}/index.html', fn())
     write('sitemap.xml', sitemap())
     write('robots.txt', f'User-agent: *\nAllow: /\nDisallow: /qb/\n\nSitemap: {SITE}/sitemap.xml\n')

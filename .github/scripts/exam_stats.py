@@ -15,6 +15,14 @@ for exam, rs in by.items():
         'papers': len({(r['year'], r.get('session'), r.get('paper')) for r in rs}),
         'by_year': dict(sorted(collections.Counter(str(r['year']) for r in rs).items())),
         'by_chapter': dict(collections.Counter(r.get('chapter_code') for r in rs).most_common()),
+        'chapters': {},
     }
+    for code in {r.get('chapter_code') for r in rs if r.get('chapter_code')}:
+        cr = [r for r in rs if r.get('chapter_code') == code]
+        out[exam]['chapters'][code] = {
+            'questions': len(cr),
+            'by_year': dict(sorted(collections.Counter(str(r['year']) for r in cr).items())),
+            'by_topic': dict(collections.Counter((r.get('topic') or 'Other') for r in cr).most_common()),
+        }
 json.dump(out, open('.github/scripts/exam-stats.json', 'w', encoding='utf-8'), indent=1, ensure_ascii=False, sort_keys=True)
 print({k: (v['questions'], v['first'], v['last'], v['papers']) for k, v in out.items()})
