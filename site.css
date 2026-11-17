@@ -535,3 +535,4 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 @media (max-width:820px){.sf-grid{grid-template-columns:1fr 1fr}.sf-grid>div:first-child{grid-column:1/-1}}
 
 .report-row i.w92{width:92%}.report-row i.w88{width:88%}.report-row i.w84{width:84%}.report-row i.w79{width:79%}
+.yrl tbody th{font-weight:600;text-align:left;color:var(--navy)}.yrl .tot-row th,.yrl .tot-row td{font-weight:700;background:#eef2fb;border-top:2px solid var(--line)}

@@ -7,6 +7,10 @@ root = sys.argv[1].rstrip('/')
 rows = json.load(open(root + '/qb/data/pyq.json', encoding='utf-8'))
 nonpyq = json.load(open(root + '/qb/data/nonpyq.json', encoding='utf-8'))
 LV = ('L1', 'L2', 'L3')
+def ylv(rows):   # per year: questions and L1/L2/L3
+    ys = collections.defaultdict(list)
+    for r in rows: ys[str(r['year'])].append(r)
+    return {y: dict(n=len(v), **lv(v)) for y, v in sorted(ys.items())}
 def lv(rows):
     c = collections.Counter(r.get('difficulty') for r in rows)
     return {k: c.get(k, 0) for k in LV}
@@ -21,6 +25,7 @@ for exam, rs in by.items():
         'by_year': dict(sorted(collections.Counter(str(r['year']) for r in rs).items())),
         'by_chapter': dict(collections.Counter(r.get('chapter_code') for r in rs).most_common()),
         'by_level': lv(rs),
+        'by_year_lv': ylv(rs),
         'chapters': {},
     }
     for code in {r.get('chapter_code') for r in rs if r.get('chapter_code')}:
@@ -30,6 +35,7 @@ for exam, rs in by.items():
             'by_year': dict(sorted(collections.Counter(str(r['year']) for r in cr).items())),
             'by_topic': dict(collections.Counter((r.get('topic') or 'Other') for r in cr).most_common()),
             'by_level': lv(cr),
+            'by_year_lv': ylv(cr),
             'topics_lv': {t: dict(n=len(tr), **lv(tr)) for t in {(r.get('topic') or 'Other') for r in cr} for tr in [[r for r in cr if (r.get('topic') or 'Other') == t]]},
         }
 out['_all'] = {'pyq_questions': len(rows), 'nonpyq_questions': len(nonpyq), 'topic_levels': {tc: lv([r for r in rows if r.get('topic_code') == tc]) for tc in {r.get('topic_code') for r in rows if r.get('topic_code')}},

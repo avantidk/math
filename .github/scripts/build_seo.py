@@ -212,6 +212,16 @@ def heat(rows, y0, y1, label='Exam'):
         body += f'<tr><th scope="row" class="exn">{lab}</th>{tds}<td class="tot">{sum(vals)}</td></tr>'
     return f'<div class="pg-table yr"><table class="heat"><thead><tr><th scope="col">{label}</th>{th}<th scope="col" class="tot">Total</th></tr></thead><tbody>{body}</tbody></table></div>'
 
+def yrtbl(byl, y0, y1):
+    """Year-wise table, newest year first, one year per row: questions and L1/L2/L3."""
+    rows, tot = '', {'n': 0, 'L1': 0, 'L2': 0, 'L3': 0}
+    for y in range(y1, y0 - 1, -1):
+        d = byl.get(str(y), {}); 
+        for k in tot: tot[k] += d.get(k if k != 'n' else 'n', 0)
+        rows += f'<tr><th scope="row">{y}</th><td class="num">{d.get("n", 0)}</td>{lvcells(d)}</tr>'
+    rows += f'<tr class="tot-row"><th scope="row">Total</th><td class="num">{tot["n"]}</td>{lvcells(tot)}</tr>'
+    return tbl(['Year', 'Questions', LVH], rows, 'pg-narrow yrl', (1,))
+
 def spark(by_year, last, n=5):
     """Small dot graph of the last n years (same look as the dashboard's Syllabus Priority trend)."""
     ys = [last - n + 1 + i for i in range(n)]; vals = [int(by_year.get(str(y), 0)) for y in ys]; mx = max(vals) or 1
@@ -398,7 +408,9 @@ def exam_page(e):
         label = f'<a href="{ANY_SLUG[code]}/">{nm}</a>' + ('' if code in CH_SLUG else ' <span class="lv">out of syllabus</span>')
         return f'<tr><td>{label}</td><td class="num">{d["questions"]}</td>{lvcells(d["by_level"])}<td class="sp">{spark(d["by_year"], s["last"])}</td></tr>'
     crows = ''.join(chrow(c, d) for c, d in sorted(s['chapters'].items(), key=lambda kv: (-kv[1]['questions'], kv[0])))
-    yr_strip = heat([(E(name), s['by_year'])], s['first'], s['last'])
+    yr_strip = yrtbl(s['by_year_lv'], s['first'], s['last'])
+    nyr = s['last'] - s['first'] + 1
+    basis = f'These counts use all {E(name)} papers in this bank: {nyr} years ({s["first"]}&ndash;{s["last"]}), {s["papers"]} papers and {s["questions"]:,} questions.'
     crumbs = f'<a href="../../">Home</a> &rsaquo; <a href="../">Exams</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
     main = f"""<p class="pg-lead">{E(tag)}</p>
 <p>{E(about)}</p>
@@ -409,9 +421,10 @@ def exam_page(e):
 <div class="pg-table pg-facts"><table><tbody>{glance}</tbody></table></div>
 <h2>Chapter-wise questions</h2>
 <p>How many {E(name)} math questions come from each chapter. Open a chapter to see its topic-wise and year-wise counts for {E(name)}.</p>
-<p class="pg-fine">L1 easy, L2 medium, L3 hard. The dot graph shows the last five years of the exam, from the oldest on the left.</p>
+<p class="pg-fine">{basis} L1 easy, L2 medium, L3 hard. The dot graph shows the last five years of the exam, from the oldest on the left.</p>
 {tbl(['Chapter', 'Questions', LVH, 'Last 5 years'], crows, '', (1,))}
 <h2>Year-wise questions</h2>
+<p class="pg-fine">Each row is one year of {E(name)}: how many questions were asked and their level (L1 easy, L2 medium, L3 hard).</p>
 {yr_strip}
 {cta(2, f"Practise {name} questions chapter-wise with full solutions, build DPPs and open whole papers in exam format. Everything is inside after you sign in.")}"""
     body = band(crumbs, f'{exlogo(e, "../../", 44)} {E(name)}: math and previous-year questions') + '\n' + grid(main, 2, sl)
@@ -443,7 +456,8 @@ def exam_chapter_page(e, code):
 <p>{E(intro)}</p>
 <ul class="pg-stats"><li><b>{d["questions"]}</b><span>{E(name)} questions from this chapter</span></li><li><b>{share}%</b><span>of all {E(name)} math questions</span></li><li><b>#{rank}</b><span>rank among {E(name)} chapters</span></li></ul>
 <h2>Year-wise questions</h2>
-{heat([(E(ch), d['by_year'])], STATS[key]['first'], STATS[key]['last'], 'Chapter')}
+<p class="pg-fine">{E(name)} {STATS[key]['first']}&ndash;{STATS[key]['last']} ({STATS[key]['last'] - STATS[key]['first'] + 1} years): the questions of this chapter in each year, with their level (L1 easy, L2 medium, L3 hard).</p>
+{yrtbl(d['by_year_lv'], STATS[key]['first'], STATS[key]['last'])}
 <h2>Topic-wise questions in {E(name)}</h2>
 <p>The topics of {E(ch)} that {E(name)} has asked, with the number of questions for each and their level (L1 easy, L2 medium, L3 hard).</p>
 {tbl(['Topic', 'Questions', LVH], topics, 'pg-narrow', (1,))}

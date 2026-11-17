@@ -1,5 +1,13 @@
 [
   {
+    "v": "938",
+    "date": "17 Nov 2026",
+    "items": [
+      "Exam pages: the year-wise table now lists one year per row (newest first) with the number of questions and their L1 / L2 / L3 levels, with a total row. The same table is on each exam chapter page.",
+      "Exam pages now say which papers the counts are based on (for example, KCET: 10 years, 2017–2026, 10 papers, 600 questions)."
+    ]
+  },
+  {
     "v": "937",
     "date": "17 Nov 2026",
     "items": [
