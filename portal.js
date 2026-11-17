@@ -1426,16 +1426,16 @@ function bulkUpload(after) {
 }
 /* Admin only: choose a plan for a teacher or student. Free = no Premium. Premium = until a date (default one year). Avanti = on the Avanti list, Premium included. */
 const PLAN_NAMES = { free: 'Free', premium: 'Premium', avanti: 'Avanti', staff: 'Avanti staff' };
-function planPicker(cur, until, canPremium, years) {
+function planPicker(cur, until, canPremium, years, teacher) {
   const oneYear = () => { const d = new Date(); d.setFullYear(d.getFullYear() + (years || 1)); return d.toISOString().slice(0, 10); };
-  const sel = h('select', { class: 'pt-in', id: 'plPlan', 'aria-label': 'Plan' }, ['free', 'premium', 'avanti'].map(k => h('option', { value: k, text: k === 'avanti' ? 'Avanti student (signs in with Avanti ID + date of birth, Premium included)' : PLAN_NAMES[k] + (k === 'premium' ? ' (until a date)' : '') })));
+  const sel = h('select', { class: 'pt-in', id: 'plPlan', 'aria-label': 'Plan' }, ['free', 'premium', 'avanti'].map(k => h('option', { value: k, text: teacher ? { free: 'Free Teacher', premium: 'Premium Teacher (until a date)', avanti: 'Avanti Teacher' }[k] : k === 'avanti' ? 'Avanti student (signs in with Avanti ID + date of birth, Premium included)' : PLAN_NAMES[k] + (k === 'premium' ? ' (until a date)' : '') })));
   sel.value = cur === 'premium' || cur === 'avanti' ? cur : 'free';
   const dt = h('input', { type: 'date', class: 'pt-in', id: 'plUntil', min: new Date().toISOString().slice(0, 10), value: until ? String(until).slice(0, 10) : oneYear() });
   const dtRow = h('label', { class: 'pt-fld', for: 'plUntil' }, h('span', { text: 'Premium until' }), dt);
   const hint = h('small', {});
   const sync = () => {
     dtRow.hidden = sel.value !== 'premium';
-    hint.textContent = sel.value === 'free' ? 'Free: view only, no downloads or printing. Signs in with Google.' : sel.value === 'avanti' ? 'Avanti student: signs in with Avanti ID + date of birth; Premium included, no end date.' : 'Premium: PDF downloads and printing until this date. Signs in with Google.';
+    hint.textContent = sel.value === 'free' ? 'Free: view only, no downloads or printing. Signs in with Google.' : sel.value === 'avanti' ? (teacher ? 'Avanti Teacher: Premium included, no end date. Signs in with Google.' : 'Avanti student: signs in with Avanti ID + date of birth; Premium included, no end date.') : 'Premium: PDF downloads and printing until this date. Signs in with Google.';
     const o = [...sel.options].find(x => x.value === 'premium'); if (o) o.disabled = canPremium === false;
   };
   sel.addEventListener('change', sync); sync();
@@ -1759,7 +1759,7 @@ async function pageApprovals() {
   const addTeacher = () => {
     const mail = h('input', { type: 'email', class: 'pt-in', id: 'atMail', placeholder: 'name@gmail.com', autocomplete: 'off' });
     const name = h('input', { type: 'text', class: 'pt-in', id: 'atName', maxlength: 120, autocomplete: 'off' });
-    const sch = schoolSelect('atSchool', '', 'Choose a school', true, { notWorking: true }), pick = planPicker('free', null, true), msg = h('p', { class: 'pt-msg', role: 'status' });
+    const sch = schoolSelect('atSchool', '', 'Choose a school', true, { notWorking: true }), pick = planPicker('free', null, true, 1, true), msg = h('p', { class: 'pt-msg', role: 'status' });
     modal('Add a teacher', h('div', {}, h('p', { class: 'pt-hint', text: 'The teacher signs in with this Google account. Their school is approved and their plan is set from the first sign-in. If they already have an account, it is updated now.' }),
       h('label', { class: 'pt-fld', for: 'atMail' }, h('span', {}, 'Google email', h('b', { class: 'pt-req', text: ' *' })), mail),
       h('label', { class: 'pt-fld', for: 'atName' }, h('span', {}, 'Full name', h('b', { class: 'pt-req', text: ' *' })), name),
