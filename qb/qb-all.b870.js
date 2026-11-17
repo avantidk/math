@@ -473,7 +473,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       b += para(wRun(metaLine(q), { color: '808080', sz: 16 }), { keepNext: true, after: 0 });
       b += richParas(figLines(q.question), wRun('Q' + (i + 1) + '. ', { b: true }), { after: 40 });
       b += optionsWord(q.options || []);
-      if (o.answers && !o.answerKey) b += para(wRun('Answer: ', { b: true }) + wRun(q.answer || '—'), { after: 40 });
+      if (o.answers && !o.answerKey) b += /\\\(|\\\[|\n/.test(q.answer || '') ? richParas(String(q.answer), wRun('Answer: ', { b: true }), { after: 40 }) : para(wRun('Answer: ', { b: true }) + wRun(q.answer || '—'), { after: 40 });
       if (o.pptLayout) b += pageBreak() + para('') + pageBreak();
       else b += para('', { after: 100 });
     });
@@ -730,10 +730,10 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   }
   function qHtml(q, i, o) {
     return '<div class="meta">' + esc(metaLine(q)) + '</div><div class="qt"><b>Q' + (i + 1) + '.</b> ' + richHtml(q.question, q.figure) + '</div>' + optionsHtml(q.options || []) +
-      (o.answers && !o.answerKey ? '<div class="ans"><b>Answer:</b> ' + esc(q.answer || '—') + '</div>' : '');
+      (o.answers && !o.answerKey ? '<div class="ans"><b>Answer:</b> ' + (q.answer ? richHtml(String(q.answer), null) : '—') + '</div>' : '');
   }
   function keyHtml(qs, from, to) {
-    return '<div class="key">' + qs.slice(from, to).map(function (q, k) { return '<div><b>' + (from + k + 1) + '.</b> ' + esc(q.answer || '—') + '</div>'; }).join('') + '</div>';
+    return '<div class="key">' + qs.slice(from, to).map(function (q, k) { return '<div><b>' + (from + k + 1) + '.</b> ' + (q.answer ? richHtml(String(q.answer), null) : '—') + '</div>'; }).join('') + '</div>';
   }
   /* CSS scoped to .qbp (PDF pages) — also used, unscoped, by the print-file fallback */
   var PCSS = '.qbp .katex-html{display:none!important}.qbp{font-family:Arial,Helvetica,"Segoe UI",sans-serif;font-size:14px;line-height:1.55;color:#000;background:#fff}' +
@@ -1221,6 +1221,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     var foot = el('div', 'qb-foot');
     var bAns = icoBtn('eye', 'Reveal answer');
     var ans = el('span', 'qb-ans', 'Answer: ' + (q.answer || 'not available'));
+    /* answers with maths or several lines (for example "(i) ...; (ii) ...") are drawn like the question text, not as raw code */
+    if (q.answer && /\\\(|\\\[|\n/.test(q.answer)) { ans.textContent = 'Answer: '; var ansB = el('span', 'qb-ans-b'); ansB.style.display = 'block'; renderRich(ansB, String(q.answer), null); ans.appendChild(ansB); }
     bAns.addEventListener('click', function () { var on = card.classList.toggle('rev'); setIco(bAns, on ? 'eyeoff' : 'eye', on ? 'Hide answer' : 'Reveal answer'); bAns.classList.toggle('on', on); });
     var bCopy = el('button', 'qb-lnk', 'Copy'); bCopy.type = 'button'; bCopy.title = 'Copy the question with its equations';
     bCopy.addEventListener('click', function () { copyRich(q, body, bCopy); });

@@ -1,5 +1,13 @@
 [
   {
+    "v": "922",
+    "date": "17 Nov 2026",
+    "items": [
+      "Answers that contain maths or several parts (for example \"(i) ...; (ii) ...\") now show as formatted maths on the card and in PDF / Word exports, instead of raw code.",
+      "Allen questions and solutions are easier to read: solutions now go one step per line, numbered statements in questions (1), (2), (3)... start on new lines, and words inside set-builder notation show as normal text."
+    ]
+  },
+  {
     "v": "921",
     "date": "17 Nov 2026",
     "items": [
