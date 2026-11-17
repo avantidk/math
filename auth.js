@@ -116,55 +116,11 @@ function rememberNext() { if (/^#\/t\//.test(location.hash)) store.set(NEXT_KEY,
 /* ---------- login page ---------- */
 const GOOGLE_G = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
 
-/* ---------- login / register pop-up (opens over the public home page) ---------- */
-let lmRoot = null;
-function closeLogin() { if (lmRoot) lmRoot.hidden = true; document.body.classList.remove('lm-open'); }
+/* ---------- login / register pop-up: built by login.js (shared with the public pages) ---------- */
+window.AvantiLogin.after = () => afterSignIn();
+function closeLogin() { window.AvantiLogin.close(); }
+function openLogin(msg) { window.AvantiLogin.open({ msg }); }
 function loginPage(msg) { showHome(); openLogin(msg); }   /* called when there is no sign-in */
-function openLogin(msg) {
-  if (!lmRoot) {
-    lmRoot = h('div', { class: 'lm', id: 'loginModal', hidden: true, role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Log in or register' });
-    lmRoot.addEventListener('mousedown', e => { if (e.target === lmRoot) closeLogin(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && lmRoot && !lmRoot.hidden) closeLogin(); });
-    document.body.append(lmRoot);
-  }
-  const testLink = /^#\/t\//.test(location.hash) || /^#\/t\//.test(store.get(NEXT_KEY) || '');
-  let role = testLink ? 'student' : (store.get(ROLE_KEY) === 'student' ? 'student' : 'teacher');
-  const err = h('p', { class: 'lg-err', role: 'alert', hidden: !msg, text: msg || '' });
-  const seg = h('div', { class: 'lg-seg', role: 'radiogroup', 'aria-label': 'I am a' });
-  const avBox = h('section', { class: 'lg-card lg-av' });
-  const paint = () => { seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', String(b.dataset.r === role))); avBox.hidden = role !== 'student'; };
-  [['teacher', 'Teacher'], ['student', 'Student']].forEach(([k, t]) => seg.append(h('button', { type: 'button', role: 'radio', 'data-r': k, text: t, onclick: () => { role = k; paint(); } })));
-  const gBtn = h('button', { type: 'button', class: 'lg-google', html: GOOGLE_G + '<span>Continue with Google</span>', onclick: async () => {
-    err.hidden = true; gBtn.disabled = true; gBtn.lastChild.textContent = 'Opening Google…';
-    try { await A.signInWithGoogle(role); } catch (e) { gBtn.disabled = false; gBtn.lastChild.textContent = 'Continue with Google'; err.textContent = 'Google sign-in did not start: ' + (e.message || e); err.hidden = false; }
-  } });
-  const idIn = h('input', { type: 'text', id: 'lgId', autocomplete: 'username', placeholder: 'e.g. 2401234567', required: true, maxlength: 40 });
-  const dobIn = h('input', { type: 'date', id: 'lgDob', autocomplete: 'bday', required: true, max: new Date().toISOString().slice(0, 10) });
-  const avErr = h('p', { class: 'lg-err', role: 'alert', hidden: true });
-  const avBtn = h('button', { type: 'submit', class: 'lg-btn', text: 'Login with Avanti ID' });
-  avBox.append(h('h2', { text: 'Login with Avanti ID' }), h('p', { class: 'lg-sub', text: 'Only for Avanti students. Use your Avanti ID and date of birth. All other students: use Continue with Google above, with the email your teacher added.' }),
-    h('form', { class: 'lg-form', onsubmit: async e => {
-      e.preventDefault(); avErr.hidden = true;
-      if (!idIn.value.trim() || !dobIn.value) { avErr.textContent = 'Enter your Avanti ID and date of birth.'; avErr.hidden = false; return; }
-      avBtn.disabled = true; avBtn.textContent = 'Checking…';
-      try { rememberNext(); await A.signInWithAvantiId(idIn.value.trim(), dobIn.value); await afterSignIn(); }
-      catch (x) { avErr.textContent = x.message || String(x); avErr.hidden = false; avBtn.disabled = false; avBtn.textContent = 'Login with Avanti ID'; }
-    } },
-      h('label', { for: 'lgId', text: 'Avanti ID' }), idIn, h('label', { for: 'lgDob', text: 'Date of birth' }), dobIn, avErr, avBtn));
-  const dialog = h('div', { class: 'lm-dialog' },
-    h('button', { type: 'button', class: 'lm-x', 'aria-label': 'Close', text: '\u00d7', onclick: closeLogin }),
-    h('img', { class: 'lm-logo', src: 'img/ankit-logo-sm.png?v=920', alt: 'अंक-IT Mathematics', width: 139, height: 52 }),
-    h('h2', { text: 'Log in or register' }),
-    h('p', { class: 'lg-sub', text: 'New here? Continue with Google and your account is created for you.' }),
-    testLink ? h('p', { class: 'lg-note', text: 'Sign in to open your test.' }) : null,
-    h('p', { class: 'lg-sub', text: 'I am a' }), seg, gBtn, err,
-    avBox,
-    h('p', { class: 'lg-fine', text: 'Your choice of Teacher or Student is saved the first time you sign in. अंक-IT staff (@avantifellows.org) get full access automatically.' }),
-    h('section', { class: 'lg-help' }, h('span', { text: 'Trouble signing in?' }), h('button', { type: 'button', class: 'lg-link', text: 'Help & Support', onclick: e => showHelp(e.target) })));
-  lmRoot.textContent = ''; lmRoot.append(dialog); lmRoot.hidden = false; document.body.classList.add('lm-open');
-  paint();
-  setTimeout(() => { try { gBtn.focus(); } catch (e) { /* optional */ } }, 30);
-}
 
 /* ---------- which page is on screen: the public home page or the dashboard ---------- */
 /* Signed out: always the home page. Signed in: the dashboard, except at #/home (and its own in-page links like #plans). */
@@ -183,8 +139,6 @@ function applyView() {   /* signed in: switch between home and dashboard without
 }
 window.addEventListener('hashchange', () => { if (A.session) applyView(); });
 document.addEventListener('click', e => {
-  const l = e.target.closest && e.target.closest('[data-login]');
-  if (l) { e.preventDefault(); openLogin(); return; }
   const dsh = e.target.closest && e.target.closest('[data-dash]');
   if (dsh && A.session) {
     e.preventDefault();
@@ -192,18 +146,6 @@ document.addEventListener('click', e => {
     applyView(); if (window.AvantiPortal) window.AvantiPortal.route();
   }
 });
-
-/* Help & Support on the login page: contact read from the database (works without signing in) */
-async function showHelp(btn) {
-  const box = btn.closest('.lg-help'); if (box.querySelector('.lg-helpbox')) return;
-  const inner = h('div', { class: 'lg-helpbox' }, h('p', { class: 'lg-sub', text: 'Loading…' })); box.append(inner);
-  let c = null; try { c = await rpc('support_contact'); } catch (e) { c = null; }
-  inner.textContent = '';
-  if (!c || !c.email) { inner.append(h('p', { class: 'lg-sub', text: 'Contact details could not be loaded. Please try again.' })); return; }
-  const subj = encodeURIComponent('Mathematics Dashboard: help with signing in');
-  inner.append(h('a', { class: 'lg-btn lg-mail', href: 'mailto:' + c.email + '?subject=' + subj, text: '✉ Email ' + c.email }),
-    c.phone ? h('a', { class: 'lg-btn lg-ghost', href: 'tel:' + c.phone.replace(/[^+\d]/g, ''), text: '☎ Call ' + c.phone }) : null);
-}
 
 /* Asked only when the role was never chosen (for example, the very first sign-in came from another tab). */
 function rolePage() {

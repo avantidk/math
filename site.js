@@ -22,6 +22,15 @@
       var ini = ((parts[0] || '?').charAt(0) + (parts.length > 1 ? parts[1].charAt(0) : '')).toUpperCase();
       Array.prototype.forEach.call(d.querySelectorAll('[data-av]'), function (el) { el.textContent = ini; el.setAttribute('title', name || 'Your profile'); });
     }
+    /* Exams drop-down: opens on hover or keyboard focus (CSS) and on click or tap (here); closes on Escape or a click elsewhere */
+    var dd = d.querySelector('.sh-dd');
+    if (dd) {
+      var btn = dd.querySelector('.sh-ddb');
+      var setOpen = function (v) { dd.classList.toggle('open', v); btn.setAttribute('aria-expanded', String(v)); if (!v) btn.blur(); };   /* blur: keyboard focus alone must not keep it open */
+      btn.addEventListener('click', function (e) { e.stopPropagation(); setOpen(!dd.classList.contains('open')); });
+      d.addEventListener('click', function (e) { if (!dd.contains(e.target)) setOpen(false); });
+      d.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+    }
     /* mobile menu: close it after a link is chosen */
     Array.prototype.forEach.call(d.querySelectorAll('.sh-menu a'), function (a) {
       a.addEventListener('click', function () { var m = d.querySelector('.sh-menu'); if (m) m.removeAttribute('open'); });

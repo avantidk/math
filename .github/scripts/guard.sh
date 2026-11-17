@@ -17,7 +17,7 @@ if [ -f index.html ]; then
   done
   grep -q 'startup-patch\|tests-data' index.html && bad "index.html is the old artifact page (startup-patch / tests-data)."
 fi
-[ -f site.js ] && [ -f site.css ] || bad "site.js / site.css are missing: the public home page and the Login pop-up need them."
+[ -f site.js ] && [ -f site.css ] && [ -f login.js ] || bad "site.js / site.css / login.js are missing: the public home page and the Login pop-up need them."
 grep -q 'id="home"' index.html 2>/dev/null || bad "index.html lost the public home page (id=home). Run python3 .github/scripts/build_seo.py."
 LIVE="index.html boot.js auth.js portal.js chat.js teacher.b870.js qb/qb-all.b870.js qb/qb.b525.html"
 for s in 'JrF7haaQnwBT8Jh5QPCMcF' 'STUDENT_URL' 'teacher_login' 'student_login' 'renderGod' 'renderResults' 'syncStudents' "claude.use('artifact')"; do

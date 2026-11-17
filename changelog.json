@@ -1,5 +1,16 @@
 [
   {
+    "v": "928",
+    "date": "17 Nov 2026",
+    "items": [
+      "Login now opens as a pop-up on every public page (chapters, exams, About and others) instead of sending you to the home page. The pop-up box is wider, and the staff sentence is removed from it.",
+      "New Exams menu in the top bar with JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA and IAT: question counts, years and papers for each, with a page per exam showing chapter-wise and year-wise counts.",
+      "Real screens from the dashboard (Question Bank, DPP Builder, PYQ papers, Must Solve) on the home page, in the hero and in a tabbed showcase.",
+      "Plans now have a Student / Teacher switch with the right price and features for each.",
+      "Chapters on the home page are now cards showing subtopics and JEE Main / Advanced question counts. Past papers now read 2000–2026."
+    ]
+  },
+  {
     "v": "927",
     "date": "17 Nov 2026",
     "items": [

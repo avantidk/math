@@ -14,10 +14,10 @@ tests and results. It replaced an older Claude artifact.
 - Never put the Supabase service role key, the database password or Razorpay secrets in the repository.
 
 ## How the site is built
-- `index.html` loads `vendor/supabase-js`, `boot.js`, `portal.js`, `chat.js`, `auth.js` and `site.js`. Before sign-in it shows the PUBLIC HOME PAGE
+- `index.html` loads `vendor/supabase-js`, `boot.js`, `portal.js`, `chat.js`, `auth.js` and `login.js` (the Login pop-up, also used by every public page) and `site.js`. Before sign-in it shows the PUBLIC HOME PAGE
   (static HTML, so search engines can read it); the Login button opens a pop-up. After sign-in the dashboard opens; the Home icon in its top bar
   shows the home page again (`#/home`). The home page, the 24 chapter pages (`/jee-maths/...`), About, Contact, Privacy, Terms, `sitemap.xml` and
-  `robots.txt` are GENERATED from `syllabus.json` by `python3 .github/scripts/build_seo.py`: edit that script (and `site.css`), never the generated
+  `robots.txt` are GENERATED from `syllabus.json` by `python3 .github/scripts/build_seo.py` (exam counts come from `.github/scripts/exam-stats.json`, made by `exam_stats.py` from the private bank: numbers only): edit that script (and `site.css`), never the generated
   files, then run it and commit the result. Public pages must contain no questions, answers, solutions or handouts.
   It has a strict Content-Security-Policy: every script must come from this site (`vendor/` holds the libraries), never a CDN.
 - `auth.js`: sign-in, plan permissions (read from the database via `my_profile`), profile menu.
