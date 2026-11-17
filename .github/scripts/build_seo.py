@@ -754,8 +754,8 @@ def home_block():
 <main id="main">
 <section class="hero"><div class="swrap hero-in">
 <div><span class="eyebrow"><i></i>JEE · KCET · NDA · IAT Mathematics</span>
-<h1>JEE Maths practice: <em>question bank, PYQs and online tests</em></h1>
-<p class="lead">Practise JEE Maths with a question bank with full solutions, PYQs (previous-year papers), DPPs, handouts and NTA-style online tests, all in one place for Class 11 and 12.</p>
+<h1>Math question bank, PYQs and DPPs <em>with full solutions</em></h1>
+<p class="lead">Practise math with a question bank, PYQs (previous-year papers), DPPs, handouts and NTA-style online tests, all with full solutions, for Class 11 and 12 and for exams such as JEE, KCET, NDA and IAT.</p>
 <div class="hero-cta"><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Start practising free</a><a class="sb sb-gold sb-lg when-in" data-dash href="./">Open your dashboard</a><a class="sb sb-white-line sb-lg" href="#dashboard">See the dashboard</a></div>
 <ul class="hero-pts">{pts}</ul></div>
 {hero_shot}
@@ -764,7 +764,7 @@ def home_block():
 <div class="stat"><b>16,000+</b><span>Questions in the bank</span></div><div class="stat"><b>{STATS["_all"]["nonpyq_questions"]:,}</b><span>Non-PYQ practice questions</span></div>
 <div class="stat"><b>{len(CH)}</b><span>Chapters, {D["tot_sub"]} subtopics</span></div><div class="stat"><b>2000–2026</b><span>Past papers</span></div></div></section>
 <section class="sec" id="dashboard"><div class="swrap"><div class="sec-head"><span class="kick">Inside the dashboard</span><h2>See what you get after you log in</h2><p>Real screens from the dashboard: question bank, DPP builder, past papers, Must Solve, handouts and the online test window.</p></div>{showcase}</div></section>
-<section class="sec sec-alt" id="features"><div class="swrap"><div class="sec-head"><span class="kick">Everything in one place</span><h2>Everything you need to prepare for JEE Maths</h2><p>Practise, test yourself and track your progress without juggling PDFs, apps and notebooks.</p></div>
+<section class="sec sec-alt" id="features"><div class="swrap"><div class="sec-head"><span class="kick">Everything in one place</span><h2>Everything you need to practise math</h2><p>Practise, test yourself and track your progress without juggling PDFs, apps and notebooks.</p></div>
 <div class="grid3">{feat_html}</div></div></section>
 <section class="sec" id="how"><div class="swrap"><div class="sec-head"><span class="kick">How it works</span><h2>Start in three simple steps</h2></div><div class="steps">{steps_html}</div></div></section>
 <section class="sec sec-alt" id="chapters"><div class="swrap"><div class="sec-head"><span class="kick">Syllabus</span><h2>Every maths chapter, covered</h2><p>{len(CH)} chapters and {D["tot_sub"]} subtopics, with the number of JEE Main and JEE Advanced questions asked from each. Open a chapter to see its subtopics.</p></div>
