@@ -535,7 +535,7 @@ const IC = {
 async function shareWorksheet(w) {
   if (!can('share')) { toast('Sharing needs a Premium membership.'); return; }
   toast('Preparing the PDF…');
-  let r; try { r = await TE().pdfIds(w.question_ids, w.title, w.label, w.info); } catch (e) { toast('Could not make the PDF: ' + (e && e.message ? e.message : 'try again')); return; }
+  let r; try { r = await TE().pdfIds(w.question_ids, w.title, w.label, w.info, w.subLine); } catch (e) { toast('Could not make the PDF: ' + (e && e.message ? e.message : 'try again')); return; }
   if (r) shareReady(r.blob, r.file, w.title);
 }
 /* "PDF ready" box used by every share button on the site. The share sheet needs a fresh click, so it opens from here. */
@@ -938,13 +938,15 @@ async function pageMyTests() {
   const idsOf = async t => { const { data, error } = await sb().from('tests').select('questions').eq('id', t.id).single(); if (error) { toast(error.message); return null; } return (data.questions || []).map(q => q.id).filter(Boolean); };
   /* the line under the title of an exported test: questions, time, marks, +/- marking and the date it was created */
   const infoOf = t => { const n = +t.n_questions || 0, pos = +t.marks_correct || 0, neg = +t.marks_wrong || 0; return ['Questions: ' + n, 'Time: ' + t.duration_min + ' min', 'Maximum marks: ' + num(n * pos, 2), 'Marking: +' + num(pos, 2) + ' / \u2212' + num(neg, 2), 'Date: ' + day(t.created_at)]; };
-  const exp = (t, kind) => async () => { const ids = await idsOf(t); if (ids) TE().exportIds(ids, t.title, kind, 'Test paper', infoOf(t)); };
+  /* under the title: class, batch and school, e.g. "11 · JEE · All schools" */
+  const subOf = t => [(t.target_classes || []).join(', '), (t.target_streams || []).join(', '), [t.school].concat(t.schools || []).filter(Boolean).join(', ') || 'All schools'].filter(Boolean).join(' \u00b7 ');
+  const exp = (t, kind) => async () => { const ids = await idsOf(t); if (ids) TE().exportIds(ids, t.title, kind, 'Test paper', infoOf(t), subOf(t)); };
   const exportBtn = t => can('pdf') ? h('button', { type: 'button', class: 'btn pt-split', 'aria-haspopup': 'menu', 'aria-expanded': 'false', onclick: e => dropMenu(e.currentTarget, [
       { icon: IC.pdf, text: 'Download PDF', sub: 'Print-ready, with the Avanti header', onclick: exp(t, 'pdf') },
       can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable document', onclick: exp(t, 'docx') } : null,
       can('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: exp(t, 'pptx') } : null,
       can('share') ? '-' : null,
-      can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { const ids = await idsOf(t); if (ids) shareWorksheet({ title: t.title, question_ids: ids, label: 'Test paper', info: infoOf(t) }); } } : null]) },
+      can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { const ids = await idsOf(t); if (ids) shareWorksheet({ title: t.title, question_ids: ids, label: 'Test paper', info: infoOf(t), subLine: subOf(t) }); } } : null]) },
     h('span', { html: IC.down }), 'Export', h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' })) : null;
   const moreBtn = t => h('button', { type: 'button', class: 'btn pt-iconbtn pt-ctmore', title: 'More', 'aria-label': 'More actions for ' + t.title, 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: IC.more,
     onclick: e => dropMenu(e.currentTarget, t.mine === false ? [{ icon: IC.eye, text: 'Preview', onclick: () => preview(t) }]

@@ -1,5 +1,12 @@
 [
   {
+    "v": "957",
+    "date": "17 Nov 2026",
+    "items": [
+      "Exported test papers: under the test name there is now one line with the class, the batch and the school, separated by dots, for example \"11 · JEE · All schools\". If the test is for one school, its name is shown instead of \"All schools\"."
+    ]
+  },
+  {
     "v": "956",
     "date": "17 Nov 2026",
     "items": [

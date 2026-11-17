@@ -215,7 +215,7 @@ function skeleton(p, keyMode) {
   const dt = p.date ? new Date(p.date + 'T00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   /* header: logo left, exam name (18 bold) with date below (14), Mathematics top right; footer: Exam - Date left, page number right */
   const examName = p.pyq ? String(p.sub || '').replace(/\s*\u00b7\s*all topics$/, '') : p.title, dateLine = p.pyq ? p.title : sub;
-  const headTitle = p.pyq ? examName : p.title, headSub = p.infoLine && !keyMode ? '' : p.pyq ? (keyMode ? dateLine + ' \u00b7 ' + (keyMode === 'exp' ? 'Explanations' : 'Answer key') : dateLine) : sub;
+  const headTitle = p.pyq ? examName : p.title, headSub = p.infoLine && !keyMode ? (p.subLine || '') : p.pyq ? (keyMode ? dateLine + ' \u00b7 ' + (keyMode === 'exp' ? 'Explanations' : 'Answer key') : dateLine) : sub;
   const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-light.png?v=932', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
   return h('div', { class: 'sheet' },
     h('div', { class: 'sh-head' },
@@ -522,10 +522,10 @@ function paginate(qs, base) {
   const use = even.every(r => ok(r[0], r[1])) ? even : greedy;
   return use.map(r => qs.slice(r[0], r[1]));
 }
-function idPages(ids, title, label, info) {
+function idPages(ids, title, label, info, subLine) {
   label = label || 'Worksheet';
   const qs = ids.map(i => BYID.get(i)).filter(Boolean);
-  return qs.length ? packPages(qs, (g, i, n) => ({ title, sub: label, infoLine: info || '', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : label })) : [];
+  return qs.length ? packPages(qs, (g, i, n) => ({ title, sub: label, infoLine: info || '', subLine: subLine || '', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : label })) : [];
 }
 function packPages(qs, mk) {
   const pg = paginate(qs, BASE), out = []; let start = 0;
@@ -2004,8 +2004,8 @@ window.AvantiTeacher = {
   /* the question bank (same data as the Question Bank, DPPs and PYQs tabs), for the test maker */
   bank: () => ensureDpp().then(() => ({ qs: BANK.all, byId: BYID, chapters: CHMAP })),
   /* saved worksheets: the same PDF / Word / PowerPoint export and share menu as DPPs (plan checks inside) */
-  exportIds: async (ids, title, kind, label, info) => { await ensureDpp(); const pages = idPages(ids, title, label, info); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } doExport(kind, { pages, file: title }); },
-  pdfIds: async (ids, title, label, info) => { await ensureDpp(); const pages = idPages(ids, title, label, info); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
+  exportIds: async (ids, title, kind, label, info, subLine) => { await ensureDpp(); const pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } doExport(kind, { pages, file: title }); },
+  pdfIds: async (ids, title, label, info, subLine) => { await ensureDpp(); const pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
   shareIds: async (btn, ids, title) => { await ensureDpp(); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
   math: node => math(node)
 };
