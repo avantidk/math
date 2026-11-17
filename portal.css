@@ -585,10 +585,6 @@ body.ex-on .ch-fab, body.ex-on .ch-panel, body.hv-on .ch-fab { display: none !im
 
 /* Solutions status (footer) only for the admin */
 html:not(.is-admin) .qb-sstat-link, html:not(.is-admin) #appFootLink, html:not(.is-admin) #appFootSite { display: none !important; }
-/* Question Bank quick filters for non-staff: 4 buttons on the first row, 3 below */
-html:not(.plan-staff) .qb-results .qb-tools > * { grid-column: span 3; }
-html:not(.plan-staff) .qb-results .qb-tools > .qb-reset, html:not(.plan-staff) .qb-results .qb-tools > .qb-selall, html:not(.plan-staff) .qb-results .qb-tools > .qb-clear { grid-column: span 4; }
-@media (max-width: 640px) { html:not(.plan-staff) .qb-results .qb-tools > *, html:not(.plan-staff) .qb-results .qb-tools > .qb-reset, html:not(.plan-staff) .qb-results .qb-tools > .qb-selall, html:not(.plan-staff) .qb-results .qb-tools > .qb-clear { grid-column: span 1; } }
 /* bigger FAQ text */
 .pt-faq summary { font-size: 16px; padding: 4px 2px; }
 .pt-faq p { font-size: 15px; line-height: 1.55; }
