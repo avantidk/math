@@ -427,7 +427,7 @@ def exam_page(e):
 <p class="pg-fine">Each row is one year of {E(name)}: how many questions were asked and their level (L1 easy, L2 medium, L3 hard).</p>
 {yr_strip}
 {cta(2, f"Practise {name} questions chapter-wise with full solutions, build DPPs and open whole papers in exam format. Everything is inside after you sign in.")}"""
-    body = band(crumbs, f'{exlogo(e, "../../", 44)} {E(name)}: math and previous-year questions') + '\n' + grid(main, 2, sl)
+    body = band(crumbs, f'{exlogo(e, "../../", 44)} {E(name)}: Math PYQs, DPPs Analysis') + '\n' + grid(main, 2, sl)
     ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
             {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'},
             {'@type': 'ListItem', 'position': 2, 'name': 'Exams', 'item': SITE + '/exams/'},
