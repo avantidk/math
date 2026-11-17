@@ -15,7 +15,7 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
 // Only the website may call this from a browser. Set the secret ALLOWED_ORIGIN if the site moves.
-const ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://avantidk.github.io';
+const ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://unkganit.com';
 const cors = {
   'Access-Control-Allow-Origin': ORIGIN,
   'Vary': 'Origin',

@@ -3,7 +3,7 @@
 Do these steps once, in this order. They take about 30 minutes. You never need to put a secret key in the website or in GitHub.
 
 Your addresses:
-- Website: `https://avantidk.github.io/math/` (if your GitHub Pages address is different, use yours everywhere below)
+- Website: `https://unkganit.com/` (the old `https://avantidk.github.io/math/` address redirects here automatically)
 - Supabase project: `https://usehxhvzhdbcmnmqaxoo.supabase.co`
 
 ---
@@ -46,7 +46,7 @@ Do this twice, once for each function.
 
 (Verify JWT must be off: Razorpay cannot send a Supabase login, and the website's publishable key is not a JWT. Both functions check the user themselves.)
 
-Both functions answer browsers only from `https://avantidk.github.io`. If the website moves, add the secret `ALLOWED_ORIGIN`
+Both functions answer browsers only from `https://unkganit.com`. If the website moves again, add the secret `ALLOWED_ORIGIN`
 (Edge Functions → Secrets) with the new address, e.g. `https://maths.example.org`.
 
 ## 3b. Private content: questions, solutions, handouts (Supabase Storage)
@@ -76,13 +76,13 @@ Google is already switched on in your Supabase project. Check that it has your o
 **In Google Cloud** (https://console.cloud.google.com, signed in with the Avanti account that should own this):
 1. Pick or create a project at the top. Click **APIs & Services** → **OAuth consent screen** (also called **Google Auth Platform → Branding**). Fill in the app name "Mathematics Dashboard", your support email, and save. Under **Audience**, choose **External** and click **Publish app** so anyone with Gmail can sign in.
 2. Click **Clients** (or **Credentials** → **+ Create credentials** → **OAuth client ID**). Application type: **Web application**.
-3. **Authorized JavaScript origins:** add `https://avantidk.github.io`
+3. **Authorized JavaScript origins:** add `https://unkganit.com` (and `https://www.unkganit.com` if you use www)
 4. **Authorized redirect URIs:** add `https://usehxhvzhdbcmnmqaxoo.supabase.co/auth/v1/callback`
 5. Click **Create**. Copy the **Client ID** and **Client secret**.
 
 **In Supabase:**
 1. **Authentication** → **Sign In / Providers** → **Google** → turn it on, paste the Client ID and Client secret → **Save**.
-2. **Authentication** → **URL Configuration**: set **Site URL** to `https://avantidk.github.io/math/`. Under **Redirect URLs** click **Add URL** and add `https://avantidk.github.io/math/**`. Click **Save**.
+2. **Authentication** → **URL Configuration**: set **Site URL** to `https://unkganit.com/`. Under **Redirect URLs** click **Add URL** and add `https://unkganit.com/**`. Click **Save**.
 3. Leave the **Email** provider on (the Avanti ID login uses it inside the server). The database refuses every email/password sign-up, so only Google and Avanti ID accounts can be created.
 
 Staff: anyone who signs in with a verified Google account ending in `@avantifellows.org` becomes Staff (full access) automatically.
