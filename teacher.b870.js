@@ -1217,6 +1217,7 @@ async function renderHandouts() {
       + '@media(max-width:480px){.hp-list{grid-template-columns:1fr}.hp-card{grid-template-columns:auto 1fr}.hp-act{grid-column:1 / -1;justify-content:flex-start}}';
     document.head.append(st);
   }
+  const FREE_HO = new Set(['11M1', '12M13']);   /* the first Class 11 and the first Class 12 handout: free to view (downloading stays Premium) */
   const list = (HO || []).filter(Boolean);
   if (!list.length) { view.append(h('p', { class: 'hint', text: 'No handouts yet.' })); return; }
   const base = x => x.file.replace(/\.pdf$/, '');
@@ -1237,9 +1238,9 @@ async function renderHandouts() {
   const card = (x, k) => h('article', { class: 'hp-card', style: '--ac:' + ACC[k % ACC.length] },
     h('span', { class: 'hp-code', text: x.code }),
     h('div', { class: 'hp-main' }, h('h3', { class: 'hp-title', text: x.title }), h('p', { class: 'hp-meta', text: [x.pages ? x.pages + ' pages' : '', x.orient || 'A4'].filter(Boolean).join(' · ') })),
-    h('div', { class: 'hp-act' }, G('pdf') ? [viewBtn(x), btn(x, false), x.nobw ? null : btn(x, true)] : h('a', { class: 'hp-btn hp-view', href: '#/membership', title: 'Handouts are part of Premium', 'aria-label': 'Handouts are part of Premium. Open Membership', html: LOCK })));
+    h('div', { class: 'hp-act' }, G('pdf') ? [viewBtn(x), btn(x, false), x.nobw ? null : btn(x, true)] : FREE_HO.has(x.code) ? [viewBtn(x)] : h('a', { class: 'hp-btn hp-view', href: '#/membership', title: 'Handouts are part of Premium', 'aria-label': 'Handouts are part of Premium. Open Membership', html: LOCK })));
   const secs = [['11', 'Class 11'], ['12', 'Class 12']].map(([c, t]) => { const L = list.filter(x => x.code.startsWith(c)); return L.length ? h('section', { class: 'hp-sec' }, h('h2', { class: 'hp-sech', text: t }), h('div', { class: 'hp-list' }, L.map((x, k) => card(x, k)))) : null; }).filter(Boolean);
-  view.append(h('div', { class: 'hp-head' }, h('h1', { text: 'Handouts' }), h('p', { text: G('pdf') ? 'Handwritten revision notes · view or download as PDF' : 'Handwritten revision notes · part of the Premium membership (view and download)' })), ...secs);
+  view.append(h('div', { class: 'hp-head' }, h('h1', { text: 'Handouts' }), h('p', { text: G('pdf') ? 'Handwritten revision notes · view or download as PDF' : 'Handwritten revision notes · the first handout of Class 11 and of Class 12 is free to view; the rest are part of the Premium membership' })), ...secs);
 }
 
 /* ---------- Must Solve tab: questions that repeat in JEE (exact or very similar) and sure-shot picks, by chapter and topic ---------- */
@@ -1437,6 +1438,7 @@ function syncQbPop(t) {
   });
 }
 function setTab(t) {
+  if (t === 'qb' && !G('isAdmin')) t = 'lib';   /* the Question Bank tab is for the admin only; everyone else works from DPPs, PYQs and Must Solve */
   if (t === 'pyq') { pyqShow(); return; }
   const pv = $('#viewPyq'); if (pv) pv.hidden = true;
   setTabInner(t);
@@ -1568,12 +1570,27 @@ function toggleMax(btn) {
   setTimeout(rescale, 0); setTimeout(rescale, 150);
 }
 function closeMax() { const st = document.querySelector('.stage.maxed'); if (!st) return; const b = st.querySelector('[data-act="max"]'); if (b) toggleMax(b); }
+/* PDF limits for everyone except the admin: at most 90 questions in one PDF and 100 questions a day for each account. The day's total is kept
+   by the database (claim_pdf_quota), so it follows the account, not the browser. Print and Share make the same PDF, so they count too. */
+const PDF_MAX = 90;
+async function claimPdf(pages) {
+  const n = pages.reduce((s, p) => s + ((p && p.qs && p.qs.length) || 0), 0);
+  if (G('isAdmin') || !n) return true;
+  if (n > PDF_MAX) { toast('One PDF can have at most ' + PDF_MAX + ' questions. You picked ' + n + '. Pick fewer chapters or years.'); return false; }
+  try { await window.AvantiAuth.rpc('claim_pdf_quota', { p_count: n }); return true; }
+  catch (e) {
+    const m = String((e && e.message) || '');
+    if (/could not find the function|PGRST202|does not exist/i.test(m)) return true;   /* the database has not been updated yet */
+    toast(/PDF/.test(m) ? m : 'Could not check your download limit. Please try again.'); return false;
+  }
+}
 async function doExport(kind, p0) {
   if (!need(kind)) return;
   if (!p0) return;
   const pages = p0.pages ? p0.pages : [p0], pk = p0 && p0.pages ? p0 : pages[0];
   if (!pages.length || !pages[0].qs.length) { toast('Add some questions first'); return; }
   if (!downloads) { toast('Downloads are not available in this view'); return; }
+  if (kind === 'pdf' && !(await claimPdf(pages))) { if (p0.onFail) p0.onFail(new Error('PDF limit')); return; }
   const btns = document.querySelectorAll('[data-act="exp"],[data-act="lexp"],[data-act="lexpall"],[data-act="pdfdl"],[data-act="xprint"],[data-act="xshare"]'); btns.forEach(b => { b.disabled = true; });
   const multi = pages.length > 1, file = fname(pk, '.' + kind);
   toast('Preparing ' + kind.toUpperCase() + '\u2026');
@@ -1891,7 +1908,7 @@ function buildShell() {
         h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
         h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),
         h('div', { class: 'tb-pop', id: 'qbPop', hidden: true, role: 'menu' }, [['heroov', 'Mathematics Bank: Question Counts'], ['overview', 'Chapter-wise Count'], ['syl', 'Syllabus Priority'], ['wchart', 'Chapter Weightage']].map(([k, t]) => k === 'syl' ? h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-act': 'tab', 'data-k': 'syl', text: t }) : h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-qbpanel': k, text: t }))),
-        h('nav', { class: 'tb-menu' }, tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), h('div', { class: 'tb-prof', id: 'tbProfile' }))),
+        h('nav', { class: 'tb-menu' }, G('isAdmin') ? tb('qb', 'Question Bank', true) : null, tb('lib', 'DPPs', !G('isAdmin')), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), h('div', { class: 'tb-prof', id: 'tbProfile' }))),
       h('main', { class: 'main' },
         h('div', { id: 'viewQb', class: 'qbhost' }),
         h('div', { id: 'viewLib', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
@@ -1965,6 +1982,7 @@ function boot() {
   window.addEventListener('resize', rescale);
   downloads = gatedDownloads(downloads);
   qbInit();
+  if (!G('isAdmin')) { const ib = $('#qbInfoBtn'); if (ib) ib.hidden = true; setTab('lib'); }
 }
 /* ---------- Question bank tab: the question bank's own page and code, loaded on first use ---------- */
 let qbLoaded = false;
