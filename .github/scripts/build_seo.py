@@ -312,9 +312,26 @@ def tbl(head, rows, cls_='', nums=()):
 def band(crumbs, h1):
     return f'<section class="pg-hero"><div class="swrap"><nav class="pg-crumbs" aria-label="Breadcrumb">{crumbs}</nav><h1>{h1}</h1></div></section>'
 
-def cta(depth, text):
+def cta(depth, text, cur=None, exam=None):
+    """'Recommended Reading': four page cards at the bottom of every public page (the page itself is left out)."""
     up = '../' * depth
-    return f'''<section class="pg-signin"><h2>Practise this free</h2><p>{E(text)}</p><p class="pg-ctas"><a class="sb sb-gold sb-lg when-out" data-login href="{up}?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold sb-lg when-in" href="{up}dashboard">Open your dashboard</a></p><p class="pg-fine">Sign in with Google, or with your Student ID if you are an Avanti student. Starting is free.</p></section>'''
+    pool = []
+    if exam:
+        if exam[2] in GUIDES: pool.append((f'exams/{exam[2]}/about/', f'{exam[1]} exam guide', 'Pattern, fees, cutoffs, seats, colleges and the timeline.', 'book'))
+        pool.append((f'exams/{exam[2]}/', f'{exam[1]} math questions', 'Chapter-wise and year-wise counts with levels.', 'chart'))
+    pool += [('syllabus-priority/', 'Syllabus priority', 'Which chapters and subtopics are asked the most.', 'chart'),
+             ('maths/', 'All math chapters', f'{len(CH)} chapters and {D["tot_sub"]} subtopics, with question counts.', 'list'),
+             ('exams/', 'All exams we cover', 'JEE Main, JEE Advanced, KCET, NDA, IAT and more.', 'cap'),
+             ('exams/jee-main/about/', 'JEE Main exam guide', 'Pattern, fees, cutoffs, seats and top colleges.', 'book'),
+             ('exams/kcet/about/', 'KCET exam guide', 'Pattern, fees, seat matrix and colleges in Karnataka.', 'book'),
+             ('exams/nda/about/', 'NDA exam guide', 'Written paper, SSB interview, vacancies and salary.', 'book')]
+    seen, picks = set(), []
+    for path, t, b, ic in pool:
+        if path == cur or path in seen or (path.endswith('/about/') and path.split('/')[1] not in GUIDES): continue
+        seen.add(path); picks.append((path, t, b, ic))
+    icons = {'book': BOOK, 'chart': svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', 22), 'list': svg('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>', 22), 'cap': svg('<path d="M12 3l9 5-9 5-9-5 9-5zM7 12v5c0 1 2.2 3 5 3s5-2 5-3v-5"/>', 22)}
+    cards = ''.join(f'<li class="rr-card"><span class="rr-ico">{icons[ic]}</span><span class="rr-body"><a class="stretch" href="{up}{path}">{E(t)}</a><small>{E(b)}</small></span><i class="rr-go" aria-hidden="true">&rarr;</i></li>' for path, t, b, ic in picks[:4])
+    return f'<section class="rr"><h2>Recommended Reading</h2><ul class="rr-grid">{cards}</ul></section>'
 
 # ---------- chapter pages ----------
 def chapter_page(i, c):
@@ -387,7 +404,7 @@ def hub_page():
     main = f"""<p class="pg-lead">{len(CH)} chapters in the syllabus · {D["tot_sub"]} subtopics · plus {len(OOS)} out-of-syllabus chapters</p>
 <p>The math syllabus split into chapters and subtopics. Open a chapter to see its subtopics, how often each one was asked in JEE Main and JEE Advanced, and the year-wise trend, then sign in to practise the questions with full solutions.</p>
 {chapter_list('', True)}
-{cta(1, "Choose a chapter, practise previous-year questions with solutions, and take online tests. Starting is free.")}"""
+{cta(1, "Choose a chapter, practise previous-year questions with solutions, and take online tests. Starting is free.", cur='maths/')}"""
     body = band(crumbs, "Math: all chapters") + '\n' + grid(main, 1)
     ld = [{'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'Math chapters', 'itemListElement': [
             {'@type': 'ListItem', 'position': k + 1, 'name': short(c), 'url': url(c)} for k, c in enumerate(CH)]}]
@@ -450,7 +467,7 @@ def guide_page(e):
 {secs}
 <p class="pg-fine">The figures in this guide are rounded or approximate and are compiled from the official notifications and public reports. They change from year to year, so always confirm the latest rules, dates and fees on the official website of the exam.</p>
 {('<h2 class="gd-more-h">Other exam guides</h2><ul class="side-list gd-more">' + others + '</ul>') if others else ''}
-{cta(3, f"Practise {name} math questions chapter-wise with full solutions, build DPPs and open whole papers. Everything is inside after you sign in.")}"""
+{cta(3, f"Practise {name} math questions chapter-wise with full solutions, build DPPs and open whole papers. Everything is inside after you sign in.", cur=f'exams/{sl}/about/', exam=e)}"""
     body = band(crumbs, f'{exlogo(e, "../../../", 44)} {E(name)}: Complete Exam Guide') + '\n' + grid(main, 3, sl)
     ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
             {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'},
@@ -497,7 +514,7 @@ def exam_page(e):
 <h2>Year-wise questions</h2>
 <p class="pg-fine">Each row is one year of {E(name)}: how many questions were asked and their level (L1 easy, L2 medium, L3 hard).</p>
 {yr_strip}
-{cta(2, f"Practise {name} questions chapter-wise with full solutions, build DPPs and open whole papers in exam format. Everything is inside after you sign in.")}"""
+{cta(2, f"Practise {name} questions chapter-wise with full solutions, build DPPs and open whole papers in exam format. Everything is inside after you sign in.", cur=f'exams/{sl}/', exam=e)}"""
     body = band(crumbs, f'{exlogo(e, "../../", 44)} {E(name)}: Math PYQs, DPPs Analysis') + '\n' + grid(main, 2, sl)
     ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
             {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'},
@@ -534,7 +551,7 @@ def exam_chapter_page(e, code):
 {tbl(['Topic', 'Questions', LVH], topics, 'pg-narrow', (1,))}
 {('<h2>The same chapter in other exams</h2>' + tbl(['Exam', 'Questions', LVH], others, 'pg-narrow', (1,))) if others else ''}
 {general}
-{cta(3, f"Practise {name} {ch} questions with full solutions, build a DPP for this chapter and open whole papers. Everything is inside after you sign in.")}"""
+{cta(3, f"Practise {name} {ch} questions with full solutions, build a DPP for this chapter and open whole papers. Everything is inside after you sign in.", exam=e)}"""
     body = band(crumbs, f'{exlogo(e, "../../../", 40)} {E(name)}: {E(ch)}') + '\n' + grid(main, 3, sl)
     url_ = f'{SITE}/exams/{sl}/{cs}/'
     ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
@@ -568,7 +585,7 @@ def priority_page():
 <p class="pg-fine">Trend lines show questions per year as a share of each exam's total (blue: JEE Main, orange: JEE Advanced). Importance tiers: JEE Main {tm[0]}+ questions is High and {tm[1]}+ is Medium; JEE Advanced {ta[0]}+ is High and {ta[1]}+ is Medium; anything lower is Low.</p>
 <h2>The 20 most-asked subtopics</h2>
 <div class="pg-table"><table><thead><tr><th scope="col">Subtopic</th><th scope="col" class="num">Main Qs</th><th scope="col">Main</th><th scope="col" class="num">Adv. Qs</th><th scope="col">Adv.</th></tr></thead><tbody>{srows}</tbody></table></div>
-{cta(1, "See the priority of every subtopic, then practise those questions with full solutions. Starting is free.")}"""
+{cta(1, "See the priority of every subtopic, then practise those questions with full solutions. Starting is free.", cur='syllabus-priority/')}"""
     body = band(crumbs, "Syllabus priority") + '\n' + grid(main, 1)
     ld = [{'@context': 'https://schema.org', '@type': 'WebPage', 'name': 'Syllabus priority', 'url': f'{SITE}/syllabus-priority/', 'description': desc, 'inLanguage': 'en-IN',
            'isPartOf': {'@type': 'WebSite', 'name': 'अंक-IT Mathematics Dashboard', 'url': SITE + '/'}}]
@@ -594,7 +611,7 @@ def exams_hub():
 <p class="pg-fine">Exam patterns change from year to year. Always check the official notification for the latest rules and dates.</p>
 <h2>Open an exam</h2>
 <ul class="pg-chlist exam-list">{cards}</ul>
-{cta(1, "Pick an exam, open its papers shift by shift and practise with full solutions. Starting is free.")}"""
+{cta(1, "Pick an exam, open its papers shift by shift and practise with full solutions. Starting is free.", cur='exams/')}"""
     body = band(crumbs, "Exams we cover") + '\n' + grid(main, 1)
     ld = [{'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'Exams', 'itemListElement': [
             {'@type': 'ListItem', 'position': k + 1, 'name': e[1], 'url': exam_url(e)} for k, e in enumerate(EXAMS)]}]
@@ -603,7 +620,7 @@ def exams_hub():
 # ---------- About, Contact, Privacy, Terms ----------
 def info_page(slug_, title, h1, desc, inner, ptype='WebPage'):
     crumbs = f'<a href="../">Home</a> &rsaquo; <span aria-current="page">{E(h1)}</span>'
-    body = band(crumbs, E(h1)) + '\n' + grid(inner, 1, cls_='pg-text')
+    body = band(crumbs, E(h1)) + '\n' + grid(inner + cta(1, '', cur=slug_ + '/'), 1, cls_='pg-text')
     canon = f'{SITE}/{slug_}/'
     ld = [{'@context': 'https://schema.org', '@type': ptype, 'name': h1, 'url': canon, 'description': desc, 'inLanguage': 'en-IN',
            'isPartOf': {'@type': 'WebSite', 'name': 'अंक-IT Mathematics Dashboard', 'url': SITE + '/'}}]
@@ -647,7 +664,7 @@ def about_page():
 <div class="ab-vals">{vals_html}</div>
 <h2>The person behind it</h2>
 <div class="ab-person"><span class="ab-av" aria-hidden="true">AK</span><div><h3>Ankit Kamboj</h3><p>Ankit is a math teacher and the creator of अंक-IT. He builds and maintains the dashboard so that students can practise the questions that matter for each chapter, and teachers can set tests and see results without extra tools.</p><p><a class="sb sb-pri" href="../contact/">Get in touch</a></p></div></div>
-<div class="pg-signin"><h2>Start practising today</h2><p>Create your free account and open any chapter.</p><p class="pg-ctas"><a class="sb sb-gold sb-lg when-out" data-login href="../?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold sb-lg when-in" href="../dashboard">Open your dashboard</a></p></div>"""
+"""
     return info_page('about', 'About Us | अंक-IT Mathematics Dashboard', 'About us', 'About अंक-IT Mathematics Dashboard: a free-to-start JEE math question bank with past papers, DPPs, handouts and online tests, built by Ankit Kamboj.', inner, 'AboutPage')
 
 def contact_page():
