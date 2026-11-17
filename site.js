@@ -121,7 +121,8 @@
       var canon = d.querySelector('link[rel="canonical"]'), url = canon ? canon.href : window.location.href.split('#')[0].split('?')[0];
       var title = (d.title || 'अंक-IT').replace(/\s*\|\s*अंक-IT\s*$/, ''), text = title + ' | अंक-IT';
       var e = encodeURIComponent, U = e(url), T = e(text);
-      var ic = function (n) { return '<img src="' + ROOT + 'img/share/' + n + '.webp" width="34" height="34" alt="" loading="lazy">'; };
+      var LBL = { whatsapp: 'WhatsApp', reddit: 'Reddit', discord: 'Discord', instagram: 'Instagram', facebook: 'Facebook', x: 'X', linkedin: 'LinkedIn', pinterest: 'Pinterest', threads: 'Threads', snapchat: 'Snapchat' };
+      var ic = function (n) { return '<img src="' + ROOT + 'img/share/' + n + '.webp" width="34" height="34" alt="' + (LBL[n] || n) + ' icon" loading="lazy">'; };
       var sv = function (p) { return '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; };
       var ICO = { print: sv('<path d="M7 9V3h10v6"/><rect x="4" y="9" width="16" height="9" rx="2"/><path d="M7 14h10v7H7z"/>'), share: sv('<circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="6" r="2.6"/><circle cx="18" cy="18" r="2.6"/><path d="m8.3 10.7 7.4-3.4M8.3 13.3l7.4 3.4"/>'),
         copy: sv('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>'), mail: sv('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'), tg: sv('<path d="M21 4 3 11l5.5 2L10 19l3-4 5 3z"/>'), dev: sv('<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18h2"/>') };
@@ -156,6 +157,19 @@
       d.addEventListener('click', function (ev) { if (!pp.hidden && !box.contains(ev.target)) close(); });
       d.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && !pp.hidden) { close(); more.focus(); } });
     });
+    /* phone menu: built from the main navigation above, so the page itself lists every link only once */
+    (function () {
+      var nav = d.querySelector('.sh-menu nav'), src = d.querySelector('.sh-nav'); if (!nav || !src) return;
+      var mk = function (href, text, img) { var a = d.createElement('a'); a.href = href; if (img) { var im = d.createElement('img'); im.className = 'exlogo'; im.src = img; im.alt = ''; im.width = 26; im.height = 26; a.appendChild(im); } a.appendChild(d.createTextNode(text)); return a; };
+      var ex = src.querySelector('.sh-ddb'), cards = src.querySelectorAll('.mega-card');
+      if (ex && cards.length) {
+        var sub = d.createElement('details'); sub.className = 'sh-sub'; var sm = d.createElement('summary'); sm.appendChild(d.createTextNode('Exams ')); sm.insertAdjacentHTML('beforeend', ex.querySelector('svg') ? ex.querySelector('svg').outerHTML : ''); sub.appendChild(sm);
+        Array.prototype.forEach.call(cards, function (cd) { var a = cd.querySelector('.stretch'), im = cd.querySelector('img'); if (a) sub.appendChild(mk(a.href, a.textContent, im ? im.src : '')); });
+        sub.appendChild(mk(ex.href, 'All exams')); nav.appendChild(sub);
+      }
+      Array.prototype.forEach.call(src.children, function (el) { if (el.tagName === 'A') nav.appendChild(mk(el.href, el.textContent)); });
+      nav.appendChild(mk(ROOT + 'maths/', 'All Maths chapters'));
+    })();
     /* mobile menu: close it after a link is chosen */
     Array.prototype.forEach.call(d.querySelectorAll('.sh-menu a'), function (a) {
       a.addEventListener('click', function () { var m = d.querySelector('.sh-menu'); if (m) m.removeAttribute('open'); });
