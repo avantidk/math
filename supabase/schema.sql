@@ -1997,38 +1997,9 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.chat_member(), public.chat_send(text), public.chat_people(uuid[]), public.qb_flags_list(), public.qb_flag_set(text, text, jsonb),
   public.content_allowed(text), public.in_test(), public.approved_school(public.profiles), public.admin_set_plan(uuid, text, text, date), public.premium_years(text), public.admin_add_teacher(text, text, text, text, date), public.admin_teacher_invites(), public.admin_cancel_teacher_invite(text), public.plan_label(public.profiles), public.school_teachers(text), public.menu_counts(), public.attempt_report(uuid), public.test_results(uuid), public.new_test_code()
   to authenticated;
--- PDF limits: a Free account may make at most 5 PDFs a day (India time). Premium, Avanti and Staff accounts have no limit on the number
--- of PDFs, and the admin has no limit at all. One PDF holds at most 90 questions (admin excepted). The website asks this function before it builds a PDF.
-create table if not exists public.pdf_usage (
-  user_id   uuid not null references public.profiles(id) on delete cascade,
-  day       date not null,
-  pdfs      integer not null default 0,
-  questions integer not null default 0,
-  primary key (user_id, day)
-);
-alter table public.pdf_usage add column if not exists pdfs integer not null default 0;
-alter table public.pdf_usage enable row level security;
-revoke all on public.pdf_usage from anon, authenticated;
-create or replace function public.claim_pdf_quota(p_count integer) returns json
-language plpgsql security definer set search_path = public as $$
-declare me public.profiles; d date := (now() at time zone 'Asia/Kolkata')::date; used integer;
-begin
-  if auth.uid() is null then raise exception 'Sign in first'; end if;
-  select * into me from public.profiles where id = auth.uid();
-  if me.id is null then raise exception 'Sign in first'; end if;
-  if public.admin_of(me) then return json_build_object('unlimited', true); end if;
-  if p_count is null or p_count < 1 then raise exception 'There are no questions for the PDF'; end if;
-  if p_count > 90 then raise exception 'One PDF can have at most 90 questions'; end if;
-  if public.plan_of(me) in ('premium', 'staff') then return json_build_object('unlimited', true); end if;
-  insert into public.pdf_usage (user_id, day) values (auth.uid(), d) on conflict do nothing;
-  select pdfs into used from public.pdf_usage where user_id = auth.uid() and day = d for update;
-  if used >= 5 then
-    raise exception 'Daily PDF limit reached: Free accounts can make 5 PDFs a day. Try again tomorrow, or get Premium for unlimited PDFs.';
-  end if;
-  update public.pdf_usage set pdfs = used + 1, questions = questions + p_count where user_id = auth.uid() and day = d;
-  return json_build_object('used', used + 1, 'left', 4 - used);
-end $$;
-grant execute on function public.claim_pdf_quota(integer) to authenticated;
+-- (There are no PDF limits. An earlier test version made these two; they are removed if present.)
+drop function if exists public.claim_pdf_quota(integer);
+drop table if exists public.pdf_usage;
 -- server only (Edge Functions use the service role)
 grant execute on function public.avanti_verify(text, text, text), public.grant_premium(text, text, integer),
   public.mark_payment_failed(text, text, text) to service_role;

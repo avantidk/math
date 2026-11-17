@@ -2,9 +2,9 @@
    Uses the colour tokens from skin.b3.css (--bg, --panel, --ink, --muted, --rule, --accent, --ok, --bad ...), so light and dark mode match the site. */
 
 /* ---------- plan rules: what each plan can see (the code checks again on every action) ---------- */
-html.plan-free [data-act="pdfshare"], html.plan-free [data-act="xprint"], html.plan-free [data-act="xshare"],
-html.plan-free [data-act="lexp"][data-k="docx"], html.plan-free [data-act="lexp"][data-k="pptx"],
-html.plan-free [data-f="docx"], html.plan-free [data-f="pptx"], html.plan-free [data-mexp="docx"], html.plan-free [data-mexp="pptx"],
+html.plan-free [data-act="lexp"], html.plan-free [data-act="pdfdl"], html.plan-free [data-act="pdfshare"],
+html.plan-free [data-act="xprint"], html.plan-free [data-act="xshare"], html.plan-free .mexp, html.plan-free .mexpb,
+html.plan-free #libDl, html.plan-free .exp, html.plan-free .rowbtns[id$="Exp"],
 html.plan-free .qb-exp, html.plan-free .qb-tglrow, html.plan-free .qb-fname { display: none !important; }
 html.plan-premium [data-act="lexp"][data-k="docx"], html.plan-premium [data-act="lexp"][data-k="pptx"],
 html.plan-premium [data-f="docx"], html.plan-premium [data-f="pptx"], html.plan-premium [data-mexp="docx"], html.plan-premium [data-mexp="pptx"],

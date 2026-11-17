@@ -49,7 +49,6 @@ const PERM = () => (window.AvantiAuth && window.AvantiAuth.perm) || {};
 function G(what) { return PERM()[what] === true; }
 function need(what) {
   if (G(what)) return true;
-  if (what === 'pdf' && G('exportPdf')) return true;   /* DPP / PYQ / Must Solve PDFs: Free accounts too (the database counts them) */
   toast(['docx', 'pptx', 'share', 'copy'].includes(what) && G('pdf') ? 'Your plan includes PDF downloads and printing only.' : 'This needs a Premium membership. Open the profile menu and choose Purchase membership.');
   return false;
 }
@@ -1571,27 +1570,12 @@ function toggleMax(btn) {
   setTimeout(rescale, 0); setTimeout(rescale, 150);
 }
 function closeMax() { const st = document.querySelector('.stage.maxed'); if (!st) return; const b = st.querySelector('[data-act="max"]'); if (b) toggleMax(b); }
-/* PDF limits for everyone except the admin: at most 5 PDFs a day for each account, each with at most 90 questions. The day's count is kept
-   by the database (claim_pdf_quota), so it follows the account, not the browser. Print and Share make the same PDF, so they count too. */
-const PDF_MAX = 90;
-async function claimPdf(pages) {
-  const n = pages.reduce((s, p) => s + ((p && p.qs && p.qs.length) || 0), 0);
-  if (G('isAdmin') || !n) return true;
-  if (n > PDF_MAX) { toast('One PDF can have at most ' + PDF_MAX + ' questions. You picked ' + n + '. Pick fewer chapters or years.'); return false; }
-  try { await window.AvantiAuth.rpc('claim_pdf_quota', { p_count: n }); return true; }
-  catch (e) {
-    const m = String((e && e.message) || '');
-    if (/could not find the function|PGRST202|does not exist/i.test(m)) return true;   /* the database has not been updated yet */
-    toast(/PDF/.test(m) ? m : 'Could not check your download limit. Please try again.'); return false;
-  }
-}
 async function doExport(kind, p0) {
   if (!need(kind)) return;
   if (!p0) return;
   const pages = p0.pages ? p0.pages : [p0], pk = p0 && p0.pages ? p0 : pages[0];
   if (!pages.length || !pages[0].qs.length) { toast('Add some questions first'); return; }
   if (!downloads) { toast('Downloads are not available in this view'); return; }
-  if (kind === 'pdf' && !(await claimPdf(pages))) { if (p0.onFail) p0.onFail(new Error('PDF limit')); return; }
   const btns = document.querySelectorAll('[data-act="exp"],[data-act="lexp"],[data-act="lexpall"],[data-act="pdfdl"],[data-act="xprint"],[data-act="xshare"]'); btns.forEach(b => { b.disabled = true; });
   const multi = pages.length > 1, file = fname(pk, '.' + kind);
   toast('Preparing ' + kind.toUpperCase() + '\u2026');
