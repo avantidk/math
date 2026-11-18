@@ -1,5 +1,13 @@
 [
   {
+    "v": "969",
+    "date": "18 Nov 2026",
+    "items": [
+      "Match-the-columns tables in the paper and DPP viewer and in the PDF: the column with the short answers (for example \"(1) 1\") is now narrow, and the column with the long text gets the room.",
+      "Answer options such as \"(P)→(2), (Q)→(5), (R)→(3), (S)→(4)\" now show one per line (four lines) instead of two columns."
+    ]
+  },
+  {
     "v": "968",
     "date": "17 Nov 2026",
     "items": [

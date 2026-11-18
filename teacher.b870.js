@@ -163,7 +163,9 @@ function matchParts(text) {
 function matchTable(m) {
   const n = Math.max(m.left.length, m.right.length), rows = [];
   for (let i = 0; i < n; i++) rows.push(h('tr', {}, h('td', { text: m.left[i] || '' }), h('td', { text: m.right[i] || '' })));
-  return h('table', { class: 'mtab' }, h('thead', {}, h('tr', {}, h('th', { text: m.head[0] }), h('th', { text: m.head[1] }))), h('tbody', {}, rows));
+  /* the column with the longer items gets more room (a column of short answers like "(1) 1" stays narrow) */
+  const wlen = a => Math.max(8, ...a.map(x => String(x).replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length)), la = wlen(m.left), lb = wlen(m.right), wa = Math.max(34, Math.min(82, Math.round(100 * la / (la + lb))));
+  return h('table', { class: 'mtab' }, h('colgroup', {}, h('col', { style: 'width:' + wa + '%' }), h('col', { style: 'width:' + (100 - wa) + '%' })), h('thead', {}, h('tr', {}, h('th', { text: m.head[0] }), h('th', { text: m.head[1] }))), h('tbody', {}, rows));
 }
 /* tall formulas (matrices, cases, chains of fractions) sitting inside a line of text overlap their neighbours in the PDF picture: give them a line of their own */
 const spaceCases = t => String(t).replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, (m, b) => { const tl = /\\(d|t)?frac|\\sqrt|\\sum|\\int|\\prod|\\lim|\\binom/.test(b); return '\\begin{cases}' + b.replace(/\\\\(?!\[)(?=[\s\S]*\S)/g, '\\\\[' + (tl ? '1.3em' : '0.55em') + ']') + '\\end{cases}'; });
@@ -183,7 +185,8 @@ function tallToDisplay(s) {
       return ((/\\begin\{/.test(x) || (!part && tall)) ? '\\[' + x + '\\]' : (smallFrac(x) !== x0 ? '\\(' + smallFrac(x) + '\\)' : m)); });
 }
 function buildQ(q, n, p) {
-  const maxOpt = Math.max(0, ...q.o.map(o => plain(o).length));
+  const plainW = o => String(o).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '');
+  const maxOpt = Math.max(0, ...q.o.map(o => plainW(o).length));
   const longF = q.o.some(o => /\\(cdots|ldots|dots)\b/.test(o)) || maxOpt > 18 && q.o.some(o => /\\(sum|prod|int|binom)\b/.test(o));
   const cls = !q.o.length ? '' : (maxOpt <= 10 && p.cols === 1) ? 'c4' : (maxOpt <= 20 && !longF) ? 'c2' : 'c1';
   const hint = q.t === 'MSQ' ? '(one or more options correct)' : '';

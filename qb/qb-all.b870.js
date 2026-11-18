@@ -213,7 +213,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     if (!opts || !opts.length) return 0;
     if (opts.some(function (o) { return /\\\[|\n|\\begin\{(b|p|v|V)?matrix|\\begin\{array/.test(o); })) return 1;
     var m = Math.max.apply(null, opts.map(function (o) { return vlen(o) + 6 * ((String(o).match(/\\frac/g) || []).length); }));
-    return m <= 20 ? 4 : m <= 48 ? 2 : 1;
+    return m <= 20 ? 4 : m <= 30 ? 2 : 1;
   }
 
   /* ---------- MathML -> OMML ---------- */
