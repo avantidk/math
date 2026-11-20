@@ -598,8 +598,8 @@ begin
     full_name = case when not v_admin and full_name is not null then full_name else left(nullif(trim(p_full_name), ''), 120) end,
     school    = case when school is not null and not v_admin then school else left(nullif(trim(p_school), ''), 160) end,
     school_approved = case when v_admin then nullif(trim(p_school), '') is not null
-                           when school is null then (role is distinct from 'student' and public.is_not_working(p_school)) else school_approved end,
-    school_approved_at = case when v_admin or (school is null and role is distinct from 'student' and public.is_not_working(p_school)) then now()
+                           when school is null then (case when role = 'student' then public.is_no_school(p_school) else public.is_not_working(p_school) end) else school_approved end,
+    school_approved_at = case when v_admin or (school is null and (case when role = 'student' then public.is_no_school(p_school) else public.is_not_working(p_school) end)) then now()
                               when school is null then null else school_approved_at end,
     school_note = case when school is null then null else school_note end,
     class     = case when v_av and class     is not null then class     else public.norm_class(left(p_class, 20)) end,
@@ -609,7 +609,10 @@ begin
     updated_at = now()
   where id = auth.uid() returning * into me;
   if me.role = 'student' and public.is_not_working(me.school) then
-    raise exception '"Not Working" is only for teachers. Please choose your school.';
+    raise exception '"Not Working" is only for teachers. Please choose your school, or "Not in School".';
+  end if;
+  if me.role is distinct from 'student' and public.is_no_school(me.school) then
+    raise exception '"Not in School" is only for students. Please choose your school, or "Not Working".';
   end if;
   if me.role = 'student' and me.session is null and me.class is not null then
     update public.profiles set session = public.session_for(class) where id = me.id returning * into me;
@@ -723,6 +726,18 @@ alter table public.tests add column if not exists target_classes text[];
 alter table public.tests add column if not exists target_streams text[];
 -- tests of "Not Working" teachers: open to any (approved) student who has the link, not shown in Available tests
 alter table public.tests add column if not exists link_only boolean not null default false;
+-- v970. Who a test is for: 'school' (made by a teacher for a class and batch of their school), 'self' (a personal test: only its owner),
+-- 'teachers_link' (a Premium teacher's personal test shared by link with other Premium teachers), 'all_teachers' / 'all_students' (admin).
+alter table public.tests add column if not exists audience text not null default 'school';
+alter table public.tests add column if not exists personal boolean not null default false;
+alter table public.tests add column if not exists paper_key text;
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'tests_audience_check') then
+    alter table public.tests add constraint tests_audience_check check (audience in ('school', 'self', 'teachers_link', 'all_teachers', 'all_students'));
+  end if;
+end $$;
+-- A free teacher may make one test link as a trial (counted for the whole life of the account, even if the test is deleted).
+alter table public.profiles add column if not exists links_made integer not null default 0;
 
 -- Once a student has submitted, the questions and marking of a test are frozen (title, dates and on/off can still change).
 create or replace function public.tests_guard() returns trigger
@@ -744,6 +759,21 @@ language plpgsql security definer set search_path = public as $$
 declare o public.profiles;
 begin
   select * into o from public.profiles where id = new.owner_id;
+  if new.audience in ('self', 'teachers_link', 'all_teachers', 'all_students') then
+    -- personal and admin tests are made by create_personal_test(); they belong to no school
+    new.school := null; new.schools := null; new.link_only := false;
+    if new.audience = 'all_students' then
+      new.target_classes := coalesce(nullif(new.target_classes, '{}'::text[]), array['11', '12', 'Dropper']);
+      new.target_streams := coalesce(nullif(new.target_streams, '{}'::text[]), array['JEE', 'NEET', 'KCET (PCM)', 'KCET (PCB)']);
+    end if;
+    return new;
+  end if;
+  if tg_op = 'INSERT' and not public.admin_of(o) and not o.is_staff and public.plan_of(o) = 'free' and coalesce(o.links_made, 0) >= 1 then
+    raise exception 'A free account can make one test link as a trial. Premium is needed for more.';
+  end if;
+  if tg_op = 'INSERT' and not public.admin_of(o) then
+    update public.profiles set links_made = coalesce(links_made, 0) + 1 where id = o.id;
+  end if;
   if not public.admin_of(o) then   -- only the admin can choose another school or all schools
     if public.approved_school(o) is null then
       raise exception 'Tests can be made after the admin approves your school (Edit profile shows the status).';
@@ -875,6 +905,34 @@ create policy tests_delete on public.tests for delete to authenticated using (ow
 -- 10. Taking a test
 -- -------------------------------------------------------------------------------------
 
+-- Why this account may not take this test (null = may take it). One place for every rule, used by the start screen, the list and start_attempt.
+create or replace function public.test_block_reason(t public.tests, me public.profiles) returns text
+language plpgsql stable set search_path = public as $$
+declare pl text := public.plan_of(me);
+begin
+  if public.admin_of(me) then return null; end if;
+  if t.audience = 'self' then
+    if t.owner_id <> me.id then return 'This is a personal test.'; end if;
+  elsif t.audience = 'teachers_link' then
+    if t.owner_id <> me.id and not (me.is_staff or (me.role = 'teacher' and pl = 'premium')) then return 'This test is for Premium teachers who have the link.'; end if;
+  elsif t.audience = 'all_teachers' then
+    if not (me.is_staff or me.role = 'teacher') then return 'This test is for teachers.'; end if;
+  elsif t.audience = 'all_students' then
+    if me.role is distinct from 'student' then return 'This test is for students.'; end if;
+  else
+    if me.role is distinct from 'student' then return 'Tests made by teachers are for their students.'; end if;
+    if pl <> 'premium' then return 'Tests made by teachers are for Premium students. Get Premium to take this test.'; end if;
+    if public.approved_school(me) is null then return 'Your school is waiting for approval by the admin. Tests open after it is approved.'; end if;
+    if not public.test_for_school(t, me.school) then
+      return 'This test is only for students of ' || array_to_string(array[t.school] || coalesce(t.schools, '{}'::text[]), ', ') || '.';
+    end if;
+    if not (me.class = any(t.target_classes) and me.stream = any(t.target_streams)) then
+      return 'This test is only for Class ' || array_to_string(t.target_classes, ', ') || ' · ' || array_to_string(t.target_streams, ', ') || '.';
+    end if;
+  end if;
+  return null;
+end $$;
+
 -- Tests a student can see in "Available tests": active, matching their class and stream, and only once the admin has
 -- approved the student's school (so a new account cannot claim a school and see its tests).
 create or replace function public.list_available_tests() returns json
@@ -888,9 +946,11 @@ language sql stable security definer set search_path = public as $$
       left join public.profiles o on o.id = t.owner_id
       left join public.attempts a on a.test_id = t.id and a.user_id = me.id
      where t.is_active and t.owner_id <> me.id
-       and me.class = any(t.target_classes) and me.stream = any(t.target_streams)
-       and public.approved_school(me) is not null and not t.link_only
-       and public.test_for_school(t, me.school)
+       and (t.audience = 'all_students' and me.role = 'student'
+            or (t.audience = 'school' and me.role = 'student' and public.plan_of(me) = 'premium'
+                and me.class = any(t.target_classes) and me.stream = any(t.target_streams)
+                and public.approved_school(me) is not null and not t.link_only
+                and public.test_for_school(t, me.school)))
      order by t.created_at desc limit 200) x
 $$;
 
@@ -902,9 +962,7 @@ language sql stable security definer set search_path = public as $$
            'is_owner', t.owner_id = auth.uid(), 'teacher', coalesce(o.full_name, 'Teacher'),
            'attempt_id', a.id, 'attempt_status', a.status, 'school', t.school,
            'target_classes', t.target_classes, 'target_streams', t.target_streams,
-           'for_me', public.admin_of(me) or (public.approved_school(me) is not null
-                     and public.test_for_school(t, me.school)
-                     and me.class = any(t.target_classes) and me.stream = any(t.target_streams)),
+           'for_me', public.test_block_reason(t, me) is null, 'blocked', public.test_block_reason(t, me), 'audience', t.audience,
            'school_pending', public.approved_school(me) is null and not public.admin_of(me))
     from public.tests t
     join public.profiles me on me.id = auth.uid()
@@ -976,22 +1034,12 @@ begin
   if auth.uid() is null then raise exception 'Please sign in to take this test'; end if;
   select * into t from public.tests where code = lower(trim(p_code));
   if t.id is null then raise exception 'This test link is not valid. Ask your teacher for the link again.'; end if;
-  if t.owner_id = auth.uid() then raise exception 'This is your own test. Open it from My Tests to preview it.'; end if;
+  if t.owner_id = auth.uid() and t.audience not in ('self', 'teachers_link') then raise exception 'This is your own test. Open it from My Tests to preview it.'; end if;
   select * into me from public.profiles where id = auth.uid();
   select * into a from public.attempts where test_id = t.id and user_id = me.id;
   if a.id is null then
     if not t.is_active then raise exception 'This test is not open right now.'; end if;
-    if not public.admin_of(me) then
-      if public.approved_school(me) is null then
-        raise exception 'Your school is waiting for approval by the admin. Tests open after it is approved.';
-      end if;
-      if not public.test_for_school(t, me.school) then
-        raise exception 'This test is only for students of %.', array_to_string(array[t.school] || coalesce(t.schools, '{}'::text[]), ', ');
-      end if;
-      if not (me.class = any(t.target_classes) and me.stream = any(t.target_streams)) then
-        raise exception 'This test is only for Class % · %.', array_to_string(t.target_classes, ', '), array_to_string(t.target_streams, ', ');
-      end if;
-    end if;
+    if public.test_block_reason(t, me) is not null then raise exception '%', public.test_block_reason(t, me); end if;
     insert into public.attempts (test_id, user_id, student_name, school, class, stream, category, gender, session)
     values (t.id, me.id, me.full_name, me.school, me.class, me.stream, me.category, me.gender, me.session)
     on conflict (test_id, user_id) do nothing;
@@ -1069,8 +1117,8 @@ begin
   select * into t from public.tests where id = a.test_id;
   select * into me from public.profiles where id = auth.uid();
   if not (a.user_id = me.id or public.admin_of(me)
-          or (public.approved_school(me) is not null and (t.owner_id = me.id
-              or (public.is_premium_teacher() and lower(me.school) = lower(coalesce(a.school, '')))))) then
+          or (t.audience = 'school' and public.approved_school(me) is not null and public.is_premium_teacher()
+              and (t.owner_id = me.id or lower(me.school) = lower(coalesce(a.school, ''))))) then
     raise exception 'Report not found';
   end if;
   -- the student sees the correct answers only 3 hours after starting the test (stops sharing answer keys during a test)
@@ -1125,7 +1173,7 @@ language sql stable security definer set search_path = public as $$
            (select count(*) from public.attempts a where a.test_id = t.id and a.status = 'in_progress') as in_progress,
            t.owner_id = auth.uid() as mine, o.full_name as owner_name
       from public.tests t left join public.profiles o on o.id = t.owner_id
-     where t.owner_id = auth.uid() or public.is_admin()) x
+     where (t.owner_id = auth.uid() and t.audience = 'school') or (public.is_admin() and t.audience <> 'self')) x
 $$;
 
 -- Everything the teacher's results page shows, for one of their own tests.
@@ -1134,7 +1182,9 @@ language plpgsql stable security definer set search_path = public as $$
 declare t public.tests; res json;
 begin
   select * into t from public.tests where id = p_test;
-  if t.id is null or not ((t.owner_id = auth.uid() and public.can_create_tests()) or public.is_admin()) then raise exception 'Test not found'; end if;
+  if t.id is null or not ((t.owner_id = auth.uid() and public.can_create_tests() and t.audience = 'school' and public.is_premium_teacher()) or public.is_admin()) then
+    raise exception 'Reports of your students are for Premium teachers';
+  end if;
   with sub as (
     select a.*, p.avanti_id,
            rank() over (order by a.score desc, a.time_taken_sec asc) as r_all,
@@ -1179,17 +1229,23 @@ end $$;
 -- School names for the dropdowns: every school on the Avanti list, plus schools teachers added with "Other".
 create or replace function public.list_schools() returns json
 language sql stable security definer set search_path = public as $$
-  select coalesce(json_agg(s order by lower(s) = 'not working', s), '[]'::json)
+  select coalesce(json_agg(s order by lower(s) in ('not working', 'not in school'), s), '[]'::json)
     from (select trim(school) as s from public.student_allowlist where nullif(trim(school), '') is not null
           union
           select trim(school) from public.profiles where role = 'teacher' and nullif(trim(school), '') is not null
           union
-          select 'Not Working') x
+          select 'Not Working'
+          union
+          select 'Not in School') x
 $$;
 
 -- "Not Working": the built-in school for teachers who are at no school now. Students can never be in it.
 create or replace function public.is_not_working(p text) returns boolean
 language sql immutable as $$ select lower(trim(coalesce(p, ''))) = 'not working' $$;
+
+-- "Not in School": the built-in school for students who are at no school. Teachers can never be in it. It needs no approval.
+create or replace function public.is_no_school(p text) returns boolean
+language sql immutable as $$ select lower(trim(coalesce(p, ''))) = 'not in school' $$;
 
 -- Admin: every school with how many students, teachers and tests use it (Approvals → Schools).
 create or replace function public.admin_schools() returns json
@@ -1366,7 +1422,7 @@ language plpgsql security definer set search_path = public as $$
 declare me public.profiles; r json;
 begin
   select * into me from public.profiles where id = auth.uid();
-  if not public.can_create_tests() then raise exception 'Students can be added by teachers after the admin approves their school'; end if;
+  if not public.admin_of(me) then raise exception 'Only the admin adds students. Students register by themselves and choose their school.'; end if;
   r := public.save_student(p, me, false);
   if not (r->>'ok')::boolean then raise exception '%', r->>'error'; end if;
   return r;
@@ -1378,8 +1434,7 @@ language plpgsql security definer set search_path = public as $$
 declare me public.profiles; v_out jsonb := '[]'::jsonb; r jsonb; i integer := 0; v_set boolean; v_sid text;
 begin
   select * into me from public.profiles where id = auth.uid();
-  if not public.is_premium_teacher() then raise exception 'Bulk upload is for Premium teachers'; end if;
-  if not public.admin_of(me) and public.approved_school(me) is null then raise exception 'Students can be added after the admin approves your school.'; end if;
+  if not public.admin_of(me) then raise exception 'Only the admin adds students. Students register by themselves and choose their school.'; end if;
   if jsonb_typeof(p_rows) <> 'array' or jsonb_array_length(p_rows) > 2000 then raise exception 'Upload up to 2000 students at a time'; end if;
   for r in select * from jsonb_array_elements(p_rows) loop
     i := i + 1;
@@ -1786,7 +1841,13 @@ begin
   if public.admin_of(me) then raise exception 'As the admin you can change your school in Edit profile'; end if;
   if me.school is null then raise exception 'Choose your school in Edit profile first'; end if;
   if v is not null and lower(v) = lower(me.school) then raise exception 'That is already your school'; end if;
-  if me.role = 'student' and public.is_not_working(v) then raise exception '"Not Working" is only for teachers. Please choose your school.'; end if;
+  if me.role = 'student' and public.is_not_working(v) then raise exception '"Not Working" is only for teachers. Please choose your school, or "Not in School".'; end if;
+  if me.role is distinct from 'student' and public.is_no_school(v) then raise exception '"Not in School" is only for students.'; end if;
+  if me.role = 'student' and public.is_no_school(v) then   -- moving to "Not in School" needs no approval
+    update public.profiles set school = 'Not in School', school_approved = true, school_approved_at = now(), school_approved_by = 'Not in School (automatic)',
+           school_request = null, school_request_at = null, school_note = null, updated_at = now() where id = me.id;
+    return public.my_profile();
+  end if;
   if me.role is distinct from 'student' and public.is_not_working(v) then   -- moving to "Not Working" needs no approval
     update public.profiles set school = 'Not Working', school_approved = true, school_approved_at = now(), school_approved_by = 'Not Working (automatic)',
            school_request = null, school_request_at = null, school_note = null, updated_at = now() where id = me.id;
@@ -1961,6 +2022,184 @@ end $$;
 create or replace function public.ping() returns integer language sql stable as $$ select 1 $$;
 
 -- -------------------------------------------------------------------------------------
+-- 11h. Personal tests, school people and role requests (version 970)
+-- -------------------------------------------------------------------------------------
+
+-- Makes a personal test (the questions are copied in, with their answers, like every test). Anyone may make a test for
+-- themselves ('self'). Premium teachers may also share it by link with other Premium teachers ('teachers_link').
+-- The admin may make a test for all teachers or for all students.
+create or replace function public.create_personal_test(p_title text, p_duration_min integer, p_marks_correct numeric, p_marks_wrong numeric,
+  p_questions jsonb, p_paper_key text, p_audience text default 'self') returns json
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles; t public.tests;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if me.id is null or me.role is null then raise exception 'Please finish your profile first'; end if;
+  if p_audience not in ('self', 'teachers_link', 'all_teachers', 'all_students') then raise exception 'Choose who the test is for'; end if;
+  if p_audience = 'teachers_link' and not (public.admin_of(me) or me.is_staff or (me.role = 'teacher' and public.plan_of(me) = 'premium')) then
+    raise exception 'Sharing a test link with other teachers is for Premium teachers';
+  end if;
+  if p_audience in ('all_teachers', 'all_students') and not public.admin_of(me) then raise exception 'Only the admin can make a test for everyone'; end if;
+  if nullif(trim(p_title), '') is null then raise exception 'The test needs a title'; end if;
+  insert into public.tests (owner_id, title, duration_min, marks_correct, marks_wrong, questions, audience, personal, paper_key, is_active)
+  values (me.id, left(trim(p_title), 200), p_duration_min, p_marks_correct, coalesce(p_marks_wrong, 0), p_questions, p_audience, true,
+          left(p_paper_key, 200), true)
+  returning * into t;
+  return json_build_object('id', t.id, 'code', t.code);
+end $$;
+
+-- The Personal Tests & Results page: my own personal tests, tests I took by link, and tests the admin offers me.
+create or replace function public.personal_overview() returns json
+language plpgsql stable security definer set search_path = public as $$
+declare me public.profiles;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if me.id is null then raise exception 'Please sign in again'; end if;
+  return json_build_object(
+    'mine', (select coalesce(json_agg(x order by x.created_at desc), '[]'::json) from (
+        select t.id, t.code, t.title, t.audience, t.duration_min, t.n_questions, t.marks_correct, t.marks_wrong, t.paper_key, t.created_at, t.is_active,
+               a.id as attempt_id, a.status as attempt_status, a.score, a.max_score, a.correct, a.wrong, a.skipped, a.time_taken_sec, a.submitted_at,
+               (select count(*) from public.attempts z where z.test_id = t.id and z.status = 'submitted') as takers
+          from public.tests t left join public.attempts a on a.test_id = t.id and a.user_id = me.id
+         where t.owner_id = me.id and t.audience in ('self', 'teachers_link', 'all_teachers', 'all_students')
+         order by t.created_at desc limit 300) x),
+    'taken', (select coalesce(json_agg(x order by x.started_at desc), '[]'::json) from (
+        select t.code, t.title, t.audience, t.duration_min, t.n_questions, a.id as attempt_id, a.status as attempt_status, a.score, a.max_score,
+               a.correct, a.wrong, a.skipped, a.time_taken_sec, a.submitted_at, a.started_at, t.id as test_id
+          from public.attempts a join public.tests t on t.id = a.test_id
+         where a.user_id = me.id and t.owner_id <> me.id and t.audience in ('teachers_link', 'all_teachers', 'all_students')
+         order by a.started_at desc limit 300) x),
+    'offered', (select coalesce(json_agg(x order by x.created_at desc), '[]'::json) from (
+        select t.code, t.title, t.audience, t.duration_min, t.n_questions, t.marks_correct, t.marks_wrong, t.created_at
+          from public.tests t
+         where t.is_active and t.owner_id <> me.id
+           and ((t.audience = 'all_teachers' and (me.is_staff or me.role = 'teacher'))
+                or (t.audience = 'all_students' and me.role = 'student'))
+           and not exists (select 1 from public.attempts a where a.test_id = t.id and a.user_id = me.id)
+         order by t.created_at desc limit 100) x));
+end $$;
+
+-- A taker's own rank in a teachers-only test: rank, how many took it, own score and the top score. Never anyone else's report.
+create or replace function public.my_rank(p_test uuid) returns json
+language plpgsql stable security definer set search_path = public as $$
+declare t public.tests; a public.attempts; res json;
+begin
+  select * into t from public.tests where id = p_test;
+  select * into a from public.attempts where test_id = p_test and user_id = auth.uid() and status = 'submitted';
+  if t.id is null or a.id is null or t.audience not in ('teachers_link', 'all_teachers') then return null; end if;
+  select json_build_object('rank', r.rk, 'of', r.n, 'score', a.score, 'max_score', a.max_score, 'top', r.top) into res
+    from (select rank() over (order by x.score desc, x.time_taken_sec asc) rk, x.user_id, count(*) over () n, max(x.score) over () top
+            from public.attempts x where x.test_id = p_test and x.status = 'submitted') r
+   where r.user_id = auth.uid();
+  return res;
+end $$;
+
+-- The ranking of a teachers-link test for its owner (and the admin): name, school, score, rank. No question-level reports.
+create or replace function public.link_ranking(p_test uuid) returns json
+language plpgsql stable security definer set search_path = public as $$
+declare t public.tests;
+begin
+  select * into t from public.tests where id = p_test;
+  if t.id is null or not ((t.owner_id = auth.uid() and t.audience = 'teachers_link') or public.is_admin()) then raise exception 'Test not found'; end if;
+  return (select coalesce(json_agg(json_build_object('rank', rk, 'name', student_name, 'school', school, 'score', score, 'max_score', max_score,
+            'time_taken_sec', time_taken_sec) order by rk, student_name), '[]'::json)
+     from (select a.*, rank() over (order by a.score desc, a.time_taken_sec asc) rk
+             from public.attempts a where a.test_id = t.id and a.status = 'submitted') z);
+end $$;
+
+-- Premium students and Premium teachers of the same approved school see each other. Basic details only.
+create or replace function public.school_people() returns json
+language plpgsql stable security definer set search_path = public as $$
+declare me public.profiles;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if me.id is null or public.approved_school(me) is null or public.is_not_working(me.school) or public.is_no_school(me.school) then return '[]'::json; end if;
+  if not (me.is_staff or public.plan_of(me) = 'premium') then raise exception 'The list of people in your school is for Premium accounts'; end if;
+  return (select coalesce(json_agg(json_build_object('name', p.full_name, 'role', case when p.is_staff or p.role = 'teacher' then 'Teacher' else 'Student' end,
+            'class', case when p.role = 'student' then p.class end, 'stream', case when p.role = 'student' then p.stream end,
+            'batch', case when p.role = 'student' then p.batch end)
+          order by (p.is_staff or p.role = 'teacher') desc, p.class, p.full_name), '[]'::json)
+     from public.profiles p
+    where p.id <> me.id and lower(p.school) = lower(me.school) and public.approved_school(p) is not null and p.role is not null
+      and (p.is_staff or public.plan_of(p) = 'premium'));
+end $$;
+
+-- Role change requests: a Free student or Free teacher who chose the wrong role at sign-in can ask the admin to switch it.
+-- Premium and Avanti accounts cannot ask. The admin approves or rejects.
+create table if not exists public.role_requests (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  from_role   text not null,
+  to_role     text not null check (to_role in ('teacher', 'student')),
+  note        text,
+  status      text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  created_at  timestamptz not null default now(),
+  decided_at  timestamptz,
+  decided_by  text
+);
+alter table public.role_requests enable row level security;
+revoke all on public.role_requests from anon, authenticated;
+create unique index if not exists role_requests_one_pending on public.role_requests (user_id) where status = 'pending';
+
+create or replace function public.request_role_change(p_note text default null) returns json
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles; v_to text;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if me.id is null or me.role is null then raise exception 'Please finish your profile first'; end if;
+  if public.admin_of(me) or me.is_staff or me.is_avanti or me.avanti_id is not null then raise exception 'Avanti accounts cannot change between Teacher and Student.'; end if;
+  if public.plan_of(me) <> 'free' then raise exception 'Premium accounts cannot change between Teacher and Student.'; end if;
+  if exists (select 1 from public.payments where user_id = me.id and status = 'paid') then raise exception 'Accounts that took Premium cannot change between Teacher and Student.'; end if;
+  if exists (select 1 from public.role_requests where user_id = me.id and status = 'pending') then raise exception 'You already asked. The admin will answer soon.'; end if;
+  v_to := case when me.role = 'teacher' then 'student' else 'teacher' end;
+  insert into public.role_requests (user_id, from_role, to_role, note) values (me.id, me.role, v_to, left(nullif(trim(p_note), ''), 300));
+  return json_build_object('ok', true, 'to_role', v_to);
+end $$;
+
+create or replace function public.my_role_request() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce((select json_build_object('status', r.status, 'to_role', r.to_role, 'created_at', r.created_at)
+                     from public.role_requests r where r.user_id = auth.uid() order by r.created_at desc limit 1), 'null'::json)
+$$;
+
+create or replace function public.admin_role_requests() returns json
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Only Avanti admins can see this'; end if;
+  return (select coalesce(json_agg(json_build_object('id', r.id, 'user_id', p.id, 'full_name', p.full_name, 'email', p.email, 'school', p.school,
+            'from_role', r.from_role, 'to_role', r.to_role, 'note', r.note, 'created_at', r.created_at) order by r.created_at), '[]'::json)
+     from public.role_requests r join public.profiles p on p.id = r.user_id where r.status = 'pending');
+end $$;
+
+-- p_action: 'approve' (switches the role; the person fills in the new profile at the next sign-in) or 'reject'
+create or replace function public.admin_role_request(p_id uuid, p_action text) returns json
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles; r public.role_requests; u public.profiles;
+begin
+  if not public.is_admin() then raise exception 'Only Avanti admins can answer role requests'; end if;
+  select * into me from public.profiles where id = auth.uid();
+  select * into r from public.role_requests where id = p_id and status = 'pending' for update;
+  if r.id is null then raise exception 'Request not found'; end if;
+  if p_action = 'approve' then
+    select * into u from public.profiles where id = r.user_id;
+    if u.is_staff or u.is_avanti or u.avanti_id is not null or public.plan_of(u) <> 'free' then
+      raise exception 'This account is Premium or Avanti now, so its role cannot be changed.';
+    end if;
+    update public.profiles set role = r.to_role,
+           class = case when r.to_role = 'teacher' then null else class end, stream = case when r.to_role = 'teacher' then null else stream end,
+           category = case when r.to_role = 'teacher' then null else category end, gender = case when r.to_role = 'teacher' then null else gender end,
+           school_approved = case when public.is_not_working(school) or public.is_no_school(school) then false else school_approved end,
+           school = case when public.is_not_working(school) or public.is_no_school(school) then null else school end,
+           updated_at = now() where id = u.id;
+    update public.role_requests set status = 'approved', decided_at = now(), decided_by = me.email where id = r.id;
+  elsif p_action = 'reject' then
+    update public.role_requests set status = 'rejected', decided_at = now(), decided_by = me.email where id = r.id;
+  else raise exception 'Unknown action';
+  end if;
+  return json_build_object('ok', true);
+end $$;
+
+-- -------------------------------------------------------------------------------------
 -- 12. Who may call which function
 -- -------------------------------------------------------------------------------------
 revoke execute on all functions in schema public from public, anon, authenticated;
@@ -1970,6 +2209,8 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text),
   public.list_available_tests(), public.test_info(text), public.start_attempt(text),
   public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer),
+  public.create_personal_test(text, integer, numeric, numeric, jsonb, text, text), public.personal_overview(), public.my_rank(uuid), public.link_ranking(uuid),
+  public.school_people(), public.request_role_change(text), public.my_role_request(), public.admin_role_requests(), public.admin_role_request(uuid, text),
   public.my_attempts(), public.my_tests(), public.list_schools(), public.is_premium_teacher(), public.price_paise(text),
   public.teacher_add_student(jsonb), public.teacher_add_students(jsonb), public.teacher_update_student(uuid, text, jsonb),
   public.school_students(text), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),

@@ -124,7 +124,7 @@ function route() {
   if (r !== 't') exitExam();
   curRoute = location.hash;
   const pages = { profile: pageProfile, membership: pageMembership, tests: pageAvailable, reports: pageReports, report: pageReport, t: pageTake,
-    create: pageCreate, edit: pageCreate, students: pageStudents, student: pageStudent, 'add-student': pageAddStudent, help: pageHelp, approvals: pageApprovals, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets, 'ws-edit': pageWsEdit };
+    create: pageCreate, edit: pageCreate, students: pageStudents, student: pageStudent, personal: pagePersonal, school: pageSchool, 'add-student': pageAddStudent, help: pageHelp, approvals: pageApprovals, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets, 'ws-edit': pageWsEdit };
   const fn = pages[r];
   if (!fn) { leave(); return; }
   const tok = ++NAV; LOADING = tok;
@@ -150,8 +150,11 @@ const OTHER = '__other__';
    teachers (and the admin's teacher boxes) and never offered for students (the server refuses it for students too). */
 const NOT_WORKING = 'Not Working';
 const isNotWorking = v => String(v || '').trim().toLowerCase() === NOT_WORKING.toLowerCase();
+const NO_SCHOOL = 'Not in School';
+const isNoSchool = v => String(v || '').trim().toLowerCase() === NO_SCHOOL.toLowerCase();
+const isBuiltin = v => isNotWorking(v) || isNoSchool(v);   /* the two built-in schools need no approval */
 function schoolSelect(id, val, first, allowOther, opt) {
-  const withNW = !!(opt && opt.notWorking);
+  const withNW = !!(opt && opt.notWorking), withNS = !!(opt && opt.noSchool);
   const s = h('select', { id: id + 'Value', hidden: true, tabindex: '-1', 'aria-hidden': 'true' }, h('option', { value: '', text: first }));
   const label = h('span', { class: 'pt-combo-txt', text: first });
   const btn = h('button', { type: 'button', id, class: 'pt-in pt-combo-btn', 'aria-haspopup': 'listbox', 'aria-expanded': 'false' }, label, h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' }));
@@ -170,11 +173,11 @@ function schoolSelect(id, val, first, allowOther, opt) {
   const items = () => [...listEl.querySelectorAll('[role=option]')];
   const mark = i => { const it = items(); active = Math.max(0, Math.min(it.length - 1, i)); it.forEach((x, k) => x.classList.toggle('on', k === active)); if (it[active]) it[active].scrollIntoView({ block: 'nearest' }); };
   const draw = () => {
-    const t = find.value.trim().toLowerCase(), base = ALL.filter(x => !isNotWorking(x)).concat(withNW ? [NOT_WORKING] : []);
-    const shown = t ? base.filter(x => x.toLowerCase().includes(t) || (withNW && isNotWorking(x))) : base;   /* Not Working always stays visible, at the end */
+    const t = find.value.trim().toLowerCase(), base = ALL.filter(x => !isBuiltin(x)).concat(withNW ? [NOT_WORKING] : []).concat(withNS ? [NO_SCHOOL] : []);
+    const shown = t ? base.filter(x => x.toLowerCase().includes(t) || isBuiltin(x)) : base;   /* the built-in schools always stay visible, at the end */
     listEl.textContent = '';
     if (!shown.length) listEl.append(h('li', { class: 'pt-combo-none', text: ALL.length ? 'No school matches "' + find.value.trim() + '"' : 'No schools in the database yet' }));
-    shown.concat(allowOther ? [OTHER] : []).forEach(v => listEl.append(h('li', { role: 'option', class: 'pt-combo-opt' + (v === OTHER ? ' other' : '') + (isNotWorking(v) ? ' nw' : ''), 'aria-selected': String(v === s.value), text: v === OTHER ? 'Other (my school is not in the list)…' : v,
+    shown.concat(allowOther ? [OTHER] : []).forEach(v => listEl.append(h('li', { role: 'option', class: 'pt-combo-opt' + (v === OTHER ? ' other' : '') + (isBuiltin(v) ? ' nw' : ''), 'aria-selected': String(v === s.value), text: v === OTHER ? 'Other (my school is not in the list)…' : v,
       onmousedown: e => e.preventDefault(), onclick: e => { e.preventDefault(); e.stopPropagation(); setValue(v); close(); if (v !== OTHER) btn.focus(); } })));
     mark(0);
   };
@@ -191,7 +194,7 @@ function schoolSelect(id, val, first, allowOther, opt) {
     else if (e.key === 'Escape') { e.preventDefault(); close(); btn.focus(); }
   });
   schools().then(list => {
-    ALL = list.filter(x => withNW || !isNotWorking(x)); if (val && !ALL.includes(val) && (withNW || !isNotWorking(val))) ALL.unshift(val);
+    ALL = list.filter(x => !isBuiltin(x)); if (val && !ALL.includes(val) && !isBuiltin(val)) ALL.unshift(val);
     if (val) setValue(val, true); else btn.classList.add('empty');
   }).catch(() => { label.textContent = 'Could not load schools'; });
   const wrap = h('div', { class: 'pt-school pt-combo' }, btn, pop, s, other);
@@ -265,7 +268,7 @@ function profileForm(p, o) {
   const sel = (id, list, val) => { const x = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: 'Choose…' }), list.map(v => h('option', { value: v, text: v }))); x.value = val || ''; return x; };
   const F = {
     full_name: h('input', { id: 'pfName', class: 'pt-in', type: 'text', maxlength: 120, value: p.full_name || '', autocomplete: 'name' }),
-    school: schoolSelect('pfSchool', p.school, 'Choose your school…', !student, { notWorking: !student }),
+    school: schoolSelect('pfSchool', p.school || (student ? NO_SCHOOL : ''), 'Choose your school…', !student, { notWorking: !student, noSchool: student }),
     class: sel('pfClass', CLASSES, p.class), stream: sel('pfStream', STREAMS, p.stream),
     category: sel('pfCat', CATEGORIES, p.category), gender: sel('pfGender', GENDERS, p.gender)
   };
@@ -309,7 +312,7 @@ function schoolBox(p) {
   return wrap;
 }
 function requestSchoolChange(p) {
-  const pick = schoolSelect('rqSchool', '', 'Choose the new school…', true, { notWorking: P().role !== 'student' });
+  const pick = schoolSelect('rqSchool', '', 'Choose the new school…', true, { notWorking: P().role !== 'student', noSchool: P().role === 'student' });
   const msg = h('p', { class: 'pt-msg', role: 'status' });
   modal('Request a school change', h('div', { class: 'pt-form' },
     h('p', {}, 'Your school now: ', h('b', { text: p.school })),
@@ -341,13 +344,24 @@ function onboard(root, done) {
 }
 async function pageProfile() {
   const p = P(), avanti = !!p.avanti_id, plan = AU().perm.plan;
+  /* Free accounts can ask the admin to switch Teacher <-> Student (for a wrong choice at sign-in). Premium and Avanti accounts cannot. */
+  const eligible = plan === 'free' && !p.is_avanti && !avanti && !AU().perm.staff && !AU().perm.isAdmin && !!p.role;
+  const rr = eligible ? await rpc('my_role_request').catch(() => null) : null;
+  const toRole = p.role === 'teacher' ? 'Student' : 'Teacher';
+  const roleBox = h('div', { class: 'pt-fld' }, h('p', { class: 'pt-hint', text: 'Your role is chosen once and cannot be edited.' + (eligible ? '' : ' Premium and Avanti accounts keep their role.') }),
+    eligible ? (rr && rr.status === 'pending' ? h('p', { class: 'pt-note', text: 'You asked to become a ' + (rr.to_role === 'teacher' ? 'Teacher' : 'Student') + '. The admin will answer soon.' })
+      : h('button', { type: 'button', class: 'pt-linkbtn', text: 'Chose the wrong role? Ask to become a ' + toRole, onclick: () => {
+        const note = h('textarea', { class: 'pt-in', rows: 2, maxlength: 300, placeholder: 'Optional: tell us what happened' }), msg = h('p', { class: 'pt-msg', role: 'status' });
+        modal('Ask to become a ' + toRole, h('div', { class: 'pt-form' }, h('p', { text: 'The admin will check and change your role. Only Free accounts can ask, and only if the role was chosen by mistake.' }), note, msg),
+          [{ text: 'Cancel', onclick: () => {} }, { text: 'Send request', pri: true, onclick: close => { rpc('request_role_change', { p_note: note.value.trim() || null }).then(() => { close(); toast('Request sent'); pageProfile(); }).catch(x => { msg.textContent = x.message; msg.className = 'pt-msg bad'; }); return false; } }]);
+      } })) : null);
   const ro = (label, value) => h('div', { class: 'pt-fld' }, h('span', { text: label }), h('div', { class: 'pt-ro', text: value || '—' }));
   const account = card(h('h2', { text: 'Account' }),
     ro('Signed in as', avanti ? p.avanti_id : p.email),
     ro('Role', p.role === 'teacher' ? 'Teacher' : 'Student'),
     !AU().perm.isAdmin && p.school ? ro('School approval', p.school_approved ? 'Approved by अंक-IT' : 'Waiting for approval by अंक-IT. ' + (p.role === 'teacher' ? 'Until then you cannot see or add students or make tests.' : 'Until then tests are not shown.')) : null,
     ro('Plan', { free: 'Free', premium: 'Premium', staff: 'Staff (full access)' }[plan] + (plan === 'premium' && p.premium_until ? ' · until ' + day(p.premium_until) : '')),
-    h('p', { class: 'pt-hint', text: 'Role and plan are set by the server. Contact अंक-IT if your role is wrong.' }),
+    roleBox,
     h('div', { class: 'pt-actions' }, plan === 'free' ? link('#/membership', '★ Purchase membership', 'btn pt-gold') : null, h('button', { type: 'button', class: 'btn', text: 'Logout', onclick: () => AU().signOut() })));
   show(head(avanti ? 'Your profile' : 'Edit profile', avanti ? 'These details come from Avanti records.' : 'Your name and school appear on test results. All details are required.'),
     h('div', { class: 'pt-grid2' }, card(h('h2', { text: 'Your details' }), profileForm(p, { onSaved: () => {} })), account));
@@ -397,14 +411,13 @@ function membershipContent(teacher) {
       ['share', 'Share in one tap', 'Send any PDF to your class on WhatsApp, by email or through any app on your phone.'],
       ['folder', 'Saved worksheets', 'Keep the question sets you build and reuse them for tests or downloads whenever you need them.'],
       ['users', 'My Students', 'Every student of your school by class, stream and session, with sign-in status, tests taken, average and last test.'],
-      ['upload', 'Bulk upload', 'Add a whole class from Excel or CSV with a checked preview.'],
       ['chart', 'Deeper results', 'Open any student\'s test history and report, and export your results to CSV.'],
       ['copy', 'Copy questions', 'Copy question text and IDs straight into your own notes and slides.']
     ],
-    rows: [['View Question Bank, DPPs, PYQs, Must Solve and handouts', 1, 1], ['Create online tests for your school', 1, 1], ['Add students one by one', 1, 1], ['Results of your own tests', 1, 1],
+    rows: [['View Question Bank, DPPs, PYQs, Must Solve and handouts', 1, 1], ['Create online tests for your school (one test link as a trial)', 1, 1], ['Results of your own tests', 1, 1],
       ['Download and print every PDF', 0, 1], ['Share PDFs on WhatsApp and email', 0, 1], ['Copy question text', 0, 1], ['Saved worksheets', 0, 1], ['My Students with performance', 0, 1],
-      ['Bulk upload students', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1]],
-    faq: [['Do my students need Premium to take my tests?', 'No. Free students can take your tests and see their reports.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs can be shared straight from the phone.']]
+      ['Unlimited test links for your school', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1]],
+    faq: [['Do my students need Premium to take my tests?', 'Yes. Only Premium students of your school, class and batch can take tests made by teachers. Free students can take past papers from Personal Tests & Results.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs can be shared straight from the phone.']]
   } : {
     eyebrow: 'Premium for students', title: 'Practise anywhere. Know where you stand.',
     lead: 'Download every DPP, PYQ paper and handout to practise offline, and see your rank among every student who took the test.',
@@ -962,6 +975,101 @@ async function pageMyTests() {
       t.mine === false ? null : exportBtn(t))))));
 }
 
+/* ---------- Personal Tests & Results: every account takes past papers for itself ---------- */
+const PAPER_EXAMS = ['JEE Main', 'JEE Advanced', 'IIT-JEE', 'AIEEE', 'KCET', 'NDA', 'IAT'];
+const examOfQ = x => x.e === 'KCET' ? 'KCET' : x.e === 'IAT' ? 'IAT' : x.e === 'NDA' ? 'NDA' : x.e === 'Adv' ? (x.y < 2013 ? 'IIT-JEE' : 'JEE Advanced') : (x.y < 2013 ? 'AIEEE' : 'JEE Main');
+/* Time and marking of the mathematics part of each exam. A personal test starts with these; nothing is asked. */
+const PAPER_RULES = { 'JEE Main': { mins: 60, pos: 4, neg: 1 }, 'JEE Advanced': { mins: 60, pos: 4, neg: 1 }, 'IIT-JEE': { mins: 60, pos: 4, neg: 1 }, 'AIEEE': { mins: 60, pos: 4, neg: 1 },
+  'KCET': { mins: 80, pos: 1, neg: 0 }, 'NDA': { mins: 150, pos: 2.5, neg: 0.83 }, 'IAT': { mins: 45, pos: 3, neg: 1 } };
+const AUD_NAME = { self: 'Only me', teachers_link: 'Link for Premium teachers', all_teachers: 'All teachers', all_students: 'All students' };
+function papersOf(B, exam) {
+  const pm = new Map();
+  B.qs.forEach(x => { if (x.s === 'P' && x.p && examOfQ(x) === exam && gradable(x)) { const k = paperKey(x); if (!pm.has(k)) pm.set(k, Object.assign(paperInfo(x), { exam, qs: [] })); pm.get(k).qs.push(x); } });
+  return [...pm.values()].sort((a, b) => b.t - a.t || a.sh - b.sh || a.label.localeCompare(b.label));
+}
+async function showMyRank(testId) {
+  try {
+    const r = await rpc('my_rank', { p_test: testId });
+    if (!r) { toast('Your rank appears after you submit the test.'); return; }
+    modal('Your rank', h('div', { class: 'pt-stats' }, stat('Rank', '#' + r.rank + ' of ' + r.of), stat('Your score', num(r.score, 2) + ' / ' + num(r.max_score, 2)), stat('Top score', num(r.top, 2))),
+      [{ text: 'Close', pri: true, onclick: () => {} }]);
+  } catch (e) { toast(e.message); }
+}
+async function showLinkRanking(testId, title) {
+  try {
+    const list = await rpc('link_ranking', { p_test: testId });
+    modal('Ranking · ' + title, list.length ? h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Rank', 'Teacher', 'School', 'Score', 'Time'].map(x => h('th', { text: x })))),
+      h('tbody', {}, list.map(x => h('tr', {}, h('td', { class: 'pt-num', text: '#' + x.rank }), h('td', {}, h('b', { text: x.name || '—' })), h('td', { text: x.school || '—' }),
+        h('td', { class: 'pt-num', text: num(x.score, 2) + ' / ' + num(x.max_score, 2) }), h('td', { class: 'pt-num', text: mmss(x.time_taken_sec) })))))) : empty('Nobody has taken it yet', 'Share the link with other Premium teachers.'),
+      [{ text: 'Close', pri: true, onclick: () => {} }]);
+  } catch (e) { toast(e.message); }
+}
+async function pagePersonal() {
+  show(head('Personal Tests & Results', 'Take any past paper yourself. Your results stay in your own account.'), loading('Loading the question papers…'));
+  const [ov, B] = await Promise.all([rpc('personal_overview'), fresh(TE().bank())]);
+  CHN = B.chapters;
+  const perm = AU().perm, isAdm = !!perm.isAdmin, premT = !isAdm && (perm.staff || (P().role === 'teacher' && perm.plan === 'premium'));
+  const audOpts = isAdm ? [['self', 'Only me'], ['all_teachers', 'All teachers (this exam is for teachers only)'], ['all_students', 'All students']]
+    : premT ? [['self', 'Only me'], ['teachers_link', 'Share a link with Premium teachers']] : null;
+  let aud = 'self', exam = PAPER_EXAMS.find(e => papersOf(B, e).length) || PAPER_EXAMS[0];
+  const paperBox = h('div', { class: 'pp-papers' }), examBar = h('div', { class: 'pp-exams', role: 'group', 'aria-label': 'Exam' }), audBar = audOpts ? h('div', { class: 'pp-exams', role: 'group', 'aria-label': 'Who is it for' }) : null;
+  const startPaper = async (paper, btn) => {
+    const rule = PAPER_RULES[paper.exam] || PAPER_RULES['JEE Main'];
+    const qs = paper.qs.map(q => { const x = snap(q); return { id: x.id, type: x.type, q: x.q, o: x.o, a: x.a, ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null }; });
+    btn.disabled = true;
+    try {
+      const r = await rpc('create_personal_test', { p_title: paper.label, p_duration_min: rule.mins, p_marks_correct: rule.pos, p_marks_wrong: rule.neg, p_questions: qs, p_paper_key: paper.key, p_audience: aud });
+      if (aud === 'self') { try { sessionStorage.setItem('avanti-auto', r.code); } catch (e) { /* no storage */ } location.hash = '#/t/' + r.code; return; }
+      if (aud === 'teachers_link') copy(testLink(r.code), 'Link copied. Send it to Premium teachers.'); else toast('Done. The test is live for ' + (aud === 'all_teachers' ? 'all teachers.' : 'all students.'));
+      pagePersonal();
+    } catch (e) { toast(e.message); btn.disabled = false; }
+  };
+  const drawPapers = () => {
+    examBar.textContent = '';
+    PAPER_EXAMS.forEach(e => { const n = papersOf(B, e).length; if (n) examBar.append(h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(e === exam), text: e + ' (' + n + ')', onclick: () => { exam = e; drawPapers(); } })); });
+    paperBox.textContent = '';
+    const rule = PAPER_RULES[exam];
+    papersOf(B, exam).forEach(pp => paperBox.append(h('button', { type: 'button', class: 'pp-card', onclick: e => startPaper(pp, e.currentTarget) },
+      h('b', { text: pp.label }), h('small', { text: pp.qs.length + ' questions · ' + rule.mins + ' min · +' + num(rule.pos, 2) + (rule.neg ? ' / −' + num(rule.neg, 2) : '') }), h('span', { class: 'pp-go', text: 'Start ›' }))));
+    if (audBar) { audBar.textContent = ''; audOpts.forEach(([k, t]) => audBar.append(h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(k === aud), text: t, onclick: () => { aud = k; drawPapers(); } }))); }
+  };
+  const status = x => !x.attempt_id ? badge('Not started', 'mute') : x.attempt_status === 'submitted' ? badge('Submitted', 'ok') : badge('In progress', 'mid');
+  const mineRows = ov.mine.map(x => h('tr', {},
+    h('td', {}, h('b', { text: x.title }), h('div', { class: 'pt-hint', text: day(x.created_at) + ' · ' + x.n_questions + ' questions · ' + x.duration_min + ' min' })),
+    h('td', {}, badge(AUD_NAME[x.audience] || x.audience, x.audience === 'self' ? 'mute' : 'mid'), x.audience !== 'self' ? h('div', { class: 'pt-hint', text: x.takers + ' taken' }) : null),
+    h('td', {}, status(x)), h('td', { class: 'pt-num', text: x.attempt_status === 'submitted' ? num(x.score, 2) + ' / ' + num(x.max_score, 2) : '—' }),
+    h('td', {}, h('div', { class: 'pt-actions pt-nowrap' },
+      x.attempt_status === 'submitted' ? link('#/report/' + x.attempt_id, 'Report', 'btn') : ['self', 'teachers_link'].includes(x.audience) ? h('button', { type: 'button', class: 'btn pri', text: x.attempt_id ? 'Resume' : 'Start', onclick: () => { try { sessionStorage.setItem('avanti-auto', x.code); } catch (e) { /* no storage */ } location.hash = '#/t/' + x.code; } }) : null,
+      x.audience === 'teachers_link' ? h('button', { type: 'button', class: 'btn', text: 'Copy link', onclick: () => copy(testLink(x.code), 'Link copied') }) : null,
+      x.audience === 'teachers_link' ? h('button', { type: 'button', class: 'btn', text: 'Ranking', onclick: () => showLinkRanking(x.id, x.title) }) : null,
+      x.audience === 'all_teachers' || x.audience === 'all_students' ? link('#/results/' + x.id, 'Results', 'btn') : null))));
+  const takenRows = ov.taken.map(x => h('tr', {},
+    h('td', {}, h('b', { text: x.title }), h('div', { class: 'pt-hint', text: AUD_NAME[x.audience] || '' })), h('td', {}, status(x)),
+    h('td', { class: 'pt-num', text: x.attempt_status === 'submitted' ? num(x.score, 2) + ' / ' + num(x.max_score, 2) : '—' }),
+    h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, x.attempt_status === 'submitted' ? link('#/report/' + x.attempt_id, 'Report', 'btn') : h('button', { type: 'button', class: 'btn pri', text: 'Resume', onclick: () => { location.hash = '#/t/' + x.code; } }),
+      x.attempt_status === 'submitted' && ['teachers_link', 'all_teachers'].includes(x.audience) ? h('button', { type: 'button', class: 'btn', text: 'My rank', onclick: () => showMyRank(x.test_id) }) : null))));
+  const table = (rows, cols) => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, cols.map(x => h('th', { text: x })))), h('tbody', {}, rows)));
+  drawPapers();
+  show(head('Personal Tests & Results', 'Take any past paper yourself. Your results stay in your own account.'),
+    ov.offered.length ? card(h('h2', { text: 'Tests for you' }), h('p', { class: 'pt-hint', text: 'Made by अंक-IT for ' + (P().role === 'student' ? 'students' : 'teachers') + '. Teachers see their own rank only.' }),
+      h('div', { class: 'pp-papers' }, ov.offered.map(x => h('button', { type: 'button', class: 'pp-card', onclick: () => { try { sessionStorage.setItem('avanti-auto', x.code); } catch (e) { /* no storage */ } location.hash = '#/t/' + x.code; } },
+        h('b', { text: x.title }), h('small', { text: x.n_questions + ' questions · ' + x.duration_min + ' min' }), h('span', { class: 'pp-go', text: 'Start ›' }))))) : null,
+    card(h('h2', { text: 'Start a test' }), h('p', { class: 'pt-hint', text: 'Choose the exam, then the paper. The test starts at once with the real time and marking of that paper.' }),
+      audBar ? h('div', { class: 'pt-fld' }, h('span', { text: 'Who is it for?' }), audBar) : null, examBar, paperBox),
+    card(h('h2', { text: 'My personal tests and results' }), ov.mine.length ? table(mineRows, ['Test', 'For', 'Status', 'Score', '']) : empty('No personal tests yet', 'Pick a paper above to start your first one.')),
+    ov.taken.length ? card(h('h2', { text: 'Tests I took by link' }), table(takenRows, ['Test', 'Status', 'Score', ''])) : null);
+}
+/* My School: Premium students and Premium teachers of one school see each other (basic details only) */
+async function pageSchool() {
+  show(head('My School', ''), loading());
+  const list = await rpc('school_people');
+  const p = P();
+  show(head('My School', (p.school || '') + ' · ' + list.length + ' Premium member' + (list.length === 1 ? '' : 's')),
+    card(h('p', { class: 'pt-hint', text: 'Premium teachers and Premium students of your school. Only basic details are shown.' }),
+      list.length ? h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Name', 'Role', 'Class', 'Stream / batch'].map(x => h('th', { text: x })))),
+        h('tbody', {}, list.map(x => h('tr', {}, h('td', {}, h('b', { text: x.name || '—' })), h('td', { text: x.role }), h('td', { text: x.class || '—' }), h('td', { text: [x.stream, x.batch].filter(Boolean).join(' · ') || '—' })))))) : empty('Nobody else yet', 'Other Premium members of your school appear here.')));
+}
+
 /* ---------- Teacher results ---------- */
 function csv(rows) { return rows.map(r => r.map(v => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(',')).join('\r\n'); }
 function saveCsv(name, rows) {
@@ -1097,9 +1205,13 @@ async function pageTake(code) {
   show(loading('Opening the test…'));
   const info = await rpc('test_info', { p_code: code });
   if (!info) { show(card(empty('Test not found', 'This test link is not valid. Ask your teacher for the link again.', link('#/tests', 'Available tests', 'btn')))); return; }
-  if (info.is_owner) { show(card(empty('This is your own test', 'Students open this link to take it. You can preview it and see results from My Tests.', link('#/my-tests', 'My Tests', 'btn pri')))); return; }
+  if (info.is_owner && !['self', 'teachers_link'].includes(info.audience)) { show(card(empty('This is your own test', 'Students open this link to take it. You can preview it and see results from My Tests.', link('#/my-tests', 'My Tests', 'btn pri')))); return; }
   if (info.attempt_status === 'submitted') { location.replace('#/report/' + info.attempt_id); return; }
   if (info.school_pending && !info.attempt_id) { show(card(empty(info.title, 'Your school (' + (P().school || 'not chosen') + ') is waiting for approval by the admin. Tests open after it is approved. Edit profile shows the status.', link('#/profile', 'Edit profile', 'btn')))); return; }
+  if (!info.for_me && !info.attempt_id && info.blocked) {
+    const prem = /Premium/.test(info.blocked) && AU().perm.plan === 'free';
+    show(card(empty(info.title, info.blocked, prem ? link('#/membership', '★ Get Premium', 'btn pri') : link('#/personal', 'Personal Tests & Results', 'btn')))); return;
+  }
   if (!info.for_me && !info.attempt_id) {
     const me = P(), otherSchool = info.school && String(info.school).toLowerCase() !== String(me.school || '').toLowerCase();
     const who = otherSchool ? 'students of ' + info.school : (info.target_classes || []).map(c => c === 'Dropper' ? 'Droppers' : 'Class ' + c).join(', ') + ' · ' + (info.target_streams || []).join(', ');
@@ -1111,12 +1223,14 @@ async function pageTake(code) {
     try { const d = await rpc('start_attempt', { p_code: code }); if (d.status === 'submitted') { location.replace('#/report/' + d.attempt_id); return; } try { await document.documentElement.requestFullscreen(); } catch (e) { /* not supported */ } runExam(d); }
     catch (e) { startBtn.disabled = false; startBtn.textContent = 'Start test'; toast(e.message); }
   } });
-  show(h('div', { class: 'pt-start' }, card(h('p', { class: 'pt-sub', text: 'Test by ' + info.teacher }), h('h1', { text: info.title }),
+  let auto = false; try { auto = sessionStorage.getItem('avanti-auto') === code; if (auto) sessionStorage.removeItem('avanti-auto'); } catch (e) { /* no storage */ }
+  show(h('div', { class: 'pt-start' }, card(h('p', { class: 'pt-sub', text: info.audience === 'self' ? 'Your personal test' : 'Test by ' + info.teacher }), h('h1', { text: info.title }),
     h('div', { class: 'pt-stats' }, stat('Questions', info.n_questions), stat('Time', info.duration_min + ' min'), stat('Correct', '+' + num(info.marks_correct, 2)), stat('Wrong (MCQ)', '−' + num(info.marks_wrong, 2))),
     h('h2', { text: 'Instructions' }),
     h('ul', { class: 'pt-feats' }, ['The timer starts when you press Start and keeps running even if you close the page.', 'Your answers are saved automatically. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Do not switch tabs or apps. Every switch is recorded and your teacher can see it.', 'The test submits by itself when the time is up.'].map(x => h('li', { text: x }))),
     h('p', { class: 'pt-hint', text: 'Signed in as ' + (P().full_name || P().email || P().avanti_id) + (P().school ? ' · ' + P().school : '') }),
     startBtn)));
+  if (auto && info.is_active) startBtn.click();   /* started from Personal Tests: begin at once, nothing more to ask */
 }
 
 let EX = null;
@@ -1292,6 +1406,7 @@ async function addStudentFlow(after, defSchool) {
     } }]);
 }
 function pageAddStudent() {
+  if (!can('isAdmin')) { location.replace('#/students'); return; }
   if (!can('createTests')) return nope('Adding students is for teachers', '');
   if (can('manageStudents')) { location.replace('#/students'); return; }
   let f = studentForm(); const holder = h('div', {}, f), msg = h('p', { class: 'pt-msg', role: 'status' }), done = h('div', { class: 'pt-plist' });
@@ -1489,7 +1604,7 @@ function planBadge(x) {
 function editStudent(st, after) {
   if (!can('isAdmin')) { toast('Only the admin can change student details.'); return; }   /* teachers can only view their students */
   const f = studentForm({ edit: true, values: st, hideId: !st.student_id }); const msg = h('p', { class: 'pt-msg', role: 'status' });
-  const sch = schoolSelect('esSchool', st.school || '', 'Choose a school', true);
+  const sch = schoolSelect('esSchool', st.school || '', 'Choose a school', true, { noSchool: true });
   const pick = accountPicker('student', st.plan_label, st.premium_until, { noTeacher: !st.user_id || !!st.student_id });
   modal('Edit ' + (st.full_name || 'student'), h('div', {}, st.student_id ? null : h('p', { class: 'pt-hint', text: 'Signs in with Google: ' + (st.email || '') }), f,
       h('div', { class: 'pt-fld' }, h('span', { text: 'School' }), sch, h('small', { text: 'Not in the list? Choose "Other" and type it.' })), pick, msg),
@@ -1564,11 +1679,11 @@ async function pageStudents() {
         h('td', {}, planBadge(t)), h('td', { class: 'pt-num', text: t.tests }), h('td', { text: day(t.created_at) }),
         h('td', {}, t.approved ? badge('Approved', 'ok') : badge('Waiting', 'mid'))))))) : empty('No teachers yet', 'No teacher has chosen this school.'));
   show(head('My Students', R.school + ' · ' + all.length + ' student' + (all.length === 1 ? '' : 's'),
-      h('button', { type: 'button', class: 'btn', text: '+ Add a student', onclick: () => addStudentFlow(reload, STU_SCHOOL) }),
-      h('button', { type: 'button', class: 'btn pri', text: 'Bulk upload', onclick: () => bulkUpload(reload) })),
+      can('isAdmin') ? h('button', { type: 'button', class: 'btn', text: '+ Add a student', onclick: () => addStudentFlow(reload, STU_SCHOOL) }) : null,
+      can('isAdmin') ? h('button', { type: 'button', class: 'btn pri', text: 'Bulk upload', onclick: () => bulkUpload(reload) }) : null),
     schoolPick ? card(h('div', { class: 'pt-fld' }, h('span', { text: 'School (admin: every school)' }), schoolPick)) : null,
     teachersCard,
-    can('schoolApproved') ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Your school is waiting for approval by अंक-IT. ' }), 'You can add students, upload new students and create tests now. Editing existing students unlocks once your school is approved.'),
+    can('schoolApproved') ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Your school is waiting for approval by अंक-IT. ' }), 'Students register themselves and choose their school. You will see them here once your school is approved.'),
     DOB_SHOWN && noDob ? h('div', { class: 'pt-note' }, h('b', { text: noDob + ' student' + (noDob === 1 ? ' has' : 's have') + ' no date of birth saved yet. ' }), 'Upload your Excel sheet with the date of birth column (Bulk upload), or press Edit on a student, to save it. It also fills in when the student signs in once. Dates of birth are shown only to the teachers of the student\u2019s own school and to Avanti admins.') : null,
     DOB_SHOWN ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Dates of birth are hidden until Avanti approves your school. ' }), 'Then you will see the date of birth of every student of ' + R.school + '.'),
     h('div', { class: 'pt-stats' }, stat('Students', all.length), stat('Signed in', signed), stat('Took a test', took.length), stat('Average score', avg == null ? '—' : pct(avg), 'of students who took a test')),
@@ -1775,6 +1890,8 @@ async function pageApprovals() {
   };
   const cancelInvite = async i => { if (!await confirmBox('Cancel this invite?', i.email + ' will sign up as a normal new user.', 'Cancel invite', true)) return; try { await rpc('admin_cancel_teacher_invite', { p_email: i.email }); toast('Invite cancelled'); pageApprovals(); } catch (e) { toast(e.message); } };
   const reqs = await rpc('admin_school_requests').catch(() => []);
+  const roleReqs = (await rpc('admin_role_requests').catch(() => [])) || [];
+  const roleAct = async (r, action) => { try { await rpc('admin_role_request', { p_id: r.id, p_action: action }); toast(action === 'approve' ? 'Role changed' : 'Request rejected'); pageApprovals(); } catch (e) { toast(e.message); } };
   /* students who signed up with Google and chose their school themselves: their school needs approval too */
   const pstu = await rpc('admin_pending_students').catch(() => []);
   /* Schools: rename (or merge into another) and delete */
@@ -1812,6 +1929,10 @@ async function pageApprovals() {
       h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Teacher', 'School', 'Plan', 'Added', ''].map(x => h('th', { text: x })))),
         h('tbody', {}, invites.map(i => h('tr', {}, h('td', {}, h('b', { text: i.full_name || '—' }), h('div', { class: 'pt-hint', text: i.email })), h('td', { text: i.school || '—' }), h('td', {}, planBadge({ plan_label: i.plan, premium_until: i.premium_until })), h('td', { text: day(i.created_at) }),
           h('td', {}, h('button', { type: 'button', class: 'btn pt-danger', text: 'Cancel', onclick: () => cancelInvite(i) })))))))) : null,
+    roleReqs.length ? card(h('h2', { text: 'Role change requests (' + roleReqs.length + ')' }), h('p', { class: 'pt-hint', text: 'Free accounts that chose the wrong role. Approving switches the role; the person fills in the new details at the next sign-in.' }),
+      h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Person', 'School', 'Change', 'Note', ''].map(x => h('th', { text: x })))),
+        h('tbody', {}, roleReqs.map(r => h('tr', {}, h('td', {}, h('b', { text: r.full_name || '—' }), h('div', { class: 'pt-hint', text: r.email || '' })), h('td', { text: r.school || '—' }), h('td', { text: r.from_role + ' → ' + r.to_role }), h('td', { text: r.note || '' }),
+          h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, h('button', { type: 'button', class: 'btn pri', text: 'Approve', onclick: () => roleAct(r, 'approve') }), h('button', { type: 'button', class: 'btn pt-danger', text: 'Reject', onclick: () => roleAct(r, 'reject') }))))))))) : null,
     reqs.length ? card(h('h2', { text: 'School change requests' }), h('p', { class: 'pt-hint', text: 'Teachers and students cannot change their school themselves. Approving moves them to the new school; for teachers this also approves the new school.' }), reqTable(reqs)) : null,
     h('p', { class: 'pt-hint', text: 'Every school choice needs your approval: teachers, Avanti staff and students. Until then a teacher cannot see or add students or make tests, and a student cannot see or take tests. Not approving asks them to choose the school again.' }),
     card(h('h2', { text: 'Teachers waiting for approval' }), pend.length ? table(pend) : empty('Nothing waiting', 'New teachers appear here after they choose their school.')),

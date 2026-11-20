@@ -27,6 +27,7 @@ function permsFor(p) {
   const staff = plan === 'staff', paid = staff || plan === 'premium', admin = !!p.is_admin;
   return Object.freeze({
     plan, staff, premium: paid, role: p.role || null,
+    pdfPyq: true,                                          // every account: PDF download of PYQs only
     pdf: paid, print: paid,                                // Premium (and Avanti teachers): PDF download and print
     share: admin, copy: admin, docx: admin, pptx: admin,   // sharing, copying and editable Word / PowerPoint: the admin only
     attention: staff,                                      // Attention flags: Staff only
@@ -152,15 +153,18 @@ function renderMenu() {
   const slot = $('#tbProfile'); const p = A.profile; if (!slot || !p) return;
   slot.textContent = '';
   const perm = A.perm, student = p.role === 'student', teacher = p.role === 'teacher';
-  const items = [['#/profile', 'Edit profile']];
+  const items = [['#/profile', 'Edit profile'], ['#/personal', 'Personal Tests & Results']];
   if (perm.plan === 'premium' && !p.is_avanti) items.push(['#/membership', 'Membership']);
-  if (student) items.push(['#/tests', 'Available tests'], ['#/reports', 'My Reports']);
+  if (student) {
+    if (perm.plan !== 'free') items.push(['#/tests', 'Available tests']);   /* tests made by teachers are for Premium students only */
+    items.push(['#/reports', 'My Reports']);
+  }
   if (teacher || perm.staff) {
     if (perm.createTests) items.push(['#/my-tests', 'My Tests and Results']);
     if (perm.manageStudents) items.push(['#/students', 'My Students']);
-    else if (perm.createTests) items.push(['#/add-student', 'Add a student']);
     if (perm.worksheets) items.push(['#/worksheets', 'Saved worksheets']);
   }
+  if (perm.plan !== 'free' && !perm.isAdmin && p.school_approved) items.push(['#/school', 'My School']);
   if (perm.isAdmin) items.push(['#/approvals', 'Approvals']);
   items.push(['#/help', 'Help & Support']);
   const planLabel = perm.isAdmin ? 'Admin · Full access' : perm.plan === 'staff' ? 'Avanti teacher' : p.is_avanti ? 'Avanti · Premium' : perm.plan === 'premium' ? 'Premium' : 'Free';

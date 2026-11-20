@@ -41,9 +41,9 @@ The public pages show numbers only. The questions and solutions are inside the d
 
 | Plan | Price | Who it is for |
 |---|---|---|
-| **Free** | ₹0 | Everyone: question bank, DPPs, PYQs, Must Solve and online tests |
+| **Free** | ₹0 | Everyone: all questions and solutions, PYQ PDFs, Personal Tests & Results (teachers: one test link as a trial) |
 | **Premium (students)** | ₹299 a year | Adds PDF downloads and printing, all handouts and all-India ranks |
-| **Premium (teachers)** | ₹599 a year | Adds PDF downloads and printing, saved worksheets, My Students and bulk upload |
+| **Premium (teachers)** | ₹599 a year | Adds unlimited test links, PDF downloads and printing, saved worksheets and My Students |
 | **Avanti** | Free | Avanti students and teachers get Premium at no cost |
 
 ---

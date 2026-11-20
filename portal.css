@@ -1077,3 +1077,16 @@ button.pt-linkcopy:hover { border-color: var(--accent); background: var(--panel,
 .pt-ditem.bad .pt-dtx small, .pt-ditem.good .pt-dtx small { color: var(--muted); }
 
 .ex-q .katex-display, .pt-qt .katex-display { margin: .4em 0; }
+
+/* Personal Tests & Results */
+.pp-exams { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
+.pp-chip { border: 1px solid var(--rule); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 8px 14px; font: 600 13.5px/1 inherit; cursor: pointer; }
+.pp-chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.pp-papers { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.pp-card { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 14px; border: 1px solid var(--rule); border-radius: 14px; background: var(--panel); color: var(--ink); cursor: pointer; font: inherit; transition: transform .15s, box-shadow .15s, border-color .15s; }
+.pp-card:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+.pp-card b { font-size: 15px; } .pp-card small { color: var(--muted); } .pp-go { margin-top: 6px; color: var(--accent); font-weight: 700; font-size: 13px; }
+.pp-card:disabled { opacity: .6; cursor: wait; }
+
+/* Free accounts: PDF download of PYQs only (checked again in the code) */
+html.plan-free [data-act="lexp"][data-k="pdf"] { display: inline-flex !important; }

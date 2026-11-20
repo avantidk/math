@@ -46,7 +46,10 @@ let BANK = null, BYID = new Map(), CHMAP = new Map(), downloads = { save: o => n
    share and copy. Every download, print, share and copy path below checks G() / need() as well as hiding its button, and the
    Word / PowerPoint code itself is sent by the server only to the admin. */
 const PERM = () => (window.AvantiAuth && window.AvantiAuth.perm) || {};
-function G(what) { return PERM()[what] === true; }
+function G(what) { return PERM()[what] === true || (what === 'pdf' && PYQ_PDF_OK); }
+/* Free accounts may download PDFs of past-year questions (PYQs) only: allowed while an export made of PYQs alone is running. */
+let PYQ_PDF_OK = false;
+const pyqOnly = pages => !!pages.length && pages.every(pg => (pg.qs || []).length && pg.qs.every(x => x && x.s === 'P'));
 function need(what) {
   if (G(what)) return true;
   toast(['docx', 'pptx', 'share', 'copy'].includes(what) && G('pdf') ? 'Your plan includes PDF downloads and printing only.' : 'This needs a Premium membership. Open the profile menu and choose Purchase membership.');
@@ -886,8 +889,10 @@ function pdfSource(t) {
   return null;
 }
 function exportLib(kind) {
-  if (!need(kind)) return;
-  const pages = currentPages(); if (!pages.length) { toast('No questions here yet'); return; }
+  const pgs = currentPages();
+  if (kind === 'pdf' && PERM().pdfPyq && !PERM().pdf && !pyqOnly(pgs)) { toast('Free accounts can download PDFs of past-year questions (PYQs) only. Premium unlocks the rest.'); return; }
+  if (!(kind === 'pdf' && PERM().pdfPyq && pyqOnly(pgs)) && !need(kind)) return;
+  const pages = pgs; if (!pages.length) { toast('No questions here yet'); return; }
   if (pages.length === 1) { doExport(kind, Object.assign({}, pages[0], { file: pages[0].file })); return; }
   doExport(kind, { pages, file: pages[0].file });
 }
@@ -1493,7 +1498,7 @@ function onAct(e) {
   if (e.type === 'change' && t.tagName !== 'INPUT' && t.tagName !== 'SELECT') return;
   if (e.type === 'click' && t.tagName === 'INPUT') return;
   const gate = { lexp: k, pdfdl: t.dataset.f || 'pdf', xprint: 'print', xshare: 'share', pdfshare: 'share' }[a];
-  if (gate && !need(gate)) return;
+  if (gate && !(gate === 'pdf' && a === 'lexp' && PERM().pdfPyq) && !need(gate)) return;
   switch (a) {
     case 'lexp': exportLib(k); break;
     case 'theme': themeToggle(); break;
@@ -1501,7 +1506,7 @@ function onAct(e) {
     case 'guideclose': guideClose(); break;
     case 'guideback': if (e.target === t) guideClose(); break;
     case 'qbinfo': { const pp = $('#qbPop'), op = pp.hidden; pp.hidden = !op; t.setAttribute('aria-expanded', String(op)); break; }
-    case 'tab': setTab(k); break;
+    case 'tab': if (k === 'tests') { location.hash = '#/personal'; break; } setTab(k); break;
     case 'pyqsub': PYQSUB = k; pyqShow(); break;
     case 'libkind': LS.kind = k; LS.idk = ''; LS.chTouched = false; renderLib(); break;
     case 'oos': { OOS.ex = k === 'ex'; try { localStorage.setItem('oosEx2', OOS.ex ? '1' : '0'); } catch (e) {} applyOos(); LS.idk = ''; syncOos(); renderLib(); toast(OOS.ex ? 'Out-of-syllabus questions excluded' : 'Out-of-syllabus questions included'); break; }
@@ -1591,9 +1596,11 @@ function toggleMax(btn) {
 }
 function closeMax() { const st = document.querySelector('.stage.maxed'); if (!st) return; const b = st.querySelector('[data-act="max"]'); if (b) toggleMax(b); }
 async function doExport(kind, p0) {
-  if (!need(kind)) return;
   if (!p0) return;
   const pages = p0.pages ? p0.pages : [p0], pk = p0 && p0.pages ? p0 : pages[0];
+  const freePyq = kind === 'pdf' && !PERM().pdf && PERM().pdfPyq && pyqOnly(pages);
+  if (!freePyq && !need(kind)) return;
+  if (freePyq) { PYQ_PDF_OK = true; setTimeout(() => { PYQ_PDF_OK = false; }, 120000); }
   if (!pages.length || !pages[0].qs.length) { toast('Add some questions first'); return; }
   if (!downloads) { toast('Downloads are not available in this view'); return; }
   const btns = document.querySelectorAll('[data-act="exp"],[data-act="lexp"],[data-act="lexpall"],[data-act="pdfdl"],[data-act="xprint"],[data-act="xshare"]'); btns.forEach(b => { b.disabled = true; });
@@ -1914,7 +1921,7 @@ function buildShell() {
         h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
         h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),
         h('div', { class: 'tb-pop', id: 'qbPop', hidden: true, role: 'menu' }, [['heroov', 'Mathematics Bank: Question Counts'], ['overview', 'Chapter-wise Count'], ['syl', 'Syllabus Priority'], ['wchart', 'Chapter Weightage']].map(([k, t]) => k === 'syl' ? h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-act': 'tab', 'data-k': 'syl', text: t }) : h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-qbpanel': k, text: t }))),
-        h('nav', { class: 'tb-menu' }, tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), h('div', { class: 'tb-prof', id: 'tbProfile' }))),
+        h('nav', { class: 'tb-menu' }, tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), tb('tests', 'Tests'), h('div', { class: 'tb-prof', id: 'tbProfile' }))),
       h('main', { class: 'main' },
         h('div', { id: 'viewQb', class: 'qbhost' }),
         h('div', { id: 'viewLib', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),

@@ -1,5 +1,18 @@
 [
   {
+    "v": "970",
+    "date": "21 Nov 2026",
+    "items": [
+      "New \"Personal Tests & Results\" (profile menu) and a \"Tests\" tab: pick an exam, pick a paper, and the test starts at once with that paper's time and marking. Your result is saved in your own account.",
+      "Free accounts can view all questions and solutions and download PDFs of PYQs. A free teacher can make one test link as a trial; more needs Premium.",
+      "Only Premium students can take tests made by their school's teachers. Premium teachers send a link to anyone, and the test is live only for the chosen class and batch.",
+      "Premium teachers can share a personal test by link with other Premium teachers and see their rank among them (never anyone's report). The admin can open a test for all teachers or all students.",
+      "Teachers can no longer add students. Students register themselves and choose a school, or \"Not in School\". Choosing or changing a real school needs admin approval.",
+      "New \"My School\": Premium students and Premium teachers of the same school see each other's basic details.",
+      "Role is now read-only. A Free student or teacher can ask the admin to switch role; Premium and Avanti accounts cannot."
+    ]
+  },
+  {
     "v": "969",
     "date": "18 Nov 2026",
     "items": [
