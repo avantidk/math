@@ -9,7 +9,7 @@ const ICON = {
   moon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>'
 };
 /* [key, label, link]. DPPs live on the dashboard; on /qbank the PYPs, Tests and Handouts items switch tab without leaving the page. */
-const NAV = [['dash', 'Dashboard', 'dashboard'], ['lib', 'DPPs', 'dashboard#d/dpp'], ['pyq', 'PYPs', 'qbank#/pyps'], ['tests', 'Tests', 'qbank#/modes'], ['ho', 'Handouts', 'qbank#/handouts']];
+const NAV = [['dash', 'Dashboard', 'dashboard'], ['lib', 'DPPs', 'dashboard#d/dpp'], ['pyq', 'PYPs', 'dashboard#d/pyq'], ['tests', 'Tests', 'dashboard#/modes'], ['ho', 'Handouts', 'qbank#/handouts']];
 const THEME_KEY = 'avanti-teacher-theme';
 const head = () => h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark-sm.png?v=922', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: 'JEE, CET, NDA, IAT, PYPs, DPPs, Handouts' }));
 const home = () => h('a', { class: 'tb-theme tb-home', id: 'homeBtn', href: '/', title: 'Home page', 'aria-label': 'Home page', html: ICON.home });
@@ -17,7 +17,7 @@ const themeBtn = () => h('button', { type: 'button', class: 'tb-theme', id: 'the
 /* mode 'qbank': tab buttons handled by teacher.b870.js; mode 'dash': plain links. active = the key that is lit. */
 function nav(mode, active) {
   return h('nav', { class: 'tb-menu' }, NAV.map(([k, t, to]) => {
-    if (k === 'dash' || k === 'lib' || mode !== 'qbank') return h('a', { class: 'tb' + (k === 'dash' ? ' tb-dash' : ''), href: to, 'data-k': k, 'aria-pressed': String(k === active), text: t });
+    if (k === 'dash' || k === 'lib' || k === 'pyq' || k === 'tests' || mode !== 'qbank') return h('a', { class: 'tb' + (k === 'dash' ? ' tb-dash' : ''), href: to, 'data-k': k, 'aria-pressed': String(k === active), text: t });
     return h('button', { type: 'button', class: 'tb', 'data-act': 'tab', 'data-k': k, 'aria-pressed': String(k === active), text: t });
   }), h('div', { class: 'tb-prof', id: 'tbProfile' }));
 }

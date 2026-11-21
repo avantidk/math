@@ -137,7 +137,7 @@ const main = (...kids) => { MAIN.textContent = ''; MAIN.append(...kids.flat().fi
 const loadingBox = t => h('div', { class: 'pt-state' }, h('div', { class: 'spin' }), h('p', { text: t || 'Loading…' }));
 const homeItems = active => [
   { label: 'Home', icon: IC.grid, hash: 'd/', active: active === 'home' },
-  { label: 'PYQs', icon: IC.clock, hash: 'd/pyq', active: active === 'pyq' },
+  { label: 'PYPs', icon: IC.clock, hash: 'd/pyq', active: active === 'pyq' },
   { label: 'Non-PYQs', icon: IC.list, hash: 'd/np', active: active === 'np', off: false },
   { label: 'DPPs', icon: IC.test, hash: 'd/dpp', active: active === 'dpp' },
   { label: 'Bookmarked Qs', icon: IC.mark, hash: 'd/bookmarks', active: active === 'bookmarks' },
@@ -164,22 +164,38 @@ function viewDpp() {
   cards.push(h('a', { class: 'dpp-card dpp-mix', href: free ? 'qbank#/membership' : '#d/dpp/mix', style: '--tone:#1f3f95' }, h('span', { class: 'dpp-mark', text: 'MIX' }), h('b', { text: 'Mixed Practice' }), h('small', { text: 'Tick the sources you want and practise them together, with filters for chapter, exercise, level and type' }), h('span', { class: 'dpp-go', text: 'Open Mixed Practice ›' })));
   main(h('div', { class: 'dpp-head' }, h('h2', { text: 'DPPs' }), h('p', { text: 'Pick a source, then the exercise, and practise its questions.' })), h('div', { class: 'dpp-grid' }, cards));
 }
+/* a source (BB Ex, Ln DY, ...): first its exercises / sheets, grouped by chapter */
+function viewDppExercises(k) {
+  const src = SRC[k];
+  side({ back: 'd/dpp', title: 'DPPs', sub: 'Choose a source', items: SOURCES.map(x => ({ label: x.name, icon: IC.list, badge: String(dppCount(x.name)), hash: 'd/dpp/' + x.k, active: x.k === k })) });
+  const pool = D.rows.filter(r => !r.P && r.bk === src.name), groups = new Map();
+  pool.forEach(r => { const g = groups.get(r.ch) || groups.set(r.ch, new Map()).get(r.ch), key = r.ch + '~' + (r.shl || ''), o = g.get(key) || g.set(key, { key, t: r.shl || 'Questions', n: r.shn || 0, c: 0 }).get(key); o.c++; });
+  const chs = [...groups.keys()].map(c => D.chByCode[c]).filter(Boolean).sort((a, b) => a.order - b.order);
+  const all = h('a', { class: 'dpp-ex dpp-ex-all', href: '#d/dpp/' + k + '/all' }, h('b', { text: 'All questions' }), h('small', { text: num(pool.length) + ' questions · every chapter' }));
+  main(h('div', { class: 'd-head' }, crumb('DPPs', src.name), h('h2', { text: src.name }), h('p', { text: 'Pick an exercise or sheet to see its questions.' })), all,
+    chs.map(c => h('section', { class: 'dpp-chap' }, h('h3', { class: 'd-sec' }, h('span', { class: 'd-code', text: c.chapter_code }), ' ' + c.chapter),
+      h('div', { class: 'dpp-exgrid' }, [...groups.get(c.chapter_code).values()].sort((a, b) => a.n - b.n || a.t.localeCompare(b.t)).map(o =>
+        h('a', { class: 'dpp-ex', href: '#d/dpp/' + k + '/' + encodeURIComponent(o.key) }, h('b', { text: o.t }), h('small', { text: num(o.c) + ' Qs' })))))));
+}
 /* one source (BB Ex, Ln DY, ...) or Mixed Practice: the sources are the left menu, the filters are one line on top */
-function viewDppSrc(k) {
+function viewDppSrc(k, exKey) {
   if (locked()) return dppLocked();
   const mix = k === 'mix', src = SRC[k]; if (!mix && !src) return go('d/dpp');
+  if (!mix && !exKey) return viewDppExercises(k);
   const names = mix ? [...MIXSEL] : [src.name];
   const items = SOURCES.map(x => mix
     ? { label: x.name, icon: MIXSEL.has(x.name) ? svg('<rect x="4" y="4" width="16" height="16" rx="3" fill="currentColor" opacity=".18"/><path d="m8 12 3 3 5-6"/>') : svg('<rect x="4" y="4" width="16" height="16" rx="3"/>'), badge: String(dppCount(x.name)), active: MIXSEL.has(x.name), href: '#', onclick: () => { if (MIXSEL.has(x.name)) MIXSEL.delete(x.name); else MIXSEL.add(x.name); viewDppSrc('mix'); } }
     : { label: x.name, icon: IC.list, badge: String(dppCount(x.name)), hash: 'd/dpp/' + x.k, active: x.k === k });
-  side({ back: 'd/dpp', title: mix ? 'Mixed Practice' : 'DPPs', sub: mix ? 'Tick the sources to mix' : 'Choose a source', items });
-  const pool = D.rows.filter(r => !r.P && names.includes(r.bk));
+  side({ back: mix ? 'd/dpp' : 'd/dpp/' + k, title: mix ? 'Mixed Practice' : 'DPPs', sub: mix ? 'Tick the sources to mix' : 'Choose a source', items });
+  const sheetKey = r => r.ch + '~' + (r.shl || '');
+  const pool = D.rows.filter(r => !r.P && names.includes(r.bk) && (mix || exKey === 'all' || sheetKey(r) === exKey));
   const chs = [...new Set(pool.map(r => r.ch))].map(c => D.chByCode[c]).filter(Boolean).sort((a, b) => a.order - b.order);
   const shs = new Map(); pool.forEach(r => { if (r.shl) shs.set(r.bk + '|' + r.shl, { t: (mix ? r.bk + ' ' : '') + r.shl, n: r.shn, b: r.bk }); });
   const exList = [...shs.entries()].sort((a, b) => a[1].b.localeCompare(b[1].b) || a[1].n - b[1].n).map(([key, v]) => [key, v.t]);
-  const title = mix ? 'Mixed Practice' : src.name, head = h('div', { class: 'd-head' }, crumb('DPPs', title));
+  const one = !mix && exKey !== 'all', first = pool[0];
+  const title = mix ? 'Mixed Practice' : one && first ? src.name + ' · ' + first.ch + (first.shl ? ' · ' + first.shl : '') : src.name, head = h('div', { class: 'd-head' }, crumb('DPPs', mix ? title : src.name, one ? (first ? first.ch + (first.shl ? ' · ' + first.shl : '') : '') : 'All questions'));
   window.DashList.render(listEnv(), { rows: pool, title, head, compact: true, seqOrder: true, testLabel: 'Take test',
-    filters: [{ key: 'ch', label: 'Chapter', values: chs.map(c => [c.chapter_code, c.chapter_code + ' ' + c.chapter]), get: r => r.ch }].concat(exList.length ? [{ key: 'ex', label: 'Exercise', values: exList, get: r => r.bk + '|' + r.shl }] : []),
+    filters: one ? [] : [{ key: 'ch', label: 'Chapter', values: chs.map(c => [c.chapter_code, c.chapter_code + ' ' + c.chapter]), get: r => r.ch }].concat(exList.length ? [{ key: 'ex', label: 'Exercise', values: exList, get: r => r.bk + '|' + r.shl }] : []),
     emptyText: mix && !names.length ? 'Tick at least one source on the left.' : title + ' questions are coming soon.',
     startTest: list => launchTestFrom(list, { chapter: title + ' DPP', chapter_code: 'dpp' }, 'np', null, 20, 'DPP test'),
     menuExtra: [{ text: 'Download ready-made sheets as PDF', note: 'Opens the PDF sheets page of the Question Bank.', onclick: () => { location.href = 'qbank#/dpps'; } }] });
@@ -201,15 +217,32 @@ function viewHome() {
 
 /* ---------- Step 2: exams (PYQ path) ---------- */
 function viewExams() {
-  side({ back: '', title: 'PYQs', sub: 'Pick an exam', items: homeItems('pyq') });
+  side({ back: '', title: 'PYPs', sub: 'Pick an exam', items: homeItems('pyq') });
+  const how = [['Pick an exam', 'JEE Main, JEE Advanced, KCET, NDA, IAT and more.'], ['Pick a chapter', 'Every chapter has its own set of papers\u2019 questions.'], ['Practise', 'Solve, bookmark and see the explanation.'], ['Track', 'Your progress is saved in your account.']];
   const cards = EXAMS.map(e => {
     const rows = scope('pyq', e.slug), ys = rows.map(r => r.y).filter(Boolean), off = !rows.length;
-    return tile({ cls: 'd-exam', off, go: off ? null : 'd/pyq/' + e.slug, badge: '2027', badgeCls: 'year', title: e.name, sub: off ? 'Coming soon' : num(rows.length) + ' PYQs · ' + Math.min(...ys) + '–' + Math.max(...ys),
-      extra: h('span', { class: 'd-exam-logo' }, logo(e)) });
+    return h('a', { class: 'tx-card tx-top' + (off ? ' is-off' : ''), href: off ? '#d/pyq' : '#d/pyq/' + e.slug, style: '--tone:' + e.tone, onclick: off ? (ev => { ev.preventDefault(); toast(e.name + ' is coming soon.'); }) : null },
+      h('span', { class: 'tx-ic d-exam-ic' }, logo(e)), h('h2', { text: e.name }), h('p', { text: off ? 'Coming soon' : num(rows.length) + ' previous year questions' + (ys.length ? ' from ' + Math.min(...ys) + ' to ' + Math.max(...ys) : '') + '.' }),
+      h('ul', { class: 'tx-tags' }, [e.note, off ? null : 'Chapter-wise'].filter(Boolean).map(t => h('li', { text: t }))), h('span', { class: 'tx-go', text: off ? '' : 'Open \u203a' }));
   });
-  main(h('div', { class: 'd-head' }, h('h2', { text: 'Select an exam' }), h('p', { text: 'Every exam has its own chapter-wise set of previous year questions.' })), h('div', { class: 'd-grid d-grid-exam' }, cards));
+  main(h('section', { class: 'tx-hero' }, h('div', { class: 'tx-hero-in' }, h('span', { class: 'tx-kick', text: 'PYPS' }), h('h1', { text: 'Practise the real papers' }),
+      h('p', { text: 'Previous year questions of every exam, chapter by chapter. Your progress stays in your own account.' })),
+      h('ul', { class: 'tx-how', 'aria-label': 'How it works' }, how.map(([t, d], i) => h('li', {}, h('b', { text: String(i + 1) }), h('span', {}, h('strong', { text: t }), h('small', { text: d })))))),
+    h('div', { class: 'tx-grid' }, cards));
 }
-
+/* ---------- Tests: the pages of portal.js, drawn inside the dashboard ---------- */
+function viewTests(hs) {
+  document.querySelectorAll('.tb-menu .tb').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.k === 'tests')));
+  const on = p => hs === p || hs.startsWith(p + '/');
+  side({ back: null, title: 'Tests', sub: 'Mock tests and your results', items: [
+    { label: 'All tests', icon: IC.test, hash: '/modes', active: hs === '#/modes' },
+    { label: 'Previous Year Papers', icon: IC.clock, hash: '/modes/pyq', active: on('#/modes/pyq') },
+    { label: 'Practice Tests & Results', icon: IC.list, hash: '/personal', active: on('#/personal') },
+    { label: 'Dashboard', icon: IC.grid, hash: 'd/' }] });
+  MAIN.textContent = ''; MAIN.append(h('div', { id: 'viewPortal', class: 'pt-wrap' }));
+  window.scrollTo(0, 0);
+  window.AvantiPortal.route(true);
+}
 /* ---------- Step 3: chapters ---------- */
 function chapterCards(mode, slug) {
   const withRows = D.chapters.map(c => ({ c, rows: scope(mode, slug, c.chapter_code) })).filter(x => x.rows.length);
@@ -391,9 +424,10 @@ function viewHistoryPage() { side({ back: '', title: 'Test History', sub: 'All y
 let NAV = 0;
 async function route() {
   const hs = location.hash || '';
+  if (/^#\/(modes|personal)(\/|$)/.test(hs)) return viewTests(hs);
   if (/^#\/(?!home)/.test(hs)) { location.replace('qbank' + location.search + hs); return; }   /* an old link such as #/profile or #/t/CODE belongs to the question bank */
   const tok = ++NAV;
-  const navK = /^#d\/dpp/.test(hs) ? 'lib' : 'dash'; document.querySelectorAll('.tb-menu .tb').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.k === navK)));
+  const navK = /^#d\/dpp/.test(hs) ? 'lib' : /^#d\/(pyq|ch\/pyq)/.test(hs) ? 'pyq' : 'dash'; document.querySelectorAll('.tb-menu .tb').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.k === navK)));
   const parts = hs.replace(/^#d\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
   main(loadingBox('Loading your dashboard…'));
   try { await Promise.all([load(), loadMine(false)]); } catch (e) { main(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'Could not load the questions' }), h('p', { text: e.message || 'Check your connection and try again.' }), h('button', { type: 'button', class: 'btn', text: 'Try again', onclick: () => { D.ready = null; route(); } }))); return; }
@@ -403,11 +437,36 @@ async function route() {
   if (a === 'pyq') return b ? viewChapters('pyq', b) : viewExams();
   if (a === 'np') return viewChapters('np', null);
   if (a === 'ch') return viewChapter(b, c === '-' ? null : c, d, e || 'overview', f);
-  if (a === 'dpp') return b ? viewDppSrc(b) : viewDpp();
+  if (a === 'dpp') return b ? viewDppSrc(b, c) : viewDpp();
   if (a === 'bookmarks') return viewBookmarksPage();
   if (a === 'history') return viewHistoryPage();
   viewHome();
 }
+/* The Tests pages (portal.js) ask the Question Bank engine for the questions. On the dashboard that engine is not loaded, so the same list is built here from
+   the dashboard's own data. Downloads (PDF of a paper or an answer sheet) are made by the Question Bank, so those open there. */
+const QB_EXAM = { 'JEE Main': 'Main', 'AIEEE': 'Main', 'JEE Advanced': 'Adv', 'IIT': 'Adv', 'KCET': 'KCET', 'IAT': 'IAT', 'NDA': 'NDA' };
+function qbCompact(r, figs) {
+  const e = QB_EXAM[r.exam]; if (!e) return null;
+  const P = r.source === 'PYQ';
+  let o = r.options || []; if (typeof o === 'string') { try { o = JSON.parse(o); } catch (x) { o = []; } }
+  const q = { i: String(r.id), s: P ? 'P' : 'N', e, y: P && r.year != null && r.year !== '' ? Number(r.year) : null, p: r.paper, t: r.type, cc: r.chapter_code, tc: String(r.topic_code || '').replace(/^JM-/, ''), tp: r.topic || '', d: r.difficulty, q: r.question || '', o, a: r.answer == null ? '' : String(r.answer) };
+  if (!P) { q.pb = r.publisher || 'Practice'; q.sec = r.section || ''; if (r.pyq) q.pq = r.pyq_ref || ''; }
+  if (r.oos) q.oo = 1;
+  const f = r.figure && r.figure.svg ? r.figure : figs && figs[r.id] && figs[r.id].svg ? figs[r.id] : null; if (f) q.f = f;
+  return q;
+}
+let BANKP = null;
+const dashBank = () => BANKP || (BANKP = (async () => {
+  await load();
+  const [meta, figs] = await Promise.all([fetch('bank-meta.json').then(r => { if (!r.ok) throw new Error('bank-meta'); return r.json(); }), window.AvantiContent.get('qb/data/figures.json').catch(() => ({}))]);
+  const qs = [], byId = new Map(), chapters = new Map();
+  D.raw.forEach(r => { const q = qbCompact(r, figs); if (q) { qs.push(q); byId.set(q.i, q); } });
+  meta.chapters.forEach(c => chapters.set(c.c, c));
+  return { qs, byId, chapters };
+})().catch(e => { BANKP = null; throw e; }));
+const toQB = hash => () => { toast('Opening the Question Bank…'); setTimeout(() => { location.href = 'qbank' + hash; }, 300); };
+window.AvantiTeacher = { hideViews() {}, toast, bank: dashBank, setTab: k => { location.href = 'qbank#/' + ({ lib: 'dpps', pyq: 'pyps', ho: 'handouts', qb: 'qb' }[k] || 'qb'); },
+  exportIds: async () => toQB('#/personal')(), pdfIds: async () => { toQB('#/personal')(); return null; }, shareIds: async () => toQB('#/personal')(), math() {} };
 function start() {
   shell();
   window.addEventListener('hashchange', route);

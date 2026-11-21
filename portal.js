@@ -128,8 +128,9 @@ const can = k => !!(AU().perm && AU().perm[k]);
 let curRoute = '';
 /* #/dpps, #/pyps, #/handouts and #/qb: open that tab (links from the dashboard and the profile menu) */
 function tabRoute(k) { leave(); if (TE()) TE().setTab(k); }
-function route() {
+function route(force) {
   if (!AU() || !AU().profile || !view()) return;
+  if (force !== true && document.documentElement.getAttribute('data-page') === 'dash') return;   /* on /dashboard the dashboard draws the Tests pages and calls route(true) */
   const m = location.hash.match(/^#\/([a-z-]+)(?:\/([^?]+))?/);
   if (!m) { if (curRoute) { curRoute = ''; leave(true); } return; }
   const r = m[1], arg = m[2] ? decodeURIComponent(m[2]) : '';

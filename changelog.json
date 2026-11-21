@@ -1,5 +1,14 @@
 [
   {
+    "v": "983",
+    "date": "21 Nov 2026",
+    "items": [
+      "DPPs: no more underlined text. Clicking BB Ex, Ln DY or Ln Ex now shows the exercises (grouped by chapter) first; pick one to see its questions, or open All questions.",
+      "Tests now open inside the Dashboard (same top bar and left menu), not in the Question Bank. The PYPs menu item also opens in the Dashboard.",
+      "The Tests banner is smaller, and the PYPs page has the same new look: a short banner and one card per exam."
+    ]
+  },
+  {
     "v": "982",
     "date": "21 Nov 2026",
     "items": [
