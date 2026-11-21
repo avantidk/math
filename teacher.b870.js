@@ -1,4 +1,4 @@
-/* अंक-IT \u00b7 Mathematics Dashboard: Question Bank, DPPs, PYQs, Must Solve and Handouts. One file, no build step. Tests and results live in portal.js. */
+/* अंक-IT \u00b7 Mathematics Dashboard: Question Bank, DPPs, PYPs and Handouts. One file, no build step. Tests and results live in portal.js. */
 (function () {
 'use strict';
 const h = window.AvantiUtil.h;
@@ -857,7 +857,7 @@ function printFrom(get) {
 window.__pdfPrint = printFrom; window.__pdfShare = shareFrom;
 const prtBtn = src => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'xprint', 'data-src': src, title: 'Print', 'aria-label': 'Print', html: ICO.print });
 const shrBtn = src => h('button', { type: 'button', class: 'btn ibtn', 'data-act': 'xshare', 'data-src': src, title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share the PDF', html: ICO.share });
-/* "Save as worksheet" and "Create test" for Premium and Staff teachers, under the downloads of DPPs, PYQs and Must Solve */
+/* "Save as worksheet" and "Create test" for Premium and Staff teachers, under the downloads of DPPs and PYPs */
 const WS_ICO = {
   save: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
   test: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>'
@@ -872,7 +872,6 @@ function wsSource(src) {
   let pages = null, title = '';
   if (src === 'lib') { pages = currentPages(); title = pages.length ? pages[0].title + ' DPP' : ''; }
   else if (src === 'cw' || src === 'sw') { const P = PDFT[src], r = P.sel && pdfRows(src).find(x => x.k === P.sel); if (!r) { toast('Pick a ' + (src === 'cw' ? 'chapter' : 'question paper') + ' first'); return null; } pages = pdfPages(src, r); title = r.name; }
-  else if (src === 'must') { const m = mustPages(); if (!m) return null; pages = m.pages; title = m.title === 'Must Solve' ? 'Must Solve' : m.title + ' · Must Solve'; }
   const ids = [...new Set((pages || []).flatMap(p => p.qs || []).map(q => q && q.i).filter(i => i && BYID.has(i)))];
   if (!ids.length) { toast('No questions here yet'); return null; }
   return { ids, title };
@@ -885,7 +884,6 @@ function pdfSource(t) {
     const pages = pdfPages(T, r).map(p => Object.assign({}, p, { key: !!PDFT[T].key, exp: !!PDFT[T].exp }));
     return { title: r.name, get: () => pdfBlobOf({ pages, file: r.file }) };
   }
-  if (src === 'must') { const m = mustPages(); if (!m) return null; return { title: m.title, get: () => pdfBlobOf({ pages: m.pages, file: m.file }) }; }
   return null;
 }
 function exportLib(kind) {
@@ -1269,7 +1267,6 @@ async function renderHandouts() {
   view.append(h('div', { class: 'hp-head' }, h('h1', { text: 'Handouts' }), h('p', { text: G('pdf') ? 'Handwritten revision notes · view or download as PDF' : 'Handwritten revision notes · the first handout of Class 11 and of Class 12 is free to view; the rest are part of the Premium membership' })), ...secs);
 }
 
-/* ---------- Must Solve tab: questions that repeat in JEE (exact or very similar) and sure-shot picks, by chapter and topic ---------- */
 
 /* ---------- DPPs: seven blocks (v973) ----------
    Blocks 1-6 are sheet libraries (BB Ex, Ln DY, Ln Ex, Cg ill, Cg Ex, Cg DPPs): pick a chapter and a sheet and download it as a PDF.
@@ -1333,230 +1330,6 @@ function renderDppHome() {
   view.append(h('div', { class: 'dpp-head' }, h('h2', { text: 'DPPs' }), h('p', { text: 'Download ready-made sheets as PDF, or build a mixed practice set.' })), h('div', { class: 'dpp-grid' }, cards));
 }
 
-let MUST = null, MTOP = null; const MS = { sel: new Set(), chs: [], kind: 'all', lv: ['L1', 'L2', 'L3'], ans: false, key: false };
-const MKIND = { e: ['Exact repeat', 'mk-e'], i: ['Similar type', 'mk-i'], u: ['Sure-shot', 'mk-u'] };
-const mYear = q => (q.y ? q.y : 'n/a') + ' ' + (q.e === 'KCET' ? 'KCET' : q.e === 'IAT' ? 'IAT' : q.e === 'NDA' ? 'NDA' : q.e === 'Adv' ? 'Adv' : 'Main');
-/* Must Solve: click a year (or "Asked N times") to see the question as it came in that year, in a pop-up */
-function mustPopStyle() {
-  if (document.getElementById('mpopcss')) return;
-  const st = h('style', { text: '.mclk{cursor:pointer;font:inherit;color:inherit}.mclk:hover,.mclk:focus-visible{border-color:var(--accent,#0f766e);box-shadow:0 0 0 2px var(--accent-soft,rgba(15,118,110,.2))}.mb.mclk{font-size:12px;font-weight:700}.mpopq{border:1px solid var(--rule,#ddd);border-radius:12px;padding:8px;margin:0 0 12px}.mpoph{font-weight:700;font-size:13px;margin:0 0 6px;color:var(--accent,#0f766e)}#mpop .mbody{padding:12px}#mpop .mcard{max-width:900px}' });
-  st.id = 'mpopcss'; document.head.append(st);
-}
-function mustPop(title, ids, useQb) {
-  mustPopStyle();
-  const old = document.getElementById('mpop'); if (old) old.remove();
-  let ov; const esc = e => { if (e.key === 'Escape') close(); }; const close = () => { if (ov) ov.remove(); document.removeEventListener('keydown', esc); };
-  const body = h('div', { class: 'mbody qbhost' });
-  ids.forEach(id => {
-    const q = BYID.get(id); if (!q) return;
-    let view = useQb ? window.QBX.cardFor(id) : null;
-    if (!view) view = h('article', { class: 'mq' }, h('div', { class: 'mqt', text: q.q }), (q.o || []).length ? h('ol', { class: 'mopts' }, q.o.map(o => h('li', { text: o }))) : null, h('div', { class: 'mans', text: 'Answer: ' + q.a }));
-    body.append(h('div', { class: 'mpopq' }, h('div', { class: 'mpoph', text: mYear(q) + (q.p ? ' · ' + q.p : '') + ' · ' + q.i }), view));
-  });
-  ov = h('div', { class: 'modal', id: 'mpop', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, onclick: e => { if (e.target === ov) close(); } },
-    h('div', { class: 'mcard' }, h('div', { class: 'mbar' }, h('b', { text: title }), h('button', { type: 'button', class: 'btn', text: 'Close', onclick: close })), body));
-  document.body.append(ov); document.addEventListener('keydown', esc); math(body);
-}
-/* ---------- Must Solve (rebuilt in v973) ----------
-   One clear flow: the list is worked out from the filters (chapter, type, level, search), shown 20 per page, and each page is drawn in
-   small batches so it appears at once and the maths is typeset a few questions at a time. A newer draw always cancels an older one,
-   selection is kept only for questions that are still shown, and the filters are remembered in this browser.
-   The question cards are the Question Bank's own cards (same action bar); the plain card is only a stop-gap until the bank is ready. */
-const MUST_KEY = 'avanti-must-v2';
-let MUST_TOK = 0, MUST_DRAW = 0;
-async function renderMust() {
-  const view = $('#viewMust'); if (!view) return;
-  const T = ++MUST_TOK, alive = () => T === MUST_TOK && view.isConnected;
-  if (!MUST) { try { MUST = await (await fetch('must.json')).json(); } catch (e) { MUST = []; } }
-  if (!alive()) return;
-  if (!MUST.length) { view.textContent = ''; view.append(h('p', { class: 'hint', text: 'Must Solve is not available yet.' })); return; }
-  if (!MTOP) { try { MTOP = await (await fetch('qb/data/topics.json')).json(); } catch (e) { MTOP = []; } }
-  if (!alive()) return;
-  if (!MS.restored) {
-    MS.restored = true;
-    try { const s = JSON.parse(localStorage.getItem(MUST_KEY) || 'null');
-      if (s) { if (Array.isArray(s.chs)) MS.chs = s.chs.filter(c => MUST.some(m => m.c === c)); if (['all', 'e', 'i', 'u'].includes(s.kind)) MS.kind = s.kind; if (Array.isArray(s.lv) && s.lv.length) MS.lv = s.lv.filter(l => ['L1', 'L2', 'L3'].includes(l)); } } catch (e) { /* defaults */ }
-  }
-  const remember = () => { try { localStorage.setItem(MUST_KEY, JSON.stringify({ chs: MS.chs, kind: MS.kind, lv: MS.lv })); } catch (e) { /* optional */ } };
-  MS.q = MS.q || '';
-  const PER = 20; let page = 0, useQb = false;
-  const qbReady = () => !!(window.QBX && window.QBX.cardFor && window.QBX.hasRows && window.QBX.hasRows());
-  const topIdx = (c, name) => { const i = MTOP.filter(t => t.chapter_code === c).findIndex(t => t.topic === name); return i < 0 ? 999 : i; };
-  const chs = MUST.map(m => CHMAP.get(m.c)).filter(Boolean), chName = c => (CHMAP.get(c) || { n: c }).n;
-  const list = h('div', { class: 'mlist qbhost' });
-  const selCnt = h('span', { class: 'mselcnt' }), topN = h('span', { class: 'msel-n', text: '0' }), topOf = h('span', { class: 'msel-of' });
-  const selInfo = () => {
-    const flat = MS.flat || [], n = flat.filter(f => MS.sel.has(f.it.r)).length, all = flat.length;
-    selCnt.textContent = n ? n + ' selected · downloads only these' : 'None selected · downloads all ' + all + ' shown'; topN.textContent = String(n); topOf.textContent = 'of ' + all + ' shown';
-  };
-  /* 1. which questions match the filters, in chapter, topic, then most-repeated order */
-  const compute = () => {
-    const flat = [], yc = {}, term = MS.q.trim().toLowerCase();
-    MUST.forEach(m => {
-      if (MS.chs.length && !MS.chs.includes(m.c)) return;
-      const items = m.i.filter(it => {
-        const q = BYID.get(it.r); if (!q || !MS.lv.includes(q.d)) return false;
-        if (MS.kind !== 'all' && it.k !== MS.kind) return false;
-        return !term || (it.l || '').toLowerCase().includes(term) || (q.tp || '').toLowerCase().includes(term) || String(it.r).toLowerCase().includes(term);
-      });
-      if (!items.length) return;
-      const y = yc[m.c] = {};
-      items.forEach(it => [it.r, ...it.m].forEach(id => { const q = BYID.get(id); if (!q) return; const k = q.y ? (q.y >= 2019 ? String(q.y) : 'Before 2019') : 'Year n/a'; y[k] = (y[k] || 0) + 1; }));
-      const tops = new Map();
-      items.forEach(it => { const q = BYID.get(it.r), nm = q.tc && !/UNMAPPED/.test(q.tc) ? q.tp : 'Mixed problems'; if (!tops.has(nm)) tops.set(nm, []); tops.get(nm).push(it); });
-      [...tops.entries()].sort((a, b) => (topIdx(m.c, a[0]) - topIdx(m.c, b[0])) || a[0].localeCompare(b[0])).forEach(([nm, its]) => {
-        its.sort((a, b) => (b.m.length - a.m.length) || a.k.localeCompare(b.k));
-        its.forEach(it => flat.push({ c: m.c, n: items.length, tp: nm, it }));
-      });
-    });
-    MS.flat = flat; MS.yc = yc;
-    const ids = new Set(flat.map(f => f.it.r)); MS.sel = new Set([...MS.sel].filter(id => ids.has(id)));   /* selection never keeps questions that are no longer shown */
-    MS.pages = Math.max(1, Math.ceil(flat.length / PER));
-  };
-  /* 2. one question: the strip (label, type, years) and the card */
-  const item = (f, no) => {
-    const it = f.it, q = BYID.get(it.r), times = it.m.length + 1;
-    const yrs = [it.r, ...it.m].map(id => BYID.get(id)).filter(Boolean).sort((a, b) => (b.y || 0) - (a.y || 0));
-    const pick = h('input', { type: 'checkbox', 'aria-label': 'Select question ' + it.l + ' for download', onchange: e => { if (e.target.checked) MS.sel.add(it.r); else MS.sel.delete(it.r); selInfo(); } });
-    pick.checked = MS.sel.has(it.r); pick.dataset.r = it.r;
-    const strip = h('div', { class: 'mstrip' },
-      h('label', { class: 'mpick', title: 'Select for download' }, pick),
-      h('b', { class: 'mlab', text: it.l }),
-      h('span', { class: 'mb ' + MKIND[it.k][1], text: MKIND[it.k][0] }),
-      it.k === 'u' ? h('span', { class: 'mb mtimes', text: 'Must know' }) : h('button', { type: 'button', class: 'mb mtimes mclk', title: 'Click to see all ' + times + ' questions with their years', 'aria-label': 'Asked ' + times + ' times: show all', text: 'Asked ' + times + ' times', onclick: () => mustPop(it.l + ' · asked ' + times + ' times', yrs.map(y => y.i), useQb) }),
-      h('span', { class: 'myl' }, h('span', { class: 'mylb', text: it.k === 'u' ? 'Came in:' : 'Years:' }), ...yrs.map(y => h('button', { type: 'button', class: 'myc mclk', title: (y.p || '') + ' · click to see this question', text: mYear(y), onclick: () => mustPop(it.l + ' · ' + mYear(y), [y.i], useQb) }))),
-      it.k === 'u' && it.w ? h('span', { class: 'mwhy', text: it.w }) : null);
-    const qc = useQb ? window.QBX.cardFor(it.r) : null;
-    if (qc) { const nn = qc.querySelector('.qb-num'); if (nn) nn.textContent = String(no); return h('div', { class: 'mitem qb' }, strip, qc); }
-    return h('article', { class: 'mq mitem' }, strip, h('div', { class: 'mqt', text: q.q }), (q.o || []).length ? h('ol', { class: 'mopts' }, q.o.map(o => h('li', { text: o }))) : null, h('div', { class: 'mans', text: 'Answer: ' + q.a }));
-  };
-  const pager = () => {
-    const total = (MS.flat || []).length, start = page * PER, n = Math.min(PER, total - start);
-    const nav = h('nav', { class: 'qb-pager', 'aria-label': 'Pages' }, h('span', { class: 'qb-pinfo', text: total ? (start + 1) + '–' + (start + n) + ' of ' + total : '0' }));
-    const to = p => { page = p; draw(true); view.scrollIntoView({ block: 'start' }); window.scrollTo(0, 0); };
-    const btn = (label, p, on, dis) => nav.append(h('button', { type: 'button', class: 'qb-pbtn' + (on ? ' on' : ''), text: label, disabled: !!dis, 'aria-current': on ? 'page' : null, onclick: () => to(p) }));
-    btn('‹ Prev', page - 1, false, page === 0);
-    const shown = []; for (let p = 0; p < MS.pages; p++) if (p === 0 || p === MS.pages - 1 || Math.abs(p - page) <= 2) shown.push(p);
-    shown.forEach((p, i) => { if (i && p - shown[i - 1] > 1) nav.append(h('span', { class: 'qb-pgap', text: '…' })); btn(String(p + 1), p, p === page); });
-    btn('Next ›', page + 1, false, page === MS.pages - 1);
-    return nav;
-  };
-  /* 3. draw one page: headers at once, questions a few at a time so the page never freezes */
-  const draw = keep => {
-    const D = ++MUST_DRAW;
-    if (!keep) page = 0;
-    compute(); if (page >= MS.pages) page = MS.pages - 1;
-    selInfo(); list.textContent = '';
-    const flat = MS.flat, part = flat.slice(page * PER, page * PER + PER);
-    if (flat.length > PER) list.append(pager());
-    if (!flat.length) { list.append(h('p', { class: 'hint', text: 'No questions match these filters.' })); return; }
-    let curC = null, curT = null, sec = null, tsec = null;
-    const jobs = [];
-    part.forEach((f, i) => {
-      if (f.c !== curC) {
-        curC = f.c; curT = null;
-        const ykeys = Object.keys(MS.yc[f.c]).sort((a, b) => (b === 'Before 2019' ? -1 : a === 'Before 2019' ? 1 : b === 'Year n/a' ? -1 : a === 'Year n/a' ? 1 : b - a));
-        sec = h('section', { class: 'mch' },
-          h('div', { class: 'mchh' }, h('span', { class: 'mchn', text: f.c }), h('h3', { text: chName(f.c) }), h('span', { class: 'mcnt', text: f.n + ' questions' })),
-          h('div', { class: 'myrs', 'aria-label': 'Year-wise count of these questions' }, h('b', { text: 'Year-wise: ' }), ...ykeys.map(k => h('span', { class: 'myr' }, k + ' ', h('b', { text: String(MS.yc[f.c][k]) })))));
-        list.append(sec);
-      }
-      if (f.tp !== curT) { curT = f.tp; tsec = h('div', { class: 'mtop' }, h('h4', { text: f.tp })); sec.append(tsec); }
-      const slot = h('div', { class: 'mslot' }); tsec.append(slot); jobs.push([slot, f, page * PER + i + 1]);
-    });
-    if (MS.key && part.length) list.append(h('section', { class: 'mkeybox' }, h('h3', { text: 'Answer key' }), h('div', { class: 'keyflow' }, part.map((f, i) => { const q = BYID.get(f.it.r) || {}; return h('span', { class: 'kitem' }, h('b', { text: (page * PER + i + 1) + '.' }), ' ' + (q.a || '')); }))));
-    if (flat.length > PER) list.append(pager());
-    const BATCH = 4;
-    const step = () => {
-      if (D !== MUST_DRAW || !alive()) return;   /* a newer draw has started */
-      const chunk = jobs.splice(0, BATCH), nodes = chunk.map(([slot, f, no]) => { const n = item(f, no); slot.replaceWith(n); return n; });
-      nodes.forEach(n => math(n));
-      if (jobs.length) requestAnimationFrame(step);
-    };
-    step();
-  };
-  MS.redraw = () => draw(true);
-  const seg = (items, cur, set) => h('div', { class: 'seg' }, items.map(([k, t]) => h('button', { type: 'button', 'aria-pressed': String(cur() === k), text: t, onclick: e => { set(k); e.currentTarget.parentNode.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === e.currentTarget))); remember(); draw(); } })));
-  const chSel = msel('mustCh', 'chapters'), chItems = chs.map(c => [c.c, c.c + ' ' + c.n]);
-  const fillCh = () => { MS.chs = mfill('mustCh', chItems, MS.chs, v => { MS.chs = v; remember(); draw(); fillCh(); }, 'chapters', { none: 'All chapters' }); };
-  const lvBtns = h('div', { class: 'seg' }, ['L1', 'L2', 'L3'].map(l => h('button', { type: 'button', 'aria-pressed': String(MS.lv.includes(l)), text: l, onclick: e => {
-    const next = MS.lv.includes(l) ? MS.lv.filter(x => x !== l) : MS.lv.concat(l); if (!next.length) { toast('Keep at least one level on'); return; }
-    MS.lv = next; e.currentTarget.setAttribute('aria-pressed', String(MS.lv.includes(l))); remember(); draw(); } })));
-  const search = h('input', { type: 'search', class: 'mfind', placeholder: 'Find by topic, name or code', 'aria-label': 'Find a question', value: MS.q, oninput: e => { clearTimeout(search._t); search._t = setTimeout(() => { MS.q = e.target.value; draw(); }, 180); } });
-  const tick = on => { (MS.flat || []).forEach(f => { if (on) MS.sel.add(f.it.r); else MS.sel.delete(f.it.r); }); list.querySelectorAll('.mpick input').forEach(c => { c.checked = MS.sel.has(c.dataset.r); }); selInfo(); };
-  view.textContent = '';
-  /* top of the side panel, like the Question Bank: count, switches, Save as worksheet, Create test + Export menu */
-  const mRow = wsRow('must') || h('div', { class: 'wsrow' });
-  mRow.classList.add('qb-wsrow', 'm-wsrow');
-  const sv = mRow.querySelector('[data-act=wssave]'); if (sv) sv.classList.add('qb-savews');
-  const mExp = h('button', { type: 'button', class: 'btn wsbtn qb-expbtn', 'aria-haspopup': 'menu', 'aria-expanded': 'false', title: 'Download, print or share these questions', html: ICO.dl + '<span>Export</span><span class="pt-caret" aria-hidden="true">\u25be</span>',
-    onclick: e => {
-      const P = window.AvantiPortal, IC = (P && P.icons) || {}, hid = sel => () => { const b = view.querySelector('.mtop ' + sel); if (b) b.click(); };
-      if (!P || !P.dropMenu) return;
-      P.dropMenu(e.currentTarget, [
-        { icon: IC.pdf, text: 'Download PDF', sub: 'Print-ready, with the Avanti header', onclick: () => exportMust('pdf') },
-        G('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable document', onclick: () => exportMust('docx') } : null,
-        G('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: () => exportMust('pptx') } : null,
-        '-',
-        { icon: ICO.print, text: 'Print', sub: 'Opens the PDF to print', onclick: hid('[data-act=xprint]') },
-        { icon: IC.share || ICO.share, text: 'Share PDF\u2026', sub: 'WhatsApp, email or your phone\u2019s apps', onclick: hid('[data-act=xshare]') }]);
-    } });
-  mRow.append(mExp); mRow.classList.add('n' + mRow.children.length);
-  view.append(h('div', { class: 'rail' }, h('div', { class: 'card' }, h('div', { class: 'msel-top' }, topN, h('b', { text: 'selected' }), topOf),
-    h('div', { class: 'tglrow' }, keySwitch('mustKey', 'mkey'), expSwitch('mustExpl', 'mexp')),
-    mRow,
-    h('div', { class: 'fld mtop', hidden: true },
-      h('div', { class: 'mexp' }, ['docx', 'pdf', 'pptx'].map(k => h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-mexp': k, title: 'Download ' + ({ pdf: 'PDF', docx: 'Word (editable)', pptx: 'PowerPoint (editable)' })[k], 'aria-label': 'Download ' + ({ pdf: 'PDF', docx: 'Word', pptx: 'PowerPoint' })[k], html: FIMG[k] || ICO.dl, onclick: () => exportMust(k) })).concat([h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-act': 'xprint', 'data-src': 'must', title: 'Print', 'aria-label': 'Print', html: ICO.print }), h('button', { type: 'button', class: 'btn ibtn mexpb', 'data-act': 'xshare', 'data-src': 'must', title: 'Share the PDF (WhatsApp, Discord, email)', 'aria-label': 'Share the PDF', html: ICO.share })]))),
-    h('p', { class: 'hint', text: 'Questions that came again and again in JEE, in the same or a very similar form, plus questions that are sure to come. Solve these first.' }),
-    h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Chapters (tick one or many)' }), chSel),
-    h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Type' }), seg([['all', 'All'], ['e', 'Exact repeat'], ['i', 'Similar type'], ['u', 'Sure-shot']], () => MS.kind, k => { MS.kind = k; })),
-    h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Level' }), lvBtns),
-    h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Find' }), search),
-    h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Choose questions' }),
-      h('div', { class: 'mselbar' }, h('button', { type: 'button', class: 'btn', text: 'Select all shown', onclick: () => tick(true) }), h('button', { type: 'button', class: 'btn', text: 'Clear', onclick: () => tick(false) })),
-      selCnt),
-    h('div', { class: 'mlegend' }, h('p', { class: 'hint', html: '<b>Exact repeat:</b> the same question came again. <b>Similar type:</b> the same idea and method, different numbers or wording. <b>Sure-shot:</b> a standard JEE must-know picked by us.' })))),
-    h('div', { class: 'stage' }, list));
-  fillCh(); draw();
-  /* the Question Bank's cards need the bank to be built: start it now and swap the plain cards for them as soon as it is ready */
-  qbInit().then(async () => { for (let k = 0; k < 300 && alive() && !qbReady(); k++) await new Promise(r => setTimeout(r, 100)); if (alive() && qbReady() && !useQb) { useQb = true; draw(true); } }).catch(() => { /* the plain cards stay */ });
-  KATEX_P && KATEX_P.then(() => { if (alive()) math(list); }).catch(() => {});
-}
-
-const chName0 = c => (CHMAP.get(c) || { n: c }).n;
-function mustPages() {
-  const all = (MS.flat || []).filter(f => BYID.get(f.it.r)), chosen = all.filter(f => MS.sel.has(f.it.r)), flat = chosen.length ? chosen : all;
-  if (!flat.length) { toast('No questions to export'); return null; }
-  const chs = [...new Set(flat.map(f => f.c))], one = chs.length === 1;
-  const title = one ? chName0(chs[0]) : 'Must Solve';
-  const file = 'Must Solve ' + (one ? chs[0] + ' ' + title : chs.length > 3 ? chs.length + ' chapters' : chs.join(' ')) + (MS.kind !== 'all' ? ' ' + MKIND[MS.kind][0] : '') + (MS.lv.length < 3 ? ' ' + MS.lv.join('+') : '');
-  const groups = [], gi = new Map();
-  flat.forEach(f => { const k = f.c + '|' + f.tp; if (!gi.has(k)) { gi.set(k, { label: (one ? '' : f.c + ' · ') + f.tp, qs: [] }); groups.push(gi.get(k)); } gi.get(k).qs.push(BYID.get(f.it.r)); });
-  const lf = levelFlat(groups);
-  const pages = packPages(lf, (g, i, n) => ({ title, sub: 'Must Solve · questions to solve first', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : 'Must Solve' }));
-  pages.forEach(pg => { if (pg.qs.length && !pg.qs[0].head) pg.qs = [Object.assign({}, pg.qs[0], { head: contHead(pg.qs[0]) })].concat(pg.qs.slice(1)); });
-  pages.forEach(pg => { pg.key = !!MS.key; pg.exp = !!MS.exp; });
-  return { flat, title, file, pages };
-}
-async function exportMust(kind) {
-  if (!need(kind)) return;
-  const m = mustPages(); if (!m) return;
-  if (!downloads) { toast('Downloads are not available in this view'); return; }
-  const btns = document.querySelectorAll('[data-mexp]'); btns.forEach(b => { b.disabled = true; });
-  try {
-    if (kind === 'pptx') {
-      toast('Preparing PPT…');
-      const blob = await window.__qbCwPptx(m.flat.map(f => f.it.r), MS.exp);
-      await downloads.save({ filename: m.file.replace(/[\\/:*?"<>|]+/g, ' ') + '.pptx', data: blob }); toast('Saved the PPT');
-    } else {
-      btns.forEach(b => { b.disabled = false; });
-      await doExport(kind, { pages: m.pages, file: m.file });
-      return;
-    }
-  } catch (e) {
-    if (e && e.code === 'declined') toast('Download cancelled'); else toast('Export failed: ' + (e && e.message ? e.message : 'try again'));
-  } finally { btns.forEach(b => { b.disabled = false; }); }
-}
 let PYQSUB = (() => { try { return localStorage.getItem('avanti-pyqsub') === 'cw' ? 'cw' : 'sw'; } catch (e) { return 'sw'; } })();
 function pyqShow() {
   hideViews();
@@ -1579,13 +1352,13 @@ function setTab(t) {
   const pv = $('#viewPyq'); if (pv) pv.hidden = true;
   setTabInner(t);
 }
-function hideViews() { ['Qb', 'Dpp', 'Lib', 'Cw', 'Sw', 'Ho', 'Must', 'Syl', 'Pyq', 'Portal'].forEach(n => { const e = $('#view' + n); if (e) e.hidden = true; }); }
+function hideViews() { ['Qb', 'Dpp', 'Lib', 'Cw', 'Sw', 'Ho', 'Syl', 'Pyq', 'Portal'].forEach(n => { const e = $('#view' + n); if (e) e.hidden = true; }); }
 function setTabInner(t) {
-  hideViews(); const v = $('#view' + ({ qb: 'Qb', lib: (DPPMIX ? 'Lib' : 'Dpp'), cw: 'Cw', sw: 'Sw', ho: 'Ho', must: 'Must', syl: 'Syl' })[t]); if (v) v.hidden = false;
+  hideViews(); const v = $('#view' + ({ qb: 'Qb', lib: (DPPMIX ? 'Lib' : 'Dpp'), cw: 'Cw', sw: 'Sw', ho: 'Ho', syl: 'Syl' })[t]); if (v) v.hidden = false;
   if (window.AvantiPortal) window.AvantiPortal.leave();
   document.querySelectorAll('[data-act="tab"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === t)));
   syncQbPop(t);
-  if (t === 'qb') qbInit(); else if (t === 'syl') renderSyl(); else if (t === 'ho') renderHandouts(); else if (t === 'must') ensureDpp().then(renderMust); else if (t === 'cw' || t === 'sw') ensureDpp().then(() => { renderPdfTab(t); setTimeout(rescale, 0); }); else if (t === 'lib' && !DPPMIX) ensureDpp().then(renderDppHome); else ensureDpp().then(() => { renderLib(); setTimeout(rescale, 0); });
+  if (t === 'qb') qbInit(); else if (t === 'syl') renderSyl(); else if (t === 'ho') renderHandouts(); else if (t === 'cw' || t === 'sw') ensureDpp().then(() => { renderPdfTab(t); setTimeout(rescale, 0); }); else if (t === 'lib' && !DPPMIX) ensureDpp().then(renderDppHome); else ensureDpp().then(() => { renderLib(); setTimeout(rescale, 0); });
   setTimeout(rescale, 0);
 }
 
@@ -1638,8 +1411,6 @@ function onAct(e) {
     case 'libswap': { const r = dppCur(); if (dppSwap(r, k)) showLibPrev(); else toast('No other question can replace this one'); break; }
     case 'libpage': LS.page = +k; showLibPrev(); break;
     case 'pdfkey': PDFT[t.dataset.t].key = t.checked; if (PDFT[t.dataset.t].sel) showPdfPrev(t.dataset.t); break;
-    case 'mkey': MS.key = t.checked; if (MS.redraw) MS.redraw(); break;
-    case 'mexp': MS.exp = t.checked; break;
     case 'pdfexp': PDFT[t.dataset.t].exp = t.checked; if (PDFT[t.dataset.t].sel) showPdfPrev(t.dataset.t); break;
     case 'libexp': LS.exp = $('#libExpl').checked; if (LS.shown) showLibPrev(); break;
     case 'libkey': LS.key = $('#libKey').checked; if (LS.shown) showLibPrev(); break;
@@ -1925,13 +1696,13 @@ const THEME_ICONS = {
 function themeInit() { let m = null; try { m = localStorage.getItem(THEME_KEY); } catch (e) { m = null; } if (m === 'dark' || m === 'light') document.documentElement.setAttribute('data-theme', m); themeApply(themeNow()); }
 function themeToggle() { const m = themeNow() === 'dark' ? 'light' : 'dark'; themeApply(m); try { localStorage.setItem(THEME_KEY, m); } catch (e) { /* optional */ } }
 const GUIDE_HTML = () => `
-<p class="gd-lead">The Mathematics Dashboard is अंक-IT's one place for JEE Maths teaching material: a searchable question bank, ready-made DPPs, past-year papers, must-solve lists, revision handouts and online tests. Questions and papers can be downloaded as Word, PDF or PowerPoint.</p>
-<nav class="gd-toc" aria-label="Guide sections"><a href="#gd-start">Getting started</a><a href="#gd-qb">Question Bank</a><a href="#gd-dpp">DPPs</a><a href="#gd-pyq">PYQs</a><a href="#gd-must">Must Solve</a><a href="#gd-ho">Handouts</a><a href="#gd-test">Tests and results</a><a href="#gd-dates">Exam dates</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a></nav>
+<p class="gd-lead">The Mathematics Dashboard is अंक-IT's one place for JEE Maths teaching material: a searchable question bank, ready-made DPPs, past-year papers (PYPs), revision handouts and online tests. Questions and papers can be downloaded as Word, PDF or PowerPoint.</p>
+<nav class="gd-toc" aria-label="Guide sections"><a href="#gd-start">Getting started</a><a href="#gd-qb">Question Bank (profile menu)</a><a href="#gd-dpp">DPPs</a><a href="#gd-pyq">PYPs</a><a href="#gd-ho">Handouts</a><a href="#gd-test">Tests and results</a><a href="#gd-dates">Exam dates</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a></nav>
 <h3 id="gd-start">Getting started</h3>
 <ul>
 <li><b>Sign in</b> with Google, or with your Student ID if you are an Avanti student. Your choice of Teacher or Student is saved the first time you sign in.</li>
 <li><b>Plans:</b> Free, Premium and Avanti. Premium unlocks downloads, handouts and more; Avanti students and teachers get Premium without paying. Compare plans in Help &amp; Support, and upgrade from the profile menu &rarr; Membership.</li>
-<li><b>Profile menu</b> (your name, top right): profile, membership, tests, results, students, help and sign out. Teachers' schools are approved by अंक-IT before students and tests become visible.</li>
+<li><b>Profile menu</b> (your name, top right): the Question Bank, profile, membership, tests, results, students, help and sign out. Teachers' schools are approved by अंक-IT before students and tests become visible.</li>
 </ul>
 <h3 id="gd-qb">1. Question Bank</h3>
 <p>Every question in one list: JEE Main, JEE Advanced, AIEEE and IIT-JEE previous-year questions (PYQs) plus practice questions from different sources.</p>
@@ -1950,13 +1721,11 @@ const GUIDE_HTML = () => `
 <li><b>PYQs topic-wise</b> &ndash; past-year questions of a chapter by topic, filtered by exam, year and level.</li>
 </ul>
 <p>Pick one or many chapters, see the live preview page by page, and download. Turn on "Answer Key" to add answers on a separate page and "Explanation" to add the full solutions.</p>
-<h3 id="gd-pyq">3. PYQs</h3>
+<h3 id="gd-pyq">3. PYPs (previous year papers)</h3>
 <p>Past-year papers in two forms: <b>Question Paper</b> (a full shift paper by date and shift, in paper order) and <b>Chapterwise</b> (all PYQs of a chapter). Pick JEE Main, JEE Advanced, KCET, IAT or NDA, preview, then download.</p>
-<h3 id="gd-must">4. Must Solve</h3>
-<p>Questions that came again and again in JEE, in the same or a very similar form, plus questions that are sure to come. Choose chapters with the tick-box list. Inside a chapter, questions are grouped by topic; each group shows a note on why it matters (<i>Sure-shot</i>, <i>Must know</i>) and in which years the question came. Tick and download like the Question Bank.</p>
-<h3 id="gd-ho">5. Handouts</h3>
+<h3 id="gd-ho">4. Handouts</h3>
 <p>Handwritten revision notes chapter by chapter (PDF), grouped by Class 11 and Class 12. Each handout has three icon buttons: the <b>eye</b> opens it in the viewer, the <b>download arrow</b> saves the PDF, and the <b>half-filled circle</b> saves the black-and-white version for printing. Hold the pointer over an icon to see its name. On a PC or a tablet held sideways, the viewer opens on the <b>left half</b> and the dashboard stays on the <b>right half</b>, so you can read a handout and solve questions from the Question Bank at the same time. Drag the divider to change the split (double-click it to go back to 50/50). Press &times; or Esc to close the handout. The bar at the top of the viewer has <b>zoom out/in</b> (click the percentage to fit the width; Ctrl + scroll also zooms), <b>invert colours</b> (white-on-black pages, for the viewer only), <b>page jump</b> (type a page number and press Enter, or use the arrows), <b>fit to screen</b> (the whole page fits in view), <b>full screen</b>, <b>download</b> and <b>share</b>. On a phone the handout opens full screen. Handouts need Premium.</p>
-<h3 id="gd-test">6. Tests and results</h3>
+<h3 id="gd-test">5. Tests and results</h3>
 <ul>
 <li><b>Teachers</b> can create online tests for their approved school, class and stream, share the test link, and see each student's result and a report.</li>
 <li><b>Students</b> see the tests available to them, attempt them online, and see their own results afterwards.</li>
@@ -2026,13 +1795,13 @@ function buildShell() {
   root.append(
     h('div', { class: 'shell' },
       h('header', { class: 'topbar' },
-        h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark-sm.png?v=922', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: "JEE, CET, NDA, IAT, PYQ's, DPP's, Handouts" })),
-        h('a', { class: 'tb-theme tb-home', id: 'homeBtn', href: '/', title: 'Home page', 'aria-label': 'Home page', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>' }),
-        h('button', { type: 'button', class: 'tb-theme', id: 'themeBtn', 'data-act': 'theme', 'aria-pressed': 'false' }),
+        AvantiChrome.head(),
+        AvantiChrome.home(),
+        AvantiChrome.themeBtn(),
         h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
         h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),
         h('div', { class: 'tb-pop', id: 'qbPop', hidden: true, role: 'menu' }, [['heroov', 'Mathematics Bank: Question Counts'], ['overview', 'Chapter-wise Count'], ['syl', 'Syllabus Priority'], ['wchart', 'Chapter Weightage']].map(([k, t]) => k === 'syl' ? h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-act': 'tab', 'data-k': 'syl', text: t }) : h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-qbpanel': k, text: t }))),
-        h('nav', { class: 'tb-menu' }, h('a', { class: 'tb tb-dash', href: 'dashboard', title: 'Your study dashboard', text: 'Dashboard' }), tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), tb('tests', 'Tests'), h('div', { class: 'tb-prof', id: 'tbProfile' }))),
+        AvantiChrome.nav('qbank', '')),
       h('main', { class: 'main' },
         h('div', { id: 'viewQb', class: 'qbhost' }),
         h('div', { id: 'viewDpp', class: 'dpph', hidden: true }),
@@ -2041,14 +1810,9 @@ function buildShell() {
         h('div', { id: 'viewCw', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewSw', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewHo', class: 'hoview', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
-        h('div', { id: 'viewMust', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewSyl', class: 'sy-wrap', hidden: true }),
         h('div', { id: 'viewPortal', class: 'pt-wrap', hidden: true })),
-      h('footer', { class: 'app-foot', id: 'appFoot' },
-        h('span', { class: 'af-brand' }, 'Made with ', h('span', { class: 'af-heart', style: 'color:#e11d48', 'aria-label': 'love', text: '\u2665' }), ' by Ankit'),
-        h('span', { class: 'af-ver', id: 'appFootSite' }),
-        h('span', { class: 'af-ver', id: 'appFootVer' }),
-        h('span', { class: 'af-link', id: 'appFootLink' }))));
+      AvantiChrome.footer()));
   if (!document.getElementById('app-fit-css')) { const fs2 = document.createElement('style'); fs2.id = 'app-fit-css'; fs2.textContent = 'html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}.tb-menu{max-width:100%}.katex-mathml{max-width:1px!important;overflow:hidden!important}'; document.head.appendChild(fs2); }
   if (!document.getElementById('app-foot-css')) { const st = document.createElement('style'); st.id = 'app-foot-css'; st.textContent = '.app-foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 14px;margin:28px auto 0;padding:14px 16px 20px;border-top:1px solid var(--color-border-line,rgba(128,128,128,.28));font-size:12px;line-height:1.4;letter-spacing:.02em;color:var(--color-fg-muted,#6b7280)}.app-foot .af-brand{font-weight:600;order:3;flex-basis:100%;text-align:center;margin-top:8px}.app-foot .af-ver::before{display:none!important}.app-foot .af-ver:not(:empty)::before,.app-foot .af-link:not(:empty)::before{content:"|";margin-right:14px;opacity:.45}.app-foot .qb-sstat-link{font:inherit;color:inherit;text-decoration:none;cursor:pointer;border-bottom:1px dotted currentColor;padding:0}.app-foot .qb-sstat-link:hover{color:var(--color-fg,#111);border-bottom-style:solid}'; document.head.append(st); }
 }

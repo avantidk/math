@@ -63,7 +63,7 @@ Replies (for example a photo of a school ID card) arrive in the `unkganit@gmail.
 
 ## 3b. Private content: questions, solutions, handouts (Supabase Storage)
 
-Questions, answers, solutions, Must Solve, handouts and the Word / PowerPoint code are **not** on the website. They are kept in
+Questions, answers, solutions, handouts and the Word / PowerPoint code are **not** on the website. They are kept in
 the private Storage bucket `content` (schema.sql creates it). Every file is checked by the database before it is sent:
 
 | Files | Who can open them |
@@ -124,7 +124,7 @@ Premium is given only after the server checks Razorpay's signature (and the sign
 
 1. Open the website in a private window: only the login page shows.
 2. Sign in with an `@avantifellows.org` Google account: profile menu shows **Staff**; Create Test, My Tests and Results, Saved worksheets are there; Question Bank shows the Attention filter.
-3. Sign in with a normal Gmail as Teacher: plan is Free; Must Solve opens without download buttons; in Handouts only the first chapter of each class has View (the rest show Premium).
+3. Sign in with a normal Gmail as Teacher: plan is Free; the Question Bank opens without download buttons; in Handouts only the first chapter of each class has View (the rest show Premium).
 4. Sign in with an Avanti ID from the allow-list: Available tests and My Reports are in the menu.
 
 ## Good to know

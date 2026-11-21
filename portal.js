@@ -126,6 +126,8 @@ const can = k => !!(AU().perm && AU().perm[k]);
 
 /* ---------- router ---------- */
 let curRoute = '';
+/* #/dpps, #/pyps, #/handouts and #/qb: open that tab (links from the dashboard and the profile menu) */
+function tabRoute(k) { leave(); if (TE()) TE().setTab(k); }
 function route() {
   if (!AU() || !AU().profile || !view()) return;
   const m = location.hash.match(/^#\/([a-z-]+)(?:\/([^?]+))?/);
@@ -135,7 +137,7 @@ function route() {
   if (r !== 't') exitExam();
   curRoute = location.hash;
   const pages = { profile: pageProfile, membership: pageMembership, tests: pageAvailable, reports: pageReports, report: pageReport, t: pageTake,
-    create: pageCreate, edit: pageCreate, students: pageStudents, student: pageStudent, personal: pagePersonal, modes: pageModes, school: pageSchool, 'add-student': pageAddStudent, help: pageHelp, approvals: pageApprovals, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets, 'ws-edit': pageWsEdit };
+    create: pageCreate, edit: pageCreate, students: pageStudents, student: pageStudent, personal: pagePersonal, modes: pageModes, dpps: () => tabRoute('lib'), pyps: () => tabRoute('pyq'), handouts: () => tabRoute('ho'), qb: () => tabRoute('qb'), school: pageSchool, 'add-student': pageAddStudent, help: pageHelp, approvals: pageApprovals, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets, 'ws-edit': pageWsEdit };
   const fn = pages[r];
   if (!fn) { leave(); return; }
   const tok = ++NAV; LOADING = tok;
@@ -418,14 +420,14 @@ function membershipContent(teacher) {
     eyebrow: 'Premium for teachers', title: 'Teach more. Prepare less.',
     lead: 'Every DPP, PYQ paper and handout as a ready-to-print PDF, your whole school\'s students in one place, and results you can act on.',
     feats: [
-      ['pdf', 'Every PDF, print-ready', 'DPPs, chapterwise and shift-wise PYQ papers, Must Solve lists, handouts and your own Question Bank picks, with answer keys and full explanations.'],
+      ['pdf', 'Every PDF, print-ready', 'DPPs, chapterwise and shift-wise PYQ papers, handouts and your own Question Bank picks, with answer keys and full explanations.'],
       ['share', 'Share in one tap', 'Send any PDF to your class on WhatsApp, by email or through any app on your phone.'],
       ['folder', 'Saved worksheets', 'Keep the question sets you build and reuse them for tests or downloads whenever you need them.'],
       ['users', 'My Students', 'Every student of your school by class, stream and session, with sign-in status, tests taken, average and last test.'],
       ['chart', 'Deeper results', 'Open any student\'s test history and report, and export your results to CSV.'],
       ['copy', 'Copy questions', 'Copy question text and IDs straight into your own notes and slides.']
     ],
-    rows: [['View Question Bank, DPPs, PYQs, Must Solve and handouts', 1, 1], ['Create online tests for your school (one test link as a trial)', 1, 1], ['Results of your own tests', 1, 1],
+    rows: [['View Question Bank, DPPs, PYPs and handouts', 1, 1], ['Create online tests for your school (one test link as a trial)', 1, 1], ['Results of your own tests', 1, 1],
       ['Download and print every PDF', 0, 1], ['Share PDFs on WhatsApp and email', 0, 1], ['Copy question text', 0, 1], ['Saved worksheets', 0, 1], ['My Students with performance', 0, 1],
       ['Unlimited test links for your school', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1]],
     faq: [['Do my students need Premium to take my tests?', 'Yes. Only Premium students of your school, class and batch can take tests made by teachers. Free students can take past papers from Practice Tests & Results.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs can be shared straight from the phone.']]
@@ -433,14 +435,14 @@ function membershipContent(teacher) {
     eyebrow: 'Premium for students', title: 'Practise anywhere. Know where you stand.',
     lead: 'Download every DPP, PYQ paper and handout to practise offline, and see your rank among every student who took the test.',
     feats: [
-      ['pdf', 'Every PDF to keep', 'DPPs, PYQ papers, Must Solve lists and handouts with answer keys and full explanations.'],
+      ['pdf', 'Every PDF to keep', 'DPPs, PYQ papers and handouts with answer keys and full explanations.'],
       ['phone', 'Practise offline', 'Keep the PDFs on your phone and practise on the bus, at home or without the internet.'],
       ['print', 'Print and share', 'Print sheets for your notebook, or share them with friends on WhatsApp.'],
       ['trophy', 'Rank among all students', 'See where you stand among everyone who took the test, not just your school.'],
       ['target', 'Compare with the top', 'See the average and the top score of all students on every test you take.'],
       ['copy', 'Copy questions', 'Copy questions into your own notes for revision.']
     ],
-    rows: [['View Question Bank, DPPs, PYQs, Must Solve and handouts', 1, 1], ['Take your school\'s tests', 1, 1], ['Question-wise review and topic analysis', 1, 1], ['Rank in your school', 1, 1],
+    rows: [['View Question Bank, DPPs, PYPs and handouts', 1, 1], ['Take your school\'s tests', 1, 1], ['Question-wise review and topic analysis', 1, 1], ['Rank in your school', 1, 1],
       ['Rank among all students', 0, 1], ['Average and top score of all students', 0, 1], ['Download and print every PDF', 0, 1], ['Share PDFs', 0, 1], ['Copy question text', 0, 1]],
     faq: [['I am on the Avanti list. Do I need to pay?', 'No. Students on the Avanti list get Premium free. Sign in with your Avanti ID.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs open in any PDF app.']]
   };

@@ -2007,7 +2007,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   }
 
   /* ---------- draw list ---------- */
-  /* used by the Must Solve tab: the same cards as the question bank, built from a question id */
+  /* the same card as the question bank, built from a question id */
   window.QBX = window.QBX || {};
   window.QBX.cardFor = function (id) { var q = BYID[id]; if (!q) return null; var c = buildCard(q); c.querySelector('.qb-num').textContent = ''; return c; };
   window.QBX.hasRows = function () { return ROWS.length > 0; };

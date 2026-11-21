@@ -107,19 +107,12 @@ const crumb = (...p) => h('nav', { class: 'd-crumb', 'aria-label': 'You are here
 let SIDE, MAIN;
 function shell() {
   const root = $('#app'); root.textContent = '';
-  const theme = h('button', { type: 'button', class: 'tb-theme', title: 'Light / dark', 'aria-label': 'Switch light and dark', html: svg('<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>'),
-    onclick: () => { const dark = document.documentElement.getAttribute('data-theme') === 'dark' || (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      const m = dark ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', m); try { localStorage.setItem('avanti-teacher-theme', m); } catch (e) { /* blocked */ } } });
   SIDE = h('aside', { class: 'd-side', 'aria-label': 'Dashboard menu' }); MAIN = h('main', { class: 'd-main', id: 'dMain' });
-  const b = window.AvantiBoot;
+  const C = window.AvantiChrome;   /* the same top bar and footer as /qbank */
   root.append(h('div', { class: 'shell d-shell' },
-    h('header', { class: 'topbar' },
-      h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark-sm.png?v=922', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Dashboard' }), h('span', { class: 'tb-sub', text: "Study plan, PYQs, practice and tests" })),
-      h('a', { class: 'tb-theme tb-home', href: '/', title: 'Home page', 'aria-label': 'Home page', html: IC.home }), theme,
-      h('nav', { class: 'tb-menu' }, h('a', { class: 'tb', href: 'dashboard', 'aria-pressed': 'true', text: 'Dashboard' }), h('a', { class: 'tb', href: 'qbank', text: 'Question Bank' }),
-        h('a', { class: 'tb', href: 'qbank#/modes', text: 'Tests' }), h('div', { class: 'tb-prof', id: 'tbProfile' }))),
-    h('div', { class: 'd-body' }, SIDE, MAIN),
-    h('footer', { class: 'app-foot' }, h('span', { text: 'Made with ♥ by Ankit' }), h('span', { text: 'Website v' + (b ? b.build : '') + ' · ' + (b ? b.released : '') }))));
+    h('header', { class: 'topbar' }, C.head(), C.home(), C.themeBtn(), C.nav('dash', 'dash')),
+    h('div', { class: 'd-body' }, SIDE, MAIN), C.footer()));
+  C.themeInit(); C.footerInit();
 }
 function side(o) {   /* o: { back: hash|null, title, sub, items:[{label, icon, hash|href|onclick, active, badge, off}] } */
   SIDE.textContent = '';
@@ -136,8 +129,7 @@ const homeItems = active => [
   { label: 'PYQs', icon: IC.clock, hash: 'd/pyq', active: active === 'pyq' },
   { label: 'Non-PYQs', icon: IC.list, hash: 'd/np', active: active === 'np', off: false },
   { label: 'Bookmarked Qs', icon: IC.mark, hash: 'd/bookmarks', active: active === 'bookmarks' },
-  { label: 'Test History', icon: IC.test, hash: 'd/history', active: active === 'history' },
-  { label: 'Question Bank', icon: IC.book, href: 'qbank' }
+  { label: 'Test History', icon: IC.test, hash: 'd/history', active: active === 'history' }
 ];
 
 /* ---------- Step 1: source ---------- */

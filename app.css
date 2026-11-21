@@ -355,49 +355,6 @@ body.hasmax{overflow:hidden}
 .smenu .smic img{display:block}
 .smenu .smn{font-size:11.5px;color:#667;padding:6px 10px 4px;border-top:1px solid #e6ebf0;margin-top:4px}
 
-/* Must Solve tab */
-.mlist{display:flex;flex-direction:column;gap:20px}
-.mch{display:flex;flex-direction:column;gap:12px}
-.mchh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0}
-.mchn{background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:2px 10px;font-weight:700;font-size:13px}
-.mchh h3{font-size:20px}
-.mcnt{color:var(--muted);font-size:13px;font-weight:500;margin-left:auto}
-.myrs{display:flex;flex-wrap:wrap;gap:6px 8px;font-size:12.5px;color:var(--muted);align-items:center}
-.myr{background:var(--panel);border:1px solid var(--rule);border-radius:999px;padding:1px 9px}
-.myr b{color:var(--ink)}
-.mtop{display:flex;flex-direction:column;gap:10px}
-.mtop h4{margin:4px 0 0;font-size:15px;color:var(--head);display:flex;gap:8px;align-items:baseline;border-bottom:2px solid var(--accent);padding-bottom:4px}
-.mq{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow)}
-.mqh{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
-.mlab{color:var(--head);font-size:15px;margin-right:4px}
-.mb{border-radius:999px;padding:1px 10px;font-size:12px;font-weight:700;border:1px solid var(--rule);background:var(--field);color:var(--body)}
-.mk-e{background:#fde2e2;color:#8a1c1c;border-color:#f3b4b4}.mk-i{background:#fdf0cf;color:#7a5200;border-color:#ecd28f}.mk-u{background:#dcefe2;color:#1c5a37;border-color:#a8d4b8}
-.ml-L1{background:#dcefe2;color:#1c5a37;border-color:#a8d4b8}.ml-L2{background:#fdf0cf;color:#7a5200;border-color:#ecd28f}.ml-L3{background:#fde2e2;color:#8a1c1c;border-color:#f3b4b4}
-:root[data-theme="dark"] .mk-e,:root[data-theme="dark"] .ml-L3{background:#4a2020;color:#f5c1c1;border-color:#6d3030}
-:root[data-theme="dark"] .mk-i,:root[data-theme="dark"] .ml-L2{background:#47391a;color:#f2dca3;border-color:#6a5628}
-:root[data-theme="dark"] .mk-u,:root[data-theme="dark"] .ml-L1{background:#1c3a2a;color:#b4e2c6;border-color:#2f5a42}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mk-e,:root:not([data-theme="light"]) .ml-L3{background:#4a2020;color:#f5c1c1;border-color:#6d3030}:root:not([data-theme="light"]) .mk-i,:root:not([data-theme="light"]) .ml-L2{background:#47391a;color:#f2dca3;border-color:#6a5628}:root:not([data-theme="light"]) .mk-u,:root:not([data-theme="light"]) .ml-L1{background:#1c3a2a;color:#b4e2c6;border-color:#2f5a42}}
-.mtimes{background:var(--accent-soft);color:var(--accent);border-color:transparent}
-.myl{display:flex;flex-wrap:wrap;gap:5px;align-items:center;font-size:12.5px}
-.mylb{color:var(--muted);font-weight:600}
-.myc{background:var(--field);border:1px solid var(--rule);border-radius:6px;padding:0 7px}
-.mqt{white-space:pre-wrap;color:var(--ink);line-height:1.6}
-.mopts{margin:0;padding-left:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 16px;counter-reset:o}
-.mopts li{counter-increment:o;padding-left:26px;position:relative}
-.mopts li::before{content:"(" counter(o,upper-alpha) ")";position:absolute;left:0;color:var(--muted);font-weight:600}
-.mans{color:var(--ok);font-weight:700}
-.mwhy{font-size:13px;color:var(--muted)}
-.mpager{display:flex;align-items:center;justify-content:center;gap:14px;padding:4px 0}
-.mpager .mpg{font-weight:600;color:var(--head)}
-.mpager button:disabled{opacity:.45;cursor:default}
-.mitem{display:flex;flex-direction:column;gap:6px;max-width:none;margin:0}
-.mstrip{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:8px 12px;background:var(--panel);border:1px solid var(--rule);border-radius:10px}
-.mitem .qb-side input{display:none}
-.mstrip .myl{display:inline-flex}
-.mlist{--qb-accent:var(--accent);--qb-accent2:var(--accent);--qb-line:var(--rule)}
-.mlist .qb-pager{margin:2px 0 6px}
-
-
 /* Syllabus Priority tab */
 .sy-wrap{--sy-fg:#1d2320;--sy-muted:#5d6661;--sy-rule:#dcd8cf;--sy-surface:#ffffff;--sy-accent:#0f5c57;--sy-accent-soft:#d6ebe8;--sy-zero:#9aa19d;color:var(--sy-fg);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.55;padding-block:24px 48px;min-width:0}
 .sy-wrap .sy-eyebrow{margin:0 0 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--sy-muted)}

@@ -315,7 +315,7 @@ body.hv-on { overflow: hidden; }
 .pf-drop a.tb-item.pf-buy { margin: 4px 0; border-radius: 10px !important; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .btn.pt-gold::after, .pf-drop a.tb-item.pf-buy::after { animation: none; display: none; } }
 
-/* ---------- "Save as worksheet" and "Create test" row (Question Bank, DPPs, PYQs, Must Solve) ---------- */
+/* ---------- "Save as worksheet" and "Create test" row (Question Bank, DPPs, PYPs) ---------- */
 .wsrow { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; box-sizing: border-box; margin-top: 8px; min-width: 0; }
 .wsrow .wsbtn { flex: 1 1 180px; min-width: 0; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 12px;
   border-radius: 10px; font: 600 13.5px/1.2 var(--font-body); white-space: normal; text-align: center; cursor: pointer;
@@ -837,21 +837,12 @@ html:not(.is-admin) .qb-sstat-link, html:not(.is-admin) #appFootLink, html:not(.
   .lgx-lead { max-width: 64ch; }
 }
 @media (min-width: 980px) { .lg-split .lg-info.lgx { max-width: 1040px; padding-right: clamp(32px, 3.5vw, 56px); } }
-/* DPP / PYQ / Must Solve toolbar: every button the same height, same text style, icons centred */
+/* DPP / PYP toolbar: every button the same height, same text style, icons centred */
 html body .statbar .btn, html body .statbar .wsrow .wsbtn { height: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding-top: 0; padding-bottom: 0; font: 600 14px/1 var(--font-body); vertical-align: middle; box-sizing: border-box; }
 html body .statbar .btn.ibtn { width: 44px; padding: 0; }
 html body .statbar .btn.ibtn img, html body .statbar .btn.ibtn svg { display: block; width: 24px; height: 24px; object-fit: contain; margin: 0; }
 html body .statbar .wsrow .wsbtn svg { width: 16px; height: 16px; }
 html body .statbar .rowbtns, html body .statbar .wsrow { align-items: center; }
-/* Must Solve side panel top: same as the Question Bank selection box */
-.msel-top { display: flex; align-items: center; gap: 8px; margin: 2px 0 12px; font-size: 14px; color: var(--muted); }
-.msel-top b { color: var(--ink); font-weight: 600; }
-.msel-n { min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center; background: var(--navy, #1f3f95); color: #fff; font: 700 12.5px/1 var(--font-body); }
-.m-wsrow { margin: 12px 0 6px; }
-.m-wsrow.n2 .qb-savews { grid-column: auto; }
-.m-wsrow .wsbtn svg { width: 16px; height: 16px; }
-html.plan-free .m-wsrow .qb-expbtn { display: none; }
-
 /* Syllabus Priority: JEE Main vs JEE Advanced (v857) */
 .sy-wrap { --sy-adv: #b45309; --sy-adv-soft: #fdebd3; }
 :root[data-theme="dark"] .sy-wrap { --sy-adv: #f0b35a; --sy-adv-soft: #3a2a12; }
@@ -1091,9 +1082,7 @@ button.pt-linkcopy:hover { border-color: var(--accent); background: var(--panel,
 /* Free accounts: PDF download of PYQs only (checked again in the code) */
 html.plan-free [data-act="lexp"][data-k="pdf"] { display: inline-flex !important; }
 
-/* Must Solve find box and question slots; DPP seven blocks (v973) */
-.mfind { width: 100%; font: inherit; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--rule); background: var(--field); color: var(--ink); }
-.mslot { min-height: 72px; }
+/* DPP seven blocks (v973) */
 .dpph { max-width: 1100px; margin: 0 auto; padding: 8px clamp(10px, 2vw, 20px) 24px; display: flex; flex-direction: column; gap: 16px; }
 .dpp-head h2 { margin: 0 0 4px; font: 700 clamp(22px, 3vw, 28px) var(--font-head); color: var(--head); } .dpp-head p { margin: 0; color: var(--muted); }
 .dpp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 14px; }

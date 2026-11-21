@@ -14,7 +14,6 @@ Question bank, previous-year papers (PYQs), DPPs, handwritten handouts and NTA-s
 | **Question Bank** | 16,000+ math questions tagged by chapter, subtopic and level (L1 easy, L2 medium, L3 hard), with full solutions |
 | **PYQs** | Past papers from 2000 to 2026: JEE Main, JEE Advanced, AIEEE, IIT-JEE, KCET, IAT and NDA, shift by shift |
 | **DPPs** | Ready-made daily practice problems for every subtopic, or build your own by chapter, source, level and question type |
-| **Must Solve** | The questions that matter most in each chapter |
 | **Handouts** | Handwritten-style revision notes for every chapter |
 | **Online tests** | NTA-style exam window, instant results and ranks |
 | **For teachers** | Create tests for your school, share one link with the class, see ranked reports and question-wise analysis |
@@ -65,7 +64,7 @@ This repository is the public website. Hosting is **GitHub Pages**; sign-in, pla
 | `index.html` | The public home page (generated) |
 | `qbank.html` | The question-bank app (`/qbank`, not indexed by search engines) |
 | `auth.js`, `boot.js`, `portal.js` | Sign-in and plan permissions, loader, profile / tests / results |
-| `teacher.b870.js`, `qb/` | Question Bank, DPPs, PYQs, Must Solve and Handouts |
+| `teacher.b870.js`, `qb/` | Question Bank, DPPs, PYPs and Handouts |
 | `site.js`, `site.css`, `login.js`, `weightage.js` | Header, footer and Login pop-up for the public pages |
 | `.github/scripts/build_seo.py` | Generates the home page, chapter and exam pages, sitemap and `robots.txt`. Edit this script, not the generated pages |
 | `.github/scripts/guard.sh` | Safety check that must pass before every release |

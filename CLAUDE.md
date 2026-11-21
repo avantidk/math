@@ -23,8 +23,8 @@ tests and results. It replaced an older Claude artifact.
   Public pages have a strict Content-Security-Policy: every script must come from this site (`vendor/` holds the libraries), never a CDN.
 - `auth.js`: sign-in, plan permissions (read from the database via `my_profile`), profile menu, one device at a time (claim_session / session_ok). `manifest.json`, `sw.js`, `pwa.js`, `pwa.css`, `offline.html`: install as an app (PWA).
 - `portal.js`, `portal.css`: profile, membership, tests, results, students, approvals, help.
-- `teacher.b870.js`, `qb/qb-all.b870.js`, `qb/qb.b525.html`: Question Bank, DPPs, PYQs, Must Solve, Handouts (with plan checks).
-- The private content (questions, answers, solutions, Must Solve, handouts, Word/PowerPoint code) is NOT in this public
+- `teacher.b870.js`, `qb/qb-all.b870.js`, `qb/qb.b525.html`: Question Bank, DPPs, PYPs, Handouts (with plan checks). The top bar and footer of /qbank and /dashboard both come from `chrome.js`: Dashboard, DPPs, PYPs, Tests, Handouts, and the Question Bank under the profile menu.
+- The private content (questions, answers, solutions, handouts, Word/PowerPoint code) is NOT in this public
   repository. The live copy is the private Supabase Storage bucket `content`. `avantidk/openmath` is only a frozen private
   BACKUP of the old repository: never push to it, run its workflows, read from it or use it for anything unless the owner
   explicitly asks. Content changes are uploaded straight to the bucket (Supabase → Storage), never committed here.

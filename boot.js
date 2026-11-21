@@ -1,5 +1,5 @@
 /* अंक-IT · Mathematics Dashboard · loads the dashboard after sign-in.
-   Questions, solutions, Must Solve and handouts are NOT on this website: they live in a private Supabase Storage bucket
+   Questions, solutions and handouts are NOT on this website: they live in a private Supabase Storage bucket
    and every file is checked by the database (signed in, plan, not during a test) before it is sent. This file sends the
    signed-in user's token with each request and keeps a copy in the browser (one cache per account, cleared at sign-out),
    so later visits open fast.
@@ -32,7 +32,7 @@ function h(tag, props, ...kids) {
 }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 window.AvantiUtil = Object.freeze({ h, esc });
-const BUILD = '979';
+const BUILD = '980';
 const RELEASED = '21 Nov 2026';   /* date of this release, shown in the footer */
 const SB_URL = 'https://usehxhvzhdbcmnmqaxoo.supabase.co';
 const SB_KEY = 'sb_publishable_QQ_N_B6kl416kbGMF0DQtw_9Jg58PoN';
@@ -179,7 +179,7 @@ async function start() {
   if (window.AvantiPortal) window.AvantiPortal.route();
   /* small files used by other tabs, fetched quietly in the background (no solutions: those load per chapter when opened) */
   Promise.all(Object.values(data).concat([html])).catch(() => {}).then(async () => {
-    for (const u of ['handouts/index.json', 'must.json', 'syllabus.json', 'bank-meta.json']) {
+    for (const u of ['handouts/index.json', 'syllabus.json', 'bank-meta.json']) {
       await new Promise(r => setTimeout(r, 400));
       try { await window.fetch(u).then(r => r.text()); } catch (e) { /* background only */ }
     }

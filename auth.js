@@ -182,7 +182,7 @@ function renderMenu() {
   slot.textContent = '';
   const perm = A.perm, student = p.role === 'student', teacher = p.role === 'teacher';
   const pre = document.documentElement.getAttribute('data-page') === 'dash' ? 'qbank' : '';   /* on /dashboard the account pages live in /qbank */
-  const items = [['#/profile', 'Edit profile'], ['#/personal', 'Practice Tests & Results']];
+  const items = [['#/qb', 'Question Bank'], ['#/profile', 'Edit profile'], ['#/personal', 'Practice Tests & Results']];
   if (perm.plan === 'premium' && !p.is_avanti) items.push(['#/membership', 'Membership']);
   if (student) {
     if (perm.plan !== 'free') items.push(['#/tests', 'Available tests']);   /* tests made by teachers are for Premium students only */

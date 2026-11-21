@@ -1,5 +1,15 @@
 [
   {
+    "v": "980",
+    "date": "21 Nov 2026",
+    "items": [
+      "The dashboard and the Question Bank now share one top bar and one footer. The menu is Dashboard, DPPs, PYPs, Tests and Handouts on both pages.",
+      "PYQs in the menu is now PYPs (previous year papers).",
+      "Question Bank moved under the profile icon, at the top of the menu.",
+      "Must Solve is removed: its page, its menu item, its downloads and its mentions on the website."
+    ]
+  },
+  {
     "v": "979",
     "date": "21 Nov 2026",
     "items": [

@@ -849,13 +849,13 @@ def about_page():
     offer = [
      ('i-green', '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>', 'Question bank', 'More than 16,000 questions, filtered by chapter, topic, level, exam and year, each with its answer and a full solution.'),
      ('i-purple', '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>', 'Past papers, 2000 to 2026', 'JEE Main, JEE Advanced, KCET, NDA, IAT and the older IIT-JEE and AIEEE, shift by shift and chapter by chapter.'),
-     ('i-rose', '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>', 'DPPs and Must Solve', 'Ready-to-print practice sheets, and hand-picked questions that keep coming back in JEE.'),
+     ('i-rose', '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>', 'DPPs and handouts', 'Ready-to-print practice sheets and handwritten revision notes for every chapter.'),
      ('i-gold', '<path d="M12 3 3 8l9 5 9-5z"/><path d="M5 11v5c0 1.5 3 3 7 3s7-1.5 7-3v-5"/>', 'Handwritten handouts', 'Neat revision notes for every chapter of Class 11 and Class 12.'),
      ('i-blue', '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 9h4M7 12h7"/>', 'Online tests and reports', 'An exam-like screen with a timer and question palette, then your score, rank and weak topics.'),
      ('i-teal', '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>', 'Tools for teachers', 'Build a test, share one link, and follow every student of your school.')]
     offer_html = ''.join(f'<article class="ab-card"><span class="ico {c}">{I(d)}</span><h3>{E(t)}</h3><p>{E(x)}</p></article>' for c, d, t, x in offer)
     steps = [('Sign in free', 'Use Google, or your Student ID if you are an Avanti student. Choose Student or Teacher once.'),
-             ('Practise by chapter', 'Open the question bank, DPPs, past papers and Must Solve, and check every answer against its full solution.'),
+             ('Practise by chapter', 'Open the question bank, DPPs, past papers and handouts, and check every answer against its full solution.'),
              ('Test and improve', 'Take timed tests, read your report, and go back to the topics where marks were lost.')]
     steps_html = ''.join(f'<li class="ab-step"><b>{i + 1}</b><div><h3>{E(t)}</h3><p>{E(x)}</p></div></li>' for i, (t, x) in enumerate(steps))
     who = [('Students', 'Class 11, Class 12 and droppers preparing for JEE Main and JEE Advanced, and also KCET, NDA and IAT.', '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/>'),
@@ -988,7 +988,7 @@ FAQ = [
  ('Is the Mathematics Dashboard free?', 'Yes, you can start free. Sign in with Google to use the question bank with solutions, online tests and your reports. Premium adds PDF downloads and printing, all-India ranks, comparison with all students and handouts.'),
  ('Who is it for?', 'Students of Class 11, Class 12 and droppers preparing for math in JEE Main, JEE Advanced, KCET, NDA, IAT and similar exams. Teachers can use it to make tests and track their students.'),
  ('How much does Premium cost?', 'Premium is ₹299 a year for students and ₹599 a year for teachers. Avanti students get Premium free.'),
- ('What is in the question bank?', 'Math questions filtered by chapter, topic, level, exam and year, with solutions, plus previous-year papers, daily practice problems (DPPs), Must Solve lists and revision handouts.'),
+ ('What is in the question bank?', 'Math questions filtered by chapter, topic, level, exam and year, with solutions, plus previous-year papers, daily practice problems (DPPs) and revision handouts.'),
  ('How do I sign in?', 'Use your Google account. Avanti students can sign in with their Student ID instead. You choose Student or Teacher the first time.'),
  ('Can teachers create tests?', 'Yes. Teachers whose school has been approved can build an online test from the question bank, share one link with their students and see results and ranks.'),
 ]
@@ -1001,7 +1001,7 @@ def home_block():
      ('i-gold', svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), 'Instant reports and ranks', 'Score, accuracy, rank in your school and all-India, topic-wise analysis and time per question.'),
      ('i-green', svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'), '16,000+ question bank', 'Filter by chapter, topic, level, exam and year. Every question comes with its answer and a full solution.'),
      ('i-purple', svg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>'), 'Past papers 2000–2026', 'JEE Main, JEE Advanced and more, paper by paper and chapter by chapter, with answer keys.'),
-     ('i-rose', svg('<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>'), 'DPPs, Must Solve and handouts', 'Daily practice sheets, hand-picked must-solve questions and handwritten revision notes for every chapter.'),
+     ('i-rose', svg('<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>'), 'DPPs and handouts', 'Daily practice sheets and handwritten revision notes for every chapter.'),
      ('i-teal', svg('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>'), 'Built for teachers', 'Make a test in minutes, share one link with your class and see every student\'s result.')]
     feat_html = ''.join(f'<article class="fcard"><span class="ico {c}">{i}</span><p class="hd">{E(t)}</p><p>{E(d)}</p></article>' for c, i, t, d in feats)
     def frame(src, alt, first=False):
@@ -1015,7 +1015,6 @@ def home_block():
     shots = [('question-bank', 'Question Bank', 'Find any question in seconds', 'Filter 16,000+ questions by class, source, exam, year, chapter, level and type. Every question comes with its answer and a full solution.', 'The Question Bank with filters and JEE questions'),
              ('dpp-builder', 'DPP Builder', 'A ready-to-print DPP in one click', 'Pick chapters and subtopics, set the toughness and the mix of previous-year and practice questions, and get a clean practice sheet with answer key and explanations.', 'A generated DPP on definite integration, ready to print'),
              ('pyq-papers', 'PYQ Papers', 'Every paper, in exam format', 'Open any JEE Main shift or other past paper exactly as it was set, or go chapterwise through all years. Download with the answer key.', 'A JEE Main 2026 shift paper opened in the dashboard'),
-             ('must-solve', 'Must Solve', 'Solve the questions that matter most', 'Questions that came again and again in JEE, in the same or a very similar form, plus sure-shot questions that are bound to come. Solve these first.', 'The Must Solve list showing sure-shot and must-know questions'),
              ('handouts', 'Handouts', 'Handwritten revision notes for every chapter', 'Neatly handwritten notes for all chapters of Class 11 and 12. Read them in the built-in viewer, or download them to revise offline.', 'The Handouts page with a note for every chapter'),
              ('online-test', 'Online Test', 'The real exam screen, before the real exam', 'A full-screen, timed test with the question palette, mark for review and auto-submit, followed by your score, rank and topic-wise report.', 'The online test window with timer and question palette')]
     PIX = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='
@@ -1037,7 +1036,7 @@ def home_block():
     # ----- exams -----
     exam_cards = ''.join(f'<div class="exc"><div class="exc-top">{exlogo(e, "", 52)}<p class="exc-name"><a class="stretch" href="exams/{e[2]}/">{E(e[1])} papers</a></p></div><p>{E(e[3])}</p><dl class="exc-facts"><div><dt>Conducted by</dt><dd>{E(SHORT[e[0]][0])}</dd></div><div><dt>Mode</dt><dd>{E(SHORT[e[0]][2])}</dd></div></dl><div class="exc-st"><span><b>{STATS[e[0]]["questions"]:,}</b> questions</span><span><b>{STATS[e[0]]["first"]}–{STATS[e[0]]["last"]}</b></span><span><b>{STATS[e[0]]["papers"]}</b> papers</span></div></div>' for e in EXAMS)
     steps = [('Create your free account', 'Click Login, choose Student or Teacher and continue with Google. Avanti students use their Student ID.'),
-             ('Practise chapter by chapter', 'Open the question bank, DPPs, previous-year papers and Must Solve. Check every answer against the full solution.'),
+             ('Practise chapter by chapter', 'Open the question bank, DPPs, previous-year papers and handouts. Check every answer against the full solution.'),
              ('Take tests and track progress', 'Attempt NTA-style tests, see your score, rank and weak topics, and come back stronger next week.')]
     steps_html = ''.join(f'<div class="step"><p class="hd">{E(t)}</p><p>{E(d)}</p></div>' for t, d in steps)
     tick = lambda items: ''.join(f'<li>{CHECK}<span>{E(t)}</span></li>' for t in items)
@@ -1049,11 +1048,11 @@ def home_block():
                     f'<ul>{tick(p["items"])}</ul><a class="{btn_cls}" data-login href="?login=1" rel="nofollow">{E(p["cta"])}</a></div>')
         return f'<div class="plans {cls_}">{card(free)}{card(prem, True)}{card(av)}</div>'
     stu = plan_set('plans-s',
-        {'name': 'Free', 'price': '&#8377;0', 'for': 'For every student', 'cta': 'Start free as a student', 'items': ['Question bank, DPPs, PYQs and Must Solve', 'Solutions for practice', 'Online tests and your own reports', 'First Class 11 and Class 12 handouts to view']},
+        {'name': 'Free', 'price': '&#8377;0', 'for': 'For every student', 'cta': 'Start free as a student', 'items': ['Question bank, DPPs, PYPs and handouts', 'Solutions for practice', 'Online tests and your own reports', 'First Class 11 and Class 12 handouts to view']},
         {'name': 'Premium', 'price': '&#8377;299 <small>a year</small>', 'for': 'For students who want it all', 'cta': 'Get Premium for students', 'items': ['Everything in Free', 'PDF downloads and printing', 'All handouts', 'All-India ranks and comparison with all students']},
         {'name': 'Avanti', 'price': 'Free <small>with Avanti</small>', 'for': 'For Avanti students', 'cta': 'Login with Student ID', 'items': ['Premium included at no cost', 'Sign in with your Student ID', 'School tests from your teacher', 'Rank in school and all-India']})
     tea = plan_set('plans-t',
-        {'name': 'Free', 'price': '&#8377;0', 'for': 'For every teacher', 'cta': 'Start free as a teacher', 'items': ['Question bank, DPPs, PYQs and Must Solve', 'View all questions and solutions, and download PYQ PDFs', 'Personal Tests &amp; Results in your own account', 'One test link as a free trial']},
+        {'name': 'Free', 'price': '&#8377;0', 'for': 'For every teacher', 'cta': 'Start free as a teacher', 'items': ['Question bank, DPPs, PYPs and handouts', 'View all questions and solutions, and download PYQ PDFs', 'Personal Tests &amp; Results in your own account', 'One test link as a free trial']},
         {'name': 'Premium', 'price': '&#8377;599 <small>a year</small>', 'for': 'For teachers who run a class', 'cta': 'Get Premium for teachers', 'items': ['Everything in Free', 'Unlimited test links for your class and batch', 'PDF downloads and printing', 'Saved worksheets', 'My Students with performance and test history', 'Ranks among teachers and My School']},
         {'name': 'Avanti', 'price': 'Free <small>with Avanti</small>', 'for': 'For Avanti teachers', 'cta': 'Avanti teacher login', 'items': ['Full teaching tools at no cost', 'Create tests for your school', 'All handouts and PDFs', 'Student list and bulk upload']})
     plans = (f'<div class="who"><input type="radio" name="who" id="who-s" class="sr" checked><input type="radio" name="who" id="who-t" class="sr">'
@@ -1074,7 +1073,7 @@ def home_block():
 <section class="stats" aria-label="At a glance"><div class="swrap stats-in">
 <div class="stat"><b>16,000+</b><span>Questions in the bank</span></div><div class="stat"><b>{STATS["_all"]["nonpyq_questions"]:,}</b><span>Non-PYQ practice questions</span></div>
 <div class="stat"><b>{len(CH)}</b><span>Chapters, {D["tot_sub"]} subtopics</span></div><div class="stat"><b>2000–2026</b><span>Past papers</span></div></div></section>
-<section class="sec" id="dashboard"><div class="swrap"><div class="sec-head"><span class="kick">Inside the dashboard</span><h2>See what you get after you log in</h2><p>Real screens from the dashboard: question bank, DPP builder, past papers, Must Solve, handouts and the online test window.</p></div>{showcase}</div></section>
+<section class="sec" id="dashboard"><div class="swrap"><div class="sec-head"><span class="kick">Inside the dashboard</span><h2>See what you get after you log in</h2><p>Real screens from the dashboard: question bank, DPP builder, past papers, handouts and the online test window.</p></div>{showcase}</div></section>
 <section class="sec sec-alt" id="features"><div class="swrap"><div class="sec-head"><span class="kick">Everything in one place</span><h2>Everything you need to practise math</h2><p>Practise, test yourself and track your progress without juggling PDFs, apps and notebooks.</p></div>
 <div class="grid3">{feat_html}</div></div></section>
 <section class="sec" id="how"><div class="swrap"><div class="sec-head"><span class="kick">How it works</span><h2>Start in three simple steps</h2></div><div class="steps">{steps_html}</div></div></section>
