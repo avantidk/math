@@ -417,7 +417,7 @@ function membershipContent(teacher) {
     rows: [['View Question Bank, DPPs, PYQs, Must Solve and handouts', 1, 1], ['Create online tests for your school (one test link as a trial)', 1, 1], ['Results of your own tests', 1, 1],
       ['Download and print every PDF', 0, 1], ['Share PDFs on WhatsApp and email', 0, 1], ['Copy question text', 0, 1], ['Saved worksheets', 0, 1], ['My Students with performance', 0, 1],
       ['Unlimited test links for your school', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1]],
-    faq: [['Do my students need Premium to take my tests?', 'Yes. Only Premium students of your school, class and batch can take tests made by teachers. Free students can take past papers from Personal Tests & Results.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs can be shared straight from the phone.']]
+    faq: [['Do my students need Premium to take my tests?', 'Yes. Only Premium students of your school, class and batch can take tests made by teachers. Free students can take past papers from Practice Tests & Results.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs can be shared straight from the phone.']]
   } : {
     eyebrow: 'Premium for students', title: 'Practise anywhere. Know where you stand.',
     lead: 'Download every DPP, PYQ paper and handout to practise offline, and see your rank among every student who took the test.',
@@ -975,7 +975,7 @@ async function pageMyTests() {
       t.mine === false ? null : exportBtn(t))))));
 }
 
-/* ---------- Personal Tests & Results: every account takes past papers for itself ---------- */
+/* ---------- Practice Tests & Results: every account takes past papers for itself ---------- */
 const PAPER_EXAMS = ['JEE Main', 'JEE Advanced', 'IIT-JEE', 'AIEEE', 'KCET', 'NDA', 'IAT'];
 const examOfQ = x => x.e === 'KCET' ? 'KCET' : x.e === 'IAT' ? 'IAT' : x.e === 'NDA' ? 'NDA' : x.e === 'Adv' ? (x.y < 2013 ? 'IIT-JEE' : 'JEE Advanced') : (x.y < 2013 ? 'AIEEE' : 'JEE Main');
 /* Time and marking of the mathematics part of each exam. A personal test starts with these; nothing is asked. */
@@ -1005,7 +1005,7 @@ async function showLinkRanking(testId, title) {
   } catch (e) { toast(e.message); }
 }
 async function pagePersonal() {
-  show(head('Personal Tests & Results', 'Take any past paper yourself. Your results stay in your own account.'), loading('Loading the question papers…'));
+  show(head('Practice Tests & Results', 'Take any past paper yourself. Your results stay in your own account.'), loading('Loading the question papers…'));
   const [ov, B] = await Promise.all([rpc('personal_overview'), fresh(TE().bank())]);
   CHN = B.chapters;
   const perm = AU().perm, isAdm = !!perm.isAdmin, premT = !isAdm && (perm.staff || (P().role === 'teacher' && perm.plan === 'premium'));
@@ -1050,7 +1050,7 @@ async function pagePersonal() {
       x.attempt_status === 'submitted' && ['teachers_link', 'all_teachers'].includes(x.audience) ? h('button', { type: 'button', class: 'btn', text: 'My rank', onclick: () => showMyRank(x.test_id) }) : null))));
   const table = (rows, cols) => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, cols.map(x => h('th', { text: x })))), h('tbody', {}, rows)));
   drawPapers();
-  show(head('Personal Tests & Results', 'Take any past paper yourself. Your results stay in your own account.'),
+  show(head('Practice Tests & Results', 'Take any past paper yourself. Your results stay in your own account.'),
     ov.offered.length ? card(h('h2', { text: 'Tests for you' }), h('p', { class: 'pt-hint', text: 'Made by अंक-IT for ' + (P().role === 'student' ? 'students' : 'teachers') + '. Teachers see their own rank only.' }),
       h('div', { class: 'pp-papers' }, ov.offered.map(x => h('button', { type: 'button', class: 'pp-card', onclick: () => { try { sessionStorage.setItem('avanti-auto', x.code); } catch (e) { /* no storage */ } location.hash = '#/t/' + x.code; } },
         h('b', { text: x.title }), h('small', { text: x.n_questions + ' questions · ' + x.duration_min + ' min' }), h('span', { class: 'pp-go', text: 'Start ›' }))))) : null,
@@ -1210,7 +1210,7 @@ async function pageTake(code) {
   if (info.school_pending && !info.attempt_id) { show(card(empty(info.title, 'Your school (' + (P().school || 'not chosen') + ') is waiting for approval by the admin. Tests open after it is approved. Edit profile shows the status.', link('#/profile', 'Edit profile', 'btn')))); return; }
   if (!info.for_me && !info.attempt_id && info.blocked) {
     const prem = /Premium/.test(info.blocked) && AU().perm.plan === 'free';
-    show(card(empty(info.title, info.blocked, prem ? link('#/membership', '★ Get Premium', 'btn pri') : link('#/personal', 'Personal Tests & Results', 'btn')))); return;
+    show(card(empty(info.title, info.blocked, prem ? link('#/membership', '★ Get Premium', 'btn pri') : link('#/personal', 'Practice Tests & Results', 'btn')))); return;
   }
   if (!info.for_me && !info.attempt_id) {
     const me = P(), otherSchool = info.school && String(info.school).toLowerCase() !== String(me.school || '').toLowerCase();
@@ -1230,7 +1230,7 @@ async function pageTake(code) {
     h('ul', { class: 'pt-feats' }, ['The timer starts when you press Start and keeps running even if you close the page.', 'Your answers are saved automatically. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Do not switch tabs or apps. Every switch is recorded and your teacher can see it.', 'The test submits by itself when the time is up.'].map(x => h('li', { text: x }))),
     h('p', { class: 'pt-hint', text: 'Signed in as ' + (P().full_name || P().email || P().avanti_id) + (P().school ? ' · ' + P().school : '') }),
     startBtn)));
-  if (auto && info.is_active) startBtn.click();   /* started from Personal Tests: begin at once, nothing more to ask */
+  if (auto && info.is_active) startBtn.click();   /* started from Practice Tests: begin at once, nothing more to ask */
 }
 
 let EX = null;

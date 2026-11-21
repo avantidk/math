@@ -35,7 +35,7 @@ The public pages show numbers only. The questions and solutions are inside the d
 1. Open **[unkganit.com](https://unkganit.com)** and click **Login**.
 2. Sign in with **Google**, or with your **Student ID** if you are an Avanti student.
 3. Choose whether you are a **Student** or a **Teacher** (this is saved once and cannot be changed later).
-4. Fill in your profile. The dashboard opens at [unkganit.com/dashboard](https://unkganit.com/dashboard).
+4. Fill in your profile. The question bank opens at [unkganit.com/qbank](https://unkganit.com/qbank).
 
 ## Plans
 
@@ -63,7 +63,7 @@ This repository is the public website. Hosting is **GitHub Pages**; sign-in, pla
 | Path | What it is |
 |---|---|
 | `index.html` | The public home page (generated) |
-| `dashboard.html` | The dashboard app (`/dashboard`, not indexed by search engines) |
+| `qbank.html` | The question-bank app (`/qbank`, not indexed by search engines) |
 | `auth.js`, `boot.js`, `portal.js` | Sign-in and plan permissions, loader, profile / tests / results |
 | `teacher.b870.js`, `qb/` | Question Bank, DPPs, PYQs, Must Solve and Handouts |
 | `site.js`, `site.css`, `login.js`, `weightage.js` | Header, footer and Login pop-up for the public pages |

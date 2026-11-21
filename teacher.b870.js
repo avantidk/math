@@ -477,9 +477,9 @@ function buildPyqTopics() {
 let SUBS = [];
 const BK = {};
 const LS = { kind: 'sub', chs: [], ids: [], idk: '', part: 'all', page: 0, key: false, shown: false, year: 'all', yrs: [], ex: [], types: [], lv: ['L1', 'L2', 'L3'], pubs: [], srcs: [], tough: 2, mixv: 2, stat: '', seed: 0 };
-const PUBS = [];   /* every source tag found in the bank (Black Book and any new one) */
+const PUBS = [];   /* every source tag found in the bank (BB Ex and any new one) */
 function initPubs() {
-  const found = [...new Set(BANK.qs.filter(q => q.s === 'N').map(q => q.pb || 'Practice'))], first = ['Black Book'];
+  const found = [...new Set(BANK.qs.filter(q => q.s === 'N').map(q => q.pb || 'Practice'))], first = ['BB Ex'];
   PUBS.length = 0; first.concat(found.filter(x => !first.includes(x)).sort()).forEach(x => PUBS.push(x));
   LS.pubs = PUBS.slice(); LS.srcs = EXAMS.concat(PUBS);
 }

@@ -10,14 +10,14 @@
     if (raw) { var o = JSON.parse(raw); if (o && o.access_token && o.user) user = o.user; }
   } catch (e) { user = null; }
   if (user) de.classList.add('signed-in');
-  /* The dashboard lives at /dashboard. Old links and sign-in returns that still land on the home page are sent there:
+  /* The question-bank app lives at /qbank. Old links and sign-in returns that still land on the home page are sent there:
      /#/t/<code> test links, /#/profile, ?code= (Google sign-in coming back) and ?login=1 when someone is already signed in. */
   var pg = de.getAttribute('data-page'), q = window.location.search, hs = window.location.hash;
   if (pg === 'index' && (/^#\/(?!home)/.test(hs) || /[?&](code|error_description)=/.test(q) || (user && /[?&]login=1/.test(q)))) {
-    window.location.replace(ROOT + 'dashboard' + q.replace(/([?&])login=1&?/, '$1').replace(/[?&]$/, '') + hs);
+    window.location.replace(ROOT + 'qbank' + q.replace(/([?&])login=1&?/, '$1').replace(/[?&]$/, '') + hs);
   }
-  /* safety net: if the host shows the "page not found" page for /dashboard, open the file directly */
-  if (/^\/dashboard\/?$/.test(window.location.pathname) && /not found/i.test(d.title)) window.location.replace(ROOT + 'dashboard.html' + q + hs);
+  /* safety net: if the host shows the "page not found" page for /qbank, open the file directly */
+  if (/^\/qbank\/?$/.test(window.location.pathname) && /not found/i.test(d.title)) window.location.replace(ROOT + 'qbank.html' + q + hs);
   function ready(fn) { if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', fn); else fn(); }
   ready(function () {
     if (user) {
@@ -42,8 +42,8 @@
         av.classList.add(cm.g ? 'av-gold' : (cm.t === 't' ? 'av-t' : 'av-s')); if (cm.g) av.classList.add(cm.t === 't' ? 'ring-t' : 'ring-s');
         var pill = cm.pl ? '<span class="pfm-plan ' + (cm.g ? 'pf-gold' : (cm.t === 't' ? 'pf-free-t' : 'pf-free-s')) + '">' + esc(cm.pl) + '</span>' : '';
         menu.innerHTML = '<div class="pfm-who"><strong>' + esc(cm.n || mm.full_name || mm.name || user.email || 'Your account') + '</strong><span class="pfm-mail">' + esc(cm.e || user.email || '') + '</span>' + pill + '</div>'
-          + (cm.up ? '<a class="pfm-up" href="' + ROOT + 'dashboard#/membership"><b>' + esc(cm.up.t) + '</b><small>' + esc(cm.up.s) + '</small></a>' : '')
-          + items.map(function (it) { return '<a class="pfm-i" role="menuitem" href="' + ROOT + 'dashboard' + esc(it[0]) + '">' + esc(it[1]) + '</a>'; }).join('')
+          + (cm.up ? '<a class="pfm-up" href="' + ROOT + 'qbank#/membership"><b>' + esc(cm.up.t) + '</b><small>' + esc(cm.up.s) + '</small></a>' : '')
+          + items.map(function (it) { return '<a class="pfm-i" role="menuitem" href="' + ROOT + 'qbank' + esc(it[0]) + '">' + esc(it[1]) + '</a>'; }).join('')
           + '<button type="button" class="pfm-i pfm-out" role="menuitem">Logout</button>';
         menu.querySelector('.pfm-out').addEventListener('click', function () {
           if (window.AvantiAuth && window.AvantiAuth.signOut) window.AvantiAuth.signOut(); else if (window.AvantiLogin && window.AvantiLogin.signOut) window.AvantiLogin.signOut(); else window.location.href = ROOT;

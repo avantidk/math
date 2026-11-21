@@ -22491,9 +22491,9 @@
  },
  "_all": {
   "by_source": {
-   "Allen DY": 2959,
-   "Allen Ex": 2597,
-   "Black Book": 2424
+   "Ln DY": 2959,
+   "Ln Ex": 2597,
+   "BB Ex": 2424
   },
   "chapter_levels": {
    "11M1": {
@@ -22650,9 +22650,9 @@
     },
     "oos": 1,
     "src": {
-     "Allen DY": 199,
-     "Allen Ex": 123,
-     "Black Book": 111
+     "Ln DY": 199,
+     "Ln Ex": 123,
+     "BB Ex": 111
     }
    },
    "11M10": {
@@ -22667,9 +22667,9 @@
     },
     "oos": 76,
     "src": {
-     "Allen DY": 87,
-     "Allen Ex": 70,
-     "Black Book": 85
+     "Ln DY": 87,
+     "Ln Ex": 70,
+     "BB Ex": 85
     }
    },
    "11M11": {
@@ -22684,9 +22684,9 @@
     },
     "oos": 154,
     "src": {
-     "Allen DY": 179,
-     "Allen Ex": 205,
-     "Black Book": 64
+     "Ln DY": 179,
+     "Ln Ex": 205,
+     "BB Ex": 64
     }
    },
    "11M12": {
@@ -22700,8 +22700,8 @@
     },
     "oos": 1,
     "src": {
-     "Allen DY": 29,
-     "Allen Ex": 70
+     "Ln DY": 29,
+     "Ln Ex": 70
     }
    },
    "11M2": {
@@ -22716,8 +22716,8 @@
     },
     "oos": 0,
     "src": {
-     "Allen DY": 70,
-     "Allen Ex": 130
+     "Ln DY": 70,
+     "Ln Ex": 130
     }
    },
    "11M3": {
@@ -22732,9 +22732,9 @@
     },
     "oos": 68,
     "src": {
-     "Allen DY": 235,
-     "Allen Ex": 135,
-     "Black Book": 222
+     "Ln DY": 235,
+     "Ln Ex": 135,
+     "BB Ex": 222
     }
    },
    "11M4": {
@@ -22749,9 +22749,9 @@
     },
     "oos": 0,
     "src": {
-     "Allen DY": 116,
-     "Allen Ex": 70,
-     "Black Book": 271
+     "Ln DY": 116,
+     "Ln Ex": 70,
+     "BB Ex": 271
     }
    },
    "11M5": {
@@ -22766,9 +22766,9 @@
     },
     "oos": 3,
     "src": {
-     "Allen DY": 110,
-     "Allen Ex": 75,
-     "Black Book": 52
+     "Ln DY": 110,
+     "Ln Ex": 75,
+     "BB Ex": 52
     }
    },
    "11M6": {
@@ -22783,9 +22783,9 @@
     },
     "oos": 116,
     "src": {
-     "Allen DY": 95,
-     "Allen Ex": 70,
-     "Black Book": 143
+     "Ln DY": 95,
+     "Ln Ex": 70,
+     "BB Ex": 143
     }
    },
    "11M7": {
@@ -22800,9 +22800,9 @@
     },
     "oos": 0,
     "src": {
-     "Allen DY": 116,
-     "Allen Ex": 75,
-     "Black Book": 60
+     "Ln DY": 116,
+     "Ln Ex": 75,
+     "BB Ex": 60
     }
    },
    "11M8": {
@@ -22817,9 +22817,9 @@
     },
     "oos": 77,
     "src": {
-     "Allen DY": 71,
-     "Allen Ex": 98,
-     "Black Book": 50
+     "Ln DY": 71,
+     "Ln Ex": 98,
+     "BB Ex": 50
     }
    },
    "11M9": {
@@ -22834,9 +22834,9 @@
     },
     "oos": 18,
     "src": {
-     "Allen DY": 173,
-     "Allen Ex": 93,
-     "Black Book": 93
+     "Ln DY": 173,
+     "Ln Ex": 93,
+     "BB Ex": 93
     }
    },
    "12M13": {
@@ -22851,9 +22851,9 @@
     },
     "oos": 0,
     "src": {
-     "Allen DY": 135,
-     "Allen Ex": 70,
-     "Black Book": 183
+     "Ln DY": 135,
+     "Ln Ex": 70,
+     "BB Ex": 183
     }
    },
    "12M14": {
@@ -22868,9 +22868,9 @@
     },
     "oos": 0,
     "src": {
-     "Allen DY": 23,
-     "Allen Ex": 70,
-     "Black Book": 61
+     "Ln DY": 23,
+     "Ln Ex": 70,
+     "BB Ex": 61
     }
    },
    "12M15": {
@@ -22885,9 +22885,9 @@
     },
     "oos": 51,
     "src": {
-     "Allen DY": 126,
-     "Allen Ex": 130,
-     "Black Book": 86
+     "Ln DY": 126,
+     "Ln Ex": 130,
+     "BB Ex": 86
     }
    },
    "12M16": {
@@ -22902,9 +22902,9 @@
     },
     "oos": 0,
     "src": {
-     "Allen DY": 72,
-     "Allen Ex": 70,
-     "Black Book": 91
+     "Ln DY": 72,
+     "Ln Ex": 70,
+     "BB Ex": 91
     }
    },
    "12M17": {
@@ -22919,9 +22919,9 @@
     },
     "oos": 9,
     "src": {
-     "Allen DY": 186,
-     "Allen Ex": 195,
-     "Black Book": 187
+     "Ln DY": 186,
+     "Ln Ex": 195,
+     "BB Ex": 187
     }
    },
    "12M18": {
@@ -22936,9 +22936,9 @@
     },
     "oos": 66,
     "src": {
-     "Allen DY": 117,
-     "Allen Ex": 190,
-     "Black Book": 145
+     "Ln DY": 117,
+     "Ln Ex": 190,
+     "BB Ex": 145
     }
    },
    "12M19": {
@@ -22951,9 +22951,9 @@
     },
     "oos": 0,
     "src": {
-     "Allen DY": 300,
-     "Allen Ex": 70,
-     "Black Book": 58
+     "Ln DY": 300,
+     "Ln Ex": 70,
+     "BB Ex": 58
     }
    },
    "12M20": {
@@ -22968,9 +22968,9 @@
     },
     "oos": 25,
     "src": {
-     "Allen DY": 138,
-     "Allen Ex": 145,
-     "Black Book": 163
+     "Ln DY": 138,
+     "Ln Ex": 145,
+     "BB Ex": 163
     }
    },
    "12M21": {
@@ -22985,9 +22985,9 @@
     },
     "oos": 20,
     "src": {
-     "Allen DY": 91,
-     "Allen Ex": 70,
-     "Black Book": 49
+     "Ln DY": 91,
+     "Ln Ex": 70,
+     "BB Ex": 49
     }
    },
    "12M22": {
@@ -23002,9 +23002,9 @@
     },
     "oos": 62,
     "src": {
-     "Allen DY": 104,
-     "Allen Ex": 77,
-     "Black Book": 63
+     "Ln DY": 104,
+     "Ln Ex": 77,
+     "BB Ex": 63
     }
    },
    "12M23": {
@@ -23019,9 +23019,9 @@
     },
     "oos": 223,
     "src": {
-     "Allen DY": 46,
-     "Allen Ex": 70,
-     "Black Book": 33
+     "Ln DY": 46,
+     "Ln Ex": 70,
+     "BB Ex": 33
     }
    },
    "12M24": {
@@ -23036,9 +23036,9 @@
     },
     "oos": 47,
     "src": {
-     "Allen DY": 80,
-     "Allen Ex": 75,
-     "Black Book": 46
+     "Ln DY": 80,
+     "Ln Ex": 75,
+     "BB Ex": 46
     }
    },
    "12M25": {
@@ -23058,7 +23058,7 @@
     },
     "oos": 134,
     "src": {
-     "Allen Ex": 38
+     "Ln Ex": 38
     }
    },
    "12M27": {
@@ -23068,9 +23068,9 @@
     },
     "oos": 0,
     "src": {
-     "Allen DY": 61,
-     "Allen Ex": 50,
-     "Black Book": 108
+     "Ln DY": 61,
+     "Ln Ex": 50,
+     "BB Ex": 108
     }
    },
    "12M28": {
@@ -23082,7 +23082,7 @@
     },
     "oos": 36,
     "src": {
-     "Allen Ex": 63
+     "Ln Ex": 63
     }
    }
   },

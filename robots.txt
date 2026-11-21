@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /qb/
+Disallow: /qbank
 Disallow: /dashboard
 
 Sitemap: https://unkganit.com/sitemap.xml

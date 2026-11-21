@@ -153,7 +153,7 @@ function renderMenu() {
   const slot = $('#tbProfile'); const p = A.profile; if (!slot || !p) return;
   slot.textContent = '';
   const perm = A.perm, student = p.role === 'student', teacher = p.role === 'teacher';
-  const items = [['#/profile', 'Edit profile'], ['#/personal', 'Personal Tests & Results']];
+  const items = [['#/profile', 'Edit profile'], ['#/personal', 'Practice Tests & Results']];
   if (perm.plan === 'premium' && !p.is_avanti) items.push(['#/membership', 'Membership']);
   if (student) {
     if (perm.plan !== 'free') items.push(['#/tests', 'Available tests']);   /* tests made by teachers are for Premium students only */

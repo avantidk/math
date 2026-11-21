@@ -15,9 +15,9 @@ tests and results. It replaced an older Claude artifact.
 
 ## How the site is built
 - `/` (`index.html`) is the PUBLIC HOME PAGE: static HTML (so search engines can read it) that loads only `site.js` and `login.js` (the Login pop-up, also used by every
-  public page), never the dashboard code. The dashboard app is `/dashboard` (`dashboard.html`, noindex): it loads `vendor/supabase-js`, `boot.js`, `portal.js` and `auth.js`.
-  Signed out, the dashboard sends the visitor to `/?login=1` (the pop-up opens); after sign-in they land on `/dashboard`; the Home icon in the dashboard top bar goes to `/`.
-  `site.js` forwards old `/#/t/<code>` test links and Google sign-in returns (`?code=`) from `/` to `/dashboard`. The home page, the 24 chapter pages (`/maths/...`; `/jee-maths/...` are redirects), the exam pages (`/exams/...`), `/syllabus-priority/`, About, Contact, Privacy, Terms, `index.html`, `sitemap.xml` and
+  public page), never the dashboard code. The question-bank app is `/qbank` (`qbank.html`, noindex; it was `/dashboard` until v971; `dashboard.html` is now only a hand-off to `/qbank` until the new hierarchical dashboard replaces it): it loads `vendor/supabase-js`, `boot.js`, `portal.js` and `auth.js`.
+  Signed out, the dashboard sends the visitor to `/?login=1` (the pop-up opens); after sign-in they land on `/qbank`; the Home icon in the dashboard top bar goes to `/`.
+  `site.js` forwards old `/#/t/<code>` test links and Google sign-in returns (`?code=`) from `/` to `/qbank`. The home page, the 24 chapter pages (`/maths/...`; `/jee-maths/...` are redirects), the exam pages (`/exams/...`), `/syllabus-priority/`, About, Contact, Privacy, Terms, `index.html`, `sitemap.xml` and
   `robots.txt` are GENERATED from `syllabus.json` by `python3 .github/scripts/build_seo.py` (exam counts come from `.github/scripts/exam-stats.json`, made by `exam_stats.py` from the private bank: numbers only): edit that script (and `site.css`), never the generated
   files, then run it (with `SEO_VER=<build>`) and commit the result. Public pages must contain no questions, answers, solutions or handouts.
   Public pages have a strict Content-Security-Policy: every script must come from this site (`vendor/` holds the libraries), never a CDN.
@@ -33,5 +33,5 @@ tests and results. It replaced an older Claude artifact.
 - `supabase/schema.sql`: the whole database; safe to run again. `supabase/functions/`: Edge Functions.
 - `.github/scripts/guard.sh`: run it before every merge (`bash .github/scripts/guard.sh`). The deploy workflow refuses to
   publish when it fails.
-- On every release: bump `BUILD` and `RELEASED` in `boot.js` and the `?v=` numbers in `dashboard.html` and `login.js` (and run `build_seo.py` with `SEO_VER`), and add an entry at the top of
+- On every release: bump `BUILD` and `RELEASED` in `boot.js` and the `?v=` numbers in `qbank.html` and `login.js` (and run `build_seo.py` with `SEO_VER`), and add an entry at the top of
   `changelog.json` (plain-language list of what changed). The footer shows "Website vBUILD · RELEASED"; clicking it shows the changelog.

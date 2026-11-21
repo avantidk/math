@@ -17,7 +17,7 @@ function QBP(k) { var p = window.AvantiAuth && window.AvantiAuth.perm; return !!
     var pre = window.__qbPre || {}, pd = pre.data || {};
     var get = function (n) { return pd[n] || fetch('qb/data/' + n + '.json').then(function (r) { if (!r.ok) throw new Error(n); return r.json(); }); };
     /* "Solutions status" link under the version label: popup with, for every exam and year, how many questions have a solution added, which are still missing one, and which carry a flag to check */
-    /* Black Book block of the Solutions status popup: one pill per book chapter, from first.json `bb` rows [book chapter, name, questions, with solution, flagged] */
+    /* BB Ex block of the Solutions status popup: one pill per book chapter, from first.json `bb` rows [book chapter, name, questions, with solution, flagged] */
     var bbHtml = function (rows, esc, other) {
       if (!rows || !rows.length) return '';
       var tot = 0, sol = 0, flg = 0; rows.forEach(function (r) { tot += r[2]; sol += r[3]; flg += r[4]; });
@@ -27,12 +27,12 @@ function QBP(k) { var p = window.AvantiAuth && window.AvantiAuth.perm; return !!
         return '<div style="margin:12px 0 4px;font-weight:600">' + title + ' <span style="font-weight:400;color:var(--color-fg-muted)">(' + arr.length + ')</span></div><div style="color:var(--color-fg-muted);font-size:12px;margin-bottom:4px">' + sub + '</div><div style="display:flex;flex-wrap:wrap;gap:5px">' + arr.map(function (r) { return pill(r, fmt(r)); }).join('') + '</div>';
       };
       var nm = function (r) { return 'Ch ' + r[0] + ' ' + r[1]; };
-      return '<hr style="margin:16px 0 10px;border:0;border-top:1px solid var(--color-border-line,#ccc)"><b style="font-size:15px">Black Book (practice questions)</b>' +
-        '<div style="margin-top:6px">' + sol + ' of ' + tot + ' Black Book questions have a solution added. ' + flg + ' carry a flag to check' + (other && other.length ? ' (plus ' + other.length + ' other practice questions below)' : '') + '.</div>' +
+      return '<hr style="margin:16px 0 10px;border:0;border-top:1px solid var(--color-border-line,#ccc)"><b style="font-size:15px">BB Ex (practice questions)</b>' +
+        '<div style="margin-top:6px">' + sol + ' of ' + tot + ' BB Ex questions have a solution added. ' + flg + ' carry a flag to check' + (other && other.length ? ' (plus ' + other.length + ' other practice questions below)' : '') + '.</div>' +
         blk('Solutions fully added', 'Every question of this book chapter has a solution.', rows.filter(function (r) { return r[3] === r[2]; }), function (r) { return nm(r) + ' \u00b7 ' + r[2] + (r[4] ? ' (' + r[4] + ' flagged)' : ''); }) +
         blk('Partly added', 'Some questions have a solution, some do not yet.', rows.filter(function (r) { return r[3] > 0 && r[3] < r[2]; }), function (r) { return nm(r) + ' \u00b7 ' + r[3] + '/' + r[2]; }) +
         blk('Yet to add', 'No solution added so far (book chapters waiting for their Word file with solutions).', rows.filter(function (r) { return r[3] === 0; }), function (r) { return nm(r) + ' \u00b7 ' + r[2] + ' Qs'; }) +
-        (other && other.length ? '<div style="margin:12px 0 4px;font-weight:600">Other practice questions with an Attention flag <span style="font-weight:400;color:var(--color-fg-muted)">(' + other.length + ')</span></div><div style="color:var(--color-fg-muted);font-size:12px;margin-bottom:4px">DPP / sheet questions outside the Black Book that need a check; no solution yet.</div><div style="display:flex;flex-wrap:wrap;gap:5px">' + other.map(function (o) { return '<span style="border:1px solid var(--color-border-line,#ccc);border-radius:999px;padding:2px 9px;font-size:12px" title="' + esc(o[2] || '') + '">' + esc(o[0]) + ' \u00b7 ' + esc(o[1]) + '</span>'; }).join('') + '</div>' : '');
+        (other && other.length ? '<div style="margin:12px 0 4px;font-weight:600">Other practice questions with an Attention flag <span style="font-weight:400;color:var(--color-fg-muted)">(' + other.length + ')</span></div><div style="color:var(--color-fg-muted);font-size:12px;margin-bottom:4px">DPP / sheet questions outside the BB Ex that need a check; no solution yet.</div><div style="display:flex;flex-wrap:wrap;gap:5px">' + other.map(function (o) { return '<span style="border:1px solid var(--color-border-line,#ccc);border-radius:999px;padding:2px 9px;font-size:12px" title="' + esc(o[2] || '') + '">' + esc(o[0]) + ' \u00b7 ' + esc(o[1]) + '</span>'; }).join('') + '</div>' : '');
     };
     try {
       var bl2 = document.querySelector('.qb-build');
@@ -932,9 +932,9 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
         { group: 'exam_kcet', n: g(ex, 'KCET') },
         { group: 'exam_iat', n: g(ex, 'IAT') },
         { group: 'exam_nda', n: g(ex, 'NDA') },
-        { group: 'src_BlackBook', n: g(pb, 'Black Book') },
-        { group: 'src_AllenEx', n: g(pb, 'Allen Ex') },
-        { group: 'src_AllenDY', n: g(pb, 'Allen DY') }
+        { group: 'src_BlackBook', n: g(pb, 'BB Ex') },
+        { group: 'src_AllenEx', n: g(pb, 'Ln Ex') },
+        { group: 'src_AllenDY', n: g(pb, 'Ln DY') }
       ];
     }
   });
@@ -958,7 +958,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
         var n = function (exam, year) { return p.y[exam + '|' + year] || 0; };
         var ex = function (exam) { return p.e[exam] || 0; };
         var sc = function (pb) { return nn.p[pb] || 0; };
-        return { chapter_code: c.chapter_code, chapter: c.chapter, main_2025: n('JEE Main', 2025), main_2026: n('JEE Main', 2026), adv_2025: n('JEE Advanced', 2025), adv_2026: n('JEE Advanced', 2026), main_all: ex('JEE Main') + ex('AIEEE'), adv_all: ex('JEE Advanced') + ex('IIT'), kcet_all: ex('KCET'), iat_all: ex('IAT'), nda_all: ex('NDA'), src_BlackBook: sc('Black Book'), src_AllenEx: sc('Allen Ex'), src_AllenDY: sc('Allen DY'), nonpyq: nn.t, total: p.t + nn.t };
+        return { chapter_code: c.chapter_code, chapter: c.chapter, main_2025: n('JEE Main', 2025), main_2026: n('JEE Main', 2026), adv_2025: n('JEE Advanced', 2025), adv_2026: n('JEE Advanced', 2026), main_all: ex('JEE Main') + ex('AIEEE'), adv_all: ex('JEE Advanced') + ex('IIT'), kcet_all: ex('KCET'), iat_all: ex('IAT'), nda_all: ex('NDA'), src_BlackBook: sc('BB Ex'), src_AllenEx: sc('Ln Ex'), src_AllenDY: sc('Ln DY'), nonpyq: nn.t, total: p.t + nn.t };
       });
     }
   });
@@ -1152,8 +1152,8 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     });
   }
 
-  /* chapter order; PYQs first: JEE Main (with AIEEE), JEE Advanced (with IIT), KCET, each newest first (year, month, day, shift); then practice questions by source: Cengage, Black Book, VMC (then any other), each in sheet order */
-  var PUB_ORDER = ['Black Book', 'Allen Ex', 'Allen DY'];
+  /* chapter order; PYQs first: JEE Main (with AIEEE), JEE Advanced (with IIT), KCET, each newest first (year, month, day, shift); then practice questions by source: Cengage, BB Ex, VMC (then any other), each in sheet order */
+  var PUB_ORDER = ['BB Ex', 'Ln Ex', 'Ln DY'];
   function pubRank(q) { var i = PUB_ORDER.indexOf(q.publisher); return i < 0 ? PUB_ORDER.length : i; }
   function examRank(q) { var e = q.exam; return e === 'JEE Main' || e === 'AIEEE' ? 0 : e === 'JEE Advanced' || e === 'IIT' ? 1 : e === 'KCET' ? 2 : e === 'IAT' ? 3 : e === 'NDA' ? 4 : 5; }
   function cmp(a, b) {
@@ -1517,7 +1517,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   function openSource(v, from) {
     closeYear(); YM_FROM = from || null;
     var rows = VR().filter(function (q) { return q.source !== 'PYQ' && srcOf(q) === v; });
-    var isBB = v === 'Black Book' || v === 'Allen Ex' || v === 'Allen DY', EX = [1, 2, 3, 4, 5];
+    var isBB = v === 'BB Ex' || v === 'Ln Ex' || v === 'Ln DY', EX = [1, 2, 3, 4, 5];
     var EXN = { 1: 'Ex-1 Single', 2: 'Ex-2 Multi', 3: 'Ex-3 Compr.', 4: 'Ex-4 Match', 5: 'Ex-5 Subj.' };
     var ov = el('div', 'qb-ymodal'); ov.addEventListener('mousedown', function (e) { if (e.target === ov) closeYear(); });
     var box = el('div', 'qb-ybox'); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', v + ' summary');
@@ -1614,10 +1614,10 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       });
     });
   }
-  var SRC_VALS = ['PYQs', 'Black Book', 'Allen Ex', 'Allen DY'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET', 'IAT', 'NDA'];
+  var SRC_VALS = ['PYQs', 'BB Ex', 'Ln Ex', 'Ln DY'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET', 'IAT', 'NDA'];
   function srcLabel(q) { return q.publisher || 'Practice'; }
   function srcOf(q) { return q.source === 'PYQ' ? 'PYQs' : (q.publisher || 'Practice'); }
-  /* "PYQs" ticked together with a source that has PYQ-tagged questions (Black Book) = the PYQs of that source only */
+  /* "PYQs" ticked together with a source that has PYQ-tagged questions (BB Ex) = the PYQs of that source only */
   var PYQ_PUBS = {};
   function comboPubs() { return []; if (!S.src.has('PYQs')) return []; var r = []; Object.keys(PYQ_PUBS).forEach(function (p) { if (S.src.has(p)) r.push(p); }); return r; }
   function effExam(q, cp) { return cp.length && q.pyq && q.pyq_exam ? q.pyq_exam : q.exam; }
@@ -1841,7 +1841,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   window.QBX.cardFor = function (id) { var q = BYID[id]; if (!q) return null; var c = buildCard(q); c.querySelector('.qb-num').textContent = ''; return c; };
   window.QBX.hasRows = function () { return ROWS.length > 0; };
   window.QBX.goYear = goYear;
-  window.QBX.goBB = function (ch) { goSrc('Black Book'); S.q = 'bb-' + ch + '-'; var se = $('.qb-search'); if (se) se.value = 'BB-' + ch + '-'; apply(); var r = $('.qb-results'); if (r && r.scrollIntoView) r.scrollIntoView({ block: 'start' }); };
+  window.QBX.goBB = function (ch) { goSrc('BB Ex'); S.q = 'bb-' + ch + '-'; var se = $('.qb-search'); if (se) se.value = 'BB-' + ch + '-'; apply(); var r = $('.qb-results'); if (r && r.scrollIntoView) r.scrollIntoView({ block: 'start' }); };
   function apply() {
     /* Exam and Year only make sense for PYQs: hide them when a practice source alone is chosen */
     var npOnly = S.src.size > 0 && !S.src.has('PYQs');

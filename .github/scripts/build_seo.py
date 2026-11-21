@@ -6,6 +6,7 @@
 import json, html, re, os, datetime
 
 SITE = os.environ.get('SITE_URL', 'https://unkganit.com').rstrip('/')
+SITE_NAME = 'अंक-IT Mathematics'
 TODAY = os.environ.get('SEO_DATE', datetime.date.today().isoformat())
 VER = os.environ.get('SEO_VER', '927')
 E = html.escape
@@ -266,8 +267,8 @@ def header(depth, up=None):
     nav = exams_dd + rest
     login = f'<a class="sb sb-pri when-out" data-login href="{up}?login=1" rel="nofollow">Login</a>'
     grid_ico = svg('<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>', 22)
-    user = (f'<div class="sh-user when-in"><a class="sh-ico" href="{up}dashboard" title="Dashboard" aria-label="Open your dashboard">{grid_ico}<span class="vh">Dashboard</span></a>'
-            f'<div class="sh-pf"><a class="sh-av" data-av data-profile href="{up}dashboard#/profile" aria-label="Your account" aria-haspopup="true" aria-expanded="false">&nbsp;</a><div class="pfm" role="menu"></div></div></div>')
+    user = (f'<div class="sh-user when-in"><a class="sh-ico" href="{up}qbank" title="Dashboard" aria-label="Open your dashboard">{grid_ico}<span class="vh">Dashboard</span></a>'
+            f'<div class="sh-pf"><a class="sh-av" data-av data-profile href="{up}qbank#/profile" aria-label="Your account" aria-haspopup="true" aria-expanded="false">&nbsp;</a><div class="pfm" role="menu"></div></div></div>')
     bars = svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', 22)
     stat = (f'<div class="sh-stat"><button type="button" class="sh-ico sh-statb" aria-haspopup="true" aria-expanded="false" title="Question bank numbers" aria-label="Question bank numbers">{bars}</button>'
             f'<div class="sh-pop" role="menu">' + ''.join(f'<a role="menuitem" href="{up}{u}">{E(t)}</a>' for u, t in STAT_MENU) + '</div></div>')
@@ -300,7 +301,7 @@ def aside(depth, current=None, up=None):
     pop = sorted(CH, key=lambda c: -c['m'])[:8]
     chs = ''.join(f'<li><a href="{up}maths/{slug(c)}/"><span>{E(short(c))}</span><small>{c["m"]} Main</small></a></li>' for c in pop)
     return (f'<aside class="pg-side" aria-label="Sidebar"><div class="side-box side-share"><h2>Share this page</h2><div class="share" data-share></div></div><div class="side-cta"><h2>Practise free</h2><p>Question bank, DPPs, past papers and tests, with full solutions.</p>'
-            f'<a class="sb sb-gold when-out" data-login href="{up}?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold when-in" href="{up}dashboard">Open your dashboard</a></div>'
+            f'<a class="sb sb-gold when-out" data-login href="{up}?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold when-in" href="{up}qbank">Open your dashboard</a></div>'
             f'<div class="side-box"><h2>Exams</h2><ul class="side-list">{ex}</ul></div>'
             f'<div class="side-box"><h2>Popular chapters</h2><ul class="side-list side-ch">{chs}</ul><a class="side-more" href="{up}maths/">All chapters &rarr;</a></div>'
             f'<div class="side-box side-help"><h2>Need help?</h2><p>Questions about signing in, plans or a question in the bank?</p><a href="{up}contact/">Contact us &rarr;</a></div></aside>')
@@ -602,9 +603,12 @@ def priority_page():
     return page(title, desc, f'{SITE}/syllabus-priority/', body, 1, ld)
 
 def redirect_page(to, depth):
-    return (f'<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Moved</title><meta name="robots" content="noindex">'
-            f'<link rel="canonical" href="{SITE}/{to}"><meta http-equiv="refresh" content="0; url={"../" * depth}{to}"></head>'
-            f'<body><p>This page moved to <a href="{"../" * depth}{to}">{SITE}/{to}</a>.</p></body></html>\n')
+    """Old /jee-maths/ address. A plain 200 page (no refresh redirect, so Search Console has nothing to report as 'Page with redirect');
+    its canonical points to the real page, which is the only one listed in the sitemap."""
+    u = '../' * depth + to
+    return (f'<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{SITE_NAME} chapter page</title>'
+            f'<link rel="canonical" href="{SITE}/{to}"></head>'
+            f'<body><p>This chapter page is now at <a href="{u}">{SITE}/{to}</a>.</p></body></html>\n')
 
 def exams_hub():
     total = sum(STATS[e[0]]['questions'] for e in EXAMS)
@@ -863,7 +867,7 @@ def home_block():
 <div><span class="eyebrow"><i></i>JEE · KCET · NDA · IAT Mathematics</span>
 <h1>Math question bank, PYQs and DPPs <em>with full solutions</em></h1>
 <p class="lead">Practise math with a question bank, PYQs (previous-year papers), DPPs, handouts and NTA-style online tests, all with full solutions, for Class 11 and 12 and for exams such as JEE, KCET, NDA and IAT.</p>
-<div class="hero-cta"><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Start practising free</a><a class="sb sb-gold sb-lg when-in" href="dashboard">Open your dashboard</a><a class="sb sb-white-line sb-lg" href="#dashboard">See the dashboard</a></div>
+<div class="hero-cta"><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Start practising free</a><a class="sb sb-gold sb-lg when-in" href="qbank">Open your dashboard</a><a class="sb sb-white-line sb-lg" href="#dashboard">See the dashboard</a></div>
 <ul class="hero-pts">{pts}</ul></div>
 {hero_shot}
 </div></section>
@@ -882,11 +886,11 @@ def home_block():
 <section class="sec" id="exams"><div class="swrap"><div class="sec-head"><span class="kick">Exams</span><h2>Built for the exams you are preparing for</h2><p>{sum(STATS[e[0]]["questions"] for e in EXAMS):,} previous-year math questions, paper by paper. Open an exam to see its questions by chapter and year.</p></div><div class="exc-grid">{exam_cards}</div></div></section>
 <section class="sec sec-alt" id="teachers"><div class="swrap split"><div><span class="kick">For teachers</span><h2>Set a test in minutes. See every result.</h2><p>Build an online test from the question bank, share one link with your class and get a ranked report the moment students finish.</p>
 <ul class="ticks">{tick(['Create tests from DPPs, PYQs or your own selection', 'One link for the whole class, with an exam window', 'Ranks, averages and question-wise analysis', 'Students register themselves and choose your school'])}</ul>
-<a class="sb sb-pri when-out" data-login href="?login=1" rel="nofollow">Login as a teacher</a><a class="sb sb-pri when-in" href="dashboard">Go to my dashboard</a></div>
+<a class="sb sb-pri when-out" data-login href="?login=1" rel="nofollow">Login as a teacher</a><a class="sb sb-pri when-in" href="qbank">Go to my dashboard</a></div>
 <div class="report" aria-hidden="true"><p class="report-h">Class result · Mock Test 3</p><small>Top scorers · example</small>{rep}</div></div></section>
 <section class="sec" id="plans"><div class="swrap"><div class="sec-head"><span class="kick">Plans</span><h2>Start free. Upgrade when you are ready.</h2><p>Premium is a one-year membership. Avanti students and teachers get it free.</p></div>{plans}</div></section>
 <section class="sec sec-alt" id="faq"><div class="swrap"><div class="sec-head"><span class="kick">FAQ</span><h2>Frequently asked questions</h2></div><div class="faq">{faq_html}</div></div></section>
-<section class="cta"><h2>Ready to practise smarter?</h2><p>Create your free account and start with any chapter today.</p><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold sb-lg when-in" href="dashboard">Continue to the dashboard</a></section>
+<section class="cta"><h2>Ready to practise smarter?</h2><p>Create your free account and start with any chapter today.</p><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold sb-lg when-in" href="qbank">Continue to the dashboard</a></section>
 </main>
 {footer(0, share=True)}"""
 
@@ -902,7 +906,7 @@ def num(n): return f'{int(n):,}'
 def upgrade_block():
     return ('<section class="upg"><div><h2>Want to know more, in depth?</h2><p>Get a one-year Premium membership: PDF downloads and printing, all handouts and all-India ranks, on top of the free question bank, DPPs and past papers. '
             'Students pay &#8377;299 a year and teachers &#8377;599 a year. Avanti students and teachers get Premium free.</p></div>'
-            '<div class="upg-go"><a class="upg-btn when-in" href="../dashboard#/membership">Purchase Premium</a><a class="upg-btn when-out" data-login href="../?login=1" rel="nofollow">Purchase Premium</a>'
+            '<div class="upg-go"><a class="upg-btn when-in" href="../qbank#/membership">Purchase Premium</a><a class="upg-btn when-out" data-login href="../?login=1" rel="nofollow">Purchase Premium</a>'
             '<small>Login or register first, then choose Premium in your profile menu.</small></div></section>')
 
 def stat_shell(slug_, title, h1, desc, lead, inner, crumb):
@@ -935,9 +939,9 @@ def chapter_wise_page():
             ('KCET', lambda c: c['exams'].get('KCET', 0), 'KCET (Karnataka CET), a separate exam'),
             ('IAT', lambda c: c['exams'].get('IAT', 0), 'IAT (IISER Aptitude Test), math section, a separate exam'),
             ('NDA', lambda c: c['exams'].get('NDA', 0), 'NDA (National Defence Academy), mathematics paper, a separate exam'),
-            ('Black Book', lambda c: c['src'].get('Black Book', 0), 'Practice questions from the Black Book'),
-            ('Allen Ex', lambda c: c['src'].get('Allen Ex', 0), 'Practice questions from Allen exercises'),
-            ('Allen DY', lambda c: c['src'].get('Allen DY', 0), 'Practice questions from Allen DY sheets')]
+            ('BB Ex', lambda c: c['src'].get('BB Ex', 0), 'Practice questions from BB Ex sheets'),
+            ('Ln Ex', lambda c: c['src'].get('Ln Ex', 0), 'Practice questions from Ln Ex (exercises)'),
+            ('Ln DY', lambda c: c['src'].get('Ln DY', 0), 'Practice questions from Ln DY sheets')]
     head = '<th scope="col">Code</th><th scope="col">Chapter</th>' + ''.join(f'<th scope="col" class="num" title="{E(t)}">{E(n)}</th>' for n, _, t in cols) + '<th scope="col" class="num">Total</th><th scope="col" class="num" title="Previous-year questions that the source lists as out of the current syllabus">Out of syllabus</th>'
     tot = [0] * (len(cols) + 2); body = ''
     order = [c['code'] for c in CH] + [code for code, _ in OOS]
@@ -953,7 +957,7 @@ def chapter_wise_page():
              f'<div class="pg-table cw"><table class="wide"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>'
              '<p class="pg-fine">Total is previous-year plus practice questions. Out of syllabus counts the previous-year questions that the paper lists as no longer in the current syllabus (they are also counted in the exam columns).</p>')
     return stat_shell('chapter-wise-count', 'Chapter-wise Count of Math Questions | अंक-IT', 'Chapter-wise Count',
-        'Chapter-wise count of math questions in the अंक-IT bank: JEE Main, JEE Advanced, KCET, IAT, NDA previous-year questions and practice questions from Black Book and Allen, for every chapter.',
+        'Chapter-wise count of math questions in the अंक-IT bank: JEE Main, JEE Advanced, KCET, IAT, NDA previous-year questions and practice questions from BB Ex and Allen, for every chapter.',
         'How many questions each math chapter has, split by exam and by practice source.', inner, 'Chapter-wise count')
 
 def weightage_page():
@@ -1015,7 +1019,7 @@ def main():
         for code in STATS[e[0]]['chapters']: write(f'exams/{e[2]}/{ANY_SLUG[code]}/index.html', exam_chapter_page(e, code))
     for slug_, fn in (('about', about_page), ('contact', contact_page), ('privacy', privacy_page), ('terms', terms_page)): write(f'{slug_}/index.html', fn())
     write('sitemap.xml', sitemap())
-    write('robots.txt', f'User-agent: *\nAllow: /\nDisallow: /qb/\nDisallow: /dashboard\n\nSitemap: {SITE}/sitemap.xml\n')
+    write('robots.txt', f'User-agent: *\nAllow: /\nDisallow: /qb/\nDisallow: /qbank\nDisallow: /dashboard\n\nSitemap: {SITE}/sitemap.xml\n')
     write('index.html', page('Math Question Bank, PYQs, DPPs | अंक-IT', 'Free math practice for Class 11 and 12: question bank with solutions, PYQs, DPPs, handouts and online tests for JEE, KCET, NDA and IAT.', SITE + '/', home_block(), 0,
         jsonld=[{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/", "name": "अंक-IT Mathematics Dashboard", "inLanguage": "en-IN"},
         {"@type": "EducationalOrganization", "@id": SITE + "/#org", "name": "अंक-IT Mathematics", "url": SITE + "/", "logo": SITE + "/img/icon/icon-180.png", "description": "Math question bank, previous-year papers, DPPs, handouts and online tests for Class 11 and 12."}]}], raw=True))
