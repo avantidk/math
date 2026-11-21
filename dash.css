@@ -463,3 +463,6 @@ body.dpop-on { overflow: hidden; }
 .dmk .fld:has(.oosSeg) > .lbl { order: 0; display: inline-block; align-self: center; margin-left: 6px; text-transform: none; letter-spacing: 0; font: 600 13.5px var(--font-body); color: var(--ink); }
 .dmk .fld:has(.oosSeg) .oosSeg { order: 0; align-self: center; min-width: 170px; }
 .dmk .fld:has(.oosSeg) .hint, .dmk .fld:has(.oosSeg) > p { order: 5; flex: 1 1 100%; }
+/* v998: out-of-syllabus is a switch next to Explanation; the filters start on the next line */
+.dmk .fld:has(.oosSeg) { display: none !important; }
+.dmk .tglrow { flex: 1 1 100% !important; gap: 10px 22px; }

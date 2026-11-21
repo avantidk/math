@@ -245,6 +245,13 @@ async function viewDppMaker() {
     const P = window.AvantiPortal;
     const ic = { docx: P.icons.docx, pdf: P.icons.pdf, pptx: P.icons.pptx };
     host.querySelectorAll('.ibtn[data-act="lexp"]').forEach(b => { if (ic[b.dataset.k]) b.innerHTML = ic[b.dataset.k]; });
+    /* out-of-syllabus questions: one switch like Explanation (on = include them), driving the builder's own Include / Exclude */
+    const seg = host.querySelector('.oosSeg'), row = host.querySelector('.tglrow');
+    if (seg && row) {
+      const inc = seg.querySelector('[data-k="in"]'), exc = seg.querySelector('[data-k="ex"]'), tip = (host.querySelector('.fld:has(.oosSeg) .hint') || {}).textContent || '';
+      const cb = h('input', { type: 'checkbox', role: 'switch', checked: inc.getAttribute('aria-pressed') === 'true', onchange: e => (e.target.checked ? inc : exc).click() });
+      row.append(h('label', { class: 'pick1 tgl tgl-hl dmk-oos', title: tip }, cb, h('span', { class: 'tgl-track', 'aria-hidden': 'true' }), h('span', { text: 'Out-of-syllabus questions' })));
+    }
     const ld = MAIN.querySelector('.pt-state'); if (ld) ld.replaceWith(host); else MAIN.append(host);
     setTimeout(() => window.dispatchEvent(new Event('resize')), 80);
   } catch (e) { if (tok === NAV) MAIN.append(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'The maker did not load' }), h('p', { text: (e && e.message) || 'Check your connection and try again.' }), h('button', { type: 'button', class: 'btn', text: 'Try again', onclick: () => route() }))); }
