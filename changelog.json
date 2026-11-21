@@ -1,5 +1,12 @@
 [
   {
+    "v": "985",
+    "date": "21 Nov 2026",
+    "items": [
+      "The Guide (?) and Question Bank overview (bars) buttons are back, and now sit in the top bar of both the Dashboard and the Question Bank. On the Dashboard the Guide opens in place; the overview items open the matching panel in the Question Bank."
+    ]
+  },
+  {
     "v": "984",
     "date": "21 Nov 2026",
     "items": [

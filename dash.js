@@ -121,9 +121,19 @@ function shell() {
   SIDE = h('aside', { class: 'd-side', 'aria-label': 'Dashboard menu' }); MAIN = h('main', { class: 'd-main', id: 'dMain' });
   const C = window.AvantiChrome;   /* the same top bar and footer as /qbank */
   root.append(h('div', { class: 'shell d-shell' },
-    h('header', { class: 'topbar' }, C.head(), C.home(), C.themeBtn(), C.nav('dash', 'dash')),
+    h('header', { class: 'topbar' }, C.head(), C.home(), C.themeBtn(), ...C.tools(), C.nav('dash', 'dash')),
     h('div', { class: 'd-body' }, SIDE, MAIN), C.footer()));
   C.themeInit(); C.footerInit();
+  const pop = () => $('#qbPop'), info = () => $('#qbInfoBtn');
+  const shut = () => { if (pop()) pop().hidden = true; if (info()) info().setAttribute('aria-expanded', 'false'); };
+  document.addEventListener('click', e => { const m = document.getElementById('guideModal'); if (m && (e.target === m || e.target.closest('[data-act="guideclose"]'))) m.remove(); });
+  root.addEventListener('click', async e => {
+    const g = e.target.closest('#guideBtn'), i = e.target.closest('#qbInfoBtn'), it = e.target.closest('#qbPop .tb-item');
+    if (g) { try { const t = await realTE(); t.guide(); } catch (x) { toast('The guide did not load. Try again.'); } return; }
+    if (i) { const open = pop().hidden; pop().hidden = !open; i.setAttribute('aria-expanded', String(open)); return; }
+    if (it) { shut(); try { sessionStorage.setItem('avanti-qbopen', it.dataset.qbpanel || it.dataset.k); } catch (x) { /* optional */ } location.href = 'qbank#/qb'; return; }
+    shut();
+  });
 }
 function side(o) {   /* o: { back: hash|null, title, sub, items:[{label, icon, hash|href|onclick, active, badge, off}] } */
   SIDE.textContent = '';

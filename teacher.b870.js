@@ -1798,6 +1798,7 @@ function buildShell() {
         AvantiChrome.head(),
         AvantiChrome.home(),
         AvantiChrome.themeBtn(),
+        ...AvantiChrome.tools(),
         AvantiChrome.nav('qbank', '')),
       h('main', { class: 'main' },
         h('div', { id: 'viewQb', class: 'qbhost' }),
@@ -1883,11 +1884,12 @@ async function qbInit() {
     host.innerHTML = '<div id="dash-root">' + html + '</div>';
     await window.AvantiBoot.loadScript(pre.js || 'qb/qb-all.b870.js');
     await window.__qbStart();
+    try { const o = sessionStorage.getItem('avanti-qbopen'); if (o) { sessionStorage.removeItem('avanti-qbopen'); if (o === 'syl') setTab('syl'); else { const b = document.querySelector('[data-qbpanel="' + o + '"]'); if (b) b.click(); } } } catch (e) { /* optional */ }
   } catch (e) { qbLoaded = false; host.textContent = 'The question bank did not load. Refresh the page.'; }
 }
 window.AvantiTeacher = {
   start: o => { OPTS = o; boot(); },
-  setTab: t => setTab(t), hideViews: () => hideViews(), toast: m => toast(m),
+  setTab: t => setTab(t), hideViews: () => hideViews(), toast: m => toast(m), guide: () => guideOpen(),
   /* the question bank (same data as the Question Bank, DPPs and PYQs tabs), for the test maker */
   bank: () => ensureDpp().then(() => ({ qs: BANK.all, byId: BYID, chapters: CHMAP })),
   /* saved worksheets: the same PDF / Word / PowerPoint export and share menu as DPPs (plan checks inside) */

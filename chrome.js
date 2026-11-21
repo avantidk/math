@@ -10,6 +10,12 @@ const ICON = {
 };
 /* [key, label, link]. Every item opens a dashboard page, on /dashboard and on /qbank alike; /qbank itself is only the Question Bank (profile menu). */
 const NAV = [['dash', 'Dashboard', 'dashboard'], ['pyq', 'PYQs', 'dashboard#d/pyq'], ['lib', 'DPPs', 'dashboard#d/dpp'], ['tests', 'Tests', 'dashboard#/modes'], ['ho', 'Handouts', 'dashboard#d/handouts']];
+/* the Guide and Question Bank overview buttons, in the top bar of both apps */
+const QB_ITEMS = [['heroov', 'Mathematics Bank: Question Counts'], ['overview', 'Chapter-wise Count'], ['syl', 'Syllabus Priority'], ['wchart', 'Chapter Weightage']];
+const tools = () => [
+  h('button', { type: 'button', class: 'tb-theme tb-guide', id: 'guideBtn', 'data-act': 'guide', title: 'Guide: what is in this site', 'aria-label': 'Guide: what is in this site', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>' }),
+  h('button', { type: 'button', class: 'tb-theme tb-info', id: 'qbInfoBtn', 'data-act': 'qbinfo', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Question Bank overview', 'aria-label': 'Question Bank overview', html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' }),
+  h('div', { class: 'tb-pop', id: 'qbPop', hidden: true, role: 'menu' }, QB_ITEMS.map(([k, t]) => k === 'syl' ? h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-act': 'tab', 'data-k': 'syl', text: t }) : h('button', { type: 'button', class: 'tb-item', role: 'menuitemradio', 'aria-selected': 'false', 'aria-checked': 'false', 'data-qbpanel': k, text: t })))];
 const THEME_KEY = 'avanti-teacher-theme';
 const head = () => h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark-sm.png?v=922', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Mathematics Dashboard' }), h('span', { class: 'tb-sub', text: 'JEE, CET, NDA, IAT, PYPs, DPPs, Handouts' }));
 const home = () => h('a', { class: 'tb-theme tb-home', id: 'homeBtn', href: '/', title: 'Home page', 'aria-label': 'Home page', html: ICON.home });
@@ -41,5 +47,5 @@ function footerInit() {
   const open = () => { if (window.AvantiPortal) window.AvantiPortal.showChangelog(); };
   f.addEventListener('click', open); f.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
 }
-window.AvantiChrome = Object.freeze({ ICON, NAV, head, home, themeBtn, nav, footer, footerInit, themeInit });
+window.AvantiChrome = Object.freeze({ ICON, NAV, QB_ITEMS, head, home, themeBtn, tools, nav, footer, footerInit, themeInit });
 })();
