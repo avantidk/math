@@ -10,6 +10,7 @@
     if (raw) { var o = JSON.parse(raw); if (o && o.access_token && o.user) user = o.user; }
   } catch (e) { user = null; }
   if (user) de.classList.add('signed-in');
+  if (/[?&]embed=1/.test(window.location.search)) de.classList.add('embed');   /* shown inside a pop-up of the dashboard: only the content */
   /* The question-bank app lives at /qbank. Old links and sign-in returns that still land on the home page are sent there:
      /#/t/<code> test links, /#/profile, ?code= (Google sign-in coming back) and ?login=1 when someone is already signed in. */
   var pg = de.getAttribute('data-page'), q = window.location.search, hs = window.location.hash;

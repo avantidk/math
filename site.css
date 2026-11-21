@@ -692,3 +692,6 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
   .gd-tbl th, .gd-tbl td { padding: 9px 9px; }
   .gd-tbl tbody th, .gd-tbl thead th:first-child { width: 22%; min-width: 0; padding-right: 8px; white-space: normal; overflow-wrap: break-word; }
 }
+/* shown inside a dashboard pop-up (?embed=1): content only */
+.embed .sh, .embed .sf, .embed .skip, .embed .pg-side, .embed .rr, .embed .pg-hero, .embed .upg { display: none !important; }
+.embed .pg-grid { display: block; padding-top: 8px; } .embed body, html.embed body { background: transparent; }

@@ -46,7 +46,7 @@ const IC = {
 };
 
 /* ---------- data ---------- */
-const D = { ready: null, rows: [], raw: new Map(), chapters: [], chByCode: {}, topics: {}, must: {}, maxYear: 2026, sum: { bookmarks: [], results: {} }, tests: null };
+const D = { ready: null, rows: [], raw: new Map(), chapters: [], chByCode: {}, topics: {}, must: {}, mustK: {}, maxYear: 2026, sum: { bookmarks: [], results: {} }, tests: null };
 /* DPP sources and their exercise (sheet) numbers, read from the question ids */
 const SOURCES = [
   { k: 'bb', name: 'BB Ex', sub: 'Exercise sheets, chapter by chapter', tone: '#2563eb' }, { k: 'dy', name: 'Ln DY', sub: 'Do Yourself sheets after every class', tone: '#059669' },
@@ -66,7 +66,7 @@ function load() {
   D.ready = Promise.all([C.get('qb/data/pyq.json'), (A().perm.premium ? C.get('qb/data/nonpyq.json') : Promise.resolve([])), C.get('qb/data/chapters.json'), C.get('qb/data/topics.json').catch(() => []), C.get('must.json').catch(() => [])]).then(([pyq, np, chs, tops, must]) => {
     D.chapters = (chs || []).slice().sort((a, b) => a.order - b.order); D.chapters.forEach(c => { D.chByCode[c.chapter_code] = c; });
     (tops || []).forEach(t => { (D.topics[t.chapter_code] = D.topics[t.chapter_code] || []).push(t); });
-    (must || []).forEach(m => { D.must[m.c] = (m.i || []).map(x => x.r); });
+    (must || []).forEach(m => { D.must[m.c] = (m.i || []).map(x => x.r); (m.i || []).forEach(x => { D.mustK[x.r] = x.k; }); });
     (pyq || []).concat(np || []).forEach(r => {
       const P = r.source === 'PYQ' || (pyq.indexOf && false);
       const isP = r.source === 'PYQ';
@@ -131,7 +131,7 @@ function shell() {
     const g = e.target.closest('#guideBtn'), i = e.target.closest('#qbInfoBtn'), it = e.target.closest('#qbPop .tb-item');
     if (g) { try { const t = await realTE(); t.guide(); } catch (x) { toast('The guide did not load. Try again.'); } return; }
     if (i) { const open = pop().hidden; pop().hidden = !open; i.setAttribute('aria-expanded', String(open)); return; }
-    if (it) { shut(); try { sessionStorage.setItem('avanti-qbopen', it.dataset.qbpanel || it.dataset.k); } catch (x) { /* optional */ } location.href = 'qbank#/qb'; return; }
+    if (it) { shut(); const k = it.dataset.qbpanel || it.dataset.k; const pg = { heroov: ['Mathematics Bank: Question Counts', 'question-counts/'], overview: ['Chapter-wise Count', 'chapter-wise-count/'], syl: ['Syllabus Priority', 'syllabus-priority/'], wchart: ['Chapter Weightage', 'chapter-weightage/'] }[k]; if (pg) popPage(pg[0], pg[1]); return; }
     shut();
   });
 }
@@ -212,6 +212,36 @@ function viewDppSrc(k, exKey) {
 }
 
 /* ---------- Step 1: source ---------- */
+/* a page of the site shown in a pop-up (cross at the top right), so nobody leaves the dashboard */
+function popPage(title, path) {
+  const old = document.getElementById('dPop'); if (old) old.remove();
+  const frame = h('iframe', { class: 'dpop-f', title, src: '/' + path + '?embed=1', loading: 'eager' }), load = h('div', { class: 'dpop-load' }, h('div', { class: 'spin' }));
+  frame.addEventListener('load', () => load.remove());
+  const close = () => { box.remove(); document.removeEventListener('keydown', key); document.body.classList.remove('dpop-on'); };
+  const key = e => { if (e.key === 'Escape') close(); };
+  const box = h('div', { class: 'dpop', id: 'dPop', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, onclick: e => { if (e.target === box) close(); } },
+    h('div', { class: 'dpop-in' }, h('div', { class: 'dpop-h' }, h('h2', { text: title }), h('button', { type: 'button', class: 'dpop-x', 'aria-label': 'Close', html: '&times;', onclick: close })), h('div', { class: 'dpop-b' }, load, frame)));
+  document.body.append(box); document.body.classList.add('dpop-on'); document.addEventListener('keydown', key);
+  box.querySelector('.dpop-x').focus();
+}
+/* ---------- special picks: a small carousel on the home page, each opens a question list ---------- */
+const MIXF = { trig: /\\(sin|cos|tan|cot|sec|csc)\b/, log: /\\(log|ln)\b/, int: /\\int/, lim: /\\lim/, der: /\\frac\{d|derivative|differentiable|f'|\\prime/, mat: /matri|determinant|vmatrix|adj\b/, vec: /\\vec|\\hat|vector|overrightarrow/, cx: /complex|\\bar\{z\}|\|z|\\omega|\barg\b/,
+  conic: /parabola|ellipse|hyperbola|circle|focus|directrix|eccentric/, prob: /probabilit|dice|coin|randomly/, seq: /\ba\.?p\b|\bg\.?p\b|arithmetic|geometric|sequence|progression/, bin: /\\binom|binomial|permutation|combination|arrange|\^\{?n\}?c|\{\}\^/, set: /relation|\\cup|\\cap|bijective|injective|one-one|onto/, quad: /quadratic|discriminant/ };
+let MIXSET = null;
+const mixIds = () => MIXSET || (MIXSET = new Set(D.rows.filter(r => r.P).filter(r => { const x = D.raw.get(r.id) || {}, t = ((x.question || '') + ' ' + (x.options || []).join(' ')).toLowerCase(); let n = 0; for (const k in MIXF) if (MIXF[k].test(t)) n++; return n >= 3; }).map(r => r.id)));
+const PICKS = [
+  { k: 'repeated', t: 'Repeated questions', s: 'Asked again and again in JEE', tone: '#e11d48', title: 'Repeated Questions', pool: () => D.rows.filter(r => r.P && (D.mustK[r.id] === 'i' || D.mustK[r.id] === 'e')) },
+  { k: 'sure', t: 'Sure-shot questions', s: 'Hand-picked for the next exam', tone: '#d9961a', title: 'Sure-shot Questions', pool: () => D.rows.filter(r => r.P && D.mustK[r.id] === 'u') },
+  { k: 'mix', t: 'Mix-breed questions', s: 'Concepts of 3 or more chapters', tone: '#7c3aed', title: 'Mix-breed Questions', pool: () => D.rows.filter(r => mixIds().has(r.id)) },
+  { k: 'adv-easy', t: 'Easiest JEE Advanced', s: 'Level 1 questions of Advanced', tone: '#16a06a', title: 'Easiest JEE Advanced Questions', pool: () => D.rows.filter(r => r.ex === 'jee-advanced' && r.d === 'L1') },
+  { k: 'main-hard', t: 'Toughest JEE Main', s: 'Level 3 questions of Main', tone: '#0891b2', title: 'Toughest JEE Main Questions', pool: () => D.rows.filter(r => r.ex === 'jee-main' && r.d === 'L3') }];
+function viewPick(k) {
+  const pk = PICKS.find(x => x.k === k); if (!pk) return go('d/');
+  side({ back: '', title: 'Special picks', sub: 'Quick sets to practise', items: PICKS.map(x => ({ label: x.t, icon: IC.test, hash: 'd/pick/' + x.k, active: x.k === k, badge: String(x.pool().length) })) });
+  const rows = pk.pool();
+  window.DashList.render(listEnv(), { rows, title: pk.title, head: h('div', { class: 'd-head' }, crumb('Dashboard', pk.title)), testLabel: 'Take test', emptyText: 'Nothing here yet.',
+    startTest: list => launchTestFrom(list, { chapter: pk.title, chapter_code: 'pick' }, 'pyq', null, 20, 'practice test') });
+}
 const UPCOMING = [['JEE Main 2027 · Session 1', '2027-01-21', 'jee-main'], ['JEE Advanced 2027', '2027-05-23', 'jee-advanced']];
 function viewHome() {
   side({ back: null, title: 'Dashboard', sub: 'Choose how you want to practise', items: homeItems('home') });
@@ -246,7 +276,11 @@ function viewHome() {
     tests.length ? h('ul', { class: 'dh-tl' }, tests.map(t => h('li', {}, h('a', { href: '#/report/' + t.attempt_id }, h('span', { class: 'dh-tt' }, h('b', { text: t.title }), h('small', { text: t.submitted_at ? new Date(t.submitted_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '' })),
       h('span', { class: 'dh-sc', text: t.score == null ? '—' : +(+t.score).toFixed(2) + ' / ' + +(+t.max_score).toFixed(2) }))))) :
       h('div', { class: 'dh-empty' }, h('p', { text: 'No tests yet. Take your first test to see your score and analysis here.' }), h('a', { class: 'btn pri', href: '#/modes', text: 'Take a test' })));
-  main(hero, strip, h('h3', { class: 'dh-h', text: 'Practise' }), cards, h('div', { class: 'dh-two' }, prog, rec));
+  const car = h('div', { class: 'dh-car', role: 'region', 'aria-label': 'Special picks' });
+  const track = h('div', { class: 'dh-track' }, PICKS.map(pk => h('a', { class: 'dh-pk', href: '#d/pick/' + pk.k, style: '--tone:' + pk.tone }, h('b', { text: pk.t }), h('small', { text: pk.s }), h('span', { class: 'dh-pn', text: num(pk.pool().length) + ' questions' }))));
+  const arrow = (dir, ic) => h('button', { type: 'button', class: 'dh-ar dh-ar-' + dir, 'aria-label': dir === 'l' ? 'Previous' : 'Next', html: ic, onclick: () => track.scrollBy({ left: dir === 'l' ? -280 : 280, behavior: 'smooth' }) });
+  car.append(arrow('l', IC.back), track, arrow('r', IC.chev));
+  main(hero, strip, h('h3', { class: 'dh-h', text: 'Special picks' }), car, h('h3', { class: 'dh-h', text: 'Practise' }), cards, h('div', { class: 'dh-two' }, prog, rec));
 }
 
 /* ---------- Step 2: exams (PYQ path) ---------- */
@@ -525,6 +559,7 @@ async function route() {
   if (a === 'np') return viewChapters('np', null);
   if (a === 'ch') return viewChapter(b, c === '-' ? null : c, d, e || 'overview', f);
   if (a === 'handouts') return viewHandouts();
+  if (a === 'pick') return viewPick(b);
   if (a === 'dpp') return b ? viewDppSrc(b, c) : viewDpp();
   if (a === 'bookmarks') return viewBookmarksPage();
   if (a === 'history') return viewHistoryPage();

@@ -1,5 +1,14 @@
 [
   {
+    "v": "990",
+    "date": "21 Nov 2026",
+    "items": [
+      "The Question Bank overview items (Question Counts, Chapter-wise Count, Syllabus Priority, Chapter Weightage) now open as a pop-up inside the Dashboard, with a cross at the top right, instead of taking you to the Question Bank.",
+      "New \"Special picks\" carousel on the Dashboard home: Repeated questions, Sure-shot questions, Mix-breed questions (concepts of 3 or more chapters), Easiest JEE Advanced and Toughest JEE Main. Each opens its own question list.",
+      "Fixed the Your progress and Recent tests blocks being wider than the screen on phones."
+    ]
+  },
+  {
     "v": "989",
     "date": "21 Nov 2026",
     "items": [

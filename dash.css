@@ -351,3 +351,22 @@ button.dl-opt.bad:hover { border-color: #d6293e; background: color-mix(in srgb, 
 @media (max-width: 520px) { .dh-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .dh-card { padding: 14px 12px 12px; } .dh-ci { width: 38px; height: 38px; } .dh-ct { font-size: 16px; } .dh-cs { font-size: 12.5px; } .dh-cm { font-size: 12px; } .dh-stats { gap: 8px; } .dh-st { padding: 12px 10px; } .dh-days { width: 54px; height: 54px; } }
 /* top-bar menu: every item the same, the open one lit */
 html body .tb-menu a.tb { text-decoration: none; display: block; text-align: center; }
+/* pop-up page (cross at top right) */
+.dpop { position: fixed; inset: 0; z-index: 900; background: rgba(8,16,40,.55); display: flex; align-items: center; justify-content: center; padding: 18px; }
+.dpop-in { width: min(980px, 100%); height: min(88vh, 900px); background: var(--panel); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 30px 80px rgba(0,0,0,.4); }
+.dpop-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 14px 20px; border-bottom: 1px solid var(--rule); } .dpop-h h2 { margin: 0; font: 700 18px var(--font-body); color: var(--ink); }
+.dpop-x { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); font-size: 24px; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0 0 3px; } .dpop-x:hover { background: var(--accent-soft); color: var(--accent); }
+.dpop-b { position: relative; flex: 1; min-height: 0; } .dpop-f { width: 100%; height: 100%; border: 0; background: var(--panel); } .dpop-load { position: absolute; inset: 0; display: grid; place-items: center; }
+body.dpop-on { overflow: hidden; }
+@media (max-width: 640px) { .dpop { padding: 0; align-items: flex-end; } .dpop-in { height: 94vh; border-radius: 18px 18px 0 0; } }
+/* special picks carousel */
+.dh-car { position: relative; }
+.dh-track { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 4px 2px 8px; margin: 0 -2px; -webkit-overflow-scrolling: touch; } .dh-track::-webkit-scrollbar { display: none; }
+.dh-pk { --tone: #e11d48; flex: 0 0 min(230px, 72%); scroll-snap-align: start; display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 14px; background: linear-gradient(135deg, color-mix(in srgb, var(--tone) 13%, var(--panel)), var(--panel)); border: 1px solid var(--rule); border-left: 5px solid var(--tone); color: var(--ink); text-decoration: none; transition: transform .15s, box-shadow .15s; }
+.dh-pk:hover { transform: translateY(-2px); box-shadow: var(--shadow); } .dh-pk b { font: 700 15.5px/1.25 var(--font-body); } .dh-pk small { color: var(--muted); font-size: 12.5px; line-height: 1.35; } .dh-pn { margin-top: 6px; font: 700 12.5px var(--font-body); color: var(--tone); }
+.dh-ar { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); display: grid; place-items: center; cursor: pointer; box-shadow: var(--shadow-sm); z-index: 2; } .dh-ar-l { left: -10px; } .dh-ar-r { right: -10px; } .dh-ar:hover { color: var(--accent); }
+@media (hover: none) { .dh-ar { display: none; } }
+/* home blocks must not push the page wider on phones */
+.dh-two > *, .dh-box { min-width: 0; } .dh-box { overflow: hidden; } .dh-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 900px) { .dh-two { grid-template-columns: minmax(0, 1fr); } }
+.dh-pl b, .dh-tt b { min-width: 0; }
