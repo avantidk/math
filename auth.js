@@ -181,8 +181,8 @@ function renderMenu() {
   const slot = $('#tbProfile'); const p = A.profile; if (!slot || !p) return;
   slot.textContent = '';
   const perm = A.perm, student = p.role === 'student', teacher = p.role === 'teacher';
-  const pre = document.documentElement.getAttribute('data-page') === 'dash' ? 'qbank' : '';   /* on /dashboard the account pages live in /qbank */
-  const items = [['#/qb', 'Question Bank'], ['#/profile', 'Edit profile'], ['#/personal', 'Practice Tests & Results']];
+  const pre = 'dashboard';   /* every account page is a dashboard page; only the Question Bank is /qbank */
+  const items = [['#/qb', 'Question Bank'], ['#/profile', 'Edit profile'], ['#/personal', 'My Performance']];
   if (perm.plan === 'premium' && !p.is_avanti) items.push(['#/membership', 'Membership']);
   if (student) {
     if (perm.plan !== 'free') items.push(['#/tests', 'Available tests']);   /* tests made by teachers are for Premium students only */
@@ -206,7 +206,7 @@ function renderMenu() {
       h('span', { class: 'pf-mail', title: p.email || p.avanti_id || '', text: p.email || p.avanti_id || '' }),
       h('span', { class: 'pf-plan ' + (perm.plan === 'free' ? (teacher ? 'pf-free-t' : 'pf-free-s') : 'pf-gold'), text: perm.isAdmin || perm.plan === 'staff' ? planLabel : planLabel + ' · ' + (teacher ? 'Teacher' : 'Student') })),
     upgrade,
-    items.map(([href, t]) => h('a', { class: 'tb-item pf-item', role: 'menuitem', href: (href === '#/personal' ? '' : pre) + href, 'data-count': COUNT_KEY[href] || null, onclick: close }, h('span', { text: t }), COUNT_KEY[href] ? h('span', { class: 'pf-count' }) : null)),
+    items.map(([href, t]) => h('a', { class: 'tb-item pf-item', role: 'menuitem', href: (href === '#/qb' ? 'qbank' : pre) + href, 'data-count': COUNT_KEY[href] || null, onclick: close }, h('span', { text: t }), COUNT_KEY[href] ? h('span', { class: 'pf-count' }) : null)),
     h('button', { type: 'button', class: 'tb-item pf-out', role: 'menuitem', text: 'Logout', onclick: () => A.signOut() }));
   const canHover = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
   const btn = h('button', { type: 'button', class: avatarClass(p, perm), id: 'pfBtn', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Profile menu (' + planLabel + ')', title: planLabel, text: initials(p),

@@ -296,7 +296,7 @@ def header(depth, up=None):
            + dd('Exams', f'{up}exams/', exams_panel) + dd('Maths', f'{up}maths/', maths_panel, 'rel') + dd('Resources', f'{up}exams/safe-scores/', res_panel, 'rel')
            + f'<a href="{up}#plans">Plans</a><a href="{up}contact/">Help</a>')
     login = f'<a class="sb sb-pri when-out" data-login href="{up}?login=1" rel="nofollow">Login</a>'
-    user = (f'<div class="sh-user when-in"><div class="sh-pf"><a class="sh-av" data-av data-profile href="{up}qbank#/profile" aria-label="Your account" aria-haspopup="true" aria-expanded="false">&nbsp;</a><div class="pfm" role="menu"></div></div></div>')
+    user = (f'<div class="sh-user when-in"><div class="sh-pf"><a class="sh-av" data-av data-profile href="{up}dashboard#/profile" aria-label="Your account" aria-haspopup="true" aria-expanded="false">&nbsp;</a><div class="pfm" role="menu"></div></div></div>')
     burger = svg('<path d="M4 7h16M4 12h16M4 17h16"/>', 22)
     return f"""<a class="skip" href="#main">Skip to content</a>
 <header class="sh"><div class="swrap sh-in">
@@ -1105,7 +1105,7 @@ def num(n): return f'{int(n):,}'
 def upgrade_block():
     return ('<section class="upg"><div><h2>Want to know more, in depth?</h2><p>Get a one-year Premium membership: PDF downloads and printing, all handouts and all-India ranks, on top of the free question bank, DPPs and past papers. '
             'Students pay &#8377;299 a year and teachers &#8377;599 a year. Avanti students and teachers get Premium free.</p></div>'
-            '<div class="upg-go"><a class="upg-btn when-in" href="../qbank#/membership">Purchase Premium</a><a class="upg-btn when-out" data-login href="../?login=1" rel="nofollow">Purchase Premium</a>'
+            '<div class="upg-go"><a class="upg-btn when-in" href="../dashboard#/membership">Purchase Premium</a><a class="upg-btn when-out" data-login href="../?login=1" rel="nofollow">Purchase Premium</a>'
             '<small>Login or register first, then choose Premium in your profile menu.</small></div></section>')
 
 def stat_shell(slug_, title, h1, desc, lead, inner, crumb):

@@ -1,5 +1,16 @@
 [
   {
+    "v": "984",
+    "date": "21 Nov 2026",
+    "items": [
+      "Handouts is now a Dashboard page: Class 11 / Class 12 tabs, search, and a card for every handout with View, Download PDF and a black-and-white print copy.",
+      "The menu now reads Dashboard, PYQs, DPPs, Tests, Handouts. The big banners on the PYQs and Tests pages are gone.",
+      "Tests, My Performance (was Practice Tests & Results), profile, membership, reports, help, and taking a test all open inside the Dashboard. The Question Bank (/qbank) is only for the Question Bank now.",
+      "Create Your Practice Test has many more options: exams and year range, practice books, chapters by class, difficulty, question type, skip already-solved questions, order, number, time, marking scheme and a test name, with a live summary.",
+      "The Question Bank page now has exactly the same top bar and footer as the Dashboard, and the menu items are no longer underlined."
+    ]
+  },
+  {
     "v": "983",
     "date": "21 Nov 2026",
     "items": [

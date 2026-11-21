@@ -431,7 +431,7 @@ function membershipContent(teacher) {
     rows: [['View Question Bank, DPPs, PYPs and handouts', 1, 1], ['Create online tests for your school (one test link as a trial)', 1, 1], ['Results of your own tests', 1, 1],
       ['Download and print every PDF', 0, 1], ['Share PDFs on WhatsApp and email', 0, 1], ['Copy question text', 0, 1], ['Saved worksheets', 0, 1], ['My Students with performance', 0, 1],
       ['Unlimited test links for your school', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1]],
-    faq: [['Do my students need Premium to take my tests?', 'Yes. Only Premium students of your school, class and batch can take tests made by teachers. Free students can take past papers from Practice Tests & Results.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs can be shared straight from the phone.']]
+    faq: [['Do my students need Premium to take my tests?', 'Yes. Only Premium students of your school, class and batch can take tests made by teachers. Free students can take past papers from My Performance.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs can be shared straight from the phone.']]
   } : {
     eyebrow: 'Premium for students', title: 'Practise anywhere. Know where you stand.',
     lead: 'Download every DPP, PYQ paper and handout to practise offline, and see your rank among every student who took the test.',
@@ -990,7 +990,7 @@ async function pageMyTests() {
       t.mine === false ? null : exportBtn(t))))));
 }
 
-/* ---------- Practice Tests & Results: every account takes past papers for itself ---------- */
+/* ---------- My Performance: every account takes past papers for itself ---------- */
 const PAPER_EXAMS = ['JEE Main', 'JEE Advanced', 'IIT-JEE', 'AIEEE', 'KCET', 'NDA', 'IAT'];
 const examOfQ = x => x.e === 'KCET' ? 'KCET' : x.e === 'IAT' ? 'IAT' : x.e === 'NDA' ? 'NDA' : x.e === 'Adv' ? (x.y < 2013 ? 'IIT-JEE' : 'JEE Advanced') : (x.y < 2013 ? 'AIEEE' : 'JEE Main');
 /* Time and marking of every exam come from the database (table marking_schemes, one row per exam and effective year, so a yearly change never
@@ -1049,7 +1049,7 @@ async function showLinkRanking(testId, title) {
 }
 async function pagePersonal(arg) {
   const onlyPicker = arg === 'pyq';   /* #/modes/pyq: the paper picker alone (Previous Year Papers) */
-  show(head(onlyPicker ? 'Previous Year Papers' : 'Practice Tests & Results', onlyPicker ? 'Every question of the real paper, with the real time and marking.' : 'Your tests and results stay in your own account.'), loading('Loading the question papers…'));
+  show(head(onlyPicker ? 'Previous Year Papers' : 'My Performance', onlyPicker ? 'Every question of the real paper, with the real time and marking.' : 'Your tests and results stay in your own account.'), loading('Loading the question papers…'));
   const [ov, B] = await Promise.all([rpc('personal_overview'), fresh(TE().bank())]);
   CHN = B.chapters;
   let exam = PAPER_EXAMS.find(e => papersOf(B, e).length) || PAPER_EXAMS[0];
@@ -1091,7 +1091,7 @@ async function pagePersonal(arg) {
   drawPapers();
   const startCard = card(h('h2', { text: 'Choose a paper' }), h('p', { class: 'pt-hint', text: 'Pick the exam, then the paper. You see the instructions and the marking scheme first; the timer starts only when you press Start.' }), examBar, paperBox);
   if (onlyPicker) { show(modeBanner('PYP', 'Previous Year Papers', 'Every question of the real paper, with the real time and marking.'), startCard); return; }
-  show(head('Practice Tests & Results', 'Your tests and results stay in your own account.', link('#/modes', 'Start a new test', 'btn pri')),
+  show(head('My Performance', 'Your tests and results stay in your own account.', link('#/modes', 'Start a new test', 'btn pri')),
     ov.offered.length ? card(h('h2', { text: 'Tests for you' }), h('p', { class: 'pt-hint', text: 'Made by अंक-IT for ' + (P().role === 'student' ? 'students' : 'teachers') + '. Teachers see their own rank only.' }),
       h('div', { class: 'pp-papers' }, ov.offered.map(x => h('button', { type: 'button', class: 'pp-card', onclick: () => { location.hash = '#/t/' + x.code; } },
         h('b', { text: x.title }), h('small', { text: x.n_questions + ' questions · ' + x.duration_min + ' min' }), h('span', { class: 'pp-go', text: 'Open instructions ›' }))))) : null,
@@ -1151,11 +1151,7 @@ async function pageModes(arg) {
   if (arg === 'full') return modeFull();
   const free = isFree();
   let n = null; try { const c = await rpc('menu_counts'); n = c && c.personal; } catch (e) { n = null; }
-  const how = [['Choose a test', 'Pick one of the five test types below.'], ['Read the instructions', 'Time, questions and the marking scheme are shown first.'], ['Press Start', 'The timer begins only when you press Start.'], ['Review', 'Score report, topic analysis, answers and explanations.']];
-  show(h('section', { class: 'tx-hero' }, h('div', { class: 'tx-hero-in' }, h('span', { class: 'tx-kick', text: 'TESTS' }), h('h1', { text: 'Test yourself like the real exam' }),
-      h('p', { text: 'Real papers, mock tests and your own practice sets. Every result stays in your own account, and nobody else sees it.' }),
-      h('div', { class: 'tx-hero-act' }, link('#/personal', 'Practice Tests & Results' + (n != null ? ' (' + n + ')' : ''), 'btn pri'))),
-      h('ul', { class: 'tx-how', 'aria-label': 'How a test works' }, how.map(([t, d], i) => h('li', {}, h('b', { text: String(i + 1) }), h('span', {}, h('strong', { text: t }), h('small', { text: d })))))),
+  show(head('Tests', 'Choose how you want to be tested. Every result stays in your own account.', link('#/personal', 'My Performance' + (n != null ? ' (' + n + ')' : ''), 'btn pri')),
     h('div', { class: 'tx-grid' }, MODES.map((m, i) => { const off = free && m.np;
       return h('a', { class: 'tx-card tx-' + m.tone + (i < 3 ? ' tx-top' : ' tx-low') + (off ? ' is-off' : ''), href: off ? '#/membership' : '#/modes/' + m.k, 'aria-label': m.t + (off ? ' (Premium)' : '') },
         h('span', { class: 'tx-ic', html: TXI[m.k] }), off ? h('span', { class: 'tx-lock', text: '🔒 Premium' }) : null, h('h2', { text: m.t }), h('p', { text: m.d }),
@@ -1166,29 +1162,69 @@ const chip = (text, on, fn, dis) => h('button', { type: 'button', class: 'pp-chi
 async function modeCustom() {
   show(modeHead('Create Your Practice Test', 'Choose what to practise.'), loading('Loading the question bank…'));
   const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
-  const free = isFree(), S = { chs: new Set(), src: new Set(['P']), lv: new Set(['L1', 'L2', 'L3']), n: 20, mins: 60, auto: true };
-  const all = B.qs.filter(gradable), chapters = [...CHN.values()].filter(c => all.some(q => q.cc === c.c));
-  const pool = () => all.filter(q => (!S.chs.size || S.chs.has(q.cc)) && S.src.has(q.s) && S.lv.has(q.d) && (!free || q.s === 'P'));
-  const chBox = h('div', { class: 'pp-exams' }), srcBox = h('div', { class: 'pp-exams' }), lvBox = h('div', { class: 'pp-exams' }), info = h('p', { class: 'pt-hint', role: 'status' });
-  const nSel = h('select', { class: 'pt-in', 'aria-label': 'Number of questions', onchange: e => { S.n = +e.target.value; if (S.auto) S.mins = S.n * 3; mins.value = S.mins; draw(); } }, [10, 15, 20, 25, 30, 40, 50].map(n => h('option', { value: n, text: n + ' questions', selected: n === 20 })));
-  const mins = h('input', { type: 'number', class: 'pt-in', min: 5, max: 300, value: 60, 'aria-label': 'Time in minutes', oninput: e => { S.auto = false; S.mins = Math.max(5, Math.min(300, +e.target.value || 0)); } });
+  let done = {}; try { const d = await rpc('dash_summary'); done = (d && d.results) || {}; } catch (e) { done = {}; }
+  const free = isFree(), all = B.qs.filter(gradable);
+  const EXN = { Main: 'JEE Main', Adv: 'JEE Advanced', KCET: 'KCET', NDA: 'NDA', IAT: 'IAT' };
+  const exOf = q => q.s === 'P' ? q.e : null, bookOf = q => q.s === 'N' ? (q.pb || 'Practice') : null;
+  const years = all.filter(q => q.y).map(q => q.y), yMin = Math.min(...years), yMax = Math.max(...years);
+  const count = (f) => all.filter(f).length;
+  const exams = Object.keys(EXN).filter(k => count(q => exOf(q) === k)), books = [...new Set(all.map(bookOf).filter(Boolean))].sort();
+  const types = ['MCQ', 'MSQ', 'Numerical'].filter(t => count(q => q.t === t));
+  const S = { ex: new Set(['Main']), bk: new Set(), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 20, mins: 60, auto: true, per: 3, scheme: 'JEE Main', title: '' };
+  const schemeNames = Object.keys(SC).filter(k => SC[k] && SC[k].rules);
+  const pool = () => all.filter(q => (q.s === 'P' ? S.ex.has(q.e) && (!q.y || (q.y >= S.y1 && q.y <= S.y2)) : S.bk.has(bookOf(q)) && !free) && (!S.ch.size || S.ch.has(q.cc)) && S.lv.has(q.d) && S.ty.has(q.t) && (!S.skip || done[q.i] !== 'c'));
+  const tog = (set, k, min) => { if (set.has(k)) { if (!min || set.size > min) set.delete(k); } else set.add(k); };
+  const chip = (text, on, fn, small, dis) => h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(!!on), disabled: !!dis, onclick: fn }, text, small != null ? h('em', { class: 'cp-n', text: String(small) }) : null);
+  const sect = (n, t, sub, ...kids) => h('section', { class: 'cp-sec' }, h('div', { class: 'cp-sh' }, h('b', { class: 'cp-no', text: String(n) }), h('div', {}, h('h2', { text: t }), sub ? h('p', { text: sub }) : null)), ...kids);
+  const exBox = h('div', { class: 'cp-chips' }), bkBox = h('div', { class: 'cp-chips' }), lvBox = h('div', { class: 'cp-chips' }), tyBox = h('div', { class: 'cp-chips' }), chBox = h('div', { class: 'cp-chs' }), sumBox = h('aside', { class: 'cp-sum' });
+  const yr1 = h('select', { class: 'pt-in', 'aria-label': 'From year', onchange: e => { S.y1 = +e.target.value; if (S.y1 > S.y2) { S.y2 = S.y1; yr2.value = S.y2; } draw(); } }), yr2 = h('select', { class: 'pt-in', 'aria-label': 'To year', onchange: e => { S.y2 = +e.target.value; if (S.y2 < S.y1) { S.y1 = S.y2; yr1.value = S.y1; } draw(); } });
+  for (let y = yMax; y >= yMin; y--) { yr1.append(h('option', { value: y, text: y })); yr2.append(h('option', { value: y, text: y })); } yr1.value = S.y1; yr2.value = S.y2;
+  const nIn = h('input', { type: 'number', class: 'pt-in', min: 3, max: 100, value: S.n, 'aria-label': 'Number of questions', oninput: e => { S.n = Math.max(3, Math.min(100, +e.target.value || 3)); if (S.auto) { S.mins = S.n * S.per; minIn.value = S.mins; } draw(true); } });
+  const minIn = h('input', { type: 'number', class: 'pt-in', min: 5, max: 360, value: S.mins, 'aria-label': 'Time in minutes', oninput: e => { S.auto = false; S.mins = Math.max(5, Math.min(360, +e.target.value || 5)); draw(true); } });
+  const perSel = h('select', { class: 'pt-in', 'aria-label': 'Time per question', onchange: e => { S.per = +e.target.value; S.auto = true; S.mins = S.n * S.per; minIn.value = S.mins; draw(true); } }, [[2, '2 min per question (fast)'], [3, '3 min per question (exam pace)'], [4, '4 min per question (relaxed)']].map(([v, t]) => h('option', { value: v, text: t, selected: v === 3 })));
+  const scSel = h('select', { class: 'pt-in', 'aria-label': 'Marking scheme', onchange: e => { S.scheme = e.target.value; draw(true); } }, schemeNames.map(k => h('option', { value: k, text: k + ' (' + markText(SC[k]) + ')', selected: k === S.scheme })));
+  const ordSel = h('select', { class: 'pt-in', 'aria-label': 'Order of questions', onchange: e => { S.order = e.target.value; } }, [['random', 'Random'], ['even', 'Chapters mixed evenly'], ['easy', 'Easy to hard']].map(([v, t]) => h('option', { value: v, text: t })));
+  const titleIn = h('input', { type: 'text', class: 'pt-in', maxlength: 80, placeholder: 'My practice test (optional name)', 'aria-label': 'Test name', oninput: e => { S.title = e.target.value.trim(); } });
+  const skipBox = h('label', { class: 'cp-check' }, h('input', { type: 'checkbox', checked: true, onchange: e => { S.skip = e.target.checked; draw(); } }), h('span', {}, h('b', { text: 'Skip questions I have already solved correctly' }), h('small', { text: 'Keeps the test fresh. Uses your own results.' })));
   const go = h('button', { type: 'button', class: 'btn pri pt-big', text: 'Start test', onclick: async () => {
     go.disabled = true;
-    try { const P2 = pool(), qs = shuffled(P2).slice(0, S.n); await launchTest({ title: 'Practice test · ' + (S.chs.size === 1 ? (CHN.get([...S.chs][0]) || {}).n : S.chs.size ? S.chs.size + ' chapters' : 'all chapters'), qs, exam: 'JEE Main', mins: S.mins, key: 'custom' }); }
-    catch (e) { toast(e.message); go.disabled = false; } } });
-  function draw() {
-    chBox.textContent = ''; chapters.forEach(c => chBox.append(chip(c.c + ' ' + c.n, S.chs.has(c.c), () => { S.chs.has(c.c) ? S.chs.delete(c.c) : S.chs.add(c.c); draw(); })));
-    srcBox.textContent = ''; srcBox.append(chip('PYQs', S.src.has('P'), () => { S.src.has('P') && S.src.size > 1 ? S.src.delete('P') : S.src.add('P'); draw(); }),
-      chip(free ? '🔒 Practice questions (Premium)' : 'Practice questions', S.src.has('N'), () => { if (free) { location.hash = '#/membership'; return; } S.src.has('N') && S.src.size > 1 ? S.src.delete('N') : S.src.add('N'); draw(); }));
-    lvBox.textContent = ''; [['L1', 'Level 1 · Easy'], ['L2', 'Level 2 · Moderate'], ['L3', 'Level 3 · Tough']].forEach(([k, t]) => lvBox.append(chip(t, S.lv.has(k), () => { S.lv.has(k) && S.lv.size > 1 ? S.lv.delete(k) : S.lv.add(k); draw(); })));
-    const n = pool().length; info.textContent = n + ' matching questions' + (n < S.n ? '. The test will have ' + n + '.' : '.') + ' Marking: ' + markText(SC['JEE Main']) + '.';
-    go.disabled = n < 3;
+    try {
+      let P2 = shuffled(pool()), qs;
+      if (S.order === 'even') qs = pickN(P2, S.n, true, new Set()); else qs = P2.slice(0, S.n);
+      if (S.order === 'easy') qs = qs.slice().sort((a, b) => (a.d || 'L2').localeCompare(b.d || 'L2'));
+      const chs = [...new Set(qs.map(q => q.cc))];
+      await launchTest({ title: S.title || 'Practice test · ' + (S.ch.size === 1 ? (CHN.get([...S.ch][0]) || {}).n : S.ch.size ? S.ch.size + ' chapters' : 'all chapters') + (chs.length ? '' : ''), qs, exam: S.scheme, mins: S.mins, key: 'custom' });
+    } catch (e) { toast(e.message); go.disabled = false; } } });
+  function draw(light) {
+    const avail = pool().length, n = Math.min(S.n, avail);
+    if (!light) {
+      exBox.textContent = ''; exams.forEach(k => exBox.append(chip(EXN[k], S.ex.has(k), () => { tog(S.ex, k); draw(); }, count(q => exOf(q) === k))));
+      bkBox.textContent = ''; books.forEach(b => bkBox.append(chip((free ? '🔒 ' : '') + b, S.bk.has(b), () => { if (free) { location.hash = '#/membership'; return; } tog(S.bk, b); draw(); }, count(q => bookOf(q) === b))));
+      lvBox.textContent = ''; [['L1', 'Level 1 · Easy'], ['L2', 'Level 2 · Moderate'], ['L3', 'Level 3 · Tough']].forEach(([k, t]) => lvBox.append(chip(t, S.lv.has(k), () => { tog(S.lv, k, 1); draw(); })));
+      tyBox.textContent = ''; types.forEach(t => tyBox.append(chip({ MCQ: 'Single correct', MSQ: 'One or more correct', Numerical: 'Numerical value' }[t], S.ty.has(t), () => { tog(S.ty, t, 1); draw(); })));
+      chBox.textContent = '';
+      [['11', 'Class 11'], ['12', 'Class 12']].forEach(([c, t]) => { const L = [...CHN.values()].filter(x => String(x.c).startsWith(c) && count(q => q.cc === x.c)); if (!L.length) return;
+        chBox.append(h('div', { class: 'cp-cls' }, h('div', { class: 'cp-cls-h' }, h('b', { text: t }), h('span', {}, h('button', { type: 'button', class: 'mlink', text: 'Select all', onclick: () => { L.forEach(x => S.ch.add(x.c)); draw(); } }), ' · ', h('button', { type: 'button', class: 'mlink', text: 'Clear', onclick: () => { L.forEach(x => S.ch.delete(x.c)); draw(); } }))),
+          h('div', { class: 'cp-chips' }, L.map(x => chip(x.c + ' ' + x.n, S.ch.has(x.c), () => { tog(S.ch, x.c); draw(); })))) ); });
+    }
+    sumBox.textContent = '';
+    const sc = SC[S.scheme] || SC['JEE Main'];
+    sumBox.append(h('h3', { text: 'Your test' }),
+      h('div', { class: 'cp-big' }, h('strong', { text: String(n) }), h('span', { text: ' of ' + avail + ' matching questions' })),
+      h('ul', { class: 'cp-facts' }, [['Questions', String(n)], ['Time', S.mins + ' min'], ['Marking', markText(sc)], ['Chapters', S.ch.size ? S.ch.size + ' chosen' : 'All'], ['Sources', [...[...S.ex].map(k => EXN[k]), ...[...S.bk]].join(', ') || '—']].map(([a, b]) => h('li', {}, h('span', { text: a }), h('b', { text: b })))),
+      avail < S.n ? h('p', { class: 'pt-hint', text: 'Only ' + avail + ' questions match, so the test will have ' + avail + '. Widen the choices to get more.' }) : '', go);
+    go.disabled = avail < 3;
   }
   draw();
-  show(modeHead('Create Your Practice Test', 'Choose chapters, source, difficulty and the number of questions.'),
-    card(h('h2', { text: 'Chapters' }), h('p', { class: 'pt-hint', text: 'Leave all unselected for every chapter.' }), chBox),
-    card(h('h2', { text: 'Source' }), srcBox, h('h2', { text: 'Difficulty' }), lvBox),
-    card(h('div', { class: 'pt-fld' }, h('span', { text: 'Number of questions' }), nSel), h('div', { class: 'pt-fld' }, h('span', { text: 'Time (minutes)' }), mins), info, go));
+  show(modeHead('Create Your Practice Test', 'Build exactly the test you need. The marks and the instructions are shown before you start.'),
+    h('div', { class: 'cp-wrap' }, h('div', { class: 'cp-main' },
+      sect(1, 'Source', 'Previous year questions and practice questions.', h('h4', { class: 'cp-lab', text: 'Previous year questions' }), exBox, h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'From year' }), yr1), h('label', { class: 'pt-fld' }, h('span', { text: 'To year' }), yr2)),
+        h('h4', { class: 'cp-lab', text: free ? 'Practice questions (Premium)' : 'Practice questions' }), bkBox),
+      sect(2, 'Chapters', 'Leave all unselected for every chapter.', chBox),
+      sect(3, 'Difficulty and type', null, h('h4', { class: 'cp-lab', text: 'Difficulty' }), lvBox, h('h4', { class: 'cp-lab', text: 'Question type' }), tyBox, skipBox),
+      sect(4, 'Size, time and marking', null, h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Number of questions' }), nIn), h('label', { class: 'pt-fld' }, h('span', { text: 'Time per question' }), perSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Total time (minutes)' }), minIn)),
+        h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Marking scheme' }), scSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Order of questions' }), ordSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Test name' }), titleIn)))),
+      sumBox));
 }
 async function modeChapter() {
   if (isFree()) { location.hash = '#/membership'; return; }
@@ -1278,7 +1314,7 @@ async function markingSheet(attemptId, title) {
   const blob = doc.output('blob'), link2 = document.createElement('a'); link2.href = URL.createObjectURL(blob); link2.download = lat(title).replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') + '_marking_scheme_and_answers.pdf';
   document.body.append(link2); link2.click(); link2.remove(); setTimeout(() => URL.revokeObjectURL(link2.href), 4000);
 }
-/* Export of a finished test (Practice Tests & Results): the paper, with the answer key, with the explanations, or the marking scheme and answers */
+/* Export of a finished test (My Performance): the paper, with the answer key, with the explanations, or the marking scheme and answers */
 async function exportResult(attemptId, title) {
   let mode = 'k';
   const opts = [['q', 'Question paper only'], ['k', 'Question paper + Answer Key'], ['e', 'Question paper + Answer Key + Full Explanations'], ['m', 'Marking scheme and answers (short PDF)']];
@@ -1443,7 +1479,7 @@ async function pageTake(code) {
   if (info.school_pending && !info.attempt_id) { show(card(empty(info.title, 'Your school (' + (P().school || 'not chosen') + ') is waiting for approval by the admin. Tests open after it is approved. Edit profile shows the status.', link('#/profile', 'Edit profile', 'btn')))); return; }
   if (!info.for_me && !info.attempt_id && info.blocked) {
     const prem = /Premium/.test(info.blocked) && AU().perm.plan === 'free';
-    show(card(empty(info.title, info.blocked, prem ? link('#/membership', '★ Get Premium', 'btn pri') : link('#/personal', 'Practice Tests & Results', 'btn')))); return;
+    show(card(empty(info.title, info.blocked, prem ? link('#/membership', '★ Get Premium', 'btn pri') : link('#/personal', 'My Performance', 'btn')))); return;
   }
   if (!info.for_me && !info.attempt_id) {
     const me = P(), otherSchool = info.school && String(info.school).toLowerCase() !== String(me.school || '').toLowerCase();

@@ -571,3 +571,4 @@ body.hasmax{overflow:hidden}
 .sh-info2{display:flex;justify-content:space-between;align-items:center;gap:8px;white-space:nowrap;font-family:var(--font-body);font-weight:600;font-size:12.5px;color:var(--sheet-ink);padding:6px 0;border-bottom:2px solid var(--sheet-accent);margin-bottom:8px}
 
 .sq .katex-display{margin:.35em 0}
+.tb-menu a.tb, .tb-menu a.tb:hover { text-decoration: none; }

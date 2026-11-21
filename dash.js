@@ -137,9 +137,10 @@ const main = (...kids) => { MAIN.textContent = ''; MAIN.append(...kids.flat().fi
 const loadingBox = t => h('div', { class: 'pt-state' }, h('div', { class: 'spin' }), h('p', { text: t || 'Loading…' }));
 const homeItems = active => [
   { label: 'Home', icon: IC.grid, hash: 'd/', active: active === 'home' },
-  { label: 'PYPs', icon: IC.clock, hash: 'd/pyq', active: active === 'pyq' },
+  { label: 'PYQs', icon: IC.clock, hash: 'd/pyq', active: active === 'pyq' },
   { label: 'Non-PYQs', icon: IC.list, hash: 'd/np', active: active === 'np', off: false },
   { label: 'DPPs', icon: IC.test, hash: 'd/dpp', active: active === 'dpp' },
+  { label: 'Handouts', icon: IC.list, hash: 'd/handouts', active: active === 'ho' },
   { label: 'Bookmarked Qs', icon: IC.mark, hash: 'd/bookmarks', active: active === 'bookmarks' },
   { label: 'Test History', icon: IC.test, hash: 'd/history', active: active === 'history' }
 ];
@@ -149,19 +150,19 @@ const MIXSEL = new Set(['BB Ex', 'Ln DY', 'Ln Ex']);   /* the sources ticked on 
 const dppCount = name => D.rows.filter(r => !r.P && r.bk === name).length;
 function dppLocked() {
   side({ back: '', title: 'DPPs', items: homeItems('dpp') });
-  main(h('section', { class: 'd-lockcard' }, h('span', { html: IC.lock }), h('h2', { text: 'DPPs are part of Premium' }), h('p', { text: 'The practice sheets of BB Ex, Ln DY, Ln Ex and more open with a Premium plan. PYQs stay free.' }), h('a', { class: 'btn pri', href: 'qbank#/membership', text: '★ Get Premium' })));
+  main(h('section', { class: 'd-lockcard' }, h('span', { html: IC.lock }), h('h2', { text: 'DPPs are part of Premium' }), h('p', { text: 'The practice sheets of BB Ex, Ln DY, Ln Ex and more open with a Premium plan. PYQs stay free.' }), h('a', { class: 'btn pri', href: '#/membership', text: '★ Get Premium' })));
 }
 function viewDpp() {
   side({ back: '', title: 'DPPs', sub: 'Practice sheets by source', items: homeItems('dpp') });
   const free = locked(), lockIc = svg('<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>').replace('width="20" height="20"', 'width="16" height="16"');
   const cards = SOURCES.map(x => {
     const n = dppCount(x.name), sheets = new Set(D.rows.filter(r => !r.P && r.bk === x.name && r.shl).map(r => r.ch + r.shl)).size, none = !n, off = free || none;
-    return h('a', { class: 'dpp-card' + (off ? ' is-off' : ''), href: free ? 'qbank#/membership' : none ? '#d/dpp' : '#d/dpp/' + x.k, style: '--tone:' + x.tone, onclick: e => { if (none && !free) { e.preventDefault(); toast(x.name + ' is coming soon.'); } } },
+    return h('a', { class: 'dpp-card' + (off ? ' is-off' : ''), href: free ? '#/membership' : none ? '#d/dpp' : '#d/dpp/' + x.k, style: '--tone:' + x.tone, onclick: e => { if (none && !free) { e.preventDefault(); toast(x.name + ' is coming soon.'); } } },
       h('span', { class: 'dpp-mark', text: x.name.toUpperCase().replace(' ', '-') }), h('b', { text: x.name }), h('small', { text: x.sub }),
       h('span', { class: 'dpp-n', text: none ? 'Coming soon' : (sheets ? sheets + ' sheets · ' : '') + num(n) + ' questions' }),
       free ? h('span', { class: 'dpp-lock', html: lockIc + ' Premium' }) : h('span', { class: 'dpp-go', text: none ? '' : 'Open questions ›' }));
   });
-  cards.push(h('a', { class: 'dpp-card dpp-mix', href: free ? 'qbank#/membership' : '#d/dpp/mix', style: '--tone:#1f3f95' }, h('span', { class: 'dpp-mark', text: 'MIX' }), h('b', { text: 'Mixed Practice' }), h('small', { text: 'Tick the sources you want and practise them together, with filters for chapter, exercise, level and type' }), h('span', { class: 'dpp-go', text: 'Open Mixed Practice ›' })));
+  cards.push(h('a', { class: 'dpp-card dpp-mix', href: free ? '#/membership' : '#d/dpp/mix', style: '--tone:#1f3f95' }, h('span', { class: 'dpp-mark', text: 'MIX' }), h('b', { text: 'Mixed Practice' }), h('small', { text: 'Tick the sources you want and practise them together, with filters for chapter, exercise, level and type' }), h('span', { class: 'dpp-go', text: 'Open Mixed Practice ›' })));
   main(h('div', { class: 'dpp-head' }, h('h2', { text: 'DPPs' }), h('p', { text: 'Pick a source, then the exercise, and practise its questions.' })), h('div', { class: 'dpp-grid' }, cards));
 }
 /* a source (BB Ex, Ln DY, ...): first its exercises / sheets, grouped by chapter */
@@ -197,8 +198,7 @@ function viewDppSrc(k, exKey) {
   window.DashList.render(listEnv(), { rows: pool, title, head, compact: true, seqOrder: true, testLabel: 'Take test',
     filters: one ? [] : [{ key: 'ch', label: 'Chapter', values: chs.map(c => [c.chapter_code, c.chapter_code + ' ' + c.chapter]), get: r => r.ch }].concat(exList.length ? [{ key: 'ex', label: 'Exercise', values: exList, get: r => r.bk + '|' + r.shl }] : []),
     emptyText: mix && !names.length ? 'Tick at least one source on the left.' : title + ' questions are coming soon.',
-    startTest: list => launchTestFrom(list, { chapter: title + ' DPP', chapter_code: 'dpp' }, 'np', null, 20, 'DPP test'),
-    menuExtra: [{ text: 'Download ready-made sheets as PDF', note: 'Opens the PDF sheets page of the Question Bank.', onclick: () => { location.href = 'qbank#/dpps'; } }] });
+    startTest: list => launchTestFrom(list, { chapter: title + ' DPP', chapter_code: 'dpp' }, 'np', null, 20, 'DPP test') });
 }
 
 /* ---------- Step 1: source ---------- */
@@ -211,37 +211,74 @@ function viewHome() {
     h('div', { class: 'd-two' },
       tile({ cls: 'd-src d-src-pyq', icon: IC.clock, title: 'PYQs', sub: 'Previous year questions from real exam papers', go: 'd/pyq', extra: h('div', { class: 'd-src-n' }, h('strong', { text: num(pyq.length) }), h('small', { text: 'questions · 2027 ready' })) }),
       tile({ cls: 'd-src d-src-np' + (locked() ? ' is-lock' : ''), icon: IC.list, title: 'Non-PYQs', sub: 'Practice questions from books and DPP sheets', badge: locked() ? 'Premium' : '', badgeCls: 'lock',
-        go: locked() ? null : 'd/np', onclick: locked() ? () => { location.href = 'qbank#/membership'; } : null,
+        go: locked() ? null : 'd/np', onclick: locked() ? () => { location.href = '#/membership'; } : null,
         extra: h('div', { class: 'd-src-n' }, locked() ? h('span', { class: 'd-lockline', html: IC.lock + ' Unlock with Premium' }) : [h('strong', { text: num(np.length) }), h('small', { text: 'questions' })]) })));
 }
 
 /* ---------- Step 2: exams (PYQ path) ---------- */
 function viewExams() {
-  side({ back: '', title: 'PYPs', sub: 'Pick an exam', items: homeItems('pyq') });
-  const how = [['Pick an exam', 'JEE Main, JEE Advanced, KCET, NDA, IAT and more.'], ['Pick a chapter', 'Every chapter has its own set of papers\u2019 questions.'], ['Practise', 'Solve, bookmark and see the explanation.'], ['Track', 'Your progress is saved in your account.']];
+  side({ back: '', title: 'PYQs', sub: 'Pick an exam', items: homeItems('pyq') });
   const cards = EXAMS.map(e => {
     const rows = scope('pyq', e.slug), ys = rows.map(r => r.y).filter(Boolean), off = !rows.length;
     return h('a', { class: 'tx-card tx-top' + (off ? ' is-off' : ''), href: off ? '#d/pyq' : '#d/pyq/' + e.slug, style: '--tone:' + e.tone, onclick: off ? (ev => { ev.preventDefault(); toast(e.name + ' is coming soon.'); }) : null },
       h('span', { class: 'tx-ic d-exam-ic' }, logo(e)), h('h2', { text: e.name }), h('p', { text: off ? 'Coming soon' : num(rows.length) + ' previous year questions' + (ys.length ? ' from ' + Math.min(...ys) + ' to ' + Math.max(...ys) : '') + '.' }),
       h('ul', { class: 'tx-tags' }, [e.note, off ? null : 'Chapter-wise'].filter(Boolean).map(t => h('li', { text: t }))), h('span', { class: 'tx-go', text: off ? '' : 'Open \u203a' }));
   });
-  main(h('section', { class: 'tx-hero' }, h('div', { class: 'tx-hero-in' }, h('span', { class: 'tx-kick', text: 'PYPS' }), h('h1', { text: 'Practise the real papers' }),
-      h('p', { text: 'Previous year questions of every exam, chapter by chapter. Your progress stays in your own account.' })),
-      h('ul', { class: 'tx-how', 'aria-label': 'How it works' }, how.map(([t, d], i) => h('li', {}, h('b', { text: String(i + 1) }), h('span', {}, h('strong', { text: t }), h('small', { text: d })))))),
+  main(h('div', { class: 'd-head' }, h('h2', { text: 'Previous Year Questions' }), h('p', { text: 'Pick an exam, then a chapter. Your progress stays in your own account.' })),
     h('div', { class: 'tx-grid' }, cards));
 }
 /* ---------- Tests: the pages of portal.js, drawn inside the dashboard ---------- */
-function viewTests(hs) {
-  document.querySelectorAll('.tb-menu .tb').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.k === 'tests')));
+function viewPortalPage(hs, r) {
+  const tests = r === 'modes' || r === 'personal';
+  document.querySelectorAll('.tb-menu .tb').forEach(x => x.setAttribute('aria-pressed', String(tests && x.dataset.k === 'tests')));
   const on = p => hs === p || hs.startsWith(p + '/');
-  side({ back: null, title: 'Tests', sub: 'Mock tests and your results', items: [
+  if (tests) side({ back: null, title: 'Tests', sub: 'Mock tests and your results', items: [
     { label: 'All tests', icon: IC.test, hash: '/modes', active: hs === '#/modes' },
     { label: 'Previous Year Papers', icon: IC.clock, hash: '/modes/pyq', active: on('#/modes/pyq') },
-    { label: 'Practice Tests & Results', icon: IC.list, hash: '/personal', active: on('#/personal') },
-    { label: 'Dashboard', icon: IC.grid, hash: 'd/' }] });
+    { label: 'My Performance', icon: IC.list, hash: '/personal', active: on('#/personal') }] });
+  else side({ back: '', title: 'My account', sub: 'Profile, plan and results', items: [
+    { label: 'Edit profile', icon: IC.grid, hash: '/profile', active: on('#/profile') },
+    { label: 'Membership', icon: IC.mark, hash: '/membership', active: on('#/membership') },
+    { label: 'My Performance', icon: IC.list, hash: '/personal' },
+    { label: 'Help & Support', icon: IC.test, hash: '/help', active: on('#/help') }] });
   MAIN.textContent = ''; MAIN.append(h('div', { id: 'viewPortal', class: 'pt-wrap' }));
   window.scrollTo(0, 0);
   window.AvantiPortal.route(true);
+}
+/* ---------- Handouts ---------- */
+let HOLIST = null;
+async function viewHandouts() {
+  side({ back: '', title: 'Handouts', sub: 'Handwritten revision notes', items: homeItems('none') });
+  main(loadingBox('Loading the handouts…'));
+  if (!HOLIST) { try { const r = await fetch('handouts/index.json'); const j = r.ok ? await r.json() : []; HOLIST = Array.isArray(j) ? j.filter(Boolean) : []; } catch (e) { HOLIST = []; } }
+  const perm = A().perm, canPdf = perm.pdf === true || perm.premium || perm.staff || perm.isAdmin, FREE_HO = new Set(['11M1', '12M13']);
+  const ACC = ['#e0197a', '#0a86c2', '#16a06a', '#d98200', '#7a3fd1', '#e8590c', '#5a9a00'];
+  const base = x => x.file.replace(/\.pdf$/, ''), path = (x, bw) => 'handouts/' + (bw ? x.dir + '/bw/' + base(x) + '_BW.pdf' : x.file);
+  const get = async (x, bw) => { const r = await fetch(path(x, bw)); if (!r.ok) throw new Error(r.status === 400 || r.status === 403 ? 'Handouts are part of the Premium membership.' : 'Could not open the handout. Try again.'); return r.blob(); };
+  const view = async x => { const w = window.open('', '_blank'); try { toast('Opening ' + x.code + '…'); const b = await get(x, false), u = URL.createObjectURL(new Blob([b], { type: 'application/pdf' })); if (w) w.location.href = u; else location.href = u; setTimeout(() => URL.revokeObjectURL(u), 120000); } catch (e) { if (w) w.close(); toast(e.message); } };
+  const save = async (x, bw) => { try { toast('Preparing the download…'); const b = await get(x, bw), a = h('a', { href: URL.createObjectURL(b), download: base(x) + (bw ? '_BW' : '') + '.pdf' }); document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); } catch (e) { toast(e.message); } };
+  const q = { cls: '11', t: '' };
+  const grid = h('div', { class: 'ho-grid' }), count = h('small', { class: 'ho-count' });
+  const draw = () => {
+    const L = HOLIST.filter(x => x.code.startsWith(q.cls) && (!q.t || (x.code + ' ' + x.title).toLowerCase().includes(q.t)));
+    count.textContent = L.length + ' handout' + (L.length === 1 ? '' : 's');
+    grid.textContent = ''; if (!L.length) { grid.append(h('p', { class: 'd-fine', text: 'No handout matches.' })); return; }
+    L.forEach((x, k) => { const open = canPdf || FREE_HO.has(x.code);
+      grid.append(h('article', { class: 'ho-card', style: '--ac:' + ACC[k % ACC.length] },
+        h('div', { class: 'ho-top' }, h('span', { class: 'ho-code', text: x.code }), open ? null : h('span', { class: 'ho-lock', text: 'Premium' }), x.pages ? h('span', { class: 'ho-pg', text: x.pages + ' pages' }) : null),
+        h('h3', { text: x.title }),
+        h('p', { class: 'ho-meta', text: (x.orient || 'A4') + ' · handwritten notes' }),
+        h('div', { class: 'ho-act' }, open ? [h('button', { type: 'button', class: 'btn pri', text: 'View', onclick: () => view(x) }),
+          canPdf ? h('button', { type: 'button', class: 'btn', text: 'Download PDF', onclick: () => save(x, false) }) : null,
+          canPdf && !x.nobw ? h('button', { type: 'button', class: 'btn', title: 'Black and white, for printing', text: 'B&W print', onclick: () => save(x, true) }) : null]
+          : h('a', { class: 'btn pt-gold', href: '#/membership', text: '★ Unlock with Premium' }))));
+    });
+  };
+  const seg = h('div', { class: 'ho-seg', role: 'tablist' }, [['11', 'Class 11'], ['12', 'Class 12']].map(([c, t]) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(c === q.cls), text: t + ' (' + HOLIST.filter(x => x.code.startsWith(c)).length + ')', onclick: e => { q.cls = c; seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b === e.currentTarget))); draw(); } })));
+  const search = h('input', { type: 'search', class: 'd-sel ho-search', placeholder: 'Search a chapter or code', 'aria-label': 'Search handouts', oninput: e => { q.t = e.target.value.trim().toLowerCase(); draw(); } });
+  draw();
+  main(h('div', { class: 'd-head' }, crumb('Handouts'), h('h2', { text: 'Handouts' }), h('p', { text: canPdf ? 'Handwritten revision notes for every chapter: view them here or download as PDF.' : 'Handwritten revision notes. The first handout of Class 11 and of Class 12 is free to view; the rest are part of Premium.' })),
+    h('div', { class: 'ho-bar' }, seg, search, count), grid);
 }
 /* ---------- Step 3: chapters ---------- */
 function chapterCards(mode, slug) {
@@ -257,7 +294,7 @@ function chapterCards(mode, slug) {
 function viewChapters(mode, slug) {
   const e = EX[slug];
   if (mode === 'pyq' && !e) return go('d/pyq');
-  if (mode === 'np' && locked()) { side({ back: '', title: 'Non-PYQs', items: homeItems('np') }); main(h('section', { class: 'd-lockcard' }, h('span', { html: IC.lock }), h('h2', { text: 'Non-PYQs are part of Premium' }), h('p', { text: 'Book and DPP practice questions open with a Premium plan. PYQs stay free.' }), h('a', { class: 'btn pri', href: 'qbank#/membership', text: '★ Get Premium' }))); return; }
+  if (mode === 'np' && locked()) { side({ back: '', title: 'Non-PYQs', items: homeItems('np') }); main(h('section', { class: 'd-lockcard' }, h('span', { html: IC.lock }), h('h2', { text: 'Non-PYQs are part of Premium' }), h('p', { text: 'Book and DPP practice questions open with a Premium plan. PYQs stay free.' }), h('a', { class: 'btn pri', href: '#/membership', text: '★ Get Premium' }))); return; }
   side(mode === 'pyq' ? { back: 'd/pyq', title: e.name, sub: '2027 · choose a chapter', items: [{ label: 'All chapters', icon: IC.grid, active: true, hash: 'd/pyq/' + slug }, { label: 'Other exams', icon: IC.clock, hash: 'd/pyq' }, { label: 'Bookmarked Qs', icon: IC.mark, hash: 'd/bookmarks' }, { label: 'Test History', icon: IC.test, hash: 'd/history' }] }
     : { back: '', title: 'Non-PYQs', sub: 'Choose a chapter', items: homeItems('np') });
   main(h('div', { class: 'd-head' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name), h('h2', { text: 'Select a chapter' }), h('p', { text: mode === 'pyq' ? 'The last five years show how often each chapter is asked right now.' : 'Practice questions from books and sheets, chapter by chapter.' })), chapterCards(mode, slug));
@@ -371,7 +408,7 @@ async function launchTestFrom(rows, c, mode, e, count, label) {
   const qs = chosen.map(r => { const x = D.raw.get(r.id), f = figs[r.id]; return { id: r.id, type: x.type, q: x.question, o: x.options || [], a: String(x.answer), ch: x.chapter_code, chn: c.chapter, tp: x.topic || '', f: f && f.svg ? { svg: f.svg } : null, s: r.P ? 'P' : 'N' }; });
   const r = await A().sb.rpc('create_personal_test', { p_title: c.chapter + (mode === 'pyq' && e ? ' · ' + e.name : '') + ' · ' + label, p_duration_min: n * 3, p_marks_correct: 4, p_marks_wrong: 1, p_questions: qs, p_paper_key: 'chapter-' + c.chapter_code, p_audience: 'self', p_exam: 'JEE Main' });
   if (r.error) throw new Error(r.error.message);
-  location.href = 'qbank#/t/' + r.data.code;
+  location.hash = '#/t/' + r.data.code;
 }
 function testLauncher(rows, c, mode, e) {
   const pool = rows.filter(r => r.ok), sel = h('select', { class: 'd-sel', 'aria-label': 'Number of questions' }, [10, 20, 30].filter(n => n <= Math.max(10, pool.length)).map(n => h('option', { value: n, text: n + ' questions', selected: n === 20 })));
@@ -398,7 +435,7 @@ function viewBookmarks(head, rows, label) {
   const mine = new Set(D.sum.bookmarks), list = (rows ? rows.filter(r => mine.has(r.id)) : D.sum.bookmarks.map(id => D.rows.find(r => r.id === id)).filter(Boolean));
   const box = h('div', { class: 'd-bm' });
   const draw = () => { box.textContent = ''; const cur = list.filter(r => D.sum.bookmarks.includes(r.id));
-    if (!cur.length) { box.append(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'No bookmarked questions yet' }), h('p', { text: 'Tap the bookmark on any question in the Question Bank to keep it here.' }), h('a', { class: 'btn', href: 'qbank', text: 'Open Question Bank' }))); return; }
+    if (!cur.length) { box.append(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'No bookmarked questions yet' }), h('p', { text: 'Tap the bookmark on any question to keep it here.' }), h('a', { class: 'btn', href: '#d/pyq', text: 'Open PYQs' }))); return; }
     box.append(h('div', { class: 'd-row-actions' }, h('button', { type: 'button', class: 'btn pri', text: 'Practise these ' + cur.length + ' in the Question Bank', onclick: () => openQB(cur.map(r => r.id), (label || 'Bookmarked') + ' · bookmarked') })));
     cur.forEach(r => { const x = D.raw.get(r.id) || {}, ex = r.P ? ((EX[r.ex] || {}).name || '') + (r.y ? ' ' + r.y : '') : (x.publisher || 'Practice');
       box.append(h('div', { class: 'd-bmq' }, h('div', { class: 'd-bmq-m' }, h('span', { class: 'd-code', text: r.id }), h('small', { text: ex + ' · ' + ((D.chByCode[r.ch] || {}).chapter || r.ch) })),
@@ -415,7 +452,7 @@ function viewHistory(head, rows) {
     : h('div', { class: 'd-tw' }, h('table', { class: 'd-t' }, h('thead', {}, h('tr', {}, ['Test', 'Date', 'Score', 'Right', 'Wrong', ''].map(x => h('th', { text: x })))),
       h('tbody', {}, list.map(t => h('tr', {}, h('td', {}, h('b', { text: t.title })), h('td', { text: t.submitted_at ? new Date(t.submitted_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—' }),
         h('td', { text: t.score == null ? '—' : +(+t.score).toFixed(2) + ' / ' + +(+t.max_score).toFixed(2) }), h('td', { text: String(t.correct == null ? '—' : t.correct) }), h('td', { text: String(t.wrong == null ? '—' : t.wrong) }),
-        h('td', {}, h('a', { class: 'btn', href: 'qbank#/report/' + t.attempt_id, text: 'Report' })))))));
+        h('td', {}, h('a', { class: 'btn', href: '#/report/' + t.attempt_id, text: 'Report' })))))));
   main(head, h('section', { class: 'd-card' }, body));
 }
 function viewHistoryPage() { side({ back: '', title: 'Test History', sub: 'All your submitted tests', items: homeItems('history') }); viewHistory(h('div', { class: 'd-head' }, h('h2', { text: 'Test history' }), h('p', { text: 'Every test you have submitted, newest first.' })), null); }
@@ -424,10 +461,15 @@ function viewHistoryPage() { side({ back: '', title: 'Test History', sub: 'All y
 let NAV = 0;
 async function route() {
   const hs = location.hash || '';
-  if (/^#\/(modes|personal)(\/|$)/.test(hs)) return viewTests(hs);
-  if (/^#\/(?!home)/.test(hs)) { location.replace('qbank' + location.search + hs); return; }   /* an old link such as #/profile or #/t/CODE belongs to the question bank */
+  const pr = /^#\/([a-z-]+)/.exec(hs);
+  if (pr && pr[1] !== 'home') {   /* an account or test page of portal.js, drawn inside the dashboard */
+    const to = { dpps: '#d/dpp', pyps: '#d/pyq', handouts: '#d/handouts' }[pr[1]];
+    if (to) { location.replace(to); return; }
+    if (pr[1] === 'qb') { location.replace('qbank#/qb'); return; }
+    return viewPortalPage(hs, pr[1]);
+  }
   const tok = ++NAV;
-  const navK = /^#d\/dpp/.test(hs) ? 'lib' : /^#d\/(pyq|ch\/pyq)/.test(hs) ? 'pyq' : 'dash'; document.querySelectorAll('.tb-menu .tb').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.k === navK)));
+  const navK = /^#d\/dpp/.test(hs) ? 'lib' : /^#d\/(pyq|ch\/pyq)/.test(hs) ? 'pyq' : /^#d\/handouts/.test(hs) ? 'ho' : 'dash'; document.querySelectorAll('.tb-menu .tb').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.k === navK)));
   const parts = hs.replace(/^#d\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
   main(loadingBox('Loading your dashboard…'));
   try { await Promise.all([load(), loadMine(false)]); } catch (e) { main(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'Could not load the questions' }), h('p', { text: e.message || 'Check your connection and try again.' }), h('button', { type: 'button', class: 'btn', text: 'Try again', onclick: () => { D.ready = null; route(); } }))); return; }
@@ -437,6 +479,7 @@ async function route() {
   if (a === 'pyq') return b ? viewChapters('pyq', b) : viewExams();
   if (a === 'np') return viewChapters('np', null);
   if (a === 'ch') return viewChapter(b, c === '-' ? null : c, d, e || 'overview', f);
+  if (a === 'handouts') return viewHandouts();
   if (a === 'dpp') return b ? viewDppSrc(b, c) : viewDpp();
   if (a === 'bookmarks') return viewBookmarksPage();
   if (a === 'history') return viewHistoryPage();
@@ -464,9 +507,18 @@ const dashBank = () => BANKP || (BANKP = (async () => {
   meta.chapters.forEach(c => chapters.set(c.c, c));
   return { qs, byId, chapters };
 })().catch(e => { BANKP = null; throw e; }));
-const toQB = hash => () => { toast('Opening the Question Bank…'); setTimeout(() => { location.href = 'qbank' + hash; }, 300); };
-window.AvantiTeacher = { hideViews() {}, toast, bank: dashBank, setTab: k => { location.href = 'qbank#/' + ({ lib: 'dpps', pyq: 'pyps', ho: 'handouts', qb: 'qb' }[k] || 'qb'); },
-  exportIds: async () => toQB('#/personal')(), pdfIds: async () => { toQB('#/personal')(); return null; }, shareIds: async () => toQB('#/personal')(), math() {} };
+/* PDF / Word / PowerPoint exports are made by the Question Bank engine: it is loaded here, in the background, the first time a download is asked for */
+let REALP = null;
+const realTE = () => REALP || (REALP = (async () => {
+  const keep = window.AvantiTeacher;
+  if (!document.getElementById('qbStub')) document.body.append(h('div', { id: 'qbStub', hidden: true }, h('div', { id: 'viewLib' })));
+  toast('Preparing the download…');
+  await window.AvantiBoot.loadScript('teacher.b870.js');
+  const real = window.AvantiTeacher; window.AvantiTeacher = keep; return real;
+})().catch(e => { REALP = null; throw e; }));
+const viaReal = fn => async (...a) => { const t = await realTE(); return t[fn](...a); };
+window.AvantiTeacher = { hideViews() {}, toast, bank: dashBank, setTab: k => { location.hash = { lib: '#d/dpp', pyq: '#d/pyq', ho: '#d/handouts' }[k] || '#d/'; },
+  exportIds: viaReal('exportIds'), pdfIds: viaReal('pdfIds'), shareIds: viaReal('shareIds'), math() {} };
 function start() {
   shell();
   window.addEventListener('hashchange', route);
