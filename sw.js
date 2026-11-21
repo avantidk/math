@@ -1,7 +1,7 @@
 /* अंक-IT service worker. It only makes the site installable and gives a friendly page when there is no internet.
    Never cached here: sign-in, the database and the private question files (they are cross-origin, so this worker does not see them;
    boot.js keeps its own per-account copy of the content). Pages are always fetched fresh first, so a new release shows at once. */
-const VER = 'avanti-sw-v996';
+const VER = 'avanti-sw-v997';
 const OFFLINE = '/offline.html';
 const SHELL = [OFFLINE, '/img/icon/pwa-192.png', '/vendor/fonts/inter-latin.woff2'];
 

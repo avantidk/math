@@ -184,7 +184,12 @@ function viewDpp() {
     h('span', { class: 'dpp-mk-ic', html: penIc }),
     h('span', { class: 'dpp-mk-t' }, h('b', { text: 'Own DPP Maker' }), h('small', { text: 'Build a practice sheet of your own: pick chapters and subtopics, choose BB Ex, Ln DY, Ln Ex and PYQs, set the toughness, and get a ready A4 sheet with a live preview.' }), h('small', { text: 'Download it as PDF, Word or PowerPoint, print it or share it, with the answer key and explanations if you want them.' })),
     free ? h('span', { class: 'dpp-lock', html: lockIc + ' Premium' }) : h('span', { class: 'dpp-mk-go' }, 'Open the maker ', h('i', { html: IC.chev })));
-  main(h('div', { class: 'dpp-head' }, h('h2', { text: 'DPPs' }), h('p', { text: 'Pick a source, then the chapter and the exercise, and practise its questions.' })), maker, h('div', { class: 'dpp-grid' }, cards));
+  main(h('div', { class: 'dpp-head' }, h('h2', { text: 'DPPs' }), h('p', { text: 'Pick a source, then the chapter and the exercise, and practise its questions.' })), maker,
+    h('h3', { class: 'dpp-h' }, 'Source Wise DPPs ', h('small', { text: '(Exercises, Do Yourself, Practice Problems)' })), h('div', { class: 'dpp-grid' }, cards),
+    h('h3', { class: 'dpp-h' }, 'Chapterwise DPPs ', h('small', { text: '(PYQs)' })),
+    h('a', { class: 'dpp-lk', href: '#d/pyq' }, h('span', { class: 'dpp-lk-ic', html: IC.clock }), h('span', { class: 'dpp-lk-t' }, h('b', { text: 'Chapterwise PYQ sets' }), h('small', { text: 'Pick an exam, then a chapter, and practise its previous year questions, with Confidence Booster, Balanced and Rank Booster sets.' })), h('span', { class: 'dpp-lk-go', html: IC.chev })),
+    h('h3', { class: 'dpp-h' }, 'Chapterwise DPPs ', h('small', { text: '(Non-PYQs)' })),
+    h('a', { class: 'dpp-lk', href: free ? '#/membership' : '#d/np' }, h('span', { class: 'dpp-lk-ic', html: IC.list }), h('span', { class: 'dpp-lk-t' }, h('b', { text: 'Chapterwise practice sets' }), h('small', { text: 'Practice questions from books and sheets, chapter by chapter, by level and by topic.' })), free ? h('span', { class: 'dpp-lock', html: lockIc + ' Premium' }) : h('span', { class: 'dpp-lk-go', html: IC.chev })));
 }
 /* A source (BB Ex, Ln DY, ...) is drilled down in the left menu: source -> chapters -> exercises -> questions */
 const srcRows = src => D.rows.filter(r => !r.P && r.bk === src.name);
@@ -232,7 +237,8 @@ async function viewDppMaker() {
   if (locked()) return dppLocked();
   side({ back: 'd/dpp', title: 'Own DPP Maker', sub: 'Build a sheet of your own', items: homeItems('dpp') });
   const host = h('div', { class: 'dmk' }), tok = NAV;
-  main(h('div', { class: 'd-head' }, crumb('DPPs', 'Own DPP Maker'), h('h2', { text: 'Own DPP Maker' }), h('p', { text: 'Choose chapters, subtopics and sources, then set the toughness. Your sheet is made below: download it as PDF, Word or PowerPoint, print it or share it.' })), loadingBox('Loading the question bank…'));
+  main(h('div', { class: 'd-head' }, crumb('DPPs', 'Own DPP Maker'), h('h2', { text: 'Own DPP Maker' }), h('p', { text: 'Choose chapters, subtopics and sources, then set the toughness. Your sheet is made below: download it as PDF, Word or PowerPoint, print it or share it.' })),
+    h('div', { class: 'dmk-note', role: 'note' }, h('span', { class: 'dmk-note-ic', html: svg('<rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>') }), h('div', {}, h('b', { text: 'Your DPP is 2 pages (A4 size)' }), h('small', { text: 'The maker fits as many questions as will go on 2 A4 pages, at a readable 11 to 12 pt, in topic order. A short list stays on 1 page. Every question shows its level (L1, L2 or L3).' }))), loadingBox('Loading the question bank…'));
   try {
     const t = await realTE(true); if (tok !== NAV) return;
     await t.mountMaker(host); if (tok !== NAV) return;

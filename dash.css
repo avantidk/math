@@ -446,3 +446,20 @@ body.dpop-on { overflow: hidden; }
 .dmk .msel .mp { top: calc(100% + 6px); left: 0; }
 @media (max-width: 640px) { .dmk .fld:has(.msel) { flex: 1 1 100%; } .dmk .msel { width: 100%; } }
 .dmk .tglrow { order: 0; } .dmk .fld:has(.msel) { order: 1; } .dmk .fld:has(.dslide) { order: 2; } .dmk #viewLib > .rail:first-child .card > .fld:not(:has(.msel)):not(:has(.dslide)) { order: 3; flex: 1 1 100%; }
+/* ---- v997 ---- */
+.dpp-h { margin: 10px 0 -2px; font: 700 18px var(--font-body); color: var(--ink); } .dpp-h small { font: 500 14px var(--font-body); color: var(--muted); }
+.dpp-lk { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 16px; background: var(--panel); border: 1px solid var(--rule); color: var(--ink); text-decoration: none; box-shadow: var(--shadow-sm); transition: transform .15s, border-color .15s; } .dpp-lk:hover { transform: translateY(-2px); border-color: var(--accent); }
+.dpp-lk-ic { flex: none; width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.dpp-lk-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .dpp-lk-t b { font: 700 16px var(--font-body); } .dpp-lk-t small { color: var(--muted); font-size: 13.5px; line-height: 1.45; } .dpp-lk-go { color: var(--muted); display: grid; }
+.dmk-note { display: flex; align-items: flex-start; gap: 14px; padding: 14px 18px; border-radius: 14px; background: color-mix(in srgb, var(--gold, #f5b82e) 16%, var(--panel)); border: 1px solid color-mix(in srgb, var(--gold, #f5b82e) 55%, transparent); }
+.dmk-note-ic { flex: none; color: #8a5a00; display: grid; } .dmk-note b { display: block; font: 700 15px var(--font-body); color: var(--ink); } .dmk-note small { display: block; margin-top: 2px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+/* maker: Include / Exclude (out of syllabus) sits beside the Answer Key and Explanation switches */
+.dmk .tglrow { flex: 0 0 auto !important; } 
+.dmk .fld:has(.oosSeg) { order: 0 !important; flex: 1 1 360px !important; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.dmk .fld:has(.oosSeg) > .lbl { display: block; font: 600 13.5px var(--font-body); color: var(--ink); }
+.dmk .fld:has(.oosSeg) .oosSeg { width: auto; min-width: 190px; } .dmk .fld:has(.oosSeg) .oosSeg button { padding: 8px 18px; }
+.dmk .fld:has(.oosSeg) .hint, .dmk .fld:has(.oosSeg) p { flex: 1 1 100%; margin: 0; font-size: 12px; color: var(--muted); }
+.dmk .fld:has(.oosSeg) { display: contents !important; }
+.dmk .fld:has(.oosSeg) > .lbl { order: 0; display: inline-block; align-self: center; margin-left: 6px; text-transform: none; letter-spacing: 0; font: 600 13.5px var(--font-body); color: var(--ink); }
+.dmk .fld:has(.oosSeg) .oosSeg { order: 0; align-self: center; min-width: 170px; }
+.dmk .fld:has(.oosSeg) .hint, .dmk .fld:has(.oosSeg) > p { order: 5; flex: 1 1 100%; }

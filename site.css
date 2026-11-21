@@ -706,8 +706,13 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .pw-two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .pw-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; counter-reset: pw; }
 .pw-list li { counter-increment: pw; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 14px; background: #fff; border: 1px solid var(--line); border-radius: 12px; } .pw-list li span { grid-column: 1; color: var(--mute); font-size: 13px; } .pw-list li em { grid-column: 2; grid-row: 1 / 3; align-self: center; font: 700 18px var(--body); font-style: normal; color: var(--navy); }
 @media (max-width: 700px) { .pw-two { grid-template-columns: 1fr; } }
-.rel { margin: 14px 0; padding: 10px 14px; border-left: 4px solid var(--navy); background: #f3f6fd; border-radius: 0 10px 10px 0; font-size: 14.5px; } .rel b { color: var(--navy); } a.xl { text-decoration: underline; text-decoration-color: rgba(36,80,200,.35); text-underline-offset: 2px; }
+.relb { margin: 14px 0; padding: 10px 14px; border-left: 4px solid var(--navy); background: #f3f6fd; border-radius: 0 10px 10px 0; font-size: 14.5px; } .relb b { color: var(--navy); } a.xl { text-decoration: underline; text-decoration-color: rgba(36,80,200,.35); text-underline-offset: 2px; }
 /* countdown centred; year panels show a chevron */
 .cd, .cd .cd-t, .cd .cd-fine, .pg-main .cd p { text-align: center; } .cd .cd-n { justify-content: center; margin-left: auto; margin-right: auto; }
 .pw-y > summary { position: relative; padding-right: 54px; } .pw-y > summary::after { content: ""; position: absolute; right: 20px; top: 50%; width: 10px; height: 10px; margin-top: -8px; border-right: 2.5px solid var(--navy); border-bottom: 2.5px solid var(--navy); transform: rotate(45deg); transition: transform .2s; } .pw-y[open] > summary::after { transform: rotate(-135deg); margin-top: -2px; }
 .pw-y > summary:hover { background: #f6f8fd; border-radius: 14px; }
+
+/* Resources menu in two columns */
+.sh-panel-w { min-width: 640px; } .pn-in.pn-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; align-items: start; } .pn-col { min-width: 0; }
+@media (max-width: 900px) { .sh-panel-w { min-width: 0; } .pn-in.pn-2 { display: block; } }
+.pn-col { display: flex; flex-direction: column; gap: 2px; }

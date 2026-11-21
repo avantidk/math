@@ -281,16 +281,16 @@ def header(depth, up=None):
     cards = ''.join(f'<div class="mega-card" role="none">{exlogo(e, up, 44)}<span class="mc-body"><a class="stretch" role="menuitem" href="{up}exams/{e[2]}/">{E(e[1])}</a><span class="mc-tag">{E(e[3])}</span><span class="mc-meta">{E(exam_meta(e))}</span></span></div>' for e in ALL_EXAMS)
     exams_panel = (f'<div class="sh-mega" role="menu"><div class="mega-in"><p class="mega-h">Exams we cover <span>previous-year math questions, dates and safe scores</span></p><div class="mega-grid">{cards}</div>'
                    f'<div class="mega-foot"><a class="mega-all" href="{up}exams/">View all exams &rarr;</a></div></div></div>')
-    res_panel = ('<div class="sh-panel sh-panel-w" role="menu"><div class="pn-in"><p class="pn-h">Analysis</p>'
+    res_panel = ('<div class="sh-panel sh-panel-w" role="menu"><div class="pn-in pn-2"><div class="pn-col"><p class="pn-h">Analysis</p>'
                  + item('resources/questions-analysis/', 'Questions Analysis', 'Math PYQs and DPPs analysis for every exam')
                  + item('resources/paper-wise-analysis/', 'Paper Wise Analysis', 'Every paper: levels and toughness')
                  + item('syllabus-priority/', 'Syllabus priority', 'Which chapters are asked the most')
                  + item('chapter-weightage/', 'Chapter weightage', 'Weightage by exam and year')
                  + item('chapter-wise-count/', 'Chapter-wise count', 'Questions in every chapter')
                  + item('question-counts/', 'Question counts', 'The numbers behind the bank')
-                 + '<p class="pn-h">Maths and planning</p>'
+                 + '</div><div class="pn-col"><p class="pn-h">Maths and planning</p>'
                  + item('maths/', f'All {len(CH)} maths chapters', 'Topics, subtopics and question counts')
-                 + item('resources/important-exams/', 'Important exams after Class 12', 'A roadmap of every maths-based exam') + '</div></div>')
+                 + item('resources/important-exams/', 'Important exams after Class 12', 'A roadmap of every maths-based exam') + '</div></div></div>')
     nav = (f'<a class="sh-dash" href="{up}dashboard">{grid_ico}<span>Dashboard</span></a>'
            + dd('Exams', f'{up}exams/', exams_panel) + dd('Resources', f'{up}resources/questions-analysis/', res_panel, 'rel')
            + f'<a href="{up}#plans">Plans</a><a href="{up}contact/">Help</a>')
@@ -586,7 +586,7 @@ def autolink(html_, up, skip=''):
         out.append(part)
     return ''.join(out)
 def related(up, *links):
-    return '<p class="rel"><b>Related:</b> ' + ' &middot; '.join(f'<a href="{up}{h}">{E(t)}</a>' for h, t in links) + '</p>'
+    return '<p class="relb"><b>Related:</b> ' + ' &middot; '.join(f'<a href="{up}{h}">{E(t)}</a>' for h, t in links) + '</p>'
 
 # parts of the guide that say the same thing as another part of the page, and are therefore left out
 GUIDE_DROP = {'jee-main': ['Recent JEE Main Qualifying Cutoff Percentiles (Paper 1)'], 'iat': ['Safe Target Scores & Expected Rank Range (Out of 240 Marks)']}

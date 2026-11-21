@@ -1,5 +1,15 @@
 [
   {
+    "v": "997",
+    "date": "21 Nov 2026",
+    "items": [
+      "Fixed the Resources menu on the website: it had picked up a stray style. It now looks like the other menu items, and its two groups sit in two columns.",
+      "DPPs page: Own DPP Maker block, then \"Source Wise DPPs (Exercises, Do Yourself, Practice Problems)\" with all the sources, then \"Chapterwise DPPs (PYQs)\" and \"Chapterwise DPPs (Non-PYQs)\" linking to those pages.",
+      "Own DPP Maker: a note says your DPP is 2 pages (A4 size), and the out-of-syllabus switch sits beside Explanation.",
+      "The export box (questions selected, Answer key, Explanation, Export) is now always at the top of every question list."
+    ]
+  },
+  {
     "v": "996",
     "date": "21 Nov 2026",
     "items": [
