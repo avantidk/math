@@ -297,3 +297,17 @@ button.dl-opt.bad { border-color: #d6293e; background: color-mix(in srgb, #d6293
   .dl-numrow { flex-direction: column; } .dl-opts { grid-template-columns: 1fr; }
 }
 .dl-row.open .dl-sd { background: color-mix(in srgb, var(--accent) 11%, transparent); padding-top: 12px; padding-bottom: 12px; align-self: stretch; }
+/* v987: calmer open question, tidy row menu, no sticky blue on touch */
+.dl-row.open .dl-main { cursor: pointer; }
+.dl-rpop { width: 280px; max-width: 88vw; padding: 8px; }
+.dl-ri { display: grid; grid-template-columns: 78px minmax(0, 1fr); align-items: start; gap: 10px; padding: 9px 10px; border-bottom: 1px solid var(--rule); font-size: 13.5px; }
+.dl-ri span { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; padding-top: 2px; }
+.dl-ri b { text-align: left; font-weight: 600; overflow-wrap: break-word; word-break: normal; line-height: 1.35; }
+.dl-sep { height: 4px; border: 0; }
+.dl-rpop .dl-mi { padding: 11px 10px; font-size: 14px; border-radius: 10px; }
+button.dl-opt:hover { border-color: var(--rule); background: var(--panel); }
+@media (hover: hover) { button.dl-opt:not(.ok):not(.bad):hover { border-color: var(--accent); background: var(--accent-soft); } }
+button.dl-opt:focus { outline: none; } button.dl-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.dl-opt:not(.ok):not(.bad):active { background: var(--panel); }
+button.dl-opt.ok:hover { border-color: var(--ok, #17794a); background: color-mix(in srgb, var(--ok, #17794a) 14%, transparent); }
+button.dl-opt.bad:hover { border-color: #d6293e; background: color-mix(in srgb, #d6293e 12%, transparent); }

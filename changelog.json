@@ -1,5 +1,14 @@
 [
   {
+    "v": "987",
+    "date": "21 Nov 2026",
+    "items": [
+      "An open question now shows just the question and its options. The level tag, the subtopic and type tags, the Collapse button and the hint line are gone (tap the question header to close it).",
+      "The three-line menu is tidier and also shows the Marking scheme of that question (for example +4 / −1, with partial marks where they apply).",
+      "Options no longer turn blue when tapped again on a phone."
+    ]
+  },
+  {
     "v": "986",
     "date": "21 Nov 2026",
     "items": [

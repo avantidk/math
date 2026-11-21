@@ -94,9 +94,8 @@ function render(env, o) {
     const mark = h('span', { class: 'dl-st ' + (st || ''), title: st === 'c' ? 'You got this right in a test' : st === 'w' ? 'You got this wrong in a test' : st === 's' ? 'Left unanswered in a test' : 'Not attempted', text: st === 'c' ? '✓' : st === 'w' ? '✕' : st === 's' ? '–' : '' });
     const head = h('button', { type: 'button', class: 'dl-main', 'aria-expanded': 'false', onclick: () => toggle(li, r) },
       h('span', { class: 'dl-n' }, h('b', { text: String(i + 1) }), mark),
-      h('span', { class: 'dl-qt' }, h('span', { class: 'dl-q', html: rich(x.question) }), h('span', { class: 'dl-meta', text: srcLine(x) }),
-        h('span', { class: 'dl-fold' }, h('span', { class: 'dl-fold-o', html: ICON.caret }), h('span', { class: 'dl-fold-c' }, h('i', { html: ICON.up }), 'Collapse'))));
-    li.append(head, h('span', { class: 'dl-sd' }, h('span', { class: 'dl-lv ' + r.d, text: r.d || '' }), rowMenu(r, x, li)), h('div', { class: 'dl-detail', hidden: true }));
+      h('span', { class: 'dl-qt' }, h('span', { class: 'dl-q', html: rich(x.question) }), h('span', { class: 'dl-meta', text: srcLine(x) })));
+    li.append(head, h('span', { class: 'dl-sd' }, rowMenu(r, x, li)), h('div', { class: 'dl-detail', hidden: true }));
     return li;
   }
   const LVN = { L1: 'Level 1 · Easy', L2: 'Level 2 · Moderate', L3: 'Level 3 · Tough' };
@@ -109,7 +108,9 @@ function render(env, o) {
       const bm = h('button', { type: 'button', class: 'dl-mi dl-mi-bm', 'data-id': r.id, onclick: () => { api.close(); toggleBm(r.id); } });
       const warn = h('button', { type: 'button', class: 'dl-mi', html: ICON.warn + '<span>Report an error</span>', onclick: () => { api.close(); if (li.querySelector('.dl-detail').hidden) toggle(li, r); const rb = li.querySelector('.dl-rbox'); if (rb) { rb.hidden = false; rb.scrollIntoView({ block: 'center', behavior: 'smooth' }); } } });
       bmLabel(bm);
-      panel.append(info('Subtopic', x.topic || r.tp || '—'), info('Type', x.type || 'MCQ'), info('Level', LVN[r.d] || r.d || '—'), h('div', { class: 'dl-sep' }), bm, warn);
+      const mk = info('Marking', '…'), mkb = mk.querySelector('b');
+      let mkDone = false; api.box.querySelector('.dl-fbtn').addEventListener('click', () => { if (mkDone) return; mkDone = true; env.marking(x).then(t => { mkb.textContent = t || 'Not available'; }); });
+      panel.append(info('Subtopic', x.topic || r.tp || '—'), info('Type', x.type || 'MCQ'), info('Level', LVN[r.d] || r.d || '—'), mk, h('div', { class: 'dl-sep' }), bm, warn);
     });
     return box;
   }
@@ -175,8 +176,8 @@ function render(env, o) {
       if (k === 'sol') solution(env, r.id, panes.sol); else if (k === 'oth') others(env, r.id, panes.oth, n => { tabBtns.oth.textContent = 'Others’ solutions' + (n ? ' (' + n + ')' : ''); }); else comments(env, r.id, panes.com, n => { tabBtns.com.textContent = 'Comments' + (n ? ' (' + n + ')' : ''); });
     };
     const q = h('div', { class: 'dl-fullq', html: rich(x.question) });
-    const kids = [h('div', { class: 'dl-chips' }, h('span', { class: 'dl-chip', text: type }), r.tp ? h('span', { class: 'dl-chip', text: r.tp }) : null), q, fig,
-      optEls.length ? h('div', { class: 'dl-opts' }, optEls) : null, numBox, optEls.length ? h('p', { class: 'dl-tip', text: multi ? 'More than one option can be correct. Tap the options you think are right.' : 'Tap an option to check your answer.' }) : null,
+    const kids = [q, fig,
+      optEls.length ? h('div', { class: 'dl-opts' }, optEls) : null, numBox,
       h('div', { class: 'dl-acts' }, nav), rep, tabs, body].filter(Boolean);
     box.append(...kids);
     env.mathReady().then(() => { q.innerHTML = rich(x.question); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); });

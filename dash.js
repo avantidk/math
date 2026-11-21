@@ -343,7 +343,18 @@ function topicSide(mode, slug, ch, active, rows) {
 let TOASTT = 0;
 function toast(m) { let t = document.getElementById('dToast'); if (!t) { t = h('div', { id: 'dToast', class: 'd-toast', role: 'status' }); document.body.append(t); } t.textContent = m; t.classList.add('on'); clearTimeout(TOASTT); TOASTT = setTimeout(() => t.classList.remove('on'), 2600); }
 const LIST_KINDS = ['all', 'must', 'must5', 'l1', 'l2', 'l3', 'bookmarked', 't'];
-const listEnv = () => ({ D, A, h, main, stat, IC, pct, openQB, toast, content: window.AvantiContent, mathReady: () => window.AvantiBoot.katex().catch(() => {}) });
+/* marking scheme of a question, like "+4 / −1", from the database table marking_schemes (the scheme in force in the paper's year) */
+let SCP = null;
+const schemesP = () => SCP || (SCP = A().sb.rpc('marking_schemes').then(r => (r.error ? [] : r.data) || []).catch(() => []));
+async function markingOf(x) {
+  const all = await schemesP(), P = x.source === 'PYQ', ex = P ? ({ 'AIEEE': 'JEE Main', 'IIT': 'JEE Advanced' }[x.exam] || x.exam) : 'JEE Main', yr = P ? Number(x.year) || 9999 : 9999;
+  const rows = all.filter(r => r.exam === ex); if (!rows.length) return '';
+  const ok = rows.filter(r => (r.effective_year || 0) <= yr).sort((a, b) => b.effective_year - a.effective_year), sc = ok[0] || rows.sort((a, b) => a.effective_year - b.effective_year)[0];
+  const ty = (sc.rules && sc.rules.types) || {}, type = x.type === 'Matching' ? 'MCQ' : x.type || 'MCQ', t = ty[type] || ty.MCQ; if (!t) return '';
+  const n = v => String(Number(v)), w = +t.w ? '\u2212' + n(t.w) : '0';
+  return '+' + n(t.c) + ' / ' + w + (t.p ? ' (partial marks possible)' : '');
+}
+const listEnv = () => ({ D, A, h, main, stat, IC, pct, openQB, toast, marking: markingOf, content: window.AvantiContent, mathReady: () => window.AvantiBoot.katex().catch(() => {}) });
 /* a question list inside the dashboard (dash-list.js draws it) */
 function viewList(mode, slug, ch, kind, arg) {
   const c = D.chByCode[ch], e = EX[slug], rows = scope(mode, slug, ch), idSet = new Set(rows.map(r => r.id));
