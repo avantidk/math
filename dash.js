@@ -135,13 +135,18 @@ function shell() {
     shut();
   });
 }
+let COLL = false; try { COLL = localStorage.getItem('d-side-collapsed') === '1'; } catch (e) { /* default open */ }
+const PANEL_IC = svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/>');
+function applyColl() { const b = $('.d-body'); if (b) b.classList.toggle('d-collapsed', COLL); document.querySelectorAll('.d-colbtn').forEach(x => { x.setAttribute('aria-pressed', String(COLL)); x.title = COLL ? 'Show the menu' : 'Hide the menu'; x.setAttribute('aria-label', x.title); }); }
 function side(o) {   /* o: { back: hash|null, title, sub, items:[{label, icon, hash|href|onclick, active, badge, off}] } */
   SIDE.textContent = '';
-  if (o.back != null) SIDE.append(h('a', { class: 'd-back', href: o.back === '' ? '#d/' : '#' + o.back, 'aria-label': 'Back', html: IC.back }));
+  const col = h('button', { type: 'button', class: 'd-colbtn', html: PANEL_IC, 'aria-pressed': String(COLL), onclick: () => { COLL = !COLL; try { localStorage.setItem('d-side-collapsed', COLL ? '1' : '0'); } catch (e) { /* optional */ } applyColl(); } });
+  SIDE.append(h('div', { class: 'd-side-top' }, o.back != null ? h('a', { class: 'd-back', href: o.back === '' ? '#d/' : '#' + o.back, 'aria-label': 'Back', html: IC.back }) : h('span', { class: 'd-back-sp' }), col));
   if (o.title) SIDE.append(h('div', { class: 'd-side-h' }, h('b', { text: o.title }), o.sub ? h('small', { text: o.sub }) : null));
-  SIDE.append(h('nav', { class: 'd-nav' }, o.items.map(it => h('a', { class: 'd-nav-i' + (it.active ? ' on' : '') + (it.off ? ' off' : ''), href: it.href || (it.hash != null ? '#' + it.hash : '#'), 'aria-current': it.active ? 'page' : null,
+  SIDE.append(h('nav', { class: 'd-nav' }, o.items.map(it => h('a', { class: 'd-nav-i' + (it.active ? ' on' : '') + (it.off ? ' off' : ''), href: it.href || (it.hash != null ? '#' + it.hash : '#'), 'aria-current': it.active ? 'page' : null, title: it.label,
     onclick: it.onclick ? (e => { e.preventDefault(); it.onclick(); }) : null },
     h('span', { class: 'd-nav-ic', html: it.icon || '' }), h('span', { class: 'd-nav-t', text: it.label }), it.badge ? h('span', { class: 'd-nav-b', text: it.badge }) : null, h('span', { class: 'd-nav-c', html: it.off ? IC.lock : IC.chev })))));
+  applyColl();
 }
 const main = (...kids) => { MAIN.textContent = ''; MAIN.append(...kids.flat().filter(Boolean)); MAIN.scrollTop = 0; window.scrollTo(0, 0); };
 const loadingBox = t => h('div', { class: 'pt-state' }, h('div', { class: 'spin' }), h('p', { text: t || 'Loading…' }));
@@ -245,7 +250,7 @@ function viewPick(k) {
   window.DashList.render(listEnv(), { rows, title: pk.title, head: h('div', { class: 'd-head' }, crumb('Dashboard', pk.title)), testLabel: 'Take test', emptyText: 'Nothing here yet.',
     startTest: list => launchTestFrom(list, { chapter: pk.title, chapter_code: 'pick' }, 'pyq', null, 20, 'practice test') });
 }
-const UPCOMING = [['JEE Main 2027 · Session 1', '2027-01-21', 'jee-main'], ['JEE Advanced 2027', '2027-05-23', 'jee-advanced']];
+const UPCOMING = [['JEE Main 2027 · Session 1', '2027-01-20', 'jee-main'], ['JEE Advanced 2027', '2027-05-23', 'jee-advanced']];
 function viewHome() {
   side({ back: null, title: 'Dashboard', sub: 'Choose how you want to practise', items: homeItems('home') });
   const pyq = D.rows.filter(r => r.P), np = D.rows.filter(r => !r.P), res = D.sum.results, solved = Object.keys(res).length, right = Object.values(res).filter(x => x === 'c').length;
@@ -303,7 +308,7 @@ function viewPortalPage(hs, r) {
   const tests = r === 'modes' || r === 'personal';
   document.querySelectorAll('.tb-menu .tb').forEach(x => x.setAttribute('aria-pressed', String(tests && x.dataset.k === 'tests')));
   const on = p => hs === p || hs.startsWith(p + '/');
-  if (tests) side({ back: null, title: 'Dashboard', sub: 'Choose how you want to practise', items: homeItems('tests') });
+  if (tests) side({ back: '', title: 'Tests', sub: 'Mock tests and your results', items: homeItems('tests') });
   else side({ back: '', title: 'My account', sub: 'Profile, plan and results', items: [
     { label: 'Edit profile', icon: IC.grid, hash: '/profile', active: on('#/profile') },
     { label: 'Membership', icon: IC.mark, hash: '/membership', active: on('#/membership') },
@@ -323,7 +328,7 @@ async function viewHandouts() {
   const ACC = ['#e0197a', '#0a86c2', '#16a06a', '#d98200', '#7a3fd1', '#e8590c', '#5a9a00'];
   const base = x => x.file.replace(/\.pdf$/, ''), path = (x, bw) => 'handouts/' + (bw ? x.dir + '/bw/' + base(x) + '_BW.pdf' : x.file);
   const get = async (x, bw) => { const r = await fetch(path(x, bw)); if (!r.ok) throw new Error(r.status === 400 || r.status === 403 ? 'Handouts are part of the Premium membership.' : 'Could not open the handout. Try again.'); return r.blob(); };
-  const view = async x => { const w = window.open('', '_blank'); try { toast('Opening ' + x.code + '…'); const b = await get(x, false), u = URL.createObjectURL(new Blob([b], { type: 'application/pdf' })); if (w) w.location.href = u; else location.href = u; setTimeout(() => URL.revokeObjectURL(u), 120000); } catch (e) { if (w) w.close(); toast(e.message); } };
+  const view = async x => { try { toast('Opening ' + x.code + '…'); const t = await realTE(); await t.viewHandout(x, path(x, false)); } catch (e) { toast((e && e.message) || 'Could not open the handout. Try again.'); } };
   const save = async (x, bw) => { try { toast('Preparing the download…'); const b = await get(x, bw), a = h('a', { href: URL.createObjectURL(b), download: base(x) + (bw ? '_BW' : '') + '.pdf' }); document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); } catch (e) { toast(e.message); } };
   const q = { cls: '11', t: '' };
   const grid = h('div', { class: 'ho-grid' }), count = h('small', { class: 'ho-count' });

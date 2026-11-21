@@ -210,8 +210,9 @@ function render(env, o) {
       can('docx') ? { icon: P.icons.docx, text: 'Download Word', sub: 'Editable document', onclick: run('docx') } : null,
       can('pptx') ? { icon: P.icons.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: run('pptx') } : null,
       '-',
-      { icon: P.icons.pdf, text: 'Print', sub: 'Opens the PDF to print', onclick: async () => { const r = await pdfBlob(); if (r) { const u = URL.createObjectURL(r.blob), w = window.open(u, '_blank'); if (w) w.addEventListener('load', () => { try { w.print(); } catch (x) { /* user prints from the viewer */ } }); setTimeout(() => URL.revokeObjectURL(u), 180000); } } },
-      can('share') ? { icon: P.icons.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { const r = await pdfBlob(); if (r) P.shareReady(r.blob, r.file, o.title); } } : null]) });
+      { icon: P.icons.print, text: 'Print', sub: 'Opens the PDF to print', onclick: async () => { const r = await pdfBlob(); if (r) { const u = URL.createObjectURL(r.blob), w = window.open(u, '_blank'); if (w) w.addEventListener('load', () => { try { w.print(); } catch (x) { /* user prints from the viewer */ } }); setTimeout(() => URL.revokeObjectURL(u), 180000); } } },
+      can('share') ? { icon: P.icons.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { const r = await pdfBlob(); if (r) P.shareReady(r.blob, r.file, o.title); } } : null,
+      { icon: P.icons.link, text: 'Copy link to this page', sub: 'The page link, not the PDF', onclick: () => { try { navigator.clipboard.writeText(location.href).then(() => env.toast('Page link copied')); } catch (x) { env.toast(location.href); } } }]) });
     return h('section', { class: 'dl-export', 'aria-label': 'Export these questions' },
       h('div', { class: 'dl-x-l' }, h('div', { class: 'dl-x-n' }, expCount, h('span', { text: ' questions selected' })), h('small', { text: 'Exactly the questions of this list (after your filters) are exported.' })),
       h('div', { class: 'dl-x-sw' }, sw('Answer key', 'key'), sw('Explanation', 'exp')),

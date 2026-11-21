@@ -1,5 +1,17 @@
 [
   {
+    "v": "993",
+    "date": "21 Nov 2026",
+    "items": [
+      "Handouts: View opens the handout in a reader docked on half of the screen on a computer (full screen on a phone), like in the Question Bank.",
+      "The left menu can be collapsed to icons with the new menu icon at its top; every page now has the same left menu, including Tests.",
+      "Downloaded question papers now show the maths properly (it showed raw formulas before). The Adobe icons are replaced by plain download, document, slides, print and share icons. On each paper there is a share icon: Download PDF, Share PDF, or Copy link to this page.",
+      "JEE Main important dates are updated to the new NTA 2027 schedule (Session 1: 20 to 28 January 2027, Session 2: 2 to 7 April 2027) and the countdown now runs to 20 January 2027.",
+      "New Resources page: Paper Wise Analysis, with the L1, L2, L3 questions, overall toughness and most-asked chapters of every JEE Main paper, and year-wise averages.",
+      "All Maths menu items moved into Resources. Pages now link to each other where it helps."
+    ]
+  },
+  {
     "v": "992",
     "date": "21 Nov 2026",
     "items": [

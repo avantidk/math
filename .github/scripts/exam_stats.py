@@ -14,6 +14,15 @@ def ylv(rows):   # per year: questions and L1/L2/L3
 def lv(rows):
     c = collections.Counter(r.get('difficulty') for r in rows)
     return {k: c.get(k, 0) for k in LV}
+def paper_list(rs):   # one entry per paper (year, session, paper): size, levels, types and the chapters it leaned on
+    ps = collections.defaultdict(list)
+    for r in rs: ps[(r['year'], r.get('session'), r.get('paper'))].append(r)
+    out = []
+    for (y, ses, pp), v in ps.items():
+        ch = collections.Counter(r.get('chapter_code') for r in v if r.get('chapter_code'))
+        out.append({'year': int(y), 'paper': pp, 'date': max((r.get('sort_date') or '') for r in v), 'n': len(v), **lv(v),
+                    'types': dict(collections.Counter(r.get('type') for r in v)), 'chapters': len(ch), 'top': ch.most_common(3)})
+    return sorted(out, key=lambda x: (x['date'], x['paper'] or ''), reverse=True)
 by = collections.defaultdict(list)
 for r in rows: by[r['exam']].append(r)
 out = {}
@@ -27,6 +36,7 @@ for exam, rs in by.items():
         'by_level': lv(rs),
         'by_year_lv': ylv(rs),
         'chapters': {},
+        'paper_list': paper_list(rs),
     }
     for code in {r.get('chapter_code') for r in rs if r.get('chapter_code')}:
         cr = [r for r in rs if r.get('chapter_code') == code]
