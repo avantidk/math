@@ -488,3 +488,13 @@ body.dpop-on { overflow: hidden; }
   .dmk .msel .mp { position: fixed !important; top: auto !important; bottom: 12px !important; left: 12px !important; right: 12px !important; width: auto !important; min-width: 0 !important; max-width: none !important; z-index: 1500 !important; max-height: 72vh; box-shadow: 0 -10px 44px rgba(0,0,0,.4); }
   .dmk .msel .ml { max-height: 52vh !important; }
 }
+/* Create Your Practice Test: multi-select drop-downs */
+.cp-pills { display: flex; flex-wrap: wrap; gap: 10px; }
+.cp-dd .dl-fbtn { min-width: 190px; justify-content: space-between; }
+.cp-pop { min-width: 360px; max-height: 380px; }
+.cp-pop-h { display: flex; gap: 8px; padding: 2px 4px 8px; border-bottom: 1px solid var(--rule); margin-bottom: 4px; }
+.cp-pop-g { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px 2px; font-size: 13px; color: var(--ink); }
+@media (max-width: 640px) {
+  .cp-dd { flex: 1 1 100%; } .cp-dd .dl-fbtn { width: 100%; }
+  .cp-pop { position: fixed !important; left: 12px !important; right: 12px !important; top: auto !important; bottom: 12px !important; min-width: 0; max-height: 72vh; z-index: 1500; box-shadow: 0 -10px 44px rgba(0,0,0,.4); }
+}

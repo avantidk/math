@@ -1,5 +1,12 @@
 [
   {
+    "v": "1003",
+    "date": "21 Nov 2026",
+    "items": [
+      "Create Your Practice Test: chapters, exams, practice books, difficulty and question types are now multi-select drop-downs in the Dashboard filter style (with counts and Select all / Clear), instead of long lists of chips. On a phone each list opens from the bottom of the screen."
+    ]
+  },
+  {
     "v": "1002",
     "date": "21 Nov 2026",
     "items": [

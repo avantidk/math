@@ -1167,6 +1167,34 @@ async function pageModes(arg) {
 }
 const modeHead = (t, sub) => modeBanner('TESTS', t, sub);
 const chip = (text, on, fn, dis) => h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(!!on), text, disabled: !!dis, onclick: fn });
+/* multi-select drop-down in the dashboard's filter style (the same look as the filters of the question lists) */
+let DD_OPEN = null;
+document.addEventListener('click', e => { if (DD_OPEN && !DD_OPEN.box.contains(e.target)) DD_OPEN.close(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && DD_OPEN) DD_OPEN.close(); });
+function dd(label, groups, set, onChange, o) {   /* groups: [{ h, items: [[value, text, count]] }]; o: { none, min, lock } */
+  o = o || {};
+  const all = groups.flatMap(g => g.items), name = new Map(all.map(i => [i[0], i[1]]));
+  const caret = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  const box = h('div', { class: 'dl-menu cp-dd' }), fl = h('span', { class: 'dl-fl' }), btn = h('button', { type: 'button', class: 'dl-fbtn', 'aria-haspopup': 'true', 'aria-expanded': 'false' }, fl, h('span', { html: caret })), panel = h('div', { class: 'dl-pop cp-pop', hidden: true });
+  const api = { box, close() { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); if (DD_OPEN === api) DD_OPEN = null; } };
+  const boxes = new Map();
+  const paint = () => {
+    boxes.forEach((cb, v) => { cb.checked = set.has(v); });
+    const n = set.size, names = [...set].map(v => name.get(v)).filter(Boolean);
+    fl.textContent = !n ? (o.none || 'All ' + label.toLowerCase()) : n <= 2 ? names.join(', ') : n + ' ' + label.toLowerCase() + ' selected';
+    btn.classList.toggle('on', n > 0 && !o.min);
+  };
+  const change = () => { paint(); onChange(); };
+  if (!o.min) panel.append(h('div', { class: 'cp-pop-h' }, h('button', { type: 'button', class: 'mlink', text: 'Select all', onclick: () => { all.forEach(i => set.add(i[0])); change(); } }), h('button', { type: 'button', class: 'mlink', text: 'Clear', onclick: () => { set.clear(); change(); } })));
+  groups.forEach(g => {
+    if (g.h) panel.append(h('div', { class: 'cp-pop-g' }, h('b', { text: g.h }), h('span', {}, h('button', { type: 'button', class: 'mlink', text: 'All', onclick: () => { g.items.forEach(i => set.add(i[0])); change(); } }), ' · ', h('button', { type: 'button', class: 'mlink', text: 'None', onclick: () => { g.items.forEach(i => set.delete(i[0])); change(); } }))));
+    g.items.forEach(([v, t, c]) => { const cb = h('input', { type: 'checkbox', onchange: e => { if (e.target.checked) set.add(v); else if (o.min && set.size <= o.min) e.target.checked = true; else set.delete(v); change(); } }); boxes.set(v, cb);
+      panel.append(h('label', { class: 'dl-opt-i' }, cb, h('span', { class: 'dl-ot2', text: t }), c != null ? h('em', { class: 'dl-cn', text: String(c) }) : null)); });
+  });
+  btn.addEventListener('click', e => { e.stopPropagation(); if (o.lock) { o.lock(); return; } if (!panel.hidden) { api.close(); return; } if (DD_OPEN) DD_OPEN.close(); panel.hidden = false; btn.setAttribute('aria-expanded', 'true'); DD_OPEN = api; });
+  box.append(btn, panel); paint(); api.paint = paint;
+  return box;
+}
 async function modeCustom() {
   show(modeHead('Create Your Practice Test', 'Choose what to practise.'), loading('Loading the question bank…'));
   const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
@@ -1184,7 +1212,12 @@ async function modeCustom() {
   const tog = (set, k, min) => { if (set.has(k)) { if (!min || set.size > min) set.delete(k); } else set.add(k); };
   const chip = (text, on, fn, small, dis) => h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(!!on), disabled: !!dis, onclick: fn }, text, small != null ? h('em', { class: 'cp-n', text: String(small) }) : null);
   const sect = (n, t, sub, ...kids) => h('section', { class: 'cp-sec' }, h('div', { class: 'cp-sh' }, h('b', { class: 'cp-no', text: String(n) }), h('div', {}, h('h2', { text: t }), sub ? h('p', { text: sub }) : null)), ...kids);
-  const exBox = h('div', { class: 'cp-chips' }), bkBox = h('div', { class: 'cp-chips' }), lvBox = h('div', { class: 'cp-chips' }), tyBox = h('div', { class: 'cp-chips' }), chBox = h('div', { class: 'cp-chs' }), sumBox = h('aside', { class: 'cp-sum' });
+  const sumBox = h('aside', { class: 'cp-sum' }), again = () => draw();
+  const exBox = dd('Exams', [{ items: exams.map(k => [k, EXN[k], count(q => exOf(q) === k)]) }], S.ex, again, { none: 'No exam picked', min: 0 });
+  const bkBox = dd('Practice books', [{ items: books.map(b => [b, b, count(q => bookOf(q) === b)]) }], S.bk, again, { none: free ? '🔒 Premium' : 'No practice questions', lock: free ? () => { location.hash = '#/membership'; } : null });
+  const lvBox = dd('Difficulty', [{ items: [['L1', 'Level 1 · Easy', count(q => q.d === 'L1')], ['L2', 'Level 2 · Moderate', count(q => q.d === 'L2')], ['L3', 'Level 3 · Tough', count(q => q.d === 'L3')]] }], S.lv, again, { min: 1 });
+  const tyBox = dd('Question types', [{ items: types.map(t => [t, { MCQ: 'Single correct', MSQ: 'One or more correct', Numerical: 'Numerical value' }[t], count(q => q.t === t)]) }], S.ty, again, { min: 1 });
+  const chBox = dd('Chapters', [['11', 'Class 11'], ['12', 'Class 12']].map(([c, t]) => ({ h: t, items: [...CHN.values()].filter(x => String(x.c).startsWith(c) && count(q => q.cc === x.c)).map(x => [x.c, x.n, count(q => q.cc === x.c)]) })).filter(g => g.items.length), S.ch, again, { none: 'All chapters' });
   const yr1 = h('select', { class: 'pt-in', 'aria-label': 'From year', onchange: e => { S.y1 = +e.target.value; if (S.y1 > S.y2) { S.y2 = S.y1; yr2.value = S.y2; } draw(); } }), yr2 = h('select', { class: 'pt-in', 'aria-label': 'To year', onchange: e => { S.y2 = +e.target.value; if (S.y2 < S.y1) { S.y1 = S.y2; yr1.value = S.y1; } draw(); } });
   for (let y = yMax; y >= yMin; y--) { yr1.append(h('option', { value: y, text: y })); yr2.append(h('option', { value: y, text: y })); } yr1.value = S.y1; yr2.value = S.y2;
   const nIn = h('div', { class: 'pt-in cp-fixed', 'aria-label': 'Number of questions', text: '25 questions (always)' });
@@ -1205,16 +1238,6 @@ async function modeCustom() {
     } catch (e) { toast(e.message); go.disabled = false; } } });
   function draw(light) {
     const avail = pool().length, n = Math.min(S.n, avail);
-    if (!light) {
-      exBox.textContent = ''; exams.forEach(k => exBox.append(chip(EXN[k], S.ex.has(k), () => { tog(S.ex, k); draw(); }, count(q => exOf(q) === k))));
-      bkBox.textContent = ''; books.forEach(b => bkBox.append(chip((free ? '🔒 ' : '') + b, S.bk.has(b), () => { if (free) { location.hash = '#/membership'; return; } tog(S.bk, b); draw(); }, count(q => bookOf(q) === b))));
-      lvBox.textContent = ''; [['L1', 'Level 1 · Easy'], ['L2', 'Level 2 · Moderate'], ['L3', 'Level 3 · Tough']].forEach(([k, t]) => lvBox.append(chip(t, S.lv.has(k), () => { tog(S.lv, k, 1); draw(); })));
-      tyBox.textContent = ''; types.forEach(t => tyBox.append(chip({ MCQ: 'Single correct', MSQ: 'One or more correct', Numerical: 'Numerical value' }[t], S.ty.has(t), () => { tog(S.ty, t, 1); draw(); })));
-      chBox.textContent = '';
-      [['11', 'Class 11'], ['12', 'Class 12']].forEach(([c, t]) => { const L = [...CHN.values()].filter(x => String(x.c).startsWith(c) && count(q => q.cc === x.c)); if (!L.length) return;
-        chBox.append(h('div', { class: 'cp-cls' }, h('div', { class: 'cp-cls-h' }, h('b', { text: t }), h('span', {}, h('button', { type: 'button', class: 'mlink', text: 'Select all', onclick: () => { L.forEach(x => S.ch.add(x.c)); draw(); } }), ' · ', h('button', { type: 'button', class: 'mlink', text: 'Clear', onclick: () => { L.forEach(x => S.ch.delete(x.c)); draw(); } }))),
-          h('div', { class: 'cp-chips' }, L.map(x => chip(x.n, S.ch.has(x.c), () => { tog(S.ch, x.c); draw(); })))) ); });
-    }
     sumBox.textContent = '';
     const sc = SC[S.scheme] || SC['JEE Main'];
     sumBox.append(h('h3', { text: 'Your test' }),
@@ -1226,10 +1249,9 @@ async function modeCustom() {
   draw();
   show(modeHead('Create Your Practice Test', 'Build exactly the test you need. The marks and the instructions are shown before you start.'),
     h('div', { class: 'cp-wrap' }, h('div', { class: 'cp-main' },
-      sect(1, 'Source', 'Previous year questions and practice questions.', h('h4', { class: 'cp-lab', text: 'Previous year questions' }), exBox, h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'From year' }), yr1), h('label', { class: 'pt-fld' }, h('span', { text: 'To year' }), yr2)),
-        h('h4', { class: 'cp-lab', text: free ? 'Practice questions (Premium)' : 'Practice questions' }), bkBox),
-      sect(2, 'Chapters', 'Leave all unselected for every chapter.', chBox),
-      sect(3, 'Difficulty and type', null, h('h4', { class: 'cp-lab', text: 'Difficulty' }), lvBox, h('h4', { class: 'cp-lab', text: 'Question type' }), tyBox, skipBox),
+      sect(1, 'Source', 'Previous year questions and practice questions.', h('div', { class: 'cp-pills' }, exBox, bkBox), h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'From year (previous year questions)' }), yr1), h('label', { class: 'pt-fld' }, h('span', { text: 'To year' }), yr2))),
+      sect(2, 'Chapters', 'Pick one or more chapters. Leave it as it is for every chapter.', h('div', { class: 'cp-pills' }, chBox)),
+      sect(3, 'Difficulty and type', null, h('div', { class: 'cp-pills' }, lvBox, tyBox), skipBox),
       sect(4, 'Size, time and marking', null, h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Number of questions' }), nIn), h('label', { class: 'pt-fld' }, h('span', { text: 'Time per question' }), perSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Total time (minutes)' }), minIn)),
         h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Marking scheme' }), scSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Order of questions' }), ordSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Test name' }), titleIn)))),
       sumBox));
