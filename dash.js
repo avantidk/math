@@ -179,7 +179,12 @@ function viewDpp() {
       h('span', { class: 'dpp-n', text: none ? 'Coming soon' : (sheets ? sheets + ' sheets · ' : '') + num(n) + ' questions' }),
       free ? h('span', { class: 'dpp-lock', html: lockIc + ' Premium' }) : h('span', { class: 'dpp-go', text: none ? '' : 'Open questions ›' }));
   });
-  main(h('div', { class: 'dpp-head dpp-head-r' }, h('div', {}, h('h2', { text: 'DPPs' }), h('p', { text: 'Pick a source, then the chapter and the exercise, and practise its questions.' })), h('a', { class: 'btn pri dpp-maker-btn', href: free ? '#/membership' : '#d/dpp/maker', html: svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>').replace('width="20" height="20"', 'width="18" height="18"') + '<span>Own DPP Maker</span>' })), h('div', { class: 'dpp-grid' }, cards));
+  const penIc = svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>');
+  const maker = h('a', { class: 'dpp-mk', href: free ? '#/membership' : '#d/dpp/maker' },
+    h('span', { class: 'dpp-mk-ic', html: penIc }),
+    h('span', { class: 'dpp-mk-t' }, h('b', { text: 'Own DPP Maker' }), h('small', { text: 'Build a practice sheet of your own: pick chapters and subtopics, choose BB Ex, Ln DY, Ln Ex and PYQs, set the toughness, and get a ready A4 sheet with a live preview.' }), h('small', { text: 'Download it as PDF, Word or PowerPoint, print it or share it, with the answer key and explanations if you want them.' })),
+    free ? h('span', { class: 'dpp-lock', html: lockIc + ' Premium' }) : h('span', { class: 'dpp-mk-go' }, 'Open the maker ', h('i', { html: IC.chev })));
+  main(h('div', { class: 'dpp-head' }, h('h2', { text: 'DPPs' }), h('p', { text: 'Pick a source, then the chapter and the exercise, and practise its questions.' })), maker, h('div', { class: 'dpp-grid' }, cards));
 }
 /* A source (BB Ex, Ln DY, ...) is drilled down in the left menu: source -> chapters -> exercises -> questions */
 const srcRows = src => D.rows.filter(r => !r.P && r.bk === src.name);
@@ -227,9 +232,9 @@ async function viewDppMaker() {
   if (locked()) return dppLocked();
   side({ back: 'd/dpp', title: 'Own DPP Maker', sub: 'Build a sheet of your own', items: homeItems('dpp') });
   const host = h('div', { class: 'dmk' }), tok = NAV;
-  main(h('div', { class: 'd-head' }, crumb('DPPs', 'Own DPP Maker'), h('h2', { text: 'Own DPP Maker' }), h('p', { text: 'Choose chapters, subtopics and sources on the left. Your sheet is made on the right: download it as PDF, Word or PowerPoint, print it or share it.' })), loadingBox('Loading the question bank…'));
+  main(h('div', { class: 'd-head' }, crumb('DPPs', 'Own DPP Maker'), h('h2', { text: 'Own DPP Maker' }), h('p', { text: 'Choose chapters, subtopics and sources, then set the toughness. Your sheet is made below: download it as PDF, Word or PowerPoint, print it or share it.' })), loadingBox('Loading the question bank…'));
   try {
-    const t = await realTE(); if (tok !== NAV) return;
+    const t = await realTE(true); if (tok !== NAV) return;
     await t.mountMaker(host); if (tok !== NAV) return;
     const P = window.AvantiPortal;
     const ic = { docx: P.icons.docx, pdf: P.icons.pdf, pptx: P.icons.pptx };
@@ -445,8 +450,8 @@ function viewList(mode, slug, ch, kind, arg) {
   const c = D.chByCode[ch], e = EX[slug], rows = scope(mode, slug, ch), idSet = new Set(rows.map(r => r.id));
   const must = mode === 'pyq' ? (D.must[ch] || []).filter(id => idSet.has(id)) : [], mustSet = new Set(must), last5 = new Set(rows.filter(r => r.y && r.y > D.maxYear - 5).map(r => r.id));
   let pool, title, what = 'Chapter';
-  if (kind === 'all') { pool = rows; title = mode === 'pyq' ? 'All PYQs' : 'All Questions'; chapterSide(mode, slug, ch, 'all', rows); }
-  else if (kind === 'bookmarked') { const bm = new Set(D.sum.bookmarks); pool = rows.filter(r => bm.has(r.id)); title = 'Bookmarked Qs'; chapterSide(mode, slug, ch, 'bookmarked', rows); }
+  if (kind === 'all') { pool = rows; title = mode === 'pyq' ? 'Previous Year Questions' : 'Practice Questions'; chapterSide(mode, slug, ch, 'all', rows); }
+  else if (kind === 'bookmarked') { const bm = new Set(D.sum.bookmarks); pool = rows.filter(r => bm.has(r.id)); title = 'Bookmarked Questions'; chapterSide(mode, slug, ch, 'bookmarked', rows); }
   else if (kind === 't') { const k = arg; pool = rows.filter(r => (r.tc || r.tp) === k); title = (pool[0] && pool[0].tp) || 'Topic'; what = 'Topic'; topicSide(mode, slug, ch, k, rows); }
   else {
     what = 'Bucket'; bucketSide(mode, slug, ch, kind);
@@ -454,9 +459,9 @@ function viewList(mode, slug, ch, kind, arg) {
     else if (kind === 'must5') { pool = rows.filter(r => mustSet.has(r.id) && last5.has(r.id)); title = 'Must Do Qs of last 5 years'; }
     else { const L = kind.toUpperCase(); pool = rows.filter(r => r.d === L); title = ({ L1: 'Confidence Booster · Level 1 (Easy)', L2: 'Balanced · Level 2 (Moderate)', L3: 'Rank Booster · Level 3 (Tough)' })[L]; }
   }
-  const head = h('div', { class: 'd-head' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c ? c.chapter : ch));
+  const sub = [c ? c.chapter : ch, mode === 'pyq' && e ? e.name : 'Practice questions'].join(' · ');   /* the list pages open straight on the title: no breadcrumb here */
   window.DashList.render(listEnv(),
-    { rows: pool, title, head, practiceLabel: 'Practice ' + what, testLabel: 'Take ' + what + ' Test', emptyText: kind === 'bookmarked' ? 'Tap the bookmark on any question to keep it here.' : 'No questions here yet.',
+    { rows: pool, title, sub, head: null, practiceLabel: 'Practice ' + what, testLabel: 'Take ' + what + ' Test', emptyText: kind === 'bookmarked' ? 'Tap the bookmark on any question to keep it here.' : 'No questions here yet.',
       startTest: list => launchTestFrom(list, c, mode, e, 20, what.toLowerCase() + ' test') });
 }
 function viewChapter(mode, slug, ch, section, extra) {
@@ -616,10 +621,10 @@ const dashBank = () => BANKP || (BANKP = (async () => {
 })().catch(e => { BANKP = null; throw e; }));
 /* PDF / Word / PowerPoint exports are made by the Question Bank engine: it is loaded here, in the background, the first time a download is asked for */
 let REALP = null;
-const realTE = () => REALP || (REALP = (async () => {
+const realTE = quiet => REALP || (REALP = (async () => {
   const keep = window.AvantiTeacher;
   if (!document.getElementById('qbStub')) document.body.append(h('div', { id: 'qbStub', hidden: true }, h('div', { id: 'viewLib' })));
-  toast('Preparing the download…');
+  if (!quiet) toast('Preparing the download…');
   await window.AvantiBoot.loadScript('teacher.b870.js');
   const real = window.AvantiTeacher; window.AvantiTeacher = keep; return real;
 })().catch(e => { REALP = null; throw e; }));

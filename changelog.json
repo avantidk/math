@@ -1,5 +1,13 @@
 [
   {
+    "v": "996",
+    "date": "21 Nov 2026",
+    "items": [
+      "Own DPP Maker is now a wide block at the top of DPPs, with a short description. The maker page has its filters in a row of pills like the other lists, fits phones, and no longer shows \"Preparing the download\" when it opens.",
+      "Chapter question lists open straight on a clear title (for example \"Previous Year Questions\", with the chapter and exam under it); the breadcrumb, the Practice button and the question-type bubbles are removed there. The Type filter stays."
+    ]
+  },
+  {
     "v": "995",
     "date": "21 Nov 2026",
     "items": [

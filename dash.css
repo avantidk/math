@@ -409,3 +409,40 @@ body.dpop-on { overflow: hidden; }
 .dmk .ibtn { width: 40px; height: 40px; padding: 0; display: inline-grid; place-items: center; border-radius: 10px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); } .dmk .ibtn svg { width: 20px; height: 20px; }
 .dmk h3 { font: 700 17px var(--font-body); color: var(--ink); margin: 0 0 6px; }
 @media (max-width: 1100px) { .dmk #viewLib { grid-template-columns: minmax(0, 1fr); } }
+/* ---- v996: Own DPP Maker block, list titles, maker filters in the dashboard style ---- */
+.dpp-mk { display: flex; align-items: center; gap: 18px; padding: 18px 22px; border-radius: 18px; color: #fff; text-decoration: none; background: radial-gradient(120% 160% at 100% 0%, #2a4cc0 0%, rgba(42,76,192,0) 55%), linear-gradient(135deg, #0c1a3d, #14307f); box-shadow: var(--shadow); transition: transform .15s; }
+.dpp-mk:hover { transform: translateY(-2px); }
+.dpp-mk-ic { flex: none; width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; background: rgba(245,184,46,.18); color: #f5b82e; } .dpp-mk-ic svg { width: 28px; height: 28px; }
+.dpp-mk-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; } .dpp-mk-t b { font: 700 20px var(--font-head); } .dpp-mk-t small { color: #cdd8f3; font-size: 13.5px; line-height: 1.5; }
+.dpp-mk-go, .dpp-mk .dpp-lock { flex: none; display: inline-flex; align-items: center; gap: 6px; background: #f5b82e; color: #1a2340; font: 700 14px var(--font-body); padding: 10px 18px; border-radius: 99px; } .dpp-mk-go i { display: grid; }
+@media (max-width: 700px) { .dpp-mk { flex-wrap: wrap; padding: 16px; } .dpp-mk-t { flex: 1 1 calc(100% - 74px); } .dpp-mk-go, .dpp-mk .dpp-lock { margin-left: 74px; } }
+.dl-ttl { display: flex; flex-direction: column; gap: 3px; min-width: 0; } .dl-ttl small { color: var(--muted); font-size: 13.5px; }
+.dl-acts1 { grid-template-columns: minmax(0, 1fr) !important; }
+/* the maker: filters are a row of pills like every other list; the sheet below */
+.dmk #viewLib { display: flex; flex-direction: column; gap: 14px; }
+.dmk #viewLib > .rail { min-width: 0; width: 100%; }
+.dmk #viewLib > .rail:first-child .card { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 14px 16px; }
+.dmk .card > h3, .dmk .card > .hint { display: none; }
+.dmk .tglrow { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin: 0; }
+.dmk .fld { margin: 0; min-width: 0; } .dmk .fld > .lbl { display: none; }
+.dmk .fld:has(.dslide) { flex: 1 1 260px; background: var(--accent-soft); border-radius: 14px; padding: 10px 14px; } .dmk .fld:has(.dslide) > .lbl { display: block; font: 700 12.5px var(--font-body); color: var(--ink); }
+.dmk .fld:has(.dslide) .hint { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.dmk .msel { position: relative; } .dmk .mbtn { width: auto; min-width: 150px; max-width: 280px; min-height: 40px; padding: 8px 14px; border-radius: 999px; background: var(--panel); border: 1px solid var(--rule); font: 600 14px var(--font-body); color: var(--ink); }
+.dmk .mbtn:hover, .dmk .msel.open .mbtn { border-color: var(--accent); }
+.dmk .msel .mp { z-index: 40; min-width: 280px; max-width: min(380px, 90vw); }
+.dmk .ph { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 16px; text-align: center; }
+.dmk .stage { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 12px; overflow: hidden; }
+.dmk .pgwrap { max-width: 100%; overflow: hidden; }
+@media (max-width: 640px) {
+  .dmk #viewLib > .rail:first-child .card { padding: 12px; } .dmk .fld:has(.msel) { flex: 1 1 100%; } .dmk .mbtn { width: 100%; max-width: none; border-radius: 12px; }
+  .dmk .msel .mp { position: fixed; left: 12px; right: 12px; bottom: 12px; top: auto; max-width: none; z-index: 400; }
+  .dmk .statbar { flex-direction: column; align-items: stretch; } .dmk .rowbtns { justify-content: flex-start; }
+}
+.dmk #viewLib > .rail:first-child .card { flex-direction: row !important; align-items: flex-start !important; justify-content: flex-start; }
+.dmk #viewLib > .rail:first-child .card > * { align-self: flex-start; }
+.dmk .tglrow { flex: 1 1 100%; } .dmk .fld:has(.msel) { flex: 0 1 auto; }
+.dmk .fld:has(.dslide) { flex: 1 1 280px; min-height: 0; height: auto; align-self: stretch !important; }
+.dmk .fld .dticks { margin-top: 2px; }
+.dmk .msel .mp { top: calc(100% + 6px); left: 0; }
+@media (max-width: 640px) { .dmk .fld:has(.msel) { flex: 1 1 100%; } .dmk .msel { width: 100%; } }
+.dmk .tglrow { order: 0; } .dmk .fld:has(.msel) { order: 1; } .dmk .fld:has(.dslide) { order: 2; } .dmk #viewLib > .rail:first-child .card > .fld:not(:has(.msel)):not(:has(.dslide)) { order: 3; flex: 1 1 100%; }

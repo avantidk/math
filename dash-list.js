@@ -238,15 +238,15 @@ function render(env, o) {
     /* DPP pages: everything in one line on top, then the questions */
     const typeMenu = types.length > 0 ? multi('Type', types, F.types, null, v => pool.filter(r => typeOf(r) === v).length) : null;
     const smallTest = h('button', { type: 'button', class: 'btn pri dl-small', text: (o.testLabel || 'Take test') + ' →', onclick: async e => { const btn = e.currentTarget; btn.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (x) { env.toast(x.message || 'Could not start'); } btn.disabled = false; } });
-    wrap.append(h('div', { class: 'dl-top' }, h('h2', { text: o.title }), h('div', { class: 'dl-top-r' }, o.startTest ? smallTest : null)),
+    wrap.append(h('div', { class: 'dl-top' }, h('div', { class: 'dl-ttl' }, h('h2', { text: o.title }), o.sub ? h('small', { text: o.sub }) : ''), h('div', { class: 'dl-top-r' }, o.startTest ? smallTest : null)),
       h('div', { class: 'dl-filters dl-oneline' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, levelMenu, typeMenu, statusMenu, h('label', { class: 'dl-sortw dl-sort-r' }, h('span', { html: ICON.sort }), sortSel)),
       exportPanel(), h('div', { class: 'dl-bar' }, count), ul, pager);
   } else wrap.append(
-    h('div', { class: 'dl-top' }, h('h2', { text: o.title })),
+    h('div', { class: 'dl-top' }, h('div', { class: 'dl-ttl' }, h('h2', { text: o.title }), o.sub ? h('small', { text: o.sub }) : '')),
     h('div', { class: 'd-stats dl-stats' }, env.stat(env.IC.all, solved + '/' + pool.length, 'Qs attempted'), env.stat(env.IC.target, right + '/' + pool.length, 'Correct Qs'), env.stat(env.IC.up, solved ? env.pct(right, solved) + '%' : '—', 'Accuracy')),
-    h('div', { class: 'dl-acts2' }, act('prac', ICON.prac, (o.practiceLabel || 'Practise these') + ' →', practice), testBtn),
+    h('div', { class: 'dl-acts2 dl-acts1' }, testBtn),
     h('div', { class: 'dl-filters' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, statusMenu, levelMenu, types.length ? multi('Type', types, F.types, null, v => pool.filter(r => typeOf(r) === v).length) : null),
-    typeChips, exportPanel(), h('div', { class: 'dl-bar' }, count, h('label', { class: 'dl-sortw' }, h('span', { html: ICON.sort }), sortSel)),
+    exportPanel(), h('div', { class: 'dl-bar' }, count, h('label', { class: 'dl-sortw' }, h('span', { html: ICON.sort }), sortSel)),
     ul, pager);
   main(o.head || null, wrap);
   env.mathReady().then(() => { apply(); }); apply();
