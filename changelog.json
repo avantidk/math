@@ -1,5 +1,17 @@
 [
   {
+    "v": "976",
+    "date": "21 Nov 2026",
+    "items": [
+      "Admin My Students now shows every student of every school, including Google sign-ins who never chose a school or never finished their profile. The first column is a serial number.",
+      "Each student has an approval badge: Approved, Not Approved (school chosen, not verified yet) or Unassigned. The School filter comes before Class and has an Unassigned / No School option.",
+      "Edit student now shows the student's current school and saves school changes.",
+      "Teachers still see dates of birth only for the verified students of their own school.",
+      "Emails from unkganit@gmail.com: a welcome email (asking for the school or teacher ID card while the school is pending, with what a student or teacher can already do), a school-changed email, a school-verified email, and a Premium receipt.",
+      "The Login pop-up now has a short box saying what you get free when you sign up."
+    ]
+  },
+  {
     "v": "975",
     "date": "21 Nov 2026",
     "items": [

@@ -14,7 +14,18 @@ const sb = () => AU().sb;
 let NAV = 0, LOADING = 0;
 const STALE = new Error('stale page');
 async function fresh(p) { const tok = NAV, during = LOADING === tok; const r = await p; if (during && tok !== NAV) throw STALE; return r; }
-const rpc = (n, a) => fresh(AU().rpc(n, a));
+/* Emails (welcome, school changes, receipts) are queued by the database; right after an action that can queue one, ask the Edge Function send-emails to send it
+   (a scheduled job also does this every 15 minutes, so a failure here only delays the email). */
+const EMAIL_RPCS = new Set(['update_my_profile', 'request_school_change', 'teacher_update_student', 'admin_set_account', 'admin_update_teacher', 'admin_set_teacher_school', 'admin_school_request']);
+let flushT = 0;
+function flushEmails() {
+  clearTimeout(flushT);
+  flushT = setTimeout(async () => {
+    try { const a = AU(), { data } = await sb().auth.getSession(), tok = data.session && data.session.access_token; if (!tok) return;
+      await fetch(a.url + '/functions/v1/send-emails', { method: 'POST', headers: { apikey: a.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: '{}' }); } catch (e) { /* the scheduled job sends it */ }
+  }, 2500);
+}
+const rpc = (n, a) => fresh(AU().rpc(n, a)).then(r => { if (EMAIL_RPCS.has(n)) flushEmails(); return r; });
 const $ = (s, r) => (r || document).querySelector(s);
 function toast(m) { if (TE()) TE().toast(m); else window.alert(m); }
 const esc = window.AvantiUtil.esc;
@@ -479,6 +490,7 @@ async function callPay(body) {
   const r = await fetch(AU().url + '/functions/v1/razorpay', { method: 'POST', headers: { apikey: AU().key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error || 'Payment service error (' + r.status + ')');
+  if (body && body.action === 'verify') flushEmails();   /* the receipt email */
   return j;
 }
 async function pay(btn, msg) {
@@ -1804,7 +1816,7 @@ function planBadge(x) {
 function editStudent(st, after) {
   if (!can('isAdmin')) { toast('Only the admin can change student details.'); return; }   /* teachers can only view their students */
   const f = studentForm({ edit: true, values: st, hideId: !st.student_id }); const msg = h('p', { class: 'pt-msg', role: 'status' });
-  const sch = schoolSelect('esSchool', st.school || '', 'Choose a school', true, { noSchool: true });
+  const sch = schoolSelect('esSchool', st.school || '', 'Choose a school', true, { noSchool: true });   /* st.school is now sent by the database (it was missing, so the box was empty) */
   const pick = accountPicker('student', st.plan_label, st.premium_until, { noTeacher: !st.user_id || !!st.student_id });
   modal('Edit ' + (st.full_name || 'student'), h('div', {}, st.student_id ? null : h('p', { class: 'pt-hint', text: 'Signs in with Google: ' + (st.email || '') }), f,
       h('div', { class: 'pt-fld' }, h('span', { text: 'School' }), sch, h('small', { text: 'Not in the list? Choose "Other" and type it.' })), pick, msg),
@@ -1829,36 +1841,45 @@ async function studentTests(st) {
   } catch (e) { body.textContent = ''; body.append(errorBox(e.message)); }
 }
 let STU_SCHOOL = '', STU_NAME = '', STU_ROWS = new Map();
+/* Approval of a student's school: Approved / Not Approved (a school was chosen, the admin has not verified it) / Unassigned (no school yet) */
+function approvalBadge(x) {
+  const k = x.school_status;
+  return k === 'approved' ? badge('Approved', 'ok') : k === 'pending' ? badge('Not Approved', 'bad') : badge('Unassigned', 'mute');
+}
 async function pageStudents() {
   if (!can('manageStudents')) { if (can('createTests')) { location.replace('#/add-student'); return; } if (P().role === 'student') return show(card(empty('My Students is for teachers', 'This page is for teachers. Your tests and reports are in the profile menu.', link('#/tests', 'Available tests', 'btn pri')))); return nope('My Students is for teachers', ''); }
   show(head('My Students', ''), loading('Loading your students…'));
-  const R = await rpc('school_students', { p_school: STU_SCHOOL || null });
+  const IS_ADMIN = can('isAdmin');
+  const R = IS_ADMIN ? { school: 'All schools', dob_visible: true, students: await rpc('admin_all_students') } : await rpc('school_students', { p_school: STU_SCHOOL || null });
   const all = R.students || [];
-  const IS_ADMIN = can('isAdmin'), DOB_SHOWN = R.dob_visible !== false;
+  const DOB_SHOWN = R.dob_visible !== false;
   const noDob = all.filter(x => x.student_id && !x.dob && (IS_ADMIN || x.source !== 'avanti')).length;
   /* The teachers of the same school (Premium teachers and the admin). If the database function is not installed yet, the list is simply left out. */
-  const T = await rpc('school_teachers', { p_school: STU_SCHOOL || null }).catch(() => null);
-  const F = { cls: '', stream: '', session: '', q: '' };
+  const T = IS_ADMIN ? null : await rpc('school_teachers', { p_school: STU_SCHOOL || null }).catch(() => null);
+  const F = { school: '', cls: '', stream: '', session: '', status: '', q: '' };   /* the School filter comes first, then Class */
   STU_NAME = R.school || ''; STU_ROWS = new Map(all.filter(x => x.user_id).map(x => [x.user_id, x]));
   const SORT = { key: 'full_name', dir: 1 };
   const reload = () => pageStudents();
   const uniq = k => [...new Set(all.map(x => x[k]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'en', { numeric: true }));
   const tbody = h('tbody', {}), countEl = h('span', { class: 'pt-meta' }), thead = h('thead', {});
-  const COLS = [['Student', 'full_name'], ['Date of birth', 'dob'], ['Class · Stream', 'class_stream'], ['Session', 'session'], ['Category · Gender', 'cat_gender']].concat(IS_ADMIN ? [['Plan', 'plan_label']] : [], [['Tests', 'tests'], ['Average', 'avg_pct'], ['Last test', 'last_at'], ['', null]]);
-  const drawHead = () => { thead.textContent = ''; thead.append(h('tr', {}, COLS.map(([t, k]) => !k ? h('th', {}) : h('th', { 'aria-sort': SORT.key === k ? (SORT.dir > 0 ? 'ascending' : 'descending') : 'none' },
+  const COLS = [['No.', null], ['Student', 'full_name']].concat(IS_ADMIN ? [['School', 'school'], ['Approval', 'school_status']] : [], [['Date of birth', 'dob'], ['Class · Stream', 'class_stream'], ['Session', 'session'], ['Category · Gender', 'cat_gender']], IS_ADMIN ? [['Plan', 'plan_label']] : [], [['Tests', 'tests'], ['Average', 'avg_pct'], ['Last test', 'last_at'], ['', null]]);
+  const drawHead = () => { thead.textContent = ''; thead.append(h('tr', {}, COLS.map(([t, k]) => !k ? h('th', { text: t }) : h('th', { 'aria-sort': SORT.key === k ? (SORT.dir > 0 ? 'ascending' : 'descending') : 'none' },
     h('button', { type: 'button', class: 'pt-sortb', title: 'Sort by ' + t, onclick: () => { if (SORT.key === k) SORT.dir *= -1; else { SORT.key = k; SORT.dir = ['tests', 'avg_pct', 'last_at'].includes(k) ? -1 : 1; } draw(); } }, t, h('span', { class: 'pt-sorti', 'aria-hidden': 'true', text: SORT.key === k ? (SORT.dir > 0 ? '▲' : '▼') : '↕' })))))); };
   const draw = () => {
     const q = F.q.toLowerCase();
-    const rows = all.filter(x => (!F.cls || x.class === F.cls) && (!F.stream || x.stream === F.stream) && (!F.session || x.session === F.session) && (!q || [x.full_name, x.student_id, x.email].some(v => String(v || '').toLowerCase().includes(q))));
+    const rows = all.filter(x => (!F.school || (F.school === '__none__' ? x.school_status === 'unassigned' : String(x.school || '').toLowerCase() === F.school.toLowerCase())) && (!F.status || x.school_status === F.status) && (!F.cls || x.class === F.cls) && (!F.stream || x.stream === F.stream) && (!F.session || x.session === F.session) && (!q || [x.full_name, x.student_id, x.email].some(v => String(v || '').toLowerCase().includes(q))));
     const val = x => { const k = SORT.key; return k === 'class_stream' ? [x.class, x.stream].filter(Boolean).join(' ') : k === 'cat_gender' ? [x.category, x.gender].filter(Boolean).join(' ') : x[k]; };
     rows.sort((a, b) => { const A = val(a), B = val(b), ea = A == null || A === '', eb = B == null || B === ''; if (ea || eb) return ea && eb ? 0 : ea ? 1 : -1; return (typeof A === 'number' && typeof B === 'number' ? A - B : String(A).localeCompare(String(B), 'en', { numeric: true, sensitivity: 'base' })) * SORT.dir; });
     drawHead();
     countEl.textContent = rows.length + ' of ' + all.length + ' students';
     tbody.textContent = '';
-    if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: 10 }, empty('No students match', all.length ? 'Change the filters above.' : 'Add students one by one, or upload a whole class from Excel.'))));
-    rows.forEach(x => tbody.append(h('tr', {},
+    if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: 14 }, empty('No students match', all.length ? 'Change the filters above.' : 'Add students one by one, or upload a whole class from Excel.'))));
+    rows.forEach((x, i) => tbody.append(h('tr', {},
+      h('td', { class: 'pt-num pt-serial', text: String(i + 1) }),
       h('td', {}, x.user_id ? h('a', { class: 'pt-sname', href: '#/student/' + x.user_id, title: 'Open the dashboard of ' + (x.full_name || 'this student'), text: x.full_name || '—' }) : h('b', { text: x.full_name || '—' }),
-        h('div', { class: 'pt-hint', text: (x.student_id ? 'ID ' + x.student_id + (x.email ? ' · ' + x.email : '') : (x.email || 'Google sign-in')) + (x.user_id ? '' : ' · not signed in yet') })),
+        h('div', { class: 'pt-hint', text: (x.student_id ? 'ID ' + x.student_id + (x.email ? ' · ' + x.email : '') : (x.email || 'Google sign-in')) + (x.user_id ? '' : ' · not signed in yet') + (x.complete === false ? ' · profile not finished' : '') })),
+      IS_ADMIN ? h('td', { text: x.school_status === 'unassigned' ? '—' : (x.school || '—') }) : null,
+      IS_ADMIN ? h('td', {}, approvalBadge(x)) : null,
       h('td', { class: 'pt-num' }, x.dob ? x.dob.split('-').reverse().join('-') : !x.student_id ? 'Google' : x.source === 'avanti' && !IS_ADMIN ? h('span', { class: 'pt-hint', text: 'Admin only', title: 'An Avanti student\'s date of birth is their sign-in password, so only the admin sees it.' }) : !DOB_SHOWN ? h('span', { class: 'pt-hint', text: 'Hidden', title: 'Dates of birth show once Avanti approves your school.' }) : h('span', { class: 'pt-hint', text: 'Not saved yet', title: 'Press Edit and add the date, or upload the class file again. It also fills in when the student signs in.' })),
       h('td', { text: [x.class && (x.class === 'Dropper' ? 'Dropper' : 'Class ' + x.class), x.stream].filter(Boolean).join(' · ') || '—' }), h('td', { text: x.session || '—' }),
       h('td', { text: [x.category, x.gender].filter(Boolean).join(' · ') || '—' }),
@@ -1871,15 +1892,21 @@ async function pageStudents() {
   const mkSel = (label, all1, list, key) => h('select', { class: 'pt-in', 'aria-label': label, onchange: e => { F[key] = e.target.value; draw(); } }, h('option', { value: '', text: all1 }), list.map(v => h('option', { value: v, text: v })));
   const signed = all.filter(x => x.signed_in).length, took = all.filter(x => x.tests > 0), avg = took.length ? took.reduce((a, x) => a + (+x.avg_pct || 0), 0) / took.length : null;
   let schoolPick = null;
-  if (can('isAdmin')) { schoolPick = schoolSelect('stuSchool', R.school, 'Choose a school'); schoolPick.sel.addEventListener('change', () => { STU_SCHOOL = schoolPick.value(); pageStudents(); }); }
-  const teachersCard = T == null ? null : card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Teachers of ' + R.school }), h('span', { class: 'pt-meta', text: T.length + ' teacher' + (T.length === 1 ? '' : 's') })),
+  /* admin: the School filter (before Class) lists every school that has students, plus "Unassigned / No School" for Google sign-ins that never chose one */
+  const schoolNames = [...new Set(all.map(x => x.school).filter(v => v && !isBuiltin(v)))].sort((a, b) => String(a).localeCompare(String(b), 'en', { numeric: true }));
+  const teachersBox = h('div');
+  const drawTeachers = async () => { teachersBox.textContent = ''; if (!IS_ADMIN || !F.school || F.school === '__none__') return; try { teachersBox.append(mkTeachers(await rpc('school_teachers', { p_school: F.school }), F.school)); } catch (e) { /* the list is optional */ } };
+  const schoolFilter = IS_ADMIN ? h('select', { class: 'pt-in', 'aria-label': 'School', onchange: e => { F.school = e.target.value; draw(); drawTeachers(); } },
+    h('option', { value: '', text: 'All schools' }), h('option', { value: '__none__', text: 'Unassigned / No School' }), schoolNames.map(v => h('option', { value: v, text: v }))) : null;
+  const mkTeachers = (T, school) => card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Teachers of ' + school }), h('span', { class: 'pt-meta', text: T.length + ' teacher' + (T.length === 1 ? '' : 's') })),
     T.length ? h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Teacher', 'Plan', 'Tests', 'Joined', 'School approval'].map(x => h('th', { text: x })))),
       h('tbody', {}, T.map(t => h('tr', {},
         h('td', {}, h('b', { text: t.full_name || '—' }), t.is_staff ? h('span', {}, ' ', badge('Avanti staff', 'mid')) : null, h('div', { class: 'pt-hint', text: t.email || '' })),
         h('td', {}, planBadge(t)), h('td', { class: 'pt-num', text: t.tests }), h('td', { text: day(t.created_at) }),
         h('td', {}, t.approved ? badge('Approved', 'ok') : badge('Waiting', 'mid'))))))) : empty('No teachers yet', 'No teacher has chosen this school.'));
+  const teachersCard = T == null ? null : mkTeachers(T, R.school);
   show(head('My Students', R.school + ' · ' + all.length + ' student' + (all.length === 1 ? '' : 's'),
-      can('isAdmin') ? h('button', { type: 'button', class: 'btn', text: '+ Add a student', onclick: () => addStudentFlow(reload, STU_SCHOOL) }) : null,
+      can('isAdmin') ? h('button', { type: 'button', class: 'btn', text: '+ Add a student', onclick: () => addStudentFlow(reload, F.school && F.school !== '__none__' ? F.school : '') }) : null,
       can('isAdmin') ? h('button', { type: 'button', class: 'btn pri', text: 'Bulk upload', onclick: () => bulkUpload(reload) }) : null),
     schoolPick ? card(h('div', { class: 'pt-fld' }, h('span', { text: 'School (admin: every school)' }), schoolPick)) : null,
     teachersCard,
@@ -1887,7 +1914,9 @@ async function pageStudents() {
     DOB_SHOWN && noDob ? h('div', { class: 'pt-note' }, h('b', { text: noDob + ' student' + (noDob === 1 ? ' has' : 's have') + ' no date of birth saved yet. ' }), 'Upload your Excel sheet with the date of birth column (Bulk upload), or press Edit on a student, to save it. It also fills in when the student signs in once. Dates of birth are shown only to the teachers of the student\u2019s own school and to Avanti admins.') : null,
     DOB_SHOWN ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Dates of birth are hidden until Avanti approves your school. ' }), 'Then you will see the date of birth of every student of ' + R.school + '.'),
     h('div', { class: 'pt-stats' }, stat('Students', all.length), stat('Signed in', signed), stat('Took a test', took.length), stat('Average score', avg == null ? '—' : pct(avg), 'of students who took a test')),
-    card(h('div', { class: 'pt-frow' }, mkSel('Class', 'All classes', CLASSES, 'cls'), mkSel('Stream', 'All streams', STREAMS, 'stream'), mkSel('Session', 'All sessions', uniq('session'), 'session'),
+    teachersBox,
+    card(h('div', { class: 'pt-frow' }, IS_ADMIN ? schoolFilter : null, mkSel('Class', 'All classes', CLASSES, 'cls'), mkSel('Stream', 'All streams', STREAMS, 'stream'), mkSel('Session', 'All sessions', uniq('session'), 'session'),
+        IS_ADMIN ? h('select', { class: 'pt-in', 'aria-label': 'Approval', onchange: e => { F.status = e.target.value; draw(); } }, h('option', { value: '', text: 'All approval states' }), h('option', { value: 'approved', text: 'Approved' }), h('option', { value: 'pending', text: 'Not Approved' }), h('option', { value: 'unassigned', text: 'Unassigned' })) : null,
         h('input', { type: 'search', class: 'pt-in', placeholder: 'Search name, ID or email', 'aria-label': 'Search students', oninput: e => { F.q = e.target.value.trim(); draw(); } })), countEl,
       h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t pt-sortable' }, thead, tbody))));
   draw();
@@ -1899,7 +1928,7 @@ async function pageStudent(uid) {
   if (!can('manageStudents') || !/^[0-9a-f-]{36}$/i.test(uid || '')) { location.hash = '#/students'; return; }
   show(head('Student', ''), loading('Loading the student dashboard…'));
   let st = STU_ROWS.get(uid);
-  if (!st) { try { const R = await rpc('school_students', { p_school: STU_SCHOOL || null }); STU_ROWS = new Map((R.students || []).filter(x => x.user_id).map(x => [x.user_id, x])); st = STU_ROWS.get(uid); } catch (e) { /* shown below */ } }
+  if (!st) { try { const R = can('isAdmin') ? { students: await rpc('admin_all_students') } : await rpc('school_students', { p_school: STU_SCHOOL || null }); STU_ROWS = new Map((R.students || []).filter(x => x.user_id).map(x => [x.user_id, x])); st = STU_ROWS.get(uid); } catch (e) { /* shown below */ } }
   const back = h('a', { class: 'btn', href: '#/students', text: '‹ My Students' });
   const who = st ? [st.class && (st.class === 'Dropper' ? 'Dropper' : 'Class ' + st.class), st.stream, st.session, R_SCHOOL(st)].filter(Boolean).join(' · ') : '';
   let list;

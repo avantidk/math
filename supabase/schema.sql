@@ -690,6 +690,9 @@ begin
      set premium_until = greatest(coalesce(premium_until, now()), now()) + interval '1 year',
          plan = case when is_staff then 'staff' else 'premium' end, updated_at = now()
    where id = v_uid;
+  insert into public.email_queue (user_id, kind, payload)
+  select v_uid, 'membership', jsonb_build_object('amount_paise', p_amount_paise, 'payment_id', p_payment_id, 'order_id', p_order_id, 'until', pr.premium_until)
+    from public.profiles pr where pr.id = v_uid;
   return true;
 end $$;
 
@@ -1590,7 +1593,7 @@ begin
       from public.attempts where status = 'submitted' and user_id in (select user_id from st where user_id is not null) group by user_id)
   select json_build_object('school', v_school, 'dob_visible', true, 'students', coalesce(json_agg(json_build_object(
            'student_id', st.student_id, 'full_name', st.full_name, 'class', st.class, 'stream', st.stream, 'category', st.category,
-           'gender', st.gender, 'session', st.session, 'source', st.source, 'avanti', st.source = 'avanti',
+           'gender', st.gender, 'session', st.session, 'source', st.source, 'avanti', st.source = 'avanti', 'school', v_school, 'school_status', 'approved',
            'dob', st.dob, 'user_id', st.user_id, 'email', st.email,
            'plan_label', st.plan_label, 'premium_until', st.premium_until,
            'signed_in', st.user_id is not null, 'tests', coalesce(pf.tests, 0), 'avg_pct', pf.avg_pct, 'best_pct', pf.best_pct,
@@ -2511,6 +2514,86 @@ begin
 end $$;
 
 -- -------------------------------------------------------------------------------------
+-- 11j. Emails and the admin's full student list (version 976)
+--   Emails are queued here by the database itself (so a browser cannot forge one) and sent from unkganit@gmail.com by the Edge
+--   Function send-emails (see SETUP.md). Welcome: when a person has chosen a role and a school. School changed / school verified:
+--   when the school or its approval changes. Membership: when a payment is recorded (grant_premium above).
+-- -------------------------------------------------------------------------------------
+create table if not exists public.email_queue (
+  id         bigserial primary key,
+  user_id    uuid references public.profiles(id) on delete cascade,
+  kind       text not null check (kind in ('welcome', 'school_changed', 'school_approved', 'membership')),
+  payload    jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  sent_at    timestamptz,
+  attempts   integer not null default 0,
+  error      text
+);
+create index if not exists email_queue_open on public.email_queue (id) where sent_at is null;
+create index if not exists email_queue_user on public.email_queue (user_id, kind);
+alter table public.email_queue enable row level security;
+revoke all on public.email_queue from anon, authenticated;
+
+create or replace function public.profiles_email_events() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare v_welcomed boolean; v_real boolean;
+begin
+  if coalesce(new.email, '') = '' or new.role is null or nullif(trim(coalesce(new.school, '')), '') is null then return new; end if;   -- Avanti ID students have no email
+  v_real := lower(trim(new.school)) not in ('not in school', 'not working');
+  select exists (select 1 from public.email_queue where user_id = new.id and kind = 'welcome') into v_welcomed;
+  if not v_welcomed then
+    insert into public.email_queue (user_id, kind, payload) values (new.id, 'welcome', jsonb_build_object('role', new.role, 'school', new.school, 'pending', v_real and not coalesce(new.school_approved, false)));
+  elsif tg_op = 'UPDATE' then
+    if old.school is distinct from new.school then
+      insert into public.email_queue (user_id, kind, payload) values (new.id, 'school_changed', jsonb_build_object('role', new.role, 'old', old.school, 'new', new.school, 'pending', v_real and not coalesce(new.school_approved, false)));
+    elsif v_real and coalesce(new.school_approved, false) and not coalesce(old.school_approved, false) then
+      insert into public.email_queue (user_id, kind, payload) values (new.id, 'school_approved', jsonb_build_object('role', new.role, 'school', new.school));
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists profiles_email_events on public.profiles;
+create trigger profiles_email_events after insert or update of role, school, school_approved on public.profiles for each row execute function public.profiles_email_events();
+-- people who already finished their profile before this version are marked as welcomed (no old account gets a welcome email now)
+insert into public.email_queue (user_id, kind, payload, sent_at)
+  select p.id, 'welcome', '{"backfill":true}'::jsonb, now() from public.profiles p
+   where p.role is not null and nullif(trim(coalesce(p.school, '')), '') is not null
+     and not exists (select 1 from public.email_queue e where e.user_id = p.id and e.kind = 'welcome');
+
+-- Admin: every student, in every school, plus Google sign-ins that never chose a school (and profiles that were never finished).
+-- school_status: approved (verified school), pending (a school was chosen, not verified yet: "Not Approved"), unassigned (no school / Not in School).
+create or replace function public.admin_all_students() returns json
+language plpgsql stable security definer set search_path = public as $$
+declare res json;
+begin
+  if not public.is_admin() then raise exception 'Only the admin can see this'; end if;
+  with st as (
+    select a.avanti_id as student_id, coalesce(p.full_name, a.full_name) as full_name, a.class, a.stream, a.category, a.gender, a.session,
+           a.source, p.id as user_id, a.email, a.dob, a.school as school,
+           case when nullif(trim(coalesce(a.school, '')), '') is null then 'unassigned' else 'approved' end as school_status,
+           case when p.id is not null then public.plan_label(p) when a.source = 'avanti' then 'avanti' when a.premium_until > now() then 'premium' else 'free' end as plan_label,
+           coalesce(p.premium_until, a.premium_until) as premium_until, a.created_at, true as complete
+      from public.student_allowlist a left join public.profiles p on p.avanti_id = a.avanti_id
+    union all
+    select null, p.full_name, p.class, p.stream, p.category, p.gender, p.session, 'google', p.id, p.email, null::date, p.school,
+           case when nullif(trim(coalesce(p.school, '')), '') is null or lower(trim(p.school)) in ('not in school', 'not working') then 'unassigned'
+                when p.school_approved then 'approved' else 'pending' end,
+           public.plan_label(p), p.premium_until, p.created_at, p.role is not null
+      from public.profiles p where (p.role = 'student' or p.role is null) and p.avanti_id is null and not coalesce(p.is_staff, false)),
+  perf as (
+    select user_id, count(*) as tests, round(avg(100.0 * score / nullif(max_score, 0)), 1) as avg_pct, max(submitted_at) as last_at
+      from public.attempts where status = 'submitted' and user_id in (select user_id from st where user_id is not null) group by user_id)
+  select coalesce(json_agg(json_build_object(
+           'student_id', st.student_id, 'full_name', st.full_name, 'class', st.class, 'stream', st.stream, 'category', st.category,
+           'gender', st.gender, 'session', st.session, 'source', st.source, 'avanti', st.source = 'avanti', 'dob', st.dob, 'user_id', st.user_id, 'email', st.email,
+           'school', st.school, 'school_status', st.school_status, 'complete', st.complete,
+           'plan_label', st.plan_label, 'premium_until', st.premium_until, 'signed_in', st.user_id is not null, 'created_at', st.created_at,
+           'tests', coalesce(pf.tests, 0), 'avg_pct', pf.avg_pct, 'last_at', pf.last_at) order by st.created_at desc), '[]'::json)
+    into res from st left join perf pf on pf.user_id = st.user_id;
+  return res;
+end $$;
+
+-- -------------------------------------------------------------------------------------
 -- 12. Who may call which function
 -- -------------------------------------------------------------------------------------
 revoke execute on all functions in schema public from public, anon, authenticated;
@@ -2528,7 +2611,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.submit_qb_report(text, text), public.qb_reports_list(), public.qb_report_resolve(uuid),
   public.my_attempts(), public.my_tests(), public.list_schools(), public.is_premium_teacher(), public.price_paise(text),
   public.teacher_add_student(jsonb), public.teacher_add_students(jsonb), public.teacher_update_student(uuid, text, jsonb),
-  public.school_students(text), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),
+  public.school_students(text), public.admin_all_students(), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),
   public.request_school_change(text), public.admin_school_requests(), public.admin_school_request(uuid, text, text, text),
   public.admin_set_teacher_school(uuid, text, text, text), public.admin_update_teacher(uuid, text, text), public.admin_pending_students(),
   public.admin_schools(), public.admin_rename_school(text, text), public.admin_delete_school(text),

@@ -37,7 +37,7 @@ Five wrong dates of birth for one ID in 15 minutes (or ten in 24 hours) block th
 
 ## 3. Edge Functions (server code)
 
-Do this twice, once for each function.
+Do this for each function (`avanti-login`, `razorpay`, and `send-emails` described below).
 
 1. In Supabase click **Edge Functions** → **Deploy a new function** → **Via Editor**.
 2. Name it exactly `avanti-login`. Delete the sample code, paste the whole of `supabase/functions/avanti-login/index.ts`, click **Deploy function**.
@@ -48,6 +48,18 @@ Do this twice, once for each function.
 
 Both functions answer browsers only from `https://unkganit.com`. If the website moves again, add the secret `ALLOWED_ORIGIN`
 (Edge Functions → Secrets) with the new address, e.g. `https://maths.example.org`.
+
+### Emails (welcome, school changes, Premium receipts)
+
+The database queues the emails; the function `send-emails` sends them from `unkganit@gmail.com`.
+
+1. Deploy a function named exactly `send-emails` with the file `supabase/functions/send-emails/index.ts` (steps 1 to 3 above, "Verify JWT" off).
+2. In Google: sign in as `unkganit@gmail.com` → Manage your Google Account → Security → turn on **2-Step Verification** → **App passwords** → create one named "unkganit website". Copy the 16 letters.
+3. In Supabase → Edge Functions → Secrets add `GMAIL_APP_PASSWORD` with those 16 letters (never put it in the repository).
+4. Run `supabase/schema.sql` once (creates the queue and the triggers). People who already finished their profile are not emailed.
+5. The website starts a send right after a sign-up or a change; the GitHub job `Send queued emails` (every 15 minutes) sends anything left. Test it from GitHub → Actions → Send queued emails → Run workflow. Gmail allows about 500 emails a day.
+
+Replies (for example a photo of a school ID card) arrive in the `unkganit@gmail.com` inbox.
 
 ## 3b. Private content: questions, solutions, handouts (Supabase Storage)
 

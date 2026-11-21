@@ -130,9 +130,10 @@
       } }));
     var dialog = h('div', { class: 'lm-dialog' },
       h('button', { type: 'button', class: 'lm-x', 'aria-label': 'Close', text: '×', onclick: close }),
-      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=975', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
+      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=976', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
       h('h2', { id: 'lmTitle', text: 'Log in or register' }),
       h('p', { class: 'lm-sub', text: 'New here? Continue with Google and your account is created for you.' }),
+      h('div', { class: 'lm-free', role: 'note' }, h('b', { text: 'Free when you sign up' }), h('span', { text: 'Practise chapter-wise JEE, KCET, NDA and IAT PYQs, attempt Previous Year Papers, bookmark key problems and track your accuracy. No payment needed.' })),
       testLink ? h('p', { class: 'lm-note', text: 'Sign in to open your test.' }) : null,
       h('p', { class: 'lm-sub', text: 'I am a' }), seg, hint, gBtn, err, avBox,
       h('p', { class: 'lm-fine', text: 'Your choice of Teacher or Student is saved the first time you sign in and cannot be changed later, so please choose carefully.' }),
