@@ -313,7 +313,7 @@ def footer(depth, up=None, share=False):
 <div class="sf-grid">
 <div><img src="{up}img/ankit-logo-dark-sm.png?v={VER}" alt="अंक-IT Mathematics Dashboard logo" width="139" height="52"><p>Math practice for Class 11 and 12 and for JEE, KCET, NDA and IAT: a 16,000+ question bank with full solutions, past papers from 2000, DPPs, handwritten handouts and NTA-style online tests.</p>{SHARE_FOOT if share else ''}</div>
 <div><p class="sf-h">Explore</p><ul><li><a href="{up}maths/">Math chapters</a></li><li><a href="{up}syllabus-priority/">Syllabus priority</a></li><li><a href="{up}exams/">All exams</a></li><li><a href="{up}resources/questions-analysis/">Questions analysis</a></li><li><a href="{up}resources/paper-wise-analysis/">Paper wise analysis</a></li><li><a href="{up}resources/important-exams/">Important exams after Class 12</a></li><li><a href="{a("#features")}">Feature overview</a></li><li><a href="{a("#plans")}">Plans and pricing</a></li><li><a href="{a("#faq")}">Common questions</a></li></ul></div>
-<div><p class="sf-h">Company</p><ul><li><a href="{up}about/">About us</a></li><li><a href="{up}contact/">Contact us</a></li><li><a href="{up}privacy/">Privacy policy</a></li><li><a href="{up}terms/">Terms of use</a></li></ul></div>
+<div><p class="sf-h">Company</p><ul><li><a href="{up}about/">About us</a></li><li><a href="{up}contact/">Contact us</a></li><li><a href="{up}privacy/">Privacy policy</a></li><li><a href="{up}terms/">Terms of use</a></li><li><a href="{up}refund-policy/">Refund policy</a></li></ul></div>
 </div>
 <div class="sf-base"><span>&copy; 2026 अंक-IT Mathematics Dashboard</span><span>JEE Main · JEE Advanced · KCET · NDA · IAT · CUET</span></div>
 </div></footer>"""
@@ -1080,7 +1080,7 @@ def terms_page():
 <ul><li><b>Free:</b> available to anyone who signs in.</li>
 <li><b>Premium:</b> a paid membership for one year from purchase. The price shown at checkout applies (currently ₹299 for students and ₹599 for teachers) and payment is handled by Razorpay.</li>
 <li><b>Avanti:</b> Avanti Fellows students and staff get access as part of their programme.</li>
-<li>If you were charged by mistake or something went wrong with a payment, <a href="../contact/">contact us</a> and we will look into it.</li></ul>
+<li>All payments are final: please read the <a href="../refund-policy/">refund policy</a>. If a payment itself went wrong (for example money was deducted but your plan did not start), <a href="../contact/">contact us</a> and we will look into it.</li></ul>
 <h2>Content and copyright</h2>
 <p>The questions, solutions, handouts, tests and design of the website are provided for your own study and teaching. You may not copy, resell, republish or share paid content, or share your Premium account. Previous-year questions come from the examinations of their respective conducting bodies and are included for practice.</p>
 <h2>Tests and results</h2>
@@ -1096,6 +1096,23 @@ def terms_page():
 <h2>Changes and contact</h2>
 <p>We may update these terms and will change the date above when we do. Questions? Write to {MAIL} or see the <a href="../contact/">contact page</a>. Our <a href="../privacy/">privacy policy</a> explains how we handle your information.</p>'''
     return info_page('terms', 'Terms of Use | अंक-IT Mathematics Dashboard', 'Terms of use', 'Terms of use for अंक-IT Mathematics Dashboard: accounts, Free and Premium plans, payments, content and acceptable use.', inner)
+
+def refund_page():
+    inner = f'''<p class="pg-lead">Last updated: {UPDATED}</p>
+<div class="know"><div><b>No refund once paid</b><span>When you buy a Premium membership and the payment goes through, the amount is not returned. Please decide before you pay.</span></div></div>
+<h2>What this means</h2>
+<ul><li>Every payment for a plan on अंक-IT Mathematics Dashboard is final. We do not refund it, wholly or in part, whether you used the plan a lot, a little or not at all.</li>
+<li>We also do not refund if you change your mind, buy the wrong plan, forget to use it, or lose access because you broke the <a href="../terms/">terms of use</a>.</li>
+<li>A plan is not paused, cancelled early for money back, or moved to another person.</li></ul>
+<h2>Why we work this way</h2>
+<p>A Premium membership gives you full access the moment it starts: the whole question bank, solutions, handouts and tests. Digital content cannot be handed back, so we keep the rule simple and the price low.</p>
+<h2>Try before you pay</h2>
+<p>The Free plan is open to everyone who signs in, and the previous-year questions stay free. Use it first, look at the <a href="../#plans">plans and prices</a>, and buy Premium only when you are sure it is what you want.</p>
+<h2>When a payment itself goes wrong</h2>
+<p>This is not a refund: it is fixing a mistake in the payment. If money left your account but your Premium did not start, write to us with the date, the amount and the payment reference you got from your bank or UPI app, and we will check it and set it right. Payments that fail are returned to your account by your bank or payment provider on their own schedule.</p>
+<h2>Contact</h2>
+<p>Questions about a payment? Write to {MAIL} or use the <a href="../contact/">contact page</a>. See also our <a href="../terms/">terms of use</a> and <a href="../privacy/">privacy policy</a>.</p>'''
+    return info_page('refund-policy', 'Refund Policy | अंक-IT Mathematics Dashboard', 'Refund Policy', 'Refund policy of अंक-IT Mathematics Dashboard: once a Premium payment is made it is not refunded.', inner)
 
 FAQ = [
  ('Is the Mathematics Dashboard free?', 'Yes, you can start free. Sign in with Google to use the question bank with solutions, online tests and your reports. Premium adds PDF downloads and printing, all-India ranks, comparison with all students and handouts.'),
@@ -1308,7 +1325,7 @@ def weightage_page():
 
 
 def sitemap():
-    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8'), (SITE + '/question-counts/', '0.6'), (SITE + '/chapter-wise-count/', '0.6'), (SITE + '/chapter-weightage/', '0.7')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9'), (SITE + f'/{ANA}/', '0.8'), (SITE + '/resources/important-exams/', '0.8'), (SITE + '/resources/paper-wise-analysis/', '0.8')] + [(f'{SITE}/resources/paper-wise-analysis/{e[2]}/', '0.7') for e in EXAMS] + [ (SITE + '/exams/cuet/', '0.8')] + [(exam_url(e), '0.9') for e in EXAMS] + [(f'{SITE}/{ANA}/{e[2]}/', '0.8') for e in EXAMS] + [(f'{SITE}/{ANA}/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
+    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8'), (SITE + '/question-counts/', '0.6'), (SITE + '/chapter-wise-count/', '0.6'), (SITE + '/chapter-weightage/', '0.7')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9'), (SITE + f'/{ANA}/', '0.8'), (SITE + '/resources/important-exams/', '0.8'), (SITE + '/resources/paper-wise-analysis/', '0.8')] + [(f'{SITE}/resources/paper-wise-analysis/{e[2]}/', '0.7') for e in EXAMS] + [ (SITE + '/exams/cuet/', '0.8')] + [(exam_url(e), '0.9') for e in EXAMS] + [(f'{SITE}/{ANA}/{e[2]}/', '0.8') for e in EXAMS] + [(f'{SITE}/{ANA}/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms', 'refund-policy')]
     body = ''.join(f'<url><loc>{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}</urlset>\n'
 
@@ -1336,7 +1353,7 @@ def main():
         for code in STATS[e[0]]['chapters']:
             write(f'{ANA}/{e[2]}/{ANY_SLUG[code]}/index.html', exam_chapter_page(e, code))
             write(f'exams/{e[2]}/{ANY_SLUG[code]}/index.html', redirect_page(f'{ANA}/{e[2]}/{ANY_SLUG[code]}/', 3))
-    for slug_, fn in (('about', about_page), ('contact', contact_page), ('privacy', privacy_page), ('terms', terms_page)): write(f'{slug_}/index.html', fn())
+    for slug_, fn in (('about', about_page), ('contact', contact_page), ('privacy', privacy_page), ('terms', terms_page), ('refund-policy', refund_page)): write(f'{slug_}/index.html', fn())
     write('sitemap.xml', sitemap())
     write('robots.txt', f'User-agent: *\nAllow: /\nDisallow: /qb/\nDisallow: /qbank\nDisallow: /dashboard\n\nSitemap: {SITE}/sitemap.xml\n')
     write('index.html', page('Math Question Bank, PYQs, DPPs | अंक-IT', 'Free math practice for Class 11 and 12: question bank with solutions, PYQs, DPPs, handouts and online tests for JEE, KCET, NDA and IAT.', SITE + '/', home_block(), 0,

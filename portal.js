@@ -458,7 +458,7 @@ async function pageMembership() {
   const daysLeft = active && p.premium_until ? Math.max(0, Math.ceil((Date.parse(p.premium_until) - Date.now()) / 864e5)) : 0;
   const msg = h('p', { class: 'pt-msg mb-msg', role: 'status' });
   const payBtn = () => h('button', { type: 'button', class: 'btn pt-gold mb-cta', onclick: e => pay(e.currentTarget, msg) }, active ? 'Renew for 1 more year · ₹' + price : 'Get Premium · ₹' + price);
-  const trust = h('ul', { class: 'mb-trust' }, [['lock', 'Secure payment by Razorpay'], ['upi', 'UPI, cards, net banking'], ['bolt', 'Starts instantly'], ['cal', '1 year · no auto-renewal']].map(([i, t]) => h('li', {}, h('span', { html: MICON[i] }), t)));
+  const trust = h('ul', { class: 'mb-trust' }, [['lock', 'Secure payment by Razorpay'], ['upi', 'UPI, cards, net banking'], ['bolt', 'Starts instantly'], ['cal', '1 year · no auto-renewal']].map(([i, t]) => h('li', {}, h('span', { html: MICON[i] }), t)).concat(h('li', {}, h('span', { html: MICON.lock }), h('a', { href: '/refund-policy/', target: '_blank', rel: 'noopener', text: 'No refund once paid' }))));
   const heroText = included
     ? [h('span', { class: 'mb-eyebrow', text: plan === 'staff' ? 'अंक-IT' : 'Avanti student' }), h('h1', { text: 'Premium is included for you' }),
        h('p', { class: 'mb-lead', text: plan === 'staff' ? 'Your @avantifellows.org account has full access to everything. No payment is needed.' : 'Students on the Avanti list get Premium free. Everything below is already yours.' })]
