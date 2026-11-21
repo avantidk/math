@@ -35,7 +35,7 @@ const normGender = v => { const t = String(v || '').toLowerCase().replace(/[^a-z
 const normStream = v => { const t = String(v || '').toLowerCase().replace(/[^a-z]/g, ''); return /^(jee|pcm|pcmb|jeemain|jeemains|jeeadvanced|engineering|iit|iitjee)$/.test(t) ? 'JEE' : /^(neet|pcb|medical|neetug)$/.test(t) ? 'NEET' : /^(kcetpcm|kcet|cetpcm|kcetengineering)$/.test(t) ? 'KCET (PCM)' : /^(kcetpcb|cetpcb|kcetmedical)$/.test(t) ? 'KCET (PCB)' : String(v || '').trim(); };
 const CATEGORIES = ['General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST'];
 const GENDERS = ['Male', 'Female', 'Other'];
-const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
 /* ---------- maths ---------- */
 let katexP = null;
@@ -124,7 +124,7 @@ function route() {
   if (r !== 't') exitExam();
   curRoute = location.hash;
   const pages = { profile: pageProfile, membership: pageMembership, tests: pageAvailable, reports: pageReports, report: pageReport, t: pageTake,
-    create: pageCreate, edit: pageCreate, students: pageStudents, student: pageStudent, personal: pagePersonal, school: pageSchool, 'add-student': pageAddStudent, help: pageHelp, approvals: pageApprovals, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets, 'ws-edit': pageWsEdit };
+    create: pageCreate, edit: pageCreate, students: pageStudents, student: pageStudent, personal: pagePersonal, modes: pageModes, school: pageSchool, 'add-student': pageAddStudent, help: pageHelp, approvals: pageApprovals, 'my-tests': pageMyTests, results: pageResults, worksheets: pageWorksheets, 'ws-edit': pageWsEdit };
   const fn = pages[r];
   if (!fn) { leave(); return; }
   const tok = ++NAV; LOADING = tok;
@@ -698,7 +698,7 @@ function qCard(q, i, o) {
     return h('li', { class: 'pt-opt' + (right ? ' right' : '') + (chosen ? ' chosen' : '') }, h('b', { text: L }), h('span', { html: qText(t) }));
   });
   return h('article', { class: 'pt-q' + (o.status ? ' st-' + o.status : '') },
-    h('div', { class: 'pt-qh' }, h('strong', { text: 'Q' + (i + 1) }), badge(q.type || 'MCQ'), q.tp ? h('span', { class: 'pt-hint', text: q.tp }) : null, o.right),
+    h('div', { class: 'pt-qh' }, h('strong', { text: 'Q' + (i + 1) }), o.code ? h('span', { class: 'pt-code', title: 'Question code', text: o.code }) : null, badge(q.type || 'MCQ'), q.tp ? h('span', { class: 'pt-hint', text: q.tp }) : null, o.right),
     h('div', { class: 'pt-qt', html: qText(q.q) }), figure(q.f),
     opts.length ? h('ol', { class: 'pt-opts' }, opts) : null,
     o.answer != null && !(q.o || []).length ? h('p', { class: 'pt-ans' }, 'Answer: ', h('b', { text: o.answer })) : null,
@@ -978,9 +978,28 @@ async function pageMyTests() {
 /* ---------- Practice Tests & Results: every account takes past papers for itself ---------- */
 const PAPER_EXAMS = ['JEE Main', 'JEE Advanced', 'IIT-JEE', 'AIEEE', 'KCET', 'NDA', 'IAT'];
 const examOfQ = x => x.e === 'KCET' ? 'KCET' : x.e === 'IAT' ? 'IAT' : x.e === 'NDA' ? 'NDA' : x.e === 'Adv' ? (x.y < 2013 ? 'IIT-JEE' : 'JEE Advanced') : (x.y < 2013 ? 'AIEEE' : 'JEE Main');
-/* Time and marking of the mathematics part of each exam. A personal test starts with these; nothing is asked. */
-const PAPER_RULES = { 'JEE Main': { mins: 60, pos: 4, neg: 1 }, 'JEE Advanced': { mins: 60, pos: 4, neg: 1 }, 'IIT-JEE': { mins: 60, pos: 4, neg: 1 }, 'AIEEE': { mins: 60, pos: 4, neg: 1 },
-  'KCET': { mins: 80, pos: 1, neg: 0 }, 'NDA': { mins: 150, pos: 2.5, neg: 0.83 }, 'IAT': { mins: 45, pos: 3, neg: 1 } };
+/* Time and marking of every exam come from the database (table marking_schemes, one row per exam and effective year, so a yearly change never
+   touches old results). These are used only if that table cannot be read. */
+const SCHEME_FALLBACK = {
+  'JEE Main': { duration_min: 75, n_questions: 25, rules: { types: { MCQ: { c: 4, w: 1 }, MSQ: { c: 4, w: 1 }, Numerical: { c: 4, w: 1 } }, mix: { MCQ: 20, Numerical: 5 } } },
+  'JEE Advanced': { duration_min: 65, n_questions: 18, rules: { types: { MCQ: { c: 3, w: 1 }, MSQ: { c: 4, w: 1, p: true }, Numerical: { c: 4, w: 0 } }, mix: { MCQ: 4, MSQ: 5, Numerical: 5 } } },
+  'KCET': { duration_min: 80, n_questions: 60, rules: { types: { MCQ: { c: 1, w: 0 } }, mix: { MCQ: 60 } } },
+  'NDA': { duration_min: 150, n_questions: 120, rules: { types: { MCQ: { c: 2.5, w: 0.83 } }, mix: { MCQ: 120 } } },
+  'IAT': { duration_min: 50, n_questions: 15, rules: { types: { MCQ: { c: 4, w: 1 } }, mix: { MCQ: 15 } } },
+  'CUET': { duration_min: 60, n_questions: 50, rules: { types: { MCQ: { c: 5, w: 1 } }, mix: { MCQ: 50 } } } };
+let SCHEMES = null;
+async function schemes() {
+  if (SCHEMES) return SCHEMES;
+  SCHEMES = Object.assign({}, SCHEME_FALLBACK);
+  try { (await rpc('marking_schemes') || []).forEach(r => { if (!SCHEMES[r.exam] || SCHEMES[r.exam].fb !== false || r.effective_year >= (SCHEMES[r.exam].effective_year || 0)) SCHEMES[r.exam] = Object.assign({ fb: false }, r); }); } catch (e) { /* the built-in values stay */ }
+  return SCHEMES;
+}
+const schemeExam = e => ({ 'IIT-JEE': 'JEE Advanced', 'AIEEE': 'JEE Main' }[e] || e);
+const mcqRule = sc => (sc.rules && sc.rules.types && sc.rules.types.MCQ) || { c: 4, w: 1 };
+const markText = sc => { const r = mcqRule(sc); return '+' + num(r.c, 2) + (r.w ? ' / −' + num(r.w, 2) : ''); };
+/* a question as it is stored inside a test (the answer key stays on the server; students never get ids or keys) */
+const tq = q => { const x = snap(q); return { id: x.id, type: x.type, q: x.q, o: x.o, a: x.a, ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' }; };
+const shuffled = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const AUD_NAME = { self: 'Only me', teachers_link: 'Link for Premium teachers', all_teachers: 'All teachers', all_students: 'All students' };
 function papersOf(B, exam) {
   const pm = new Map();
@@ -1004,8 +1023,9 @@ async function showLinkRanking(testId, title) {
       [{ text: 'Close', pri: true, onclick: () => {} }]);
   } catch (e) { toast(e.message); }
 }
-async function pagePersonal() {
-  show(head('Practice Tests & Results', 'Take any past paper yourself. Your results stay in your own account.'), loading('Loading the question papers…'));
+async function pagePersonal(arg) {
+  const onlyPicker = arg === 'pyq';   /* #/modes/pyq: the paper picker alone (Previous Year Actual Exam) */
+  show(head(onlyPicker ? 'Previous Year Actual Exam' : 'Practice Tests & Results', onlyPicker ? 'Full past papers with the real time and marking.' : 'Your tests and results stay in your own account.'), loading('Loading the question papers…'));
   const [ov, B] = await Promise.all([rpc('personal_overview'), fresh(TE().bank())]);
   CHN = B.chapters;
   const perm = AU().perm, isAdm = !!perm.isAdmin, premT = !isAdm && (perm.staff || (P().role === 'teacher' && perm.plan === 'premium'));
@@ -1013,12 +1033,13 @@ async function pagePersonal() {
     : premT ? [['self', 'Only me'], ['teachers_link', 'Share a link with Premium teachers']] : null;
   let aud = 'self', exam = PAPER_EXAMS.find(e => papersOf(B, e).length) || PAPER_EXAMS[0];
   const paperBox = h('div', { class: 'pp-papers' }), examBar = h('div', { class: 'pp-exams', role: 'group', 'aria-label': 'Exam' }), audBar = audOpts ? h('div', { class: 'pp-exams', role: 'group', 'aria-label': 'Who is it for' }) : null;
+  const SC = await schemes();
   const startPaper = async (paper, btn) => {
-    const rule = PAPER_RULES[paper.exam] || PAPER_RULES['JEE Main'];
-    const qs = paper.qs.map(q => { const x = snap(q); return { id: x.id, type: x.type, q: x.q, o: x.o, a: x.a, ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null }; });
+    const ex = schemeExam(paper.exam), sc = SC[ex] || SC['JEE Main'], rule = mcqRule(sc);
+    const qs = paper.qs.map(tq);
     btn.disabled = true;
     try {
-      const r = await rpc('create_personal_test', { p_title: paper.label, p_duration_min: rule.mins, p_marks_correct: rule.pos, p_marks_wrong: rule.neg, p_questions: qs, p_paper_key: paper.key, p_audience: aud });
+      const r = await rpc('create_personal_test', { p_title: paper.label, p_duration_min: null, p_marks_correct: rule.c, p_marks_wrong: rule.w, p_questions: qs, p_paper_key: paper.key, p_audience: aud, p_exam: ex });
       if (aud === 'self') { try { sessionStorage.setItem('avanti-auto', r.code); } catch (e) { /* no storage */ } location.hash = '#/t/' + r.code; return; }
       if (aud === 'teachers_link') copy(testLink(r.code), 'Link copied. Send it to Premium teachers.'); else toast('Done. The test is live for ' + (aud === 'all_teachers' ? 'all teachers.' : 'all students.'));
       pagePersonal();
@@ -1028,9 +1049,9 @@ async function pagePersonal() {
     examBar.textContent = '';
     PAPER_EXAMS.forEach(e => { const n = papersOf(B, e).length; if (n) examBar.append(h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(e === exam), text: e + ' (' + n + ')', onclick: () => { exam = e; drawPapers(); } })); });
     paperBox.textContent = '';
-    const rule = PAPER_RULES[exam];
+    const sc = SC[schemeExam(exam)] || SC['JEE Main'];
     papersOf(B, exam).forEach(pp => paperBox.append(h('button', { type: 'button', class: 'pp-card', onclick: e => startPaper(pp, e.currentTarget) },
-      h('b', { text: pp.label }), h('small', { text: pp.qs.length + ' questions · ' + rule.mins + ' min · +' + num(rule.pos, 2) + (rule.neg ? ' / −' + num(rule.neg, 2) : '') }), h('span', { class: 'pp-go', text: 'Start ›' }))));
+      h('b', { text: pp.label }), h('small', { text: pp.qs.length + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }), h('span', { class: 'pp-go', text: 'Start ›' }))));
     if (audBar) { audBar.textContent = ''; audOpts.forEach(([k, t]) => audBar.append(h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(k === aud), text: t, onclick: () => { aud = k; drawPapers(); } }))); }
   };
   const status = x => !x.attempt_id ? badge('Not started', 'mute') : x.attempt_status === 'submitted' ? badge('Submitted', 'ok') : badge('In progress', 'mid');
@@ -1039,7 +1060,7 @@ async function pagePersonal() {
     h('td', {}, badge(AUD_NAME[x.audience] || x.audience, x.audience === 'self' ? 'mute' : 'mid'), x.audience !== 'self' ? h('div', { class: 'pt-hint', text: x.takers + ' taken' }) : null),
     h('td', {}, status(x)), h('td', { class: 'pt-num', text: x.attempt_status === 'submitted' ? num(x.score, 2) + ' / ' + num(x.max_score, 2) : '—' }),
     h('td', {}, h('div', { class: 'pt-actions pt-nowrap' },
-      x.attempt_status === 'submitted' ? link('#/report/' + x.attempt_id, 'Report', 'btn') : ['self', 'teachers_link'].includes(x.audience) ? h('button', { type: 'button', class: 'btn pri', text: x.attempt_id ? 'Resume' : 'Start', onclick: () => { try { sessionStorage.setItem('avanti-auto', x.code); } catch (e) { /* no storage */ } location.hash = '#/t/' + x.code; } }) : null,
+      x.attempt_status === 'submitted' ? [link('#/report/' + x.attempt_id, 'Report', 'btn'), h('button', { type: 'button', class: 'btn', text: 'Export', onclick: () => exportResult(x.attempt_id, x.title) })] : ['self', 'teachers_link'].includes(x.audience) ? h('button', { type: 'button', class: 'btn pri', text: x.attempt_id ? 'Resume' : 'Start', onclick: () => { try { sessionStorage.setItem('avanti-auto', x.code); } catch (e) { /* no storage */ } location.hash = '#/t/' + x.code; } }) : null,
       x.audience === 'teachers_link' ? h('button', { type: 'button', class: 'btn', text: 'Copy link', onclick: () => copy(testLink(x.code), 'Link copied') }) : null,
       x.audience === 'teachers_link' ? h('button', { type: 'button', class: 'btn', text: 'Ranking', onclick: () => showLinkRanking(x.id, x.title) }) : null,
       x.audience === 'all_teachers' || x.audience === 'all_students' ? link('#/results/' + x.id, 'Results', 'btn') : null))));
@@ -1050,14 +1071,166 @@ async function pagePersonal() {
       x.attempt_status === 'submitted' && ['teachers_link', 'all_teachers'].includes(x.audience) ? h('button', { type: 'button', class: 'btn', text: 'My rank', onclick: () => showMyRank(x.test_id) }) : null))));
   const table = (rows, cols) => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, cols.map(x => h('th', { text: x })))), h('tbody', {}, rows)));
   drawPapers();
-  show(head('Practice Tests & Results', 'Take any past paper yourself. Your results stay in your own account.'),
+  const startCard = card(h('h2', { text: 'Start a test' }), h('p', { class: 'pt-hint', text: 'Choose the exam, then the paper. The test starts at once with the real time and marking of that paper.' }),
+    audBar ? h('div', { class: 'pt-fld' }, h('span', { text: 'Who is it for?' }), audBar) : null, examBar, paperBox);
+  if (onlyPicker) { show(head('Previous Year Actual Exam', 'Full past papers with the real time and marking.', link('#/modes', '‹ Tests', 'btn')), startCard); return; }
+  show(head('Practice Tests & Results', 'Your tests and results stay in your own account.', link('#/modes', 'Start a new test', 'btn pri')),
     ov.offered.length ? card(h('h2', { text: 'Tests for you' }), h('p', { class: 'pt-hint', text: 'Made by अंक-IT for ' + (P().role === 'student' ? 'students' : 'teachers') + '. Teachers see their own rank only.' }),
       h('div', { class: 'pp-papers' }, ov.offered.map(x => h('button', { type: 'button', class: 'pp-card', onclick: () => { try { sessionStorage.setItem('avanti-auto', x.code); } catch (e) { /* no storage */ } location.hash = '#/t/' + x.code; } },
         h('b', { text: x.title }), h('small', { text: x.n_questions + ' questions · ' + x.duration_min + ' min' }), h('span', { class: 'pp-go', text: 'Start ›' }))))) : null,
-    card(h('h2', { text: 'Start a test' }), h('p', { class: 'pt-hint', text: 'Choose the exam, then the paper. The test starts at once with the real time and marking of that paper.' }),
-      audBar ? h('div', { class: 'pt-fld' }, h('span', { text: 'Who is it for?' }), audBar) : null, examBar, paperBox),
-    card(h('h2', { text: 'My personal tests and results' }), ov.mine.length ? table(mineRows, ['Test', 'For', 'Status', 'Score', '']) : empty('No personal tests yet', 'Pick a paper above to start your first one.')),
+    card(h('h2', { text: 'My tests and results' }), ov.mine.length ? table(mineRows, ['Test', 'For', 'Status', 'Score', '']) : empty('No tests yet', 'Open Tests to start your first one.', link('#/modes', 'Tests', 'btn pri'))),
     ov.taken.length ? card(h('h2', { text: 'Tests I took by link' }), table(takenRows, ['Test', 'Status', 'Score', ''])) : null);
+}
+/* ---------- Tests: five ways to start a test (v975) ----------
+   1 Create Your Personal Test · 2 Previous Year Actual Exam · 3 Chapterwise Mock Test · 4 Repeated & Sure-Shot Questions · 5 Full-Length Mock.
+   Every test is made for the person alone and starts at once. The marks and the time come from the exam's official scheme (table
+   marking_schemes); the server stamps them on each question, so they cannot be changed from the browser. */
+const isFree = () => { const p = AU().perm; return !(p.premium || p.staff || p.isAdmin); };
+async function launchTest(o) {
+  const SC = await schemes(), sc = SC[o.exam] || SC['JEE Main'], rule = mcqRule(sc);
+  const r = await rpc('create_personal_test', { p_title: o.title, p_duration_min: o.mins == null ? null : o.mins, p_marks_correct: rule.c, p_marks_wrong: rule.w,
+    p_questions: o.qs.map(tq), p_paper_key: o.key || null, p_audience: 'self', p_exam: o.exam });
+  try { sessionStorage.setItem('avanti-auto', r.code); } catch (e) { /* no storage */ }
+  location.hash = '#/t/' + r.code;
+}
+/* pick n questions, chapters mixed evenly when asked */
+function pickN(pool, n, even, used) {
+  const list = pool.filter(q => !used.has(q.i)); let out = [];
+  if (even) {
+    const g = new Map(); shuffled(list).forEach(q => { if (!g.has(q.cc)) g.set(q.cc, []); g.get(q.cc).push(q); });
+    const lists = shuffled([...g.values()]); for (let i = 0; out.length < n && lists.some(l => l.length); i++) { const l = lists[i % lists.length]; if (l.length) out.push(l.pop()); }
+  } else out = shuffled(list).slice(0, n);
+  out.forEach(q => used.add(q.i)); return out;
+}
+/* the questions of a test: for each type in mix (for example MCQ 20, Numerical 5) about ratioP of them from PYQs and the rest from practice questions */
+function compose(poolP, poolN, mix, ratioP, even) {
+  const used = new Set(), out = [];
+  Object.entries(mix).forEach(([type, n]) => {
+    const tp = poolP.filter(q => q.t === type), tn = poolN.filter(q => q.t === type), nP = Math.min(tp.length, Math.round(n * ratioP));
+    let got = pickN(tp, nP, even, used).concat(pickN(tn, n - nP, even, used));
+    if (got.length < n) got = got.concat(pickN(tp, n - got.length, even, used));
+    if (got.length < n) got = got.concat(pickN(tn, n - got.length, even, used));
+    out.push(...got);
+  });
+  return out;
+}
+const MODES = [
+  { k: 'custom', t: 'Create Your Personal Test', d: 'Choose chapters, source, difficulty and how many questions.', mark: 'YOU' },
+  { k: 'pyq', t: 'Previous Year Actual Exam', d: 'Full shift-wise past papers with the real time and marking.', mark: 'PYQ' },
+  { k: 'chapter', t: 'Chapterwise Mock Test', d: 'Pick a chapter and get a mixed test of PYQs and practice questions.', mark: 'CH', np: true },
+  { k: 'sure', t: 'Repeated & Sure-Shot Questions', d: 'Only the questions that came again and again, plus the sure-shot ones.', mark: 'TOP' },
+  { k: 'full', t: 'Full-Length Mock', d: 'Mixed chapters, PYQs and practice questions, with the official duration and marking.', mark: 'MOCK', np: true }];
+async function pageModes(arg) {
+  if (arg === 'pyq') return pagePersonal('pyq');
+  if (arg === 'custom') return modeCustom();
+  if (arg === 'chapter') return modeChapter();
+  if (arg === 'sure') return modeSure();
+  if (arg === 'full') return modeFull();
+  const free = isFree();
+  show(head('Tests', 'Choose how you want to be tested. The test starts at once; your result is saved in Practice Tests & Results.', link('#/personal', 'Practice Tests & Results', 'btn')),
+    h('div', { class: 'md-grid' }, MODES.map(m => { const off = free && m.np;
+      return h('a', { class: 'md-card' + (off ? ' is-off' : ''), href: off ? '#/membership' : '#/modes/' + m.k, 'aria-label': m.t + (off ? ' (Premium)' : '') },
+        h('span', { class: 'md-mark', text: m.mark }), h('b', { text: m.t }), h('small', { text: m.d }),
+        off ? h('span', { class: 'md-lock', text: '🔒 Premium' }) : h('span', { class: 'pp-go', text: 'Open ›' })); })));
+}
+const modeHead = (t, sub) => head(t, sub, link('#/modes', '‹ Tests', 'btn'));
+const chip = (text, on, fn, dis) => h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(!!on), text, disabled: !!dis, onclick: fn });
+async function modeCustom() {
+  show(modeHead('Create Your Personal Test', 'Choose what to practise.'), loading('Loading the question bank…'));
+  const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
+  const free = isFree(), S = { chs: new Set(), src: new Set(['P']), lv: new Set(['L1', 'L2', 'L3']), n: 20, mins: 60, auto: true };
+  const all = B.qs.filter(gradable), chapters = [...CHN.values()].filter(c => all.some(q => q.cc === c.c));
+  const pool = () => all.filter(q => (!S.chs.size || S.chs.has(q.cc)) && S.src.has(q.s) && S.lv.has(q.d) && (!free || q.s === 'P'));
+  const chBox = h('div', { class: 'pp-exams' }), srcBox = h('div', { class: 'pp-exams' }), lvBox = h('div', { class: 'pp-exams' }), info = h('p', { class: 'pt-hint', role: 'status' });
+  const nSel = h('select', { class: 'pt-in', 'aria-label': 'Number of questions', onchange: e => { S.n = +e.target.value; if (S.auto) S.mins = S.n * 3; mins.value = S.mins; draw(); } }, [10, 15, 20, 25, 30, 40, 50].map(n => h('option', { value: n, text: n + ' questions', selected: n === 20 })));
+  const mins = h('input', { type: 'number', class: 'pt-in', min: 5, max: 300, value: 60, 'aria-label': 'Time in minutes', oninput: e => { S.auto = false; S.mins = Math.max(5, Math.min(300, +e.target.value || 0)); } });
+  const go = h('button', { type: 'button', class: 'btn pri pt-big', text: 'Start test', onclick: async () => {
+    go.disabled = true;
+    try { const P2 = pool(), qs = shuffled(P2).slice(0, S.n); await launchTest({ title: 'Personal test · ' + (S.chs.size === 1 ? (CHN.get([...S.chs][0]) || {}).n : S.chs.size ? S.chs.size + ' chapters' : 'all chapters'), qs, exam: 'JEE Main', mins: S.mins, key: 'custom' }); }
+    catch (e) { toast(e.message); go.disabled = false; } } });
+  function draw() {
+    chBox.textContent = ''; chapters.forEach(c => chBox.append(chip(c.c + ' ' + c.n, S.chs.has(c.c), () => { S.chs.has(c.c) ? S.chs.delete(c.c) : S.chs.add(c.c); draw(); })));
+    srcBox.textContent = ''; srcBox.append(chip('PYQs', S.src.has('P'), () => { S.src.has('P') && S.src.size > 1 ? S.src.delete('P') : S.src.add('P'); draw(); }),
+      chip(free ? '🔒 Practice questions (Premium)' : 'Practice questions', S.src.has('N'), () => { if (free) { location.hash = '#/membership'; return; } S.src.has('N') && S.src.size > 1 ? S.src.delete('N') : S.src.add('N'); draw(); }));
+    lvBox.textContent = ''; [['L1', 'Level 1 · Easy'], ['L2', 'Level 2 · Moderate'], ['L3', 'Level 3 · Tough']].forEach(([k, t]) => lvBox.append(chip(t, S.lv.has(k), () => { S.lv.has(k) && S.lv.size > 1 ? S.lv.delete(k) : S.lv.add(k); draw(); })));
+    const n = pool().length; info.textContent = n + ' matching questions' + (n < S.n ? '. The test will have ' + n + '.' : '.') + ' Marking: ' + markText(SC['JEE Main']) + '.';
+    go.disabled = n < 3;
+  }
+  draw();
+  show(modeHead('Create Your Personal Test', 'Choose chapters, source, difficulty and the number of questions.'),
+    card(h('h2', { text: 'Chapters' }), h('p', { class: 'pt-hint', text: 'Leave all unselected for every chapter.' }), chBox),
+    card(h('h2', { text: 'Source' }), srcBox, h('h2', { text: 'Difficulty' }), lvBox),
+    card(h('div', { class: 'pt-fld' }, h('span', { text: 'Number of questions' }), nSel), h('div', { class: 'pt-fld' }, h('span', { text: 'Time (minutes)' }), mins), info, go));
+}
+async function modeChapter() {
+  if (isFree()) { location.hash = '#/membership'; return; }
+  show(modeHead('Chapterwise Mock Test', 'Choose a chapter.'), loading('Loading the question bank…'));
+  const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
+  const all = B.qs.filter(gradable), sc = SC['JEE Main'];
+  const cards = [...CHN.values()].map(c => { const p = all.filter(q => q.cc === c.c); return { c, n: p.length, np: p.filter(q => q.s === 'N').length, py: p.filter(q => q.s === 'P').length }; }).filter(x => x.n >= 10);
+  show(modeHead('Chapterwise Mock Test', 'Pick a chapter. You get ' + sc.n_questions + ' questions: PYQs and practice questions mixed. ' + sc.duration_min + ' minutes, ' + markText(sc) + '.'),
+    h('div', { class: 'pp-papers' }, cards.map(x => h('button', { type: 'button', class: 'pp-card', onclick: async e => {
+      const b = e.currentTarget; b.disabled = true;
+      try {
+        const p = all.filter(q => q.cc === x.c.c), qs = compose(p.filter(q => q.s === 'P'), p.filter(q => q.s === 'N'), sc.rules.mix, 0.5, false), n = qs.length;
+        await launchTest({ title: x.c.n + ' · chapterwise mock', qs, exam: 'JEE Main', mins: Math.max(10, Math.round(sc.duration_min * n / sc.n_questions)), key: 'chapter-' + x.c.c });
+      } catch (err) { toast(err.message); b.disabled = false; } } },
+      h('b', { text: x.c.c + ' ' + x.c.n }), h('small', { text: x.py + ' PYQs · ' + x.np + ' practice questions' }), h('span', { class: 'pp-go', text: 'Start ›' })))));
+}
+async function modeSure() {
+  show(modeHead('Repeated & Sure-Shot Questions', 'Only the questions that came again and again, and the ones sure to come.'), loading('Loading…'));
+  const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
+  let must = []; try { must = await window.AvantiContent.get('must.json'); } catch (e) { must = []; }
+  const sc = SC['JEE Main'], byCh = new Map();
+  (must || []).forEach(m => { const qs = (m.i || []).map(it => B.byId.get(it.r)).filter(q => q && gradable(q)); if (qs.length) byCh.set(m.c, qs); });
+  if (!byCh.size) { show(modeHead('Repeated & Sure-Shot Questions', ''), card(empty('Not available yet', 'The repeated-question list could not be loaded.'))); return; }
+  let cur = '';   /* '' = all chapters */
+  const chips = h('div', { class: 'pp-exams' }), info = h('p', { class: 'pt-hint', role: 'status' });
+  const pool = () => (cur ? byCh.get(cur) || [] : [...byCh.values()].flat());
+  const go = h('button', { type: 'button', class: 'btn pri pt-big', text: 'Start test', onclick: async () => {
+    go.disabled = true;
+    try { const p = pool(), n = Math.min(sc.n_questions, p.length), qs = compose(p, [], { MCQ: Math.min(20, p.filter(q => q.t === 'MCQ').length), Numerical: Math.min(5, p.filter(q => q.t === 'Numerical').length) }, 1, !cur);
+      const more = pickN(p, n - qs.length, !cur, new Set(qs.map(q => q.i))); await launchTest({ title: 'Repeated & sure-shot · ' + (cur ? (CHN.get(cur) || {}).n : 'all chapters'), qs: qs.concat(more), exam: 'JEE Main', mins: Math.max(10, Math.round(sc.duration_min * n / sc.n_questions)), key: 'sure-' + (cur || 'all') }); }
+    catch (e) { toast(e.message); go.disabled = false; } } });
+  function draw() {
+    chips.textContent = ''; chips.append(chip('All chapters', cur === '', () => { cur = ''; draw(); }));
+    [...byCh.keys()].forEach(c => chips.append(chip(c + ' ' + ((CHN.get(c) || {}).n || ''), cur === c, () => { cur = c; draw(); })));
+    const n = pool().length; info.textContent = n + ' repeated and sure-shot questions here. The test has up to ' + sc.n_questions + ' of them (' + sc.duration_min + ' min, ' + markText(sc) + ').'; go.disabled = n < 3;
+  }
+  draw(); show(modeHead('Repeated & Sure-Shot Questions', 'Choose a chapter, or all of them.'), card(chips, info, go));
+}
+const FULL_EXAMS = [['JEE Main', 'Main'], ['JEE Advanced', 'Adv'], ['KCET', 'KCET'], ['NDA', 'NDA'], ['IAT', 'IAT'], ['CUET', null]];
+async function modeFull() {
+  if (isFree()) { location.hash = '#/membership'; return; }
+  show(modeHead('Full-Length Mock', 'Official duration and marking.'), loading('Loading the question bank…'));
+  const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
+  const all = B.qs.filter(gradable);
+  const cards = FULL_EXAMS.map(([ex, code]) => { const sc = SC[ex]; if (!sc) return null;
+    return h('button', { type: 'button', class: 'pp-card', onclick: async e => {
+      const b = e.currentTarget; b.disabled = true;
+      try {
+        const pyq = all.filter(q => q.s === 'P' && (code ? q.e === code : q.cc.startsWith('12'))), np = all.filter(q => q.s === 'N' && (code ? true : q.cc.startsWith('12')));
+        const mix = Object.assign({}, sc.rules.mix), qs = compose(pyq, np, mix, 0.6, true);
+        if (qs.length < 5) throw new Error('Not enough questions for this mock yet.');
+        await launchTest({ title: ex + ' full-length mock', qs, exam: ex, mins: null, key: 'full-' + ex });
+      } catch (err) { toast(err.message); b.disabled = false; } } },
+      h('b', { text: ex }), h('small', { text: (sc.n_questions || '') + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }),
+      sc.rules.notes && ex === 'JEE Advanced' ? h('small', { class: 'pt-hint', text: '14 questions today: Section 4 needs paragraph questions.' }) : null, h('span', { class: 'pp-go', text: 'Start ›' })); }).filter(Boolean);
+  cards.push(h('div', { class: 'pp-card is-off', 'aria-disabled': 'true' }, h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: 'Code 041 · 3 hours · coming soon' })));
+  show(modeHead('Full-Length Mock', 'Mixed chapters. PYQs and practice questions together, with the official duration and marking of the exam.'), h('div', { class: 'pp-papers' }, cards));
+}
+/* Export the questions of a finished test as a PDF: only questions, with the answer key, or with the key and full explanations */
+async function exportResult(attemptId, title) {
+  let mode = 'k';
+  const opts = [['q', 'Questions only'], ['k', 'Questions + Answer Key'], ['e', 'Questions + Answer Key + Full Explanations']];
+  const rows = opts.map(([k, t]) => h('label', { class: 'pt-radio' }, h('input', { type: 'radio', name: 'expmode', value: k, checked: k === mode, onchange: () => { mode = k; } }), h('span', { text: t })));
+  modal('Export "' + title + '"', h('div', { class: 'pt-form' }, h('p', { class: 'pt-hint', text: 'Choose what the PDF should contain.' }), rows),
+    [{ text: 'Cancel', onclick: () => {} }, { text: 'Download PDF', pri: true, onclick: async () => {
+      try {
+        const R = await rpc('attempt_report', { p_attempt: attemptId }), ids = (R.items || []).map(i => i.qid).filter(Boolean);
+        if (!ids.length) { toast('The questions of this test are not available.'); return; }
+        await TE().exportIds(ids, title, 'pdf', 'Test', '', '', { key: mode !== 'q', exp: mode === 'e' });
+      } catch (e) { toast(e.message || 'Could not export'); } } }]);
 }
 /* My School: Premium students and Premium teachers of one school see each other (basic details only) */
 async function pageSchool() {
@@ -1174,13 +1347,13 @@ async function pageReport(id) {
   const att = a.correct + a.wrong, acc = att ? 100 * a.correct / att : null;
   const mine = AU().profile.id && P().role === 'student';
   const top = head(t.title, (mine ? '' : (a.student_name || 'Student') + (a.school ? ' · ' + a.school : '') + ' · ') + 'Submitted ' + when(a.submitted_at),
-    mine ? link('#/reports', 'My Reports', 'btn') : h('button', { type: 'button', class: 'btn', text: '‹ Back to results', onclick: () => history.back() }));
+    ...(mine ? [link('#/reports', 'My Reports', 'btn'), h('button', { type: 'button', class: 'btn', text: 'Export', onclick: () => exportResult(id, t.title) })] : [h('button', { type: 'button', class: 'btn', text: '‹ Back to results', onclick: () => history.back() })]));
   const items = R.items || [];
   /* the student sees the correct answers 3 hours after starting the test (so they cannot be passed on during the test) */
   const keysAt = R.answers_at ? new Date(R.answers_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
-  const st = { correct: ['Correct', 'ok'], wrong: ['Wrong', 'bad'], skipped: ['Not answered', 'mute'] };
+  const st = { correct: ['Correct', 'ok'], partial: ['Partly correct', 'mid'], wrong: ['Wrong', 'bad'], skipped: ['Not answered', 'mute'] };
   const review = h('div', { class: 'pt-plist' }, items.map(it => qCard({ type: it.type, q: it.q, o: it.o, f: it.f, tp: it.topic }, it.pos - 1, {
-    status: it.status, response: it.response, answer: it.correct_answer,
+    status: it.status, response: it.response, answer: it.correct_answer, code: it.qid,   /* question codes are shown only here, after the test */
     right: h('span', { class: 'pt-qmeta' }, it.status ? badge(st[it.status][0], st[it.status][1]) : badge(it.response ? 'Answered' : 'Not answered', 'mute'), h('span', { class: 'pt-hint', text: (it.marks == null ? '' : (it.marks > 0 ? '+' : '') + num(it.marks, 2) + ' marks · ') + mmss(it.time_sec) })),
     extra: h('p', { class: 'pt-yours' }, 'Your answer: ', h('b', { text: it.response || '—' }), ' · Correct answer: ', h('b', { text: keysAt ? 'shown at ' + keysAt : (it.correct_answer || '—') })) })));
   let only = 'all';
@@ -1227,7 +1400,7 @@ async function pageTake(code) {
   show(h('div', { class: 'pt-start' }, card(h('p', { class: 'pt-sub', text: info.audience === 'self' ? 'Your personal test' : 'Test by ' + info.teacher }), h('h1', { text: info.title }),
     h('div', { class: 'pt-stats' }, stat('Questions', info.n_questions), stat('Time', info.duration_min + ' min'), stat('Correct', '+' + num(info.marks_correct, 2)), stat('Wrong (MCQ)', '−' + num(info.marks_wrong, 2))),
     h('h2', { text: 'Instructions' }),
-    h('ul', { class: 'pt-feats' }, ['The timer starts when you press Start and keeps running even if you close the page.', 'Your answers are saved automatically. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Do not switch tabs or apps. Every switch is recorded and your teacher can see it.', 'The test submits by itself when the time is up.'].map(x => h('li', { text: x }))),
+    h('ul', { class: 'pt-feats' }, ['The timer runs only while this page is open. If the power or internet goes, the timer pauses by itself. Open the test again within 30 hours to carry on; after 30 hours it is submitted with your saved answers.', 'Your answers are saved automatically every few seconds. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Do not switch tabs or apps. Every switch is recorded and your teacher can see it.', 'The test submits by itself when the time is up.'].map(x => h('li', { text: x }))),
     h('p', { class: 'pt-hint', text: 'Signed in as ' + (P().full_name || P().email || P().avanti_id) + (P().school ? ' · ' + P().school : '') }),
     startBtn)));
   if (auto && info.is_active) startBtn.click();   /* started from Practice Tests: begin at once, nothing more to ask */
@@ -1237,7 +1410,7 @@ let EX = null;
 function exitExam() {
   if (!EX) return;
   clearInterval(EX.tick); clearInterval(EX.auto);
-  document.removeEventListener('visibilitychange', EX.onVis); window.removeEventListener('beforeunload', EX.onUnload);
+  document.removeEventListener('visibilitychange', EX.onVis); window.removeEventListener('beforeunload', EX.onUnload); window.removeEventListener('offline', EX.onOffline); window.removeEventListener('online', EX.onOnline);
   EX.root.remove(); document.body.classList.remove('ex-on'); EX = null;
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 }
@@ -1245,12 +1418,12 @@ function runExam(d) {
   exitExam();
   const qs = d.questions, ans = {};
   qs.forEach(q => { const a = (d.answers || {})[q.id] || {}; ans[q.id] = { r: a.r == null ? (q.type === 'MSQ' ? [] : '') : a.r, t: +a.t || 0, m: !!a.m, v: !!a.v }; });
-  const offset = Date.parse(d.server_now) - Date.now();
-  const deadline = Date.parse(d.started_at) + d.duration_min * 60000;
-  const X = EX = { d, qs, ans, cur: 0, tabs: d.tab_switches || 0, dirty: false, saving: false, enter: Date.now(), done: false };
+  /* the clock counts active time only: the server says how many seconds are left, this page counts down from there and stops while offline */
+  const X = EX = { d, qs, ans, cur: 0, tabs: d.tab_switches || 0, dirty: false, saving: false, enter: Date.now(), done: false, left: d.remaining_sec != null ? d.remaining_sec : Math.max(0, d.duration_min * 60 - (Date.parse(d.server_now) - Date.parse(d.started_at)) / 1000), sync: Date.now(), paused: !navigator.onLine };
   const root = X.root = h('div', { class: 'ex', role: 'application', 'aria-label': 'Test: ' + d.title });
   document.body.classList.add('ex-on'); document.body.append(root);
   const timer = h('span', { class: 'ex-timer', role: 'timer', 'aria-live': 'off' });
+  const pauseBar = h('div', { class: 'ex-pause', role: 'alert', hidden: true, text: 'No connection: your timer is paused. Your answers are kept on this page and saved again as soon as you are back online.' });
   const saved = h('span', { class: 'ex-saved', role: 'status' });
   const main = h('main', { class: 'ex-main' }), pal = h('div', { class: 'ex-grid' });
   const side = h('aside', { class: 'ex-side', 'aria-label': 'Question palette' },
@@ -1258,8 +1431,9 @@ function runExam(d) {
     h('ul', { class: 'ex-legend' }, [['ans', 'Answered'], ['na', 'Not answered'], ['nv', 'Not visited'], ['mk', 'Marked for review'], ['am', 'Answered and marked']].map(([k, t]) => h('li', {}, h('i', { class: 'ex-p ' + k }), t))),
     h('button', { type: 'button', class: 'btn pri ex-submit2', text: 'Submit test', onclick: () => askSubmit() }));
   root.append(h('header', { class: 'ex-top' }, h('strong', { class: 'ex-title', text: d.title }), saved, timer,
+    h('button', { type: 'button', class: 'btn ex-qp', text: 'Question paper PDF', title: 'Download the question paper as a PDF', onclick: e => paperPdf(e.currentTarget) }),
     h('button', { type: 'button', class: 'btn ex-palbtn', text: 'Questions', 'aria-expanded': 'false', onclick: e => { const o = root.classList.toggle('pal-open'); e.target.setAttribute('aria-expanded', String(o)); } }),
-    h('button', { type: 'button', class: 'btn pri', text: 'Submit', onclick: () => askSubmit() })), h('div', { class: 'ex-body' }, main, side));
+    h('button', { type: 'button', class: 'btn pri', text: 'Submit', onclick: () => askSubmit() })), pauseBar, h('div', { class: 'ex-body' }, main, side));
 
   const filled = a => (Array.isArray(a.r) ? a.r.length > 0 : String(a.r).trim() !== '');
   const stateOf = a => (a.m ? (filled(a) ? 'am' : 'mk') : filled(a) ? 'ans' : a.v ? 'na' : 'nv');
@@ -1268,8 +1442,8 @@ function runExam(d) {
   async function save(force) {
     if (X.done || X.saving || (!X.dirty && !force)) return;
     X.saving = true; track(); X.dirty = false; saved.textContent = 'Saving…'; saved.className = 'ex-saved';
-    try { const r = await rpc('save_attempt', { p_attempt: d.attempt_id, p_answers: payload(), p_tab_switches: X.tabs }); if (r.status === 'time_up') { finish(true); return; } saved.textContent = 'Saved ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
-    catch (e) { X.dirty = true; saved.textContent = 'Not saved: offline? Retrying…'; saved.className = 'ex-saved bad'; }
+    try { const r = await rpc('save_attempt', { p_attempt: d.attempt_id, p_answers: payload(), p_tab_switches: X.tabs }); if (r.status === 'time_up') { finish(true); return; } if (r.remaining_sec != null) { X.left = r.remaining_sec; X.sync = Date.now(); } setPaused(false); saved.textContent = 'Saved ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
+    catch (e) { X.dirty = true; saved.textContent = 'Not saved: offline? Retrying…'; saved.className = 'ex-saved bad'; setPaused(true); }
     X.saving = false;
   }
   function drawPal() {
@@ -1284,6 +1458,15 @@ function runExam(d) {
     if (q.type === 'Numerical') {
       input = h('div', { class: 'ex-num' }, h('label', { for: 'exNum', text: 'Your answer (a number)' }),
         h('input', { id: 'exNum', type: 'text', inputmode: 'decimal', autocomplete: 'off', class: 'pt-in', value: a.r || '', maxlength: 20, oninput: e => { const v = e.target.value.replace(/[^0-9.\-]/g, ''); if (v !== e.target.value) e.target.value = v; a.r = v; X.dirty = true; drawPal(); } }));
+    } else if (q.type === 'SUBJ') {
+      /* board-paper written question (Sections B to E): solve on paper, then open the 8 final answers and pick the matching one */
+      const open = !!a.ex;
+      input = h('div', { class: 'ex-subj' }, h('p', { class: 'pt-hint', text: 'Solve this on paper. Then expand the options and choose your final answer.' }),
+        h('button', { type: 'button', class: 'btn ex-expand', 'aria-expanded': String(open), text: open ? 'Hide options' : 'Expand Options', onclick: () => { a.ex = !a.ex; draw(); } }),
+        h('div', { class: 'ex-opts', role: 'radiogroup', 'aria-label': 'Final answer', hidden: !open }, (q.o || []).slice(0, 8).map((t, k) => {
+          const L = LETTERS[k], on = a.r === L;
+          return h('label', { class: 'ex-opt' + (on ? ' on' : '') }, h('input', { type: 'radio', name: 'exo', value: L, checked: on, onchange: () => { a.r = L; X.dirty = true; main.querySelectorAll('.ex-opt').forEach(l => l.classList.toggle('on', l.querySelector('input').checked)); drawPal(); } }), h('b', { text: L }), h('span', { html: qText(t) }));
+        })));
     } else {
       const multi = q.type === 'MSQ';
       input = h('div', { class: 'ex-opts', role: multi ? 'group' : 'radiogroup', 'aria-label': 'Options' }, (q.o || []).map((t, k) => {
@@ -1295,8 +1478,8 @@ function runExam(d) {
           } }), h('b', { text: L }), h('span', { html: qText(t) }));
       }));
     }
-    main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge(q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : 'MCQ: one correct'),
-      h('span', { class: 'pt-hint', text: '+' + num(d.marks_correct, 2) + (q.type === 'MCQ' && +d.marks_wrong ? ' / −' + num(d.marks_wrong, 2) : '') }),
+    main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge((q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
+      h('span', { class: 'pt-hint', text: '+' + num(q.mc != null ? q.mc : d.marks_correct, 2) + (() => { const w = q.mw != null ? +q.mw : (q.type === 'MCQ' ? +d.marks_wrong : 0); return w ? ' / −' + num(w, 2) : ''; })() + (q.mp ? ' · partial marks' : '') }),
       X.qtEl = h('span', { class: 'ex-qtime', title: 'Time spent on this question', 'aria-label': 'Time on this question' })),
       h('div', { class: 'ex-q', html: qText(q.q) }), figure(q.f) || '', input,
       h('div', { class: 'ex-nav' },
@@ -1311,11 +1494,28 @@ function runExam(d) {
     const s2 = Math.floor(ans[q.id].t + (Date.now() - X.enter) / 1000);
     X.qtEl.textContent = '\u23f1 ' + Math.floor(s2 / 60) + ':' + String(s2 % 60).padStart(2, '0');
   }
+  /* pause and resume the countdown (no connection = paused; the first save that goes through resumes it with the server's time) */
+  function setPaused(on) {
+    if (X.paused === on || X.done) return;
+    if (on) X.left = Math.max(0, X.left - (Date.now() - X.sync) / 1000); X.sync = Date.now(); X.paused = on;
+    pauseBar.hidden = !on; timer.classList.toggle('paused', on); if (on) track(); else X.enter = Date.now();
+  }
+  X.onOffline = () => setPaused(true); X.onOnline = () => { X.dirty = true; save(true); };
+  window.addEventListener('offline', X.onOffline); window.addEventListener('online', X.onOnline);
+  /* the question paper as a PDF, made from the questions on this page (the question bank is closed while a test is running) */
+  async function paperPdf(btn) {
+    btn.disabled = true;
+    try {
+      const T = TE(); if (!T || !T.rawPaper) throw new Error('The question paper is not available here.');
+      await T.rawPaper(qs.map(q => ({ i: q.id, s: q.s === 'P' ? 'P' : 'N', t: q.type, q: q.q, o: q.o || [], a: '', f: q.f || null, tp: q.tp || '', d: 'L2', cc: 'x', e: 'Main' })), d.title, 'Time ' + d.duration_min + ' min');
+    } catch (e) { toast(e.message || 'Could not make the PDF'); } finally { btn.disabled = false; }
+  }
   function tickTimer() {
     tickQ();
-    const left = deadline - (Date.now() + offset);
-    if (left <= 0) { timer.textContent = '0:00'; finish(true); return; }
-    const s = Math.ceil(left / 1000), hh = Math.floor(s / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
+    if (X.paused) { pauseBar.hidden = false; timer.classList.add('paused'); }
+    const left = (X.paused ? X.left : X.left - (Date.now() - X.sync) / 1000) * 1000;
+    if (left <= 0 && !X.paused) { timer.textContent = '0:00'; finish(true); return; }
+    const s = Math.max(0, Math.ceil(left / 1000)), hh = Math.floor(s / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
     timer.textContent = (hh ? hh + ':' + String(mm).padStart(2, '0') : mm) + ':' + String(ss).padStart(2, '0');
     timer.classList.toggle('low', s <= 300);
     if (s === 300) toast('5 minutes left');
@@ -1344,7 +1544,7 @@ function runExam(d) {
   X.onUnload = e => { if (!X.done) { e.preventDefault(); e.returnValue = ''; } };
   document.addEventListener('visibilitychange', X.onVis);
   window.addEventListener('beforeunload', X.onUnload);
-  X.tick = setInterval(tickTimer, 1000); X.auto = setInterval(() => save(), 15000);
+  X.tick = setInterval(tickTimer, 1000); X.auto = setInterval(() => save(true), 25000);   /* every save is also a heartbeat for the server's clock */
   tickTimer(); draw();
 }
 

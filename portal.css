@@ -1112,3 +1112,18 @@ html.plan-free [data-act="lexp"][data-k="pdf"] { display: inline-flex !important
 .dpp-pick { display: flex; flex-direction: column; gap: 8px; }
 .dpp-all { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 6px 0 10px; border-bottom: 1px solid var(--rule); } .dpp-all small { color: var(--muted); }
 .dpp-sheet { display: grid; grid-template-columns: 70px 1fr auto; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--rule); } .dpp-sheet:last-child { border-bottom: 0; } .dpp-sheet span { color: var(--muted); font-size: 13px; }
+
+/* Tests hub and the test page rules (v975) */
+.md-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.md-card { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 18px; min-height: 190px; border-radius: 16px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); text-decoration: none; box-shadow: var(--shadow-sm); transition: transform .15s, box-shadow .15s, border-color .15s; }
+.md-card:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: var(--shadow); }
+.md-card.is-off { opacity: .66; } .md-card b { font: 700 17px/1.25 var(--font-body); } .md-card small { color: var(--muted); font-size: 13px; line-height: 1.4; }
+.md-mark { display: inline-grid; place-items: center; min-width: 48px; height: 40px; padding: 0 10px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font: 800 12.5px var(--font-body); letter-spacing: .03em; align-self: flex-start; }
+.md-lock { margin-top: auto; align-self: flex-start; background: var(--gold); color: #1a2340; font-weight: 700; font-size: 12.5px; padding: 4px 10px; border-radius: 99px; }
+.md-card .pp-go { margin-top: auto; }
+.pp-card.is-off { opacity: .55; cursor: not-allowed; }
+.ex-pause { background: #b4471d; color: #fff; padding: 9px 14px; font-weight: 600; font-size: 14px; text-align: center; }
+.ex-timer.paused { opacity: .55; text-decoration: line-through; }
+.ex-subj { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; } .ex-subj .ex-opts { width: 100%; }
+.pt-radio { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; cursor: pointer; } .pt-radio:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.pt-code { font: 700 11.5px var(--font-body); background: var(--accent-soft); color: var(--accent); border-radius: 8px; padding: 3px 8px; }

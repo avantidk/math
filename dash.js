@@ -117,7 +117,7 @@ function shell() {
       h('div', { class: 'tb-head' }, h('img', { class: 'tb-logo', src: 'img/ankit-logo-dark-sm.png?v=922', alt: 'अंक-IT', width: 139, height: 52 }), h('h1', { class: 'tb-title', text: 'Dashboard' }), h('span', { class: 'tb-sub', text: "Study plan, PYQs, practice and tests" })),
       h('a', { class: 'tb-theme tb-home', href: '/', title: 'Home page', 'aria-label': 'Home page', html: IC.home }), theme,
       h('nav', { class: 'tb-menu' }, h('a', { class: 'tb', href: 'dashboard', 'aria-pressed': 'true', text: 'Dashboard' }), h('a', { class: 'tb', href: 'qbank', text: 'Question Bank' }),
-        h('a', { class: 'tb', href: 'qbank#/personal', text: 'Practice Tests' }), h('div', { class: 'tb-prof', id: 'tbProfile' }))),
+        h('a', { class: 'tb', href: 'qbank#/modes', text: 'Tests' }), h('div', { class: 'tb-prof', id: 'tbProfile' }))),
     h('div', { class: 'd-body' }, SIDE, MAIN),
     h('footer', { class: 'app-foot' }, h('span', { text: 'Made with ♥ by Ankit' }), h('span', { text: 'Website v' + (b ? b.build : '') + ' · ' + (b ? b.released : '') }))));
 }
@@ -254,7 +254,7 @@ function testLauncher(rows, c, mode, e) {
       for (let i = pick.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pick[i], pick[j]] = [pick[j], pick[i]]; }
       const chosen = pick.slice(0, n); let figs = {}; try { figs = await window.AvantiContent.get('qb/data/figures.json'); } catch (x) { figs = {}; }
       const qs = chosen.map(r => { const x = D.raw.get(r.id), f = figs[r.id]; return { id: r.id, type: x.type, q: x.question, o: x.options || [], a: String(x.answer), ch: x.chapter_code, chn: c.chapter, tp: x.topic || '', f: f && f.svg ? { svg: f.svg } : null }; });
-      const r = await A().sb.rpc('create_personal_test', { p_title: c.chapter + (mode === 'pyq' && e ? ' · ' + e.name : '') + ' · chapter test', p_duration_min: n * 3, p_marks_correct: 4, p_marks_wrong: 1, p_questions: qs, p_paper_key: 'chapter-' + c.chapter_code, p_audience: 'self' });
+      const r = await A().sb.rpc('create_personal_test', { p_title: c.chapter + (mode === 'pyq' && e ? ' · ' + e.name : '') + ' · chapter test', p_duration_min: n * 3, p_marks_correct: 4, p_marks_wrong: 1, p_questions: qs, p_paper_key: 'chapter-' + c.chapter_code, p_audience: 'self', p_exam: 'JEE Main' });
       if (r.error) throw new Error(r.error.message);
       try { sessionStorage.setItem('avanti-auto', r.data.code); } catch (x) { /* storage blocked */ }
       location.href = 'qbank#/t/' + r.data.code;

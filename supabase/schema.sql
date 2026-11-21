@@ -211,9 +211,35 @@ $$;
 create or replace function public.in_test() returns boolean
 language plpgsql stable security definer set search_path = public as $$
 begin
+  -- writing a test right now: its page sent a heartbeat in the last 10 minutes and the time is not up (a paused test does not lock the question bank)
   return exists (select 1 from public.attempts a join public.tests t on t.id = a.test_id
                   where a.user_id = auth.uid() and a.status = 'in_progress'
-                    and now() <= a.started_at + make_interval(mins => t.duration_min) + interval '2 minutes');
+                    and a.last_beat > now() - interval '10 minutes'
+                    and a.elapsed_sec <= t.duration_min * 60 + 120);
+end $$;
+
+-- Submits tests that were paused and never resumed (30 hours without a heartbeat) and tests whose time ran out while away.
+-- p_user = one person (called when they open a test or their results); null = everyone (the scheduled job, every 30 minutes).
+create or replace function public.sweep_attempts(p_user uuid default null) returns integer
+language plpgsql security definer set search_path = public as $$
+declare a record; n integer := 0;
+begin
+  for a in select x.id, x.last_beat, x.elapsed_sec, t.duration_min from public.attempts x join public.tests t on t.id = x.test_id
+            where x.status = 'in_progress' and (p_user is null or x.user_id = p_user)
+              and ((x.last_beat is not null and x.last_beat < now() - interval '30 hours')
+                or (x.elapsed_sec > t.duration_min * 60 + 120 and (x.last_beat is null or x.last_beat < now() - interval '3 minutes'))) loop
+    update public.attempts set submitted_at = coalesce(submitted_at, last_beat, now()) where id = a.id;
+    perform public.grade_attempt(a.id); n := n + 1;
+  end loop;
+  return n;
+end $$;
+do $$
+begin
+  begin create extension if not exists pg_cron; exception when others then null; end;
+  if to_regnamespace('cron') is not null then
+    begin perform cron.unschedule('avanti-auto-submit'); exception when others then null; end;
+    begin perform cron.schedule('avanti-auto-submit', '*/30 * * * *', 'select public.sweep_attempts()'); exception when others then null; end;
+  end if;
 end $$;
 
 -- Yearly price in paise: students Rs. 299, teachers Rs. 599 (the razorpay Edge Function uses the same numbers).
@@ -856,6 +882,13 @@ alter table public.payments                 enable row level security;
 alter table public.worksheets               enable row level security;
 alter table public.tests                    enable row level security;
 alter table public.attempts                 enable row level security;
+-- Active-time clock (version 975): the countdown counts only the seconds the test page was really open (it sends a heartbeat every
+-- 30 seconds). If the power or internet goes, the clock pauses; the attempt is submitted automatically after 30 hours without a return.
+alter table public.attempts add column if not exists elapsed_sec integer not null default 0;
+alter table public.attempts add column if not exists last_beat timestamptz;
+update public.attempts a set last_beat = now(), elapsed_sec = least(extract(epoch from (now() - a.started_at))::integer, 86400) where a.status = 'in_progress' and a.last_beat is null;
+alter table public.attempt_items drop constraint if exists attempt_items_status_check;
+alter table public.attempt_items add constraint attempt_items_status_check check (status in ('correct', 'wrong', 'skipped', 'partial'));
 alter table public.attempt_items            enable row level security;
 
 -- Nothing in these tables is writable from a browser except worksheets and tests (own rows, checked below).
@@ -977,12 +1010,18 @@ language plpgsql security definer set search_path = public as $$
 declare
   a public.attempts; t public.tests; q jsonb; i integer; r jsonb; v_resp text; v_key text; v_type text;
   v_status text; v_marks numeric; v_t integer; lo numeric; hi numeric; v numeric; m text[];
-  s_score numeric := 0; s_c integer := 0; s_w integer := 0; s_s integer := 0;
+  v_c numeric; v_w numeric; v_p boolean; chosen text[]; keys text[];
+  s_score numeric := 0; s_max numeric := 0; s_c integer := 0; s_w integer := 0; s_s integer := 0;
 begin
   select * into a from public.attempts where id = p_attempt for update;
   select * into t from public.tests where id = a.test_id;
   delete from public.attempt_items where attempt_id = a.id;
   for q, i in select e.value, e.ordinality from jsonb_array_elements(t.questions) with ordinality e loop
+    -- marks of this question: its own scheme (q.m = {c: marks for correct, w: negative marks, p: partial marking}) or the test's marks (older tests)
+    v_c := coalesce((q -> 'm' ->> 'c')::numeric, t.marks_correct);
+    v_w := (q -> 'm' ->> 'w')::numeric;
+    v_p := coalesce((q -> 'm' ->> 'p')::boolean, false);
+    s_max := s_max + v_c;
     -- answers are saved under p1, p2, ... (the position); older attempts used the question id
     r := coalesce(a.answers -> ('p' || i) -> 'r', a.answers -> (q->>'id') -> 'r');
     v_resp := coalesce(a.answers -> ('p' || i) ->> 't', a.answers -> (q->>'id') ->> 't');
@@ -1005,24 +1044,47 @@ begin
       if v_resp ~ '^-?\d+(\.\d+)?$' and lo is not null then
         v := v_resp::numeric;
         if (lo = hi and abs(v - lo) <= 0.01) or (lo <> hi and v >= lo - 0.005 and v <= hi + 0.005) then
-          v_status := 'correct'; v_marks := t.marks_correct; else v_status := 'wrong'; end if;
-      else v_status := 'wrong'; end if;
+          v_status := 'correct'; v_marks := v_c; else v_status := 'wrong'; v_marks := -coalesce(v_w, 0); end if;
+      else v_status := 'wrong'; v_marks := -coalesce(v_w, 0); end if;
     elsif v_type = 'MSQ' then
-      if v_resp = (select string_agg(x, ',' order by x) from unnest(string_to_array(replace(v_key, ' ', ''), ',')) x) then
-        v_status := 'correct'; v_marks := t.marks_correct; else v_status := 'wrong'; end if;
+      keys := string_to_array(replace(v_key, ' ', ''), ','); chosen := string_to_array(v_resp, ',');
+      if v_p then
+        -- partial marking (JEE Advanced "one or more correct"): any wrong option chosen = negative; all correct options = full marks;
+        -- otherwise one mark per correct option chosen (3 of 4, 2 of 3 or more, 1 of 2 or more)
+        if exists (select 1 from unnest(chosen) c where c <> all (keys)) then v_status := 'wrong'; v_marks := -coalesce(v_w, 0);
+        elsif chosen @> keys and keys @> chosen then v_status := 'correct'; v_marks := v_c;
+        else v_status := 'partial'; v_marks := least(array_length(chosen, 1), v_c); end if;
+      elsif v_resp = (select string_agg(x, ',' order by x) from unnest(keys) x) then
+        v_status := 'correct'; v_marks := v_c;
+      else v_status := 'wrong'; v_marks := -coalesce(v_w, 0); end if;
+    elsif v_type = 'SUBJ' then  -- board-paper written questions: the student picks the matching final answer (A to H); no negative marking
+      if v_resp = v_key then v_status := 'correct'; v_marks := v_c; else v_status := 'wrong'; v_marks := -coalesce(v_w, 0); end if;
     else  -- MCQ: negative marking applies to a wrong choice
-      if v_resp = v_key then v_status := 'correct'; v_marks := t.marks_correct;
-      else v_status := 'wrong'; v_marks := -t.marks_wrong; end if;
+      if v_resp = v_key then v_status := 'correct'; v_marks := v_c;
+      else v_status := 'wrong'; v_marks := -coalesce(v_w, t.marks_wrong); end if;
     end if;
     insert into public.attempt_items (attempt_id, pos, qid, qtype, response, correct_answer, status, marks, time_sec, chapter, topic)
     values (a.id, i, q->>'id', v_type, v_resp, q->>'a', v_status, v_marks, v_t, q->>'chn', q->>'tp');
     s_score := s_score + v_marks;
-    if v_status = 'correct' then s_c := s_c + 1; elsif v_status = 'wrong' then s_w := s_w + 1; else s_s := s_s + 1; end if;
+    if v_status in ('correct', 'partial') then s_c := s_c + 1; elsif v_status = 'wrong' then s_w := s_w + 1; else s_s := s_s + 1; end if;
   end loop;
   update public.attempts set status = 'submitted', submitted_at = coalesce(submitted_at, now()),
-    score = s_score, max_score = t.marks_correct * t.n_questions, correct = s_c, wrong = s_w, skipped = s_s,
-    time_taken_sec = least(extract(epoch from (now() - started_at))::integer, t.duration_min * 60)
+    score = s_score, max_score = s_max, correct = s_c, wrong = s_w, skipped = s_s,
+    time_taken_sec = least(greatest(a.elapsed_sec, 0), t.duration_min * 60)
   where id = a.id;
+end $$;
+
+-- The active-time clock. Seconds since the last heartbeat count only when the gap is short (the page was open); a longer gap is a pause.
+create or replace function public.attempt_beat(p_id uuid) returns public.attempts
+language plpgsql security definer set search_path = public as $$
+declare a public.attempts;
+begin
+  update public.attempts set
+    elapsed_sec = elapsed_sec + case when last_beat is not null and now() - last_beat <= interval '90 seconds' then extract(epoch from (now() - last_beat))::integer else 0 end,
+    last_beat = now()
+   where id = p_id and status = 'in_progress' returning * into a;
+  if a.id is null then select * into a from public.attempts where id = p_id; end if;
+  return a;
 end $$;
 
 -- Starts (or resumes) the signed-in student's attempt. Returns the questions WITHOUT answers and WITHOUT their
@@ -1032,6 +1094,7 @@ language plpgsql security definer set search_path = public as $$
 declare t public.tests; me public.profiles; a public.attempts;
 begin
   if auth.uid() is null then raise exception 'Please sign in to take this test'; end if;
+  perform public.sweep_attempts(auth.uid());   -- a test left unfinished for 30 hours is submitted with the saved answers
   select * into t from public.tests where code = lower(trim(p_code));
   if t.id is null then raise exception 'This test link is not valid. Ask your teacher for the link again.'; end if;
   if t.owner_id = auth.uid() and t.audience not in ('self', 'teachers_link') then raise exception 'This is your own test. Open it from My Tests to preview it.'; end if;
@@ -1040,14 +1103,17 @@ begin
   if a.id is null then
     if not t.is_active then raise exception 'This test is not open right now.'; end if;
     if public.test_block_reason(t, me) is not null then raise exception '%', public.test_block_reason(t, me); end if;
-    insert into public.attempts (test_id, user_id, student_name, school, class, stream, category, gender, session)
-    values (t.id, me.id, me.full_name, me.school, me.class, me.stream, me.category, me.gender, me.session)
+    insert into public.attempts (test_id, user_id, student_name, school, class, stream, category, gender, session, last_beat, elapsed_sec)
+    values (t.id, me.id, me.full_name, me.school, me.class, me.stream, me.category, me.gender, me.session, now(), 0)
     on conflict (test_id, user_id) do nothing;
     select * into a from public.attempts where test_id = t.id and user_id = me.id;
   end if;
-  if a.status = 'in_progress' and now() > a.started_at + make_interval(mins => t.duration_min) + interval '2 minutes' then
-    perform public.grade_attempt(a.id);   -- time ran out while away: submit what was saved
-    select * into a from public.attempts where id = a.id;
+  if a.status = 'in_progress' then
+    a := public.attempt_beat(a.id);
+    if a.elapsed_sec > t.duration_min * 60 + 120 then
+      perform public.grade_attempt(a.id);   -- the time ran out: submit what was saved
+      select * into a from public.attempts where id = a.id;
+    end if;
   end if;
   if a.status = 'submitted' then
     return json_build_object('attempt_id', a.id, 'status', 'submitted');
@@ -1055,8 +1121,10 @@ begin
   return json_build_object(
     'attempt_id', a.id, 'status', a.status, 'title', t.title, 'duration_min', t.duration_min,
     'marks_correct', t.marks_correct, 'marks_wrong', t.marks_wrong,
-    'started_at', a.started_at, 'server_now', now(), 'answers', a.answers, 'tab_switches', a.tab_switches,
-    'questions', (select json_agg(json_build_object('id', 'p' || o, 'type', e->>'type', 'q', e->'q', 'o', e->'o', 'f', e->'f', 'tp', e->>'tp')
+    'started_at', a.started_at, 'server_now', now(), 'remaining_sec', greatest(t.duration_min * 60 - a.elapsed_sec, 0),
+    'answers', a.answers, 'tab_switches', a.tab_switches,
+    'questions', (select json_agg(json_build_object('id', 'p' || o, 'type', e->>'type', 'q', e->'q', 'o', e->'o', 'f', e->'f', 'tp', e->>'tp',
+                                                    's', e->>'s', 'sec', e->>'sec', 'mc', e->'m'->'c', 'mw', e->'m'->'w', 'mp', e->'m'->'p')
                                   order by o) from jsonb_array_elements(t.questions) with ordinality as x(e, o)));
 end $$;
 
@@ -1069,13 +1137,14 @@ begin
   if a.id is null then raise exception 'Attempt not found'; end if;
   if a.status <> 'in_progress' then return json_build_object('status', a.status); end if;
   select * into t from public.tests where id = a.test_id;
-  if now() > a.started_at + make_interval(mins => t.duration_min) + interval '2 minutes' then
+  a := public.attempt_beat(a.id);   -- every save is also a heartbeat: the clock runs only while the page is open
+  if a.elapsed_sec > t.duration_min * 60 + 120 then
     return json_build_object('status', 'time_up');
   end if;
   if jsonb_typeof(p_answers) <> 'object' or length(p_answers::text) > 200000 then raise exception 'Answers are not valid'; end if;
   update public.attempts set answers = p_answers, tab_switches = greatest(tab_switches, coalesce(p_tab_switches, 0)), saved_at = now()
    where id = a.id;
-  return json_build_object('status', 'saved', 'server_now', now());
+  return json_build_object('status', 'saved', 'server_now', now(), 'remaining_sec', greatest(t.duration_min * 60 - a.elapsed_sec, 0));
 end $$;
 
 create or replace function public.submit_attempt(p_attempt uuid, p_answers jsonb, p_tab_switches integer) returns json
@@ -1086,9 +1155,10 @@ begin
   if a.id is null then raise exception 'Attempt not found'; end if;
   if a.status = 'submitted' then return json_build_object('attempt_id', a.id, 'status', 'submitted'); end if;
   select * into t from public.tests where id = a.test_id;
+  a := public.attempt_beat(a.id);
   -- answers sent after the time (plus 2 minutes) are ignored: the last autosave counts
   if p_answers is not null and jsonb_typeof(p_answers) = 'object' and length(p_answers::text) <= 200000
-     and now() <= a.started_at + make_interval(mins => t.duration_min) + interval '2 minutes' then
+     and a.elapsed_sec <= t.duration_min * 60 + 120 then
     update public.attempts set answers = p_answers, saved_at = now() where id = a.id;
   end if;
   update public.attempts set tab_switches = greatest(tab_switches, coalesce(p_tab_switches, 0)) where id = a.id;
@@ -1123,7 +1193,7 @@ begin
   end if;
   -- the student sees the correct answers only 3 hours after starting the test (stops sharing answer keys during a test)
   v_mine := a.user_id = me.id;
-  v_keys := not v_mine or now() >= a.started_at + interval '3 hours';
+  v_keys := not v_mine or t.audience = 'self' or now() >= a.started_at + interval '3 hours';   -- your own practice test shows its answers at once
   -- Free students see their school only; Premium students, teachers and Staff also see the comparison with all students
   v_full := a.user_id <> me.id or public.plan_of(me) in ('premium', 'staff');
   if a.status <> 'submitted' then raise exception 'This test has not been submitted yet'; end if;
@@ -1147,7 +1217,7 @@ begin
     'stats', case when v_full then (select json_build_object('average', round(avg(score), 2), 'top', max(score)) from public.attempts where test_id = t.id and status = 'submitted') end,
     'school_stats', (select json_build_object('average', round(avg(score), 2), 'top', max(score)) from public.attempts
                       where test_id = t.id and status = 'submitted' and lower(coalesce(school, '')) = lower(coalesce(a.school, ''))),
-    'items', (select json_agg(json_build_object('pos', it.pos, 'qid', case when not v_mine then it.qid end, 'type', it.qtype, 'response', it.response,
+    'items', (select json_agg(json_build_object('pos', it.pos, 'qid', it.qid, 'max', coalesce((q.e->'m'->>'c')::numeric, t.marks_correct), 'sec', q.e->>'sec', 'type', it.qtype, 'response', it.response,
                  'correct_answer', case when v_keys then it.correct_answer end, 'status', case when v_keys then it.status end, 'marks', case when v_keys then it.marks end, 'time_sec', it.time_sec,
                  'chapter', it.chapter, 'topic', it.topic, 'q', q.e->'q', 'o', q.e->'o', 'f', q.e->'f') order by it.pos)
                 from public.attempt_items it
@@ -1155,9 +1225,9 @@ begin
                where it.attempt_id = a.id),
     'topics', case when not v_keys then '[]'::json else (select coalesce(json_agg(tt order by tt.accuracy nulls first, tt.topic), '[]'::json) from (
                  select coalesce(it.topic, 'Other') as topic, it.chapter, count(*) as total,
-                        count(*) filter (where it.status = 'correct') as correct, count(*) filter (where it.status = 'wrong') as wrong,
+                        count(*) filter (where it.status in ('correct', 'partial')) as correct, count(*) filter (where it.status = 'wrong') as wrong,
                         count(*) filter (where it.status = 'skipped') as skipped, sum(it.marks) as marks,
-                        round(100.0 * count(*) filter (where it.status = 'correct') / nullif(count(*) filter (where it.status <> 'skipped'), 0), 1) as accuracy
+                        round(100.0 * count(*) filter (where it.status in ('correct', 'partial')) / nullif(count(*) filter (where it.status <> 'skipped'), 0), 1) as accuracy
                    from public.attempt_items it where it.attempt_id = a.id group by 1, 2) tt) end
   ) into res;
   return res;
@@ -2028,10 +2098,43 @@ create or replace function public.ping() returns integer language sql stable as 
 -- Makes a personal test (the questions are copied in, with their answers, like every test). Anyone may make a test for
 -- themselves ('self'). Premium teachers may also share it by link with other Premium teachers ('teachers_link').
 -- The admin may make a test for all teachers or for all students.
+drop function if exists public.create_personal_test(text, integer, numeric, numeric, jsonb, text, text);
+create table if not exists public.marking_schemes (
+  exam           text not null,
+  effective_year integer not null default 2027,
+  label          text,
+  duration_min   integer not null check (duration_min > 0),
+  n_questions    integer,
+  max_marks      numeric,
+  rules          jsonb not null,   -- { types: { MCQ: {c, w, p}, MSQ: {...}, Numerical: {...} }, sections: { B: {c, w} ... }, mix: { MCQ: 20, Numerical: 5 }, notes }
+  updated_at     timestamptz not null default now(),
+  primary key (exam, effective_year)
+);
+alter table public.marking_schemes enable row level security;
+revoke all on public.marking_schemes from anon, authenticated;
+-- c = marks for a correct answer, w = marks lost for a wrong one, p = partial marking. Change a row when an exam changes its scheme: add a NEW
+-- effective_year row (tests already taken keep the marks they were made with).
+insert into public.marking_schemes (exam, effective_year, label, duration_min, n_questions, max_marks, rules) values
+ ('JEE Main', 2027, 'JEE Main (Maths)', 75, 25, 100, '{"types":{"MCQ":{"c":4,"w":1},"MSQ":{"c":4,"w":1},"Numerical":{"c":4,"w":1}},"mix":{"MCQ":20,"Numerical":5}}'),
+ ('JEE Advanced', 2027, 'JEE Advanced (Maths, one paper)', 65, 18, 60, '{"types":{"MCQ":{"c":3,"w":1},"MSQ":{"c":4,"w":1,"p":true},"Numerical":{"c":4,"w":0}},"mix":{"MCQ":4,"MSQ":5,"Numerical":5},"notes":"Section 4 (two paragraph stems with two numerical questions each, +2) needs paragraph questions, which are not in the bank yet: a mock has 14 questions."}'),
+ ('KCET', 2027, 'KCET (Maths)', 80, 60, 60, '{"types":{"MCQ":{"c":1,"w":0}},"mix":{"MCQ":60}}'),
+ ('NDA', 2027, 'NDA Paper I (Maths)', 150, 120, 300, '{"types":{"MCQ":{"c":2.5,"w":0.83}},"mix":{"MCQ":120}}'),
+ ('IAT', 2027, 'IAT (Maths)', 50, 15, 60, '{"types":{"MCQ":{"c":4,"w":1}},"mix":{"MCQ":15}}'),
+ ('CUET', 2027, 'CUET (Maths)', 60, 50, 250, '{"types":{"MCQ":{"c":5,"w":1}},"mix":{"MCQ":50},"notes":"Slot length set to 60 minutes: change it here if the slot differs."}'),
+ ('CBSE 12', 2027, 'CBSE Class 12 Maths (Code 041)', 180, 38, 80, '{"types":{"MCQ":{"c":1,"w":0}},"sections":{"A":{"c":1,"w":0},"B":{"c":2,"w":0},"C":{"c":3,"w":0},"D":{"c":5,"w":0},"E":{"c":4,"w":0}},"mix":{"A":20,"B":5,"C":6,"D":4,"E":3},"notes":"Sections B to E use the 8-choice Expand Options answer."}')
+on conflict (exam, effective_year) do nothing;
+
+create or replace function public.marking_schemes() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('exam', m.exam, 'effective_year', m.effective_year, 'label', m.label, 'duration_min', m.duration_min,
+           'n_questions', m.n_questions, 'max_marks', m.max_marks, 'rules', m.rules) order by m.exam, m.effective_year desc), '[]'::json)
+  from public.marking_schemes m where auth.uid() is not null
+$$;
+
 create or replace function public.create_personal_test(p_title text, p_duration_min integer, p_marks_correct numeric, p_marks_wrong numeric,
-  p_questions jsonb, p_paper_key text, p_audience text default 'self') returns json
+  p_questions jsonb, p_paper_key text, p_audience text default 'self', p_exam text default null, p_year integer default null) returns json
 language plpgsql security definer set search_path = public as $$
-declare me public.profiles; t public.tests;
+declare me public.profiles; t public.tests; sc public.marking_schemes; qs jsonb := p_questions; dur integer := p_duration_min; mc numeric := p_marks_correct; mw numeric := p_marks_wrong;
 begin
   select * into me from public.profiles where id = auth.uid();
   if me.id is null or me.role is null then raise exception 'Please finish your profile first'; end if;
@@ -2041,8 +2144,19 @@ begin
   end if;
   if p_audience in ('all_teachers', 'all_students') and not public.admin_of(me) then raise exception 'Only the admin can make a test for everyone'; end if;
   if nullif(trim(p_title), '') is null then raise exception 'The test needs a title'; end if;
+  if p_questions is null or jsonb_typeof(p_questions) <> 'array' or jsonb_array_length(p_questions) not between 1 and 300 then raise exception 'A test needs 1 to 300 questions'; end if;
+  if p_exam is not null then
+    -- the official marking scheme of the exam (latest year unless one is named) is stamped on every question, so the marks cannot be changed from the browser
+    select * into sc from public.marking_schemes where exam = p_exam and (p_year is null or effective_year = p_year) order by effective_year desc limit 1;
+    if sc.exam is null then raise exception 'Unknown exam'; end if;
+    select coalesce(jsonb_agg(case when x.mm is null then x.e else x.e || jsonb_build_object('m', jsonb_build_object('c', (x.mm ->> 'c')::numeric, 'w', (x.mm ->> 'w')::numeric, 'p', coalesce((x.mm ->> 'p')::boolean, false))) end order by x.o), '[]'::jsonb)
+      into qs from (select e, o, coalesce(sc.rules -> 'sections' -> (e ->> 'sec'), sc.rules -> 'types' -> (e ->> 'type')) as mm from jsonb_array_elements(p_questions) with ordinality z(e, o)) x;
+    dur := coalesce(p_duration_min, sc.duration_min);
+    mc := coalesce((sc.rules -> 'types' -> 'MCQ' ->> 'c')::numeric, mc, 4); mw := coalesce((sc.rules -> 'types' -> 'MCQ' ->> 'w')::numeric, mw, 0);
+  end if;
+  if dur is null or dur < 1 or dur > 600 then raise exception 'Choose a time between 1 and 600 minutes'; end if;
   insert into public.tests (owner_id, title, duration_min, marks_correct, marks_wrong, questions, audience, personal, paper_key, is_active)
-  values (me.id, left(trim(p_title), 200), p_duration_min, p_marks_correct, coalesce(p_marks_wrong, 0), p_questions, p_audience, true,
+  values (me.id, left(trim(p_title), 200), dur, mc, coalesce(mw, 0), qs, p_audience, true,
           left(p_paper_key, 200), true)
   returning * into t;
   return json_build_object('id', t.id, 'code', t.code);
@@ -2050,11 +2164,12 @@ end $$;
 
 -- The Personal Tests & Results page: my own personal tests, tests I took by link, and tests the admin offers me.
 create or replace function public.personal_overview() returns json
-language plpgsql stable security definer set search_path = public as $$
+language plpgsql security definer set search_path = public as $$
 declare me public.profiles;
 begin
   select * into me from public.profiles where id = auth.uid();
   if me.id is null then raise exception 'Please sign in again'; end if;
+  perform public.sweep_attempts(me.id);
   return json_build_object(
     'mine', (select coalesce(json_agg(x order by x.created_at desc), '[]'::json) from (
         select t.id, t.code, t.title, t.audience, t.duration_min, t.n_questions, t.marks_correct, t.marks_wrong, t.paper_key, t.created_at, t.is_active,
@@ -2405,7 +2520,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text),
   public.list_available_tests(), public.test_info(text), public.start_attempt(text),
   public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer),
-  public.create_personal_test(text, integer, numeric, numeric, jsonb, text, text), public.personal_overview(), public.my_rank(uuid), public.link_ranking(uuid),
+  public.create_personal_test(text, integer, numeric, numeric, jsonb, text, text, text, integer), public.marking_schemes(), public.personal_overview(), public.my_rank(uuid), public.link_ranking(uuid),
   public.school_people(), public.request_role_change(text), public.my_role_request(), public.admin_role_requests(), public.admin_role_request(uuid, text),
   public.toggle_bookmark(text), public.dash_summary(), public.dash_tests(), public.my_bookmarks(),
   public.qb_comments_for(text), public.add_qb_comment(text, text), public.delete_qb_comment(uuid),

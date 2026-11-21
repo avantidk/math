@@ -1,5 +1,18 @@
 [
   {
+    "v": "975",
+    "date": "21 Nov 2026",
+    "items": [
+      "New Tests menu with five ways to start: Create Your Personal Test, Previous Year Actual Exam, Chapterwise Mock Test, Repeated & Sure-Shot Questions and Full-Length Mock. Chapterwise and Full-Length mocks mix PYQs and practice questions (Premium).",
+      "Official marking schemes are now stored by exam and year (2027): JEE Main, JEE Advanced (including partial marking in Section 2), KCET, NDA, IAT and CUET. Tests use the real duration and marks of the exam.",
+      "Question codes are hidden while you write a test and appear only in the review after you submit.",
+      "Download the question paper as a PDF during a test. After a test, Export lets you choose Questions only, Questions + Answer Key, or Questions + Answer Key + Full Explanations.",
+      "If the power or internet goes, the timer pauses by itself. Open the test again within 30 hours to carry on; after that it is submitted with your saved answers.",
+      "Board-paper written questions (CBSE Class 12, Sections B to E) have an Expand Options button with 8 final answers to choose from.",
+      "The Practice Tests & Results page now lists your tests and results; start new tests from Tests."
+    ]
+  },
+  {
     "v": "974",
     "date": "21 Nov 2026",
     "items": [
