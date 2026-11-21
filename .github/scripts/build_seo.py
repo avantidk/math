@@ -548,12 +548,12 @@ RK_CHART = {'jee-main': (1, 0, 2, 300, 'Raw marks (out of 300) and the approxima
             'iat': (0, 0, 1, 240, 'IAT score (out of 240) and the approximate general-category rank', 'AIR '),
             'cuet': (0, 1, 0, 200, 'Domain subject score (out of 200) and the percentile', '')}
 
-def safe_block(e, h2=True, hid=True):
+def safe_block(e, h2=True, hid=True, lead=True):
     key, name, sl = e[0], e[1], e[2]
     if not COMP or sl not in COMP_SEC: return ''
     sec = COMP['sections'][COMP_SEC[sl]]
     out = (f'<h2{" id=\"safe-scores\"" if hid else ""}>{E(name)}: safe scores and 10-year marks vs rank</h2>' if h2 else '')
-    out += gd_blocks(sec['blocks'])
+    out += gd_blocks(sec['blocks'] if lead or any('table' in b for b in sec['blocks']) else [])
     for i, sb in enumerate(sec['subs']):
         out += f'<div class="gd-sub"><h3>{E(sb["h"])}</h3>{gd_blocks(sb["blocks"])}'
         c = RK_CHART.get(sl)
@@ -565,50 +565,65 @@ def safe_block(e, h2=True, hid=True):
 
 ANA = 'resources/questions-analysis'
 
+# parts of the guide that say the same thing as another part of the page, and are therefore left out
+GUIDE_DROP = {'jee-main': ['Recent JEE Main Qualifying Cutoff Percentiles (Paper 1)'], 'iat': ['Safe Target Scores & Expected Rank Range (Out of 240 Marks)']}
+COMP_DROP_LEAD = {'jee-main'}   # the short opening paragraph of the safe-scores block repeats the pattern section
+
 def exam_page(e):
-    """/exams/<exam>/ : everything about the exam in one place: countdown at the top, dates, safe scores, pattern, fees, seats and colleges."""
+    """/exams/<exam>/ : everything about the exam in one place, in the order a student reads it:
+    countdown, overview, paper pattern, important dates, step-by-step timeline, safe scores, numbers, fees, seats, colleges."""
     key, name, sl, tag, about = e
     g = GUIDES.get(sl); s = STATS.get(key)
     title = f'{name}: Everything You Should Know | अंक-IT'
     intro = (g['intro'].split('. ', 1)[1] if '. ' in g['intro'] else g['intro']) if g else tag
     desc = f'{name}: exam date and countdown, pattern, fees, safe scores and cutoffs, seats and colleges, all in one place.' + (f' {intro}' if g else '')
-    secs = ''; toc = ''
-    if g:
-        for i, sec in enumerate(g['sections'], 1):
-            sid = f'sec{i}'
-            toc += f'<a href="#{sid}"><b>{i}</b>{E(sec["h"])}</a>'
-            subs = ''.join(f'<div class="gd-sub"><h3>{E(sb["h"])}</h3>{gd_blocks(sb["blocks"])}</div>' for sb in sec['subs'])
-            secs += (f'<section class="gd-sec" id="{sid}"><h2><span class="gd-ico">{svg(GD_ICONS[(i - 1) % len(GD_ICONS)], 22)}</span><span class="gd-t"><small>Section {i}</small>{E(sec["h"])}</span></h2>'
-                     f'{gd_blocks(sec["blocks"])}{subs}</section>')
     has_dates = sl not in ('aieee', 'iit-jee')
+    drop = set(GUIDE_DROP.get(sl, []))
+    def gsec(sec):
+        subs = ''.join(f'<div class="gd-sub"><h3>{E(sb["h"])}</h3>{gd_blocks(sb["blocks"])}</div>' for sb in sec['subs'] if sb['h'] not in drop)
+        return gd_blocks(sec['blocks']) + subs
+    items = []   # (title, body html)
+    if g:
+        secs = g['sections']
+        pi = next((i for i, x in enumerate(secs) if re.search(r'pattern|structure', x['h'], re.I)), min(1, len(secs) - 1))
+        tl = [x for x in secs if re.search(r'timeline', x['h'], re.I)]
+        head_secs = secs[:pi + 1]; rest = [x for x in secs[pi + 1:] if x not in tl]
+        items += [(x['h'], gsec(x)) for x in head_secs]
+        d = dates_block(e, cd=False) if has_dates else ''
+        if d and ('<table' in d or 'bulletin' in d): items.append((f'{name}: important dates', d.split('</h2>', 1)[1]))
+        items += [(x['h'], gsec(x)) for x in tl]
+        sb_html = safe_block(e, h2=False, lead=(sl not in COMP_DROP_LEAD))
+        if sb_html: items.append((f'Safe scores and 10-year marks vs rank', sb_html))
+        items += [(x['h'], gsec(x)) for x in rest]
+    else:
+        d = dates_block(e, cd=False) if has_dates else ''
+        if d and ('<table' in d or 'bulletin' in d): items.append((f'{name}: important dates', d.split('</h2>', 1)[1]))
+        sb_html = safe_block(e, h2=False)
+        if sb_html: items.append(('Safe scores and 10-year marks vs rank', sb_html))
+    toc = ''; secs_html = ''
+    for i, (h2, body) in enumerate(items, 1):
+        sid = f'sec{i}'
+        toc += f'<a href="#{sid}"><b>{i}</b>{E(h2)}</a>'
+        secs_html += (f'<section class="gd-sec" id="{sid}"><h2><span class="gd-ico">{svg(GD_ICONS[(i - 1) % len(GD_ICONS)], 22)}</span><span class="gd-t"><small>Section {i}</small>{E(h2)}</span></h2>{body}</section>')
     facts = ''
-    if key in FACTS:
-        facts = '<div class="pg-table pg-facts"><table><tbody>' + ''.join(f'<tr><th scope="row">{E(k)}</th><td>{E(v)}</td></tr>' for k, v in FACTS[key]) + '</tbody></table></div>'
-    elif g:
-        facts = gd_blocks(g['sections'][0]['blocks'])
+    if not g and key in FACTS:
+        facts = f'<h2 id="glance">{E(name)} at a glance</h2><div class="pg-table pg-facts"><table><tbody>' + ''.join(f'<tr><th scope="row">{E(k)}</th><td>{E(v)}</td></tr>' for k, v in FACTS[key]) + '</tbody></table></div>'
     if s:
         nyr = s['last'] - s['first'] + 1
         qline = (f'<div class="know"><div><b>{E(name)} math questions: {s["questions"]:,} in our bank</b><span>{s["first"]}&ndash;{s["last"]} ({nyr} years, {s["papers"]} papers). Chapter-wise and year-wise analysis, with levels.</span></div>'
                  f'<a class="know-btn" href="../../{ANA}/{sl}/">{BOOK}{E(name)}: Math PYQs, DPPs Analysis{ARROW}</a></div>')
     else:
         qline = '<div class="soon"><b>Math questions for this exam are coming.</b><span>Practise the Class 12 chapters from the dashboard until then.</span></div>' if sl == 'cuet' else ''
-    q_links = [('#glance', 'At a glance')] + ([('#dates', 'Date and countdown')] if has_dates else []) + ([('#safe-scores', 'Safe scores')] if sl in COMP_SEC else []) + ([('#guide', 'Pattern, fees, seats and colleges')] if g else []) + ([(f'../../{ANA}/{sl}/', 'Math PYQs analysis')] if s else [])
-    quick = '<nav class="qlinks" aria-label="On this page">' + ''.join(f'<a href="{h}">{E(t)}</a>' for h, t in q_links) + '</nav>'
     others = ''.join(f'<li><a href="../{x[2]}/">{exlogo(x, "../../", 32)}<span>{E(x[1])}: everything you should know</span></a></li>' for x in ALL_EXAMS if x[2] != sl and (x[2] in GUIDES))
     official = ('<p class="gd-off"><b>Official websites (the exam\'s information bulletin is published there):</b> ' + ' &middot; '.join(f'<a href="{u}" target="_blank" rel="noopener">{E(t)}</a>' for t, u in OFFICIAL[sl]) + '</p>') if sl in OFFICIAL else ''
     cd_top = f'<div id="dates">{countdown(e)}</div>' if has_dates else ''
-    dates = dates_block(e, cd=False) if has_dates else ''
+    lead = f'<p class="pg-lead">{E(about)}</p>' if g else f'<p class="pg-lead">{E(tag)}</p><p>{E(about)}</p>'
     main = f"""{cd_top}
-<p class="pg-lead">{E(tag)}</p>
-<p>{E(about)}</p>
-{quick}
-<h2 id="glance">{E(name)} at a glance</h2>
+{lead}
+{('<nav class="gd-toc" aria-label="On this page"><p class="gd-toc-h">On this page</p><div>' + toc + '</div></nav>') if toc else ''}
 {facts}
-<p class="pg-fine">Exam patterns change from year to year. Always check the official notification for the latest rules and dates.</p>
-{dates}
-{safe_block(e)}
-{('<h2 id="guide">' + E(name) + ': pattern, fees, seats and colleges</h2><nav class="gd-toc" aria-label="Sections of this guide"><p class="gd-toc-h">In this guide</p><div>' + toc + '</div></nav>' + secs) if g else ''}
-{official}{('<p class="pg-fine">The figures here are rounded or approximate and are compiled from the official notifications and public reports. They change from year to year, so always confirm the latest rules, dates and fees on the official website of the exam.</p>') if g else ''}
+{secs_html}
+{official}<p class="pg-fine">The figures here are rounded or approximate and are compiled from the official notifications and public reports. They change from year to year, so always confirm the latest rules, dates and fees on the official website of the exam.</p>
 {qline}
 {('<h2 class="gd-more-h">Other exams</h2><ul class="side-list gd-more">' + others + '</ul>') if others else ''}
 {cta(2, f"Practise {name} math questions chapter-wise with full solutions, build DPPs and open whole papers. Everything is inside after you sign in.", cur=f'exams/{sl}/', exam=e)}"""
