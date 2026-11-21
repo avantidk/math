@@ -266,11 +266,15 @@ function popPage(title, path, qbPanel) {
   const ready = e => { if (e.origin === location.origin && e.data && e.data.qbReady) { load.remove(); window.removeEventListener('message', ready); clearTimeout(slow); } };
   const slow = setTimeout(() => { if (!load.isConnected) return; load.textContent = ''; load.append(h('p', { text: 'This is taking longer than usual.' }), h('a', { class: 'btn', href: 'qbank#/qb', text: 'Open the Question Bank' })); }, 30000);
   if (qbPanel) window.addEventListener('message', ready); else frame.addEventListener('load', () => load.remove());
-  const close = () => { window.removeEventListener('message', ready); box.remove(); document.removeEventListener('keydown', key); document.body.classList.remove('dpop-on'); };
+  let closed = false;
+  const close = () => { if (closed) return; closed = true; window.removeEventListener('message', ready); window.removeEventListener('popstate', back); box.remove(); document.removeEventListener('keydown', key); document.body.classList.remove('dpop-on'); if (history.state && history.state.dpop) history.back(); };
+  const back = () => { if (!closed) { history.replaceState(null, ''); close(); } };   /* the phone's Back button closes the pop-up */
   const key = e => { if (e.key === 'Escape') close(); };
   const box = h('div', { class: 'dpop', id: 'dPop', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, onclick: e => { if (e.target === box) close(); } },
-    h('div', { class: 'dpop-in' }, h('div', { class: 'dpop-h' }, h('h2', { text: title }), h('button', { type: 'button', class: 'dpop-x', 'aria-label': 'Close', html: '&times;', onclick: close })), h('div', { class: 'dpop-b' }, load, frame)));
+    h('div', { class: 'dpop-in' }, h('div', { class: 'dpop-h' }, h('h2', { text: title }), h('button', { type: 'button', class: 'dpop-x', 'aria-label': 'Close', html: '<span>Close</span><b>&times;</b>', onclick: close })), h('div', { class: 'dpop-b' }, load, frame)),
+    h('button', { type: 'button', class: 'dpop-fab', 'aria-label': 'Close', html: '&times;', onclick: close }));
   document.body.append(box); document.body.classList.add('dpop-on'); document.addEventListener('keydown', key);
+  try { history.pushState({ dpop: 1 }, ''); window.addEventListener('popstate', back); } catch (x) { /* optional */ }
   box.querySelector('.dpop-x').focus();
 }
 /* ---------- special picks: a small carousel on the home page, each opens a question list ---------- */

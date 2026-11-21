@@ -473,3 +473,13 @@ body.dpop-on { overflow: hidden; }
 .pp-exams .pp-chip[data-n]::after { content: attr(data-n); margin-left: 8px; font: 700 11px var(--font-body); background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 99px; }
 .pp-exams .pp-chip[data-n][aria-pressed="true"]::after { background: rgba(255,255,255,.22); color: #fff; }
 .cp-fixed { display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+/* v1001: the pop-up always has a visible way out, also on phones */
+.dpop { z-index: 2000; height: 100dvh; }
+.dpop-x { width: auto; min-width: 44px; height: 42px; padding: 0 12px 0 16px; border-radius: 99px; display: inline-flex; align-items: center; gap: 8px; font: 700 14px var(--font-body); } .dpop-x b { font-size: 24px; line-height: 1; padding-bottom: 2px; font-weight: 400; }
+.dpop-fab { display: none; }
+@media (max-width: 640px) {
+  .dpop { padding: 0; align-items: stretch; } .dpop-in { height: 100dvh; max-height: none; width: 100%; border-radius: 0; }
+  .dpop-h { position: sticky; top: 0; z-index: 3; padding: max(10px, env(safe-area-inset-top)) 12px 10px 16px; background: var(--panel); }
+  .dpop-h h2 { font-size: 16px; }
+  .dpop-fab { display: grid; place-items: center; position: fixed; right: 16px; bottom: max(18px, env(safe-area-inset-bottom)); width: 54px; height: 54px; border-radius: 50%; border: 0; background: #0c1a3d; color: #fff; font-size: 30px; line-height: 1; padding: 0 0 4px; box-shadow: 0 8px 24px rgba(0,0,0,.4); z-index: 4; cursor: pointer; }
+}
