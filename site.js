@@ -76,7 +76,7 @@
         if (u.hash || u.search) return;
         var base = u.pathname.replace(/index\.html$/, '');
         if (base === '/' ) return;
-        if (path === base || path.indexOf(base) === 0 || (/\/exams\//.test(path) && /\/exams\/safe-scores\/$/.test(base) && /\/exams\/(safe-scores|important-exams)\//.test(path))) mark(a);
+        if (path === base || path.indexOf(base) === 0 || (/\/resources\//.test(path) && /\/resources\//.test(base))) mark(a);
       });
     })();
     /* phone menu: closes when you click anywhere else, press Escape, or choose a link */

@@ -1,5 +1,15 @@
 [
   {
+    "v": "988",
+    "date": "21 Nov 2026",
+    "items": [
+      "Exams: each exam page is now \"<Exam>: Everything you should know\". The countdown is at the very top, followed by the important dates, safe scores and cutoffs, and the full exam guide (pattern, fees, seats, colleges). The separate guide, safe-scores and dates pages are gone; old links still work.",
+      "JEE Main 2027 Session 1 is on 21 January 2027, and the JEE Main countdown now counts down to it.",
+      "Resources now has just two pages: Questions Analysis (\"<Exam>: Math PYQs, DPPs Analysis\", with the chapter-wise and year-wise analysis for every exam) and Important exams after Class 12.",
+      "The Exams menu no longer lists Safe scores and Important exams. The countdown note is easier to read, and the first column of the cutoff tables is narrower on phones."
+    ]
+  },
+  {
     "v": "987",
     "date": "21 Nov 2026",
     "items": [
