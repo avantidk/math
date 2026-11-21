@@ -401,15 +401,42 @@ async function viewHandouts() {
     h('div', { class: 'ho-bar' }, seg, search, count), grid);
 }
 /* ---------- Step 3: chapters ---------- */
+function levelSplit(rows) {
+  const n = Math.max(1, rows.length), c = L => rows.filter(r => r.d === L).length;
+  return h('span', { class: 'cc-split', role: 'img', 'aria-label': 'Easy, moderate and tough share' }, ['L1', 'L2', 'L3'].map((L, i) => h('i', { class: 'l' + (i + 1), style: 'width:' + (100 * c(L) / n).toFixed(1) + '%', title: LEVELS[i][1] + ': ' + c(L) })));
+}
+/* the chapters of an exam (PYQs) or of the practice questions: a banner, a few controls, then one card per chapter */
 function chapterCards(mode, slug) {
-  const withRows = D.chapters.map(c => ({ c, rows: scope(mode, slug, c.chapter_code) })).filter(x => x.rows.length);
-  return h('div', { class: 'd-grid d-grid-ch' }, withRows.map(({ c, rows }) => {
-    const l5 = last5(rows);
-    return tile({ cls: 'd-ch', go: 'd/ch/' + mode + '/' + (slug || '-') + '/' + c.chapter_code + '/overview',
-      extra: h('div', { class: 'd-ch-in' }, h('span', { class: 'd-code', text: c.chapter_code }), h('b', { text: c.chapter }),
-        mode === 'pyq' ? h('small', { class: 'd-l5', text: (D.maxYear - 4) + '–' + D.maxYear + ': ' + num(l5.length) + ' Qs' }) : null,
-        h('small', { text: num(rows.length) + (mode === 'pyq' ? ' PYQs in all' : ' questions') }), bar(solvedOf(rows), rows.length)) });
-  }));
+  const e = EX[slug], all = D.chapters.map(c => ({ c, rows: scope(mode, slug, c.chapter_code) })).filter(x => x.rows.length);
+  const st = { cls: '', q: '', sort: 'syl' };
+  const grid = h('div', { class: 'cc-grid' }), none = h('p', { class: 'd-fine', hidden: true, text: 'No chapter matches.' });
+  const draw = () => {
+    let L = all.filter(x => (!st.cls || x.c.chapter_code.startsWith(st.cls)) && (!st.q || (x.c.chapter + ' ' + x.c.chapter_code).toLowerCase().includes(st.q)));
+    if (st.sort === 'most') L = L.slice().sort((a, b) => b.rows.length - a.rows.length); else if (st.sort === 'l5') L = L.slice().sort((a, b) => last5(b.rows).length - last5(a.rows).length); else if (st.sort === 'todo') L = L.slice().sort((a, b) => (solvedOf(a.rows) / a.rows.length) - (solvedOf(b.rows) / b.rows.length));
+    grid.textContent = ''; none.hidden = !!L.length;
+    L.forEach(({ c, rows }) => { const l5 = last5(rows), done = solvedOf(rows);
+      grid.append(h('a', { class: 'cc-card', href: '#d/ch/' + mode + '/' + (slug || '-') + '/' + c.chapter_code + '/overview' },
+        h('div', { class: 'cc-top' }, h('span', { class: 'd-code', text: c.chapter_code }), h('span', { class: 'cc-go', html: IC.chev })),
+        h('b', { class: 'cc-t', text: c.chapter }),
+        h('div', { class: 'cc-n' }, h('strong', { text: num(rows.length) }), h('span', { text: mode === 'pyq' ? 'previous year questions' : 'practice questions' })),
+        levelSplit(rows),
+        h('div', { class: 'cc-meta' }, mode === 'pyq' ? h('span', { text: (D.maxYear - 4) + '–' + D.maxYear + ': ' + num(l5.length) + ' Qs' }) : h('span', { text: '' }), h('span', { text: done ? done + ' attempted' : 'Not started' })),
+        bar(done, rows.length))); });
+  };
+  const seg = h('div', { class: 'cc-seg', role: 'group', 'aria-label': 'Class' }, [['', 'All'], ['11', 'Class 11'], ['12', 'Class 12']].map(([k, t]) => h('button', { type: 'button', 'aria-pressed': String(st.cls === k), text: t, onclick: ev => { st.cls = k; seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === ev.currentTarget))); draw(); } })));
+  const search = h('input', { type: 'search', class: 'd-sel cc-search', placeholder: 'Search a chapter', 'aria-label': 'Search a chapter', oninput: ev => { st.q = ev.target.value.trim().toLowerCase(); draw(); } });
+  const sort = h('select', { class: 'dl-sort cc-sort', 'aria-label': 'Order' }, [['syl', 'Syllabus order'], ['most', 'Most questions'], mode === 'pyq' ? ['l5', 'Most asked in the last 5 years'] : null, ['todo', 'Least attempted first']].filter(Boolean).map(([k, t]) => h('option', { value: k, text: t })));
+  sort.addEventListener('change', () => { st.sort = sort.value; draw(); });
+  const rowsAll = all.flatMap(x => x.rows), ys = rowsAll.map(r => r.y).filter(Boolean), fact = (n, l) => h('div', { class: 'ov-fact' }, h('b', { text: n }), h('span', { text: l }));
+  const srcs = {}; if (mode !== 'pyq') rowsAll.forEach(r => { srcs[r.bk || 'Other'] = (srcs[r.bk || 'Other'] || 0) + 1; });
+  const hero = h('section', { class: 'ov-hero' },
+    h('div', { class: 'ov-hero-t' },
+      h('div', { class: 'ov-chip' }, mode === 'pyq' && e ? h('span', { class: 'ov-ex' }, logo(e), e.name + ' · Previous year questions') : h('span', { class: 'ov-ex', text: 'Practice questions · Premium' })),
+      h('h2', { text: mode === 'pyq' ? (e ? e.name : 'PYQs') + ': chapter by chapter' : 'Practice questions: chapter by chapter' }),
+      h('p', { text: mode === 'pyq' ? 'Pick a chapter to see its previous year questions by topic, level and year. The last five years show how often a chapter is asked right now.' : 'Questions from books and sheets, chapter by chapter, with levels and topics.' })),
+    h('div', { class: 'ov-facts' }, fact(num(rowsAll.length), 'questions'), fact(String(all.length), 'chapters'), mode === 'pyq' && ys.length ? fact(Math.min(...ys) + '–' + Math.max(...ys), 'years covered') : fact(String(Object.keys(srcs).length), 'sources'), mode === 'pyq' ? fact(num(last5(rowsAll).length), 'in the last 5 years') : fact(num(rowsAll.filter(r => D.sum.results[r.id]).length), 'attempted')));
+  draw();
+  return [hero, h('div', { class: 'cc-bar' }, seg, search, h('label', { class: 'dl-sortw cc-sortw' }, h('span', { html: svg('<path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/>') }), sort)), grid, none];
 }
 function viewChapters(mode, slug) {
   const e = EX[slug];
@@ -417,7 +444,7 @@ function viewChapters(mode, slug) {
   if (mode === 'np' && locked()) { side({ back: '', title: 'Non-PYQs', items: homeItems('np') }); main(h('section', { class: 'd-lockcard' }, h('span', { html: IC.lock }), h('h2', { text: 'Non-PYQs are part of Premium' }), h('p', { text: 'Book and DPP practice questions open with a Premium plan. PYQs stay free.' }), h('a', { class: 'btn pri', href: '#/membership', text: '★ Get Premium' }))); return; }
   side(mode === 'pyq' ? { back: 'd/pyq', title: e.name, sub: '2027 · choose a chapter', items: [{ label: 'All chapters', icon: IC.grid, active: true, hash: 'd/pyq/' + slug }, { label: 'Other exams', icon: IC.clock, hash: 'd/pyq' }, { label: 'Bookmarked Qs', icon: IC.mark, hash: 'd/bookmarks' }, { label: 'Test History', icon: IC.test, hash: 'd/history' }] }
     : { back: '', title: 'Non-PYQs', sub: 'Choose a chapter', items: homeItems('np') });
-  main(h('div', { class: 'd-head' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name), h('h2', { text: 'Select a chapter' }), h('p', { text: mode === 'pyq' ? 'The last five years show how often each chapter is asked right now.' : 'Practice questions from books and sheets, chapter by chapter.' })), chapterCards(mode, slug));
+  main(h('div', { class: 'd-head d-head-sr' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name)), chapterCards(mode, slug));
 }
 
 /* ---------- Step 4: chapter overview and its sections ---------- */
@@ -571,7 +598,20 @@ function testLauncher(rows, c, mode, e) {
 function viewTopics(head, rows, mode, c, slug) {
   const by = new Map(); rows.forEach(r => { const k = r.tc || r.tp; if (!by.has(k)) by.set(k, { name: r.tp || 'Other', rows: [] }); by.get(k).rows.push(r); });
   const order = (D.topics[c.chapter_code] || []).map(t => t.topic_code), list = [...by.entries()].sort((a, b) => { const ia = order.indexOf(a[0]), ib = order.indexOf(b[0]); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
-  main(head, h('div', { class: 'd-grid d-grid-topic' }, list.map(([k, t]) => tile({ cls: 'd-topic', title: t.name, sub: num(t.rows.length) + ' Qs · ' + solvedOf(t.rows) + ' attempted', go: 'd/ch/' + mode + '/' + (slug || '-') + '/' + c.chapter_code + '/t/' + encodeURIComponent(k), extra: bar(solvedOf(t.rows), t.rows.length) }))));
+  const e = EX[slug], base = 'd/ch/' + mode + '/' + (slug || '-') + '/' + c.chapter_code + '/', fact = (n, l) => h('div', { class: 'ov-fact' }, h('b', { text: n }), h('span', { text: l }));
+  const hero = h('section', { class: 'ov-hero tp-hero' }, h('div', { class: 'ov-hero-t' },
+      h('div', { class: 'ov-chip' }, h('span', { class: 'ov-code', text: c.chapter_code }), mode === 'pyq' && e ? h('span', { class: 'ov-ex' }, logo(e), e.name) : h('span', { class: 'ov-ex', text: 'Practice questions' })),
+      h('h2', { text: 'Topic-wise questions' }), h('p', { text: c.chapter + ': pick a topic and practise only its questions.' })),
+    h('div', { class: 'ov-facts' }, fact(String(list.length), 'topics'), fact(num(rows.length), 'questions')));
+  const grid = h('div', { class: 'cc-grid tp-grid' }), search = h('input', { type: 'search', class: 'd-sel cc-search', placeholder: 'Search a topic', 'aria-label': 'Search a topic' });
+  const draw = () => { const q = search.value.trim().toLowerCase(); grid.textContent = '';
+    list.filter(([k, t]) => !q || t.name.toLowerCase().includes(q)).forEach(([k, t], i) => { const done = solvedOf(t.rows);
+      grid.append(h('a', { class: 'cc-card', href: '#' + base + 't/' + encodeURIComponent(k) },
+        h('div', { class: 'cc-top' }, h('span', { class: 'tp-no', text: String(i + 1) }), h('span', { class: 'cc-go', html: IC.chev })),
+        h('b', { class: 'cc-t', text: t.name }), h('div', { class: 'cc-n' }, h('strong', { text: num(t.rows.length) }), h('span', { text: 'questions' })), levelSplit(t.rows),
+        h('div', { class: 'cc-meta' }, h('span', { text: done + ' attempted' }), h('span', { text: Math.round(100 * done / Math.max(1, t.rows.length)) + '%' })), bar(done, t.rows.length))); }); };
+  search.addEventListener('input', draw); draw();
+  main(h('div', { class: 'd-head d-head-sr' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c.chapter_code, 'Topic-wise')), hero, h('div', { class: 'cc-bar' }, search), grid);
 }
 
 /* ---------- bookmarks ---------- */

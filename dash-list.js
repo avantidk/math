@@ -23,7 +23,7 @@ function rich(t) {
     try { out += K ? K.renderToString(tex, { displayMode: m[2] != null, throwOnError: false }) : esc(m[0]); } catch (e) { out += esc(m[0]); }
     last = re.lastIndex;
   }
-  return out + plainTxt(s.slice(last));
+  return (out + plainTxt(s.slice(last))).replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>');   /* **bold** in the question text */
 }
 const srcLine = x => {
   if (x.source && x.source !== 'PYQ') return (x.paper ? String(x.paper) : (x.book || x.publisher || 'Practice')) + (x.qno ? ' · Q' + x.qno : '');
@@ -243,10 +243,10 @@ function render(env, o) {
       h('div', { class: 'dl-filters dl-oneline' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, levelMenu, typeMenu, statusMenu, h('label', { class: 'dl-sortw dl-sort-r' }, h('span', { html: ICON.sort }), sortSel)),
       h('div', { class: 'dl-bar' }, count), ul, pager);
   } else wrap.append(
-    h('div', { class: 'dl-top' }, h('div', { class: 'dl-ttl' }, h('h2', { text: o.title }), o.sub ? h('small', { text: o.sub }) : '')),
+    h('section', { class: 'lh' },
+      h('div', { class: 'lh-t' }, h('div', { class: 'lh-ttl' }, h('h2', { text: o.title }), o.sub ? h('p', { text: o.sub }) : ''), o.startTest ? h('button', { type: 'button', class: 'btn lh-go', onclick: async e => { const b = e.currentTarget; b.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (x) { env.toast(x.message || 'Could not start'); } b.disabled = false; } }, h('span', { html: env.IC.bolt }), (o.testLabel || 'Take test')) : ''),
+      h('div', { class: 'lh-st' }, [[String(pool.length), 'questions'], [solved + ' / ' + pool.length, 'attempted'], [String(right), 'correct'], [solved ? env.pct(right, solved) + '%' : '—', 'accuracy']].map(([n, l]) => h('div', { class: 'lh-s' }, h('b', { text: n }), h('span', { text: l }))))),
     exportPanel(),
-    h('div', { class: 'd-stats dl-stats' }, env.stat(env.IC.all, solved + '/' + pool.length, 'Qs attempted'), env.stat(env.IC.target, right + '/' + pool.length, 'Correct Qs'), env.stat(env.IC.up, solved ? env.pct(right, solved) + '%' : '—', 'Accuracy')),
-    h('div', { class: 'dl-acts2 dl-acts1' }, testBtn),
     h('div', { class: 'dl-filters' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, statusMenu, levelMenu, types.length ? multi('Type', types, F.types, null, v => pool.filter(r => typeOf(r) === v).length) : null),
     h('div', { class: 'dl-bar' }, count, h('label', { class: 'dl-sortw' }, h('span', { html: ICON.sort }), sortSel)),
     ul, pager);

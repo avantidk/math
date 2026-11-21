@@ -1,5 +1,14 @@
 [
   {
+    "v": "1008",
+    "date": "21 Nov 2026",
+    "items": [
+      "Fixed ** showing instead of bold text in questions.",
+      "New design for the chapter list of an exam (PYQs) and of the practice questions (Non-PYQs): a banner with the facts, a Class 11 / Class 12 switch, search and sort, and a card for every chapter with its question count, easy / moderate / tough split and your progress.",
+      "New design for the All questions list (a banner with the chapter, your numbers and the Take test button) and for Topic-wise questions (topic cards with search, level split and progress)."
+    ]
+  },
+  {
     "v": "1007",
     "date": "21 Nov 2026",
     "items": [
