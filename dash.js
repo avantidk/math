@@ -179,43 +179,64 @@ function viewDpp() {
       h('span', { class: 'dpp-n', text: none ? 'Coming soon' : (sheets ? sheets + ' sheets · ' : '') + num(n) + ' questions' }),
       free ? h('span', { class: 'dpp-lock', html: lockIc + ' Premium' }) : h('span', { class: 'dpp-go', text: none ? '' : 'Open questions ›' }));
   });
-  cards.push(h('a', { class: 'dpp-card dpp-mix', href: free ? '#/membership' : '#d/dpp/mix', style: '--tone:#1f3f95' }, h('span', { class: 'dpp-mark', text: 'MIX' }), h('b', { text: 'Mixed Practice' }), h('small', { text: 'Tick the sources you want and practise them together, with filters for chapter, exercise, level and type' }), h('span', { class: 'dpp-go', text: 'Open Mixed Practice ›' })));
-  main(h('div', { class: 'dpp-head' }, h('h2', { text: 'DPPs' }), h('p', { text: 'Pick a source, then the exercise, and practise its questions.' })), h('div', { class: 'dpp-grid' }, cards));
+  main(h('div', { class: 'dpp-head dpp-head-r' }, h('div', {}, h('h2', { text: 'DPPs' }), h('p', { text: 'Pick a source, then the chapter and the exercise, and practise its questions.' })), h('a', { class: 'btn pri dpp-maker-btn', href: free ? '#/membership' : '#d/dpp/maker', html: svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>').replace('width="20" height="20"', 'width="18" height="18"') + '<span>Own DPP Maker</span>' })), h('div', { class: 'dpp-grid' }, cards));
 }
-/* a source (BB Ex, Ln DY, ...): first its exercises / sheets, grouped by chapter */
-function viewDppExercises(k) {
-  const src = SRC[k];
-  side({ back: 'd/dpp', title: 'DPPs', sub: 'Choose a source', items: SOURCES.map(x => ({ label: x.name, icon: IC.list, badge: String(dppCount(x.name)), hash: 'd/dpp/' + x.k, active: x.k === k })) });
-  const pool = D.rows.filter(r => !r.P && r.bk === src.name), groups = new Map();
-  pool.forEach(r => { const g = groups.get(r.ch) || groups.set(r.ch, new Map()).get(r.ch), key = r.ch + '~' + (r.shl || ''), o = g.get(key) || g.set(key, { key, t: r.shl || 'Questions', n: r.shn || 0, c: 0 }).get(key); o.c++; });
-  const chs = [...groups.keys()].map(c => D.chByCode[c]).filter(Boolean).sort((a, b) => a.order - b.order);
-  const all = h('a', { class: 'dpp-ex dpp-ex-all', href: '#d/dpp/' + k + '/all' }, h('b', { text: 'All questions' }), h('small', { text: num(pool.length) + ' questions · every chapter' }));
-  main(h('div', { class: 'd-head' }, crumb('DPPs', src.name), h('h2', { text: src.name }), h('p', { text: 'Pick an exercise or sheet to see its questions.' })), all,
-    chs.map(c => h('section', { class: 'dpp-chap' }, h('h3', { class: 'd-sec' }, h('span', { class: 'd-code', text: c.chapter_code }), ' ' + c.chapter),
-      h('div', { class: 'dpp-exgrid' }, [...groups.get(c.chapter_code).values()].sort((a, b) => a.n - b.n || a.t.localeCompare(b.t)).map(o =>
-        h('a', { class: 'dpp-ex', href: '#d/dpp/' + k + '/' + encodeURIComponent(o.key) }, h('b', { text: o.t }), h('small', { text: num(o.c) + ' Qs' })))))));
+/* A source (BB Ex, Ln DY, ...) is drilled down in the left menu: source -> chapters -> exercises -> questions */
+const srcRows = src => D.rows.filter(r => !r.P && r.bk === src.name);
+const chaptersOf = rows => [...new Set(rows.map(r => r.ch))].map(c => D.chByCode[c]).filter(Boolean).sort((a, b) => a.order - b.order);
+function exercisesOf(rows) {
+  const m = new Map(); rows.forEach(r => { const t = r.shl || 'Questions', o = m.get(t) || m.set(t, { t, n: r.shn || 0, c: 0 }).get(t); o.c++; });
+  return [...m.values()].sort((a, b) => a.n - b.n || a.t.localeCompare(b.t));
 }
-/* one source (BB Ex, Ln DY, ...) or Mixed Practice: the sources are the left menu, the filters are one line on top */
-function viewDppSrc(k, exKey) {
+function viewDppSrc(k, ch, ex) {
   if (locked()) return dppLocked();
-  const mix = k === 'mix', src = SRC[k]; if (!mix && !src) return go('d/dpp');
-  if (!mix && !exKey) return viewDppExercises(k);
-  const names = mix ? [...MIXSEL] : [src.name];
-  const items = SOURCES.map(x => mix
-    ? { label: x.name, icon: MIXSEL.has(x.name) ? svg('<rect x="4" y="4" width="16" height="16" rx="3" fill="currentColor" opacity=".18"/><path d="m8 12 3 3 5-6"/>') : svg('<rect x="4" y="4" width="16" height="16" rx="3"/>'), badge: String(dppCount(x.name)), active: MIXSEL.has(x.name), href: '#', onclick: () => { if (MIXSEL.has(x.name)) MIXSEL.delete(x.name); else MIXSEL.add(x.name); viewDppSrc('mix'); } }
-    : { label: x.name, icon: IC.list, badge: String(dppCount(x.name)), hash: 'd/dpp/' + x.k, active: x.k === k });
-  side({ back: mix ? 'd/dpp' : 'd/dpp/' + k, title: mix ? 'Mixed Practice' : 'DPPs', sub: mix ? 'Tick the sources to mix' : 'Choose a source', items });
-  const sheetKey = r => r.ch + '~' + (r.shl || '');
-  const pool = D.rows.filter(r => !r.P && names.includes(r.bk) && (mix || exKey === 'all' || sheetKey(r) === exKey));
-  const chs = [...new Set(pool.map(r => r.ch))].map(c => D.chByCode[c]).filter(Boolean).sort((a, b) => a.order - b.order);
-  const shs = new Map(); pool.forEach(r => { if (r.shl) shs.set(r.bk + '|' + r.shl, { t: (mix ? r.bk + ' ' : '') + r.shl, n: r.shn, b: r.bk }); });
-  const exList = [...shs.entries()].sort((a, b) => a[1].b.localeCompare(b[1].b) || a[1].n - b[1].n).map(([key, v]) => [key, v.t]);
-  const one = !mix && exKey !== 'all', first = pool[0];
-  const title = mix ? 'Mixed Practice' : one && first ? src.name + ' · ' + first.ch + (first.shl ? ' · ' + first.shl : '') : src.name, head = h('div', { class: 'd-head' }, crumb('DPPs', mix ? title : src.name, one ? (first ? first.ch + (first.shl ? ' · ' + first.shl : '') : '') : 'All questions'));
-  window.DashList.render(listEnv(), { rows: pool, title, head, compact: true, seqOrder: true, testLabel: 'Take test',
-    filters: one ? [] : [{ key: 'ch', label: 'Chapter', values: chs.map(c => [c.chapter_code, c.chapter_code + ' ' + c.chapter]), get: r => r.ch }].concat(exList.length ? [{ key: 'ex', label: 'Exercise', values: exList, get: r => r.bk + '|' + r.shl }] : []),
-    emptyText: mix && !names.length ? 'Tick at least one source on the left.' : title + ' questions are coming soon.',
-    startTest: list => launchTestFrom(list, { chapter: title + ' DPP', chapter_code: 'dpp' }, 'np', null, 20, 'DPP test') });
+  const src = SRC[k]; if (!src) return go('d/dpp');
+  const rows = srcRows(src), base = 'd/dpp/' + k;
+  if (!ch) {   /* level 1: the chapters of the source */
+    const chs = chaptersOf(rows);
+    side({ back: 'd/dpp', title: src.name, sub: 'Choose a chapter', items: [{ label: 'All questions', icon: IC.all, hash: base + '/all', badge: String(rows.length) }].concat(chs.map(c => ({ label: c.chapter_code + ' · ' + c.chapter, icon: IC.list, hash: base + '/' + c.chapter_code, badge: String(rows.filter(r => r.ch === c.chapter_code).length) }))) });
+    main(h('div', { class: 'd-head' }, crumb('DPPs', src.name), h('h2', { text: src.name })),
+      h('div', { class: 'dpp-chgrid' }, chs.map(c => { const cr = rows.filter(r => r.ch === c.chapter_code), exs = exercisesOf(cr).length;
+        return h('a', { class: 'dpp-chc', href: '#' + base + '/' + c.chapter_code, style: '--tone:' + src.tone }, h('span', { class: 'd-code', text: c.chapter_code }), h('b', { text: c.chapter }), h('small', { text: num(cr.length) + ' Qs' + (exs > 1 || cr[0].shl ? ' · ' + exs + ' exercise' + (exs === 1 ? '' : 's') : '') })); })));
+    return;
+  }
+  if (ch === 'all') {   /* every question of the source, with chapter and exercise filters */
+    side({ back: base, title: src.name, sub: 'All questions', items: [{ label: 'All questions', icon: IC.all, hash: base + '/all', active: true, badge: String(rows.length) }, { label: 'Chapters', icon: IC.list, hash: base }] });
+    const chs = chaptersOf(rows), shs = new Map(); rows.forEach(r => { if (r.shl) shs.set(r.shl, r.shn); });
+    window.DashList.render(listEnv(), { rows, title: src.name, head: h('div', { class: 'd-head' }, crumb('DPPs', src.name, 'All questions')), compact: true, seqOrder: true, testLabel: 'Take test',
+      filters: [{ key: 'ch', label: 'Chapter', values: chs.map(c => [c.chapter_code, c.chapter_code + ' ' + c.chapter]), get: r => r.ch }].concat(shs.size ? [{ key: 'ex', label: 'Exercise', values: [...shs.entries()].sort((a, b) => a[1] - b[1]).map(([t]) => [t, t]), get: r => r.shl }] : []),
+      emptyText: src.name + ' questions are coming soon.', startTest: list => launchTestFrom(list, { chapter: src.name + ' DPP', chapter_code: 'dpp' }, 'np', null, 20, 'DPP test') });
+    return;
+  }
+  const c = D.chByCode[ch], crow = rows.filter(r => r.ch === ch); if (!c || !crow.length) return go(base);
+  const exs = exercisesOf(crow);
+  const items = [{ label: 'All exercises', icon: IC.all, hash: base + '/' + ch + '/all', active: ex === 'all', badge: String(crow.length) }].concat(exs.map(o => ({ label: o.t, icon: IC.list, hash: base + '/' + ch + '/' + encodeURIComponent(o.t), active: ex === o.t, badge: String(o.c) })));
+  side({ back: base, title: c.chapter, sub: src.name + ' · choose an exercise', items });
+  if (!ex) {   /* level 2: the exercises of the chapter */
+    main(h('div', { class: 'd-head' }, crumb('DPPs', src.name, c.chapter), h('h2', { text: c.chapter })),
+      h('div', { class: 'dpp-exgrid dpp-exgrid-l' }, [h('a', { class: 'dpp-ex dpp-ex-all', href: '#' + base + '/' + ch + '/all' }, h('b', { text: 'All exercises' }), h('small', { text: num(crow.length) + ' Qs' }))].concat(exs.map(o => h('a', { class: 'dpp-ex', href: '#' + base + '/' + ch + '/' + encodeURIComponent(o.t) }, h('b', { text: o.t }), h('small', { text: num(o.c) + ' Qs' }))))));
+    return;
+  }
+  const pool = ex === 'all' ? crow : crow.filter(r => (r.shl || 'Questions') === ex), title = src.name + ' · ' + c.chapter_code + (ex === 'all' ? '' : ' · ' + ex);
+  window.DashList.render(listEnv(), { rows: pool, title, head: h('div', { class: 'd-head' }, crumb('DPPs', src.name, c.chapter, ex === 'all' ? 'All exercises' : ex)), compact: true, seqOrder: true, testLabel: 'Take test', filters: [],
+    emptyText: title + ' questions are coming soon.', startTest: list => launchTestFrom(list, { chapter: title + ' DPP', chapter_code: 'dpp' }, 'np', null, 20, 'DPP test') });
+}
+
+/* ---------- Own DPP Maker: the DPP builder (chapters, subtopics, sources, toughness, preview, downloads), inside the dashboard ---------- */
+async function viewDppMaker() {
+  if (locked()) return dppLocked();
+  side({ back: 'd/dpp', title: 'Own DPP Maker', sub: 'Build a sheet of your own', items: homeItems('dpp') });
+  const host = h('div', { class: 'dmk' }), tok = NAV;
+  main(h('div', { class: 'd-head' }, crumb('DPPs', 'Own DPP Maker'), h('h2', { text: 'Own DPP Maker' }), h('p', { text: 'Choose chapters, subtopics and sources on the left. Your sheet is made on the right: download it as PDF, Word or PowerPoint, print it or share it.' })), loadingBox('Loading the question bank…'));
+  try {
+    const t = await realTE(); if (tok !== NAV) return;
+    await t.mountMaker(host); if (tok !== NAV) return;
+    const P = window.AvantiPortal;
+    const ic = { docx: P.icons.docx, pdf: P.icons.pdf, pptx: P.icons.pptx };
+    host.querySelectorAll('.ibtn[data-act="lexp"]').forEach(b => { if (ic[b.dataset.k]) b.innerHTML = ic[b.dataset.k]; });
+    const ld = MAIN.querySelector('.pt-state'); if (ld) ld.replaceWith(host); else MAIN.append(host);
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 80);
+  } catch (e) { if (tok === NAV) MAIN.append(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'The maker did not load' }), h('p', { text: (e && e.message) || 'Check your connection and try again.' }), h('button', { type: 'button', class: 'btn', text: 'Try again', onclick: () => route() }))); }
 }
 
 /* ---------- Step 1: source ---------- */
@@ -566,7 +587,7 @@ async function route() {
   if (a === 'ch') return viewChapter(b, c === '-' ? null : c, d, e || 'overview', f);
   if (a === 'handouts') return viewHandouts();
   if (a === 'pick') return viewPick(b);
-  if (a === 'dpp') return b ? viewDppSrc(b, c) : viewDpp();
+  if (a === 'dpp') return b === 'maker' ? viewDppMaker() : b ? viewDppSrc(b, c, d) : viewDpp();
   if (a === 'bookmarks') return viewBookmarksPage();
   if (a === 'history') return viewHistoryPage();
   viewHome();

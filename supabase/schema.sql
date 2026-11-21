@@ -2355,15 +2355,42 @@ end $$;
 
 -- everything the dashboard needs about this person: bookmarked question ids, and for each question ever answered in a
 -- submitted test its best result ('c' correct, 'w' wrong, 's' skipped; correct beats wrong beats skipped)
+-- Answers given while practising in the dashboard (tap an option / type a numerical answer): one row per person and question, the latest result.
+create table if not exists public.practice_answers (
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  qid        text not null check (char_length(qid) <= 80),
+  correct    boolean not null,
+  tries      integer not null default 1,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, qid)
+);
+alter table public.practice_answers enable row level security;
+revoke all on public.practice_answers from anon, authenticated;
+
+create or replace function public.record_practice(p_qid text, p_correct boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'Please sign in'; end if;
+  if p_qid is null or char_length(p_qid) > 80 then return; end if;
+  insert into public.practice_answers (user_id, qid, correct) values (auth.uid(), p_qid, coalesce(p_correct, false))
+  on conflict (user_id, qid) do update set correct = excluded.correct, tries = public.practice_answers.tries + 1, updated_at = now();
+end $$;
+
+-- Dashboard numbers: a question is correct if it was right in a submitted test or when practising; wrong if answered wrong; 's' if it was only left blank in a test.
 create or replace function public.dash_summary() returns json
 language sql stable security definer set search_path = public as $$
   select json_build_object(
     'bookmarks', coalesce((select json_agg(b.qid order by b.created_at desc) from public.bookmarks b where b.user_id = auth.uid()), '[]'::json),
     'results', coalesce((
       select json_object_agg(r.qid, r.st) from (
-        select i.qid, case when bool_or(i.status = 'correct') then 'c' when bool_or(i.status = 'wrong') then 'w' else 's' end as st
-        from public.attempt_items i join public.attempts a on a.id = i.attempt_id
-        where a.user_id = auth.uid() and a.status = 'submitted' group by i.qid) r), '{}'::json));
+        select u.qid, case when bool_or(u.st = 'c') then 'c' when bool_or(u.st = 'w') then 'w' else 's' end as st
+        from (
+          select i.qid, case when i.status = 'correct' then 'c' when i.status = 'wrong' then 'w' else 's' end as st
+            from public.attempt_items i join public.attempts a on a.id = i.attempt_id
+           where a.user_id = auth.uid() and a.status = 'submitted'
+          union all
+          select p.qid, case when p.correct then 'c' else 'w' end from public.practice_answers p where p.user_id = auth.uid()) u
+        group by u.qid) r), '{}'::json));
 $$;
 
 -- this person's submitted tests (newest first), each with the ids of its questions so the dashboard can show one chapter's history
@@ -2660,7 +2687,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.submit_qb_report(text, text), public.qb_reports_list(), public.qb_report_resolve(uuid),
   public.my_attempts(), public.my_tests(), public.list_schools(), public.is_premium_teacher(), public.price_paise(text),
   public.teacher_add_student(jsonb), public.teacher_add_students(jsonb), public.teacher_update_student(uuid, text, jsonb),
-  public.claim_session(text), public.session_ok(), public.school_students(text), public.admin_all_students(), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),
+  public.record_practice(text, boolean), public.claim_session(text), public.session_ok(), public.school_students(text), public.admin_all_students(), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),
   public.request_school_change(text), public.admin_school_requests(), public.admin_school_request(uuid, text, text, text),
   public.admin_set_teacher_school(uuid, text, text, text), public.admin_update_teacher(uuid, text, text), public.admin_pending_students(),
   public.admin_schools(), public.admin_rename_school(text, text), public.admin_delete_school(text),

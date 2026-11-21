@@ -124,6 +124,12 @@ function render(env, o) {
     if (!det.dataset.built) { det.dataset.built = '1'; det.append(detail(r)); }
     setTimeout(() => li.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 30);
   };
+  /* an answer given here (tap an option or check a number) is saved, so it counts as attempted */
+  const record = (id, good) => {
+    const prev = res()[id]; D.sum.results[id] = good ? 'c' : (prev === 'c' ? 'c' : 'w');
+    document.querySelectorAll('.dl-row[data-id="' + id + '"] .dl-st').forEach(m => { const st = D.sum.results[id]; m.className = 'dl-st ' + st; m.textContent = st === 'c' ? '✓' : '✕'; });
+    try { A().sb.rpc('record_practice', { p_qid: id, p_correct: !!good }).then(() => {}, () => {}); } catch (e) { /* the numbers still update on this page */ }
+  };
   const toggleBm = id => {
     A().sb.rpc('toggle_bookmark', { p_qid: id }).then(r => {
       if (r.error) throw new Error(r.error.message); const on = !!r.data;
@@ -137,14 +143,15 @@ function render(env, o) {
     const x = D.raw.get(r.id) || {}, box = h('div', { class: 'dl-d' }), type = x.type || 'MCQ';
     const opts = (x.options || []).slice(0, 8), raw = String(x.answer == null ? '' : x.answer).trim(), isKey = /^[A-H](\s*,\s*[A-H])*$/i.test(raw), keys = isKey ? raw.toUpperCase().split(/[^A-H]+/).filter(Boolean) : [];
     const fig = h('div', { class: 'dl-fig' }); figures(env).then(f => { const v = f[r.id]; if (v && v.svg) fig.innerHTML = v.svg; });
-    const multi = keys.length > 1, tried = new Set();
+    const multi = keys.length > 1, tried = new Set(); let wrongTapped = false;
     let locked = false;
     const optEls = opts.map((t, k) => {
       const L = LETTERS[k], el = h('button', { type: 'button', class: 'dl-opt', 'aria-label': 'Option ' + L }, h('b', { text: L }), h('span', { class: 'dl-ot', html: rich(t) }), h('span', { class: 'dl-mk', 'aria-hidden': 'true' }));
       el.addEventListener('click', () => {
         if (!keys.length) { env.toast('The answer for this question is not available yet.'); return; }
         if (locked || tried.has(L)) return; tried.add(L);
-        const good = keys.includes(L); el.classList.add(good ? 'ok' : 'bad'); el.lastChild.innerHTML = good ? ICON.chk : ICON.x;
+        const good = keys.includes(L); if (!multi) record(r.id, good); else if (!good) { if (!wrongTapped) record(r.id, false); wrongTapped = true; } else if (!wrongTapped && [...tried].filter(z => keys.includes(z)).length === keys.length) record(r.id, true);
+        el.classList.add(good ? 'ok' : 'bad'); el.lastChild.innerHTML = good ? ICON.chk : ICON.x;
         el.setAttribute('aria-label', 'Option ' + L + (good ? ', correct' : ', wrong'));
         if (!multi) { locked = true; if (!good) optEls.forEach((o, j) => { if (keys.includes(LETTERS[j])) { o.classList.add('ok', 'show'); o.lastChild.innerHTML = ICON.chk; } }); }
         else if ([...tried].filter(z => keys.includes(z)).length === keys.length) locked = true;
@@ -159,7 +166,7 @@ function render(env, o) {
         const v = inp.value.trim(); if (!v) { inp.focus(); return; } if (!raw) { env.toast('The answer for this question is not available yet.'); return; }
         const range = /^(-?\d+(?:\.\d+)?)\s*to\s*(-?\d+(?:\.\d+)?)$/i.exec(raw), n = parseFloat(v.replace(/[^0-9eE+\-.]/g, '')); let good = false;
         if (range) good = n >= Math.min(+range[1], +range[2]) - 1e-9 && n <= Math.max(+range[1], +range[2]) + 1e-9; else if (/^-?\d+(\.\d+)?$/.test(raw)) good = Math.abs(n - parseFloat(raw)) < 1e-6 || Math.abs(n - parseFloat(raw)) <= Math.abs(parseFloat(raw)) * 1e-9; else good = v.replace(/\s/g, '').toLowerCase() === raw.replace(/\s/g, '').toLowerCase();
-        res.className = 'dl-numres ' + (good ? 'ok' : 'bad'); res.innerHTML = (good ? ICON.chk + '<b>Correct</b>' : ICON.x + '<b>Wrong</b> · correct answer: ') + (good ? '' : rich(raw));
+        record(r.id, good); res.className = 'dl-numres ' + (good ? 'ok' : 'bad'); res.innerHTML = (good ? ICON.chk + '<b>Correct</b>' : ICON.x + '<b>Wrong</b> · correct answer: ') + (good ? '' : rich(raw));
       };
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
       numBox = h('div', { class: 'dl-num' }, h('div', { class: 'dl-numrow' }, inp, h('button', { type: 'button', class: 'btn pri', text: 'Check', onclick: check })), res);

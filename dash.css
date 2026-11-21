@@ -396,3 +396,16 @@ body.dpop-on { overflow: hidden; }
 /* v994: bigger special-pick cards */
 .dh-pk { flex: 0 0 min(300px, 82%); padding: 20px 22px; gap: 6px; border-radius: 16px; min-height: 132px; justify-content: center; }
 .dh-pk b { font-size: 18px; } .dh-pk small { font-size: 14px; } .dh-pn { margin-top: 10px; font-size: 14px; }
+/* ---- DPP drill-down and Own DPP Maker (v995) ---- */
+.dpp-head-r { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; } .dpp-maker-btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; min-height: 42px; padding: 0 18px; }
+.dpp-chgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.dpp-chc { --tone: #2450c8; display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--rule); border-left: 4px solid var(--tone); color: var(--ink); text-decoration: none; transition: transform .15s, border-color .15s; } .dpp-chc:hover { transform: translateY(-2px); border-color: var(--tone); } .dpp-chc b { font: 700 15px/1.3 var(--font-body); } .dpp-chc small { color: var(--muted); font-size: 12.5px; }
+.dpp-exgrid-l { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.dmk { display: block; }
+.dmk #viewLib { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 18px; align-items: start; padding: 0; background: none; border: 0; }
+.dmk .rail { min-width: 0; } .dmk .card { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; box-shadow: var(--shadow-sm); padding: 16px; }
+.dmk .dpp-back { display: none; } .dmk .stage { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 12px; }
+.dmk .statbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; } .dmk .rowbtns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dmk .ibtn { width: 40px; height: 40px; padding: 0; display: inline-grid; place-items: center; border-radius: 10px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); } .dmk .ibtn svg { width: 20px; height: 20px; }
+.dmk h3 { font: 700 17px var(--font-body); color: var(--ink); margin: 0 0 6px; }
+@media (max-width: 1100px) { .dmk #viewLib { grid-template-columns: minmax(0, 1fr); } }

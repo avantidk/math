@@ -1,5 +1,16 @@
 [
   {
+    "v": "995",
+    "date": "21 Nov 2026",
+    "items": [
+      "DPPs: the left menu now drills down: pick BB Ex, Ln DY or Ln Ex and the menu lists its chapters; pick a chapter and the menu lists its exercises. The Mixed Practice block is removed.",
+      "New \"Own DPP Maker\" button in DPPs: the DPP builder (chapters, subtopics, sources, toughness, live A4 preview, PDF/Word/PowerPoint, print and share) inside the Dashboard.",
+      "A question you answer in the Dashboard (tap an option or check a numerical answer) now counts as attempted and is saved. (Needs the database file.)",
+      "Paper Wise Analysis now covers every exam (JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA, IAT). Only the newest year is open; tap a year to open or close it.",
+      "The exam countdown box is centred."
+    ]
+  },
+  {
     "v": "994",
     "date": "21 Nov 2026",
     "items": [

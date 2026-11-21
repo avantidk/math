@@ -1889,6 +1889,13 @@ async function qbInit() {
     try { if (window.parent !== window) window.parent.postMessage({ qbReady: 1 }, window.location.origin); } catch (e) { /* not in a pop-up */ }
   } catch (e) { qbLoaded = false; host.textContent = 'The question bank did not load. Refresh the page.'; }
 }
+/* the Own DPP Maker of the dashboard: the same builder as the DPPs tab here, mounted inside the dashboard page */
+let MK_INIT = false, MK_NODE = null;
+async function mountMaker(host) {
+  if (!MK_INIT) { MK_INIT = true; document.addEventListener('click', onAct); document.addEventListener('change', onAct); downloads = gatedDownloads(downloads); window.addEventListener('resize', rescale); }
+  await ensureDpp(); await KATEX_P;
+  const v = MK_NODE || (MK_NODE = $('#viewLib')); host.append(v); v.hidden = false; renderLib(); setTimeout(rescale, 60); setTimeout(rescale, 400);
+}
 window.AvantiTeacher = {
   start: o => { OPTS = o; boot(); },
   setTab: t => setTab(t), hideViews: () => hideViews(), toast: m => toast(m), guide: () => guideOpen(),
@@ -1899,7 +1906,8 @@ window.AvantiTeacher = {
   pdfIds: async (ids, title, label, info, subLine) => { await ensureDpp(); await KATEX_P; const pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
   shareIds: async (btn, ids, title) => { await ensureDpp(); await KATEX_P; const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
   math: node => math(node),
-  viewHandout: (x, url) => viewHandout(x, url)
+  viewHandout: (x, url) => viewHandout(x, url),
+  mountMaker: host => mountMaker(host)
 };
 
 

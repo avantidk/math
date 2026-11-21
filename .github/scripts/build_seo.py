@@ -283,7 +283,7 @@ def header(depth, up=None):
                    f'<div class="mega-foot"><a class="mega-all" href="{up}exams/">View all exams &rarr;</a></div></div></div>')
     res_panel = ('<div class="sh-panel sh-panel-w" role="menu"><div class="pn-in"><p class="pn-h">Analysis</p>'
                  + item('resources/questions-analysis/', 'Questions Analysis', 'Math PYQs and DPPs analysis for every exam')
-                 + item('resources/paper-wise-analysis/', 'Paper Wise Analysis', 'Every JEE Main paper: levels and toughness')
+                 + item('resources/paper-wise-analysis/', 'Paper Wise Analysis', 'Every paper: levels and toughness')
                  + item('syllabus-priority/', 'Syllabus priority', 'Which chapters are asked the most')
                  + item('chapter-weightage/', 'Chapter weightage', 'Weightage by exam and year')
                  + item('chapter-wise-count/', 'Chapter-wise count', 'Questions in every chapter')
@@ -354,7 +354,7 @@ def cta(depth, text, cur=None, exam=None):
              ('exams/kcet/', 'KCET: everything you should know', 'Dates, safe scores, pattern, seat matrix and colleges.', 'book'),
              ('exams/nda/', 'NDA: everything you should know', 'Written paper, SSB interview, vacancies and salary.', 'book'),
              ('resources/questions-analysis/', 'Questions analysis', 'Math PYQs and DPPs analysis for every exam.', 'chart'),
-             ('resources/paper-wise-analysis/', 'Paper wise analysis', 'Every JEE Main paper: L1, L2, L3 and overall toughness.', 'chart'),
+             ('resources/paper-wise-analysis/', 'Paper wise analysis', 'Every paper: L1, L2, L3 and overall toughness.', 'chart'),
              ('resources/important-exams/', 'Important exams after Class 12', 'Every major mathematics-based entrance exam in one roadmap.', 'cap')]
     seen, picks = set(), []
     for path, t, b, ic in pool:
@@ -612,7 +612,7 @@ def exam_page(e):
         tl = [x for x in secs if re.search(r'timeline', x['h'], re.I)]
         head_secs = secs[:pi + 1]; rest = [x for x in secs[pi + 1:] if x not in tl]
         items += [(x['h'], gsec(x)) for x in head_secs]
-        if items: items[-1] = (items[-1][0], items[-1][1] + related('../../', *([(f'{ANA}/{sl}/', f'{name}: chapter-wise analysis')] if s else []) + ([('resources/paper-wise-analysis/', 'Paper wise analysis')] if sl == 'jee-main' else []) + [('syllabus-priority/', 'Syllabus priority'), ('maths/', 'All maths chapters')]))
+        if items: items[-1] = (items[-1][0], items[-1][1] + related('../../', *([(f'{ANA}/{sl}/', f'{name}: chapter-wise analysis')] if s else []) + ([(f'resources/paper-wise-analysis/{sl}/', f'{name}: paper wise analysis')] if s else []) + [('syllabus-priority/', 'Syllabus priority'), ('maths/', 'All maths chapters')]))
         d = dates_block(e, cd=False) if has_dates else ''
         if d and ('<table' in d or 'bulletin' in d): items.append((f'{name}: important dates', d.split('</h2>', 1)[1]))
         items += [(x['h'], gsec(x)) for x in tl]
@@ -694,7 +694,7 @@ def analysis_page(e):
 <p class="pg-fine">Each row is one year of {E(name)}: how many questions were asked and their level (L1 easy, L2 medium, L3 hard).</p>
 {yr_strip}
 {know}
-{related('../../../', *([('resources/paper-wise-analysis/', 'JEE Main paper wise analysis')] if sl == 'jee-main' else []), ('syllabus-priority/', 'Syllabus priority'), ('chapter-weightage/', 'Chapter weightage'), (f'exams/{sl}/#dates', f'{name} dates and countdown'), ('resources/important-exams/', 'Important exams after Class 12'))}
+{related('../../../', (f'resources/paper-wise-analysis/{sl}/', f'{name} paper wise analysis'), ('syllabus-priority/', 'Syllabus priority'), ('chapter-weightage/', 'Chapter weightage'), (f'exams/{sl}/#dates', f'{name} dates and countdown'), ('resources/important-exams/', 'Important exams after Class 12'))}
 {cta(3, f"Practise {name} questions chapter-wise with full solutions, build DPPs and open whole papers in exam format. Everything is inside after you sign in.", cur=f'{ANA}/{sl}/', exam=e)}"""
     body = band(crumbs, f'{exlogo(e, "../../../", 44)} {E(name)}: Math PYQs, DPPs Analysis') + '\n' + grid(main, 3, sl)
     u = f'{SITE}/{ANA}/{sl}/'
@@ -706,8 +706,8 @@ def analysis_page(e):
 
 def tough_score(p): return (p['L1'] + 2 * p['L2'] + 3 * p['L3']) / max(1, p['n'])
 
-def paper_wise_page():
-    e = next(x for x in EXAMS if x[2] == 'jee-main'); name = e[1]
+def paper_wise_page(e):
+    name = e[1]; sl = e[2]
     papers = STATS[e[0]]['paper_list']
     sc = sorted(tough_score(p) for p in papers)
     def label(v):   # relative to all JEE Main papers in the bank: bottom fifth easy ... top fifth very tough
@@ -740,32 +740,54 @@ def paper_wise_page():
     secs = ''
     for i, y in enumerate(sorted(by_year, reverse=True)):
         ps = by_year[y]
-        secs += (f'<details class="pw-y" id="y{y}"{" open" if i < 2 else ""}><summary><h2>{y}<small>{len(ps)} paper{"s" if len(ps) != 1 else ""} · {sum(p["n"] for p in ps)} questions</small></h2></summary>'
+        secs += (f'<details class="pw-y" id="y{y}"{" open" if i == 0 else ""}><summary><h2>{y}<small>{len(ps)} paper{"s" if len(ps) != 1 else ""} · {sum(p["n"] for p in ps)} questions</small></h2></summary>'
                  f'<div class="pg-table pw-t"><table>{head}<tbody>{"".join(row(p) for p in ps)}</tbody></table></div></details>')
     top5 = lambda lst: ''.join(f'<li><b>{E(p["paper"] or p["year"])}</b><span>{p["L1"]} L1 · {p["L2"]} L2 · {p["L3"]} L3</span><em>{tough_score(p):.2f}</em></li>' for p in lst)
     tough_l = sorted(papers, key=tough_score, reverse=True)[:5]; easy_l = sorted(papers, key=tough_score)[:5]
     tiles = (f'<div class="gd-tiles"><div><b>{len(papers)}</b><span>papers analysed</span></div><div><b>{tot:,}</b><span>questions</span></div>'
              f'<div><b>{round(100 * t1 / tot)}% · {round(100 * t2 / tot)}% · {round(100 * t3 / tot)}%</b><span>overall L1 · L2 · L3</span></div><div><b>{avg:.2f}/3</b><span>average toughness</span></div></div>')
-    crumbs = '<a href="../../">Home</a> &rsaquo; <span>Resources</span> &rsaquo; <span aria-current="page">Paper Wise Analysis</span>'
+    crumbs = f'<a href="../../../">Home</a> &rsaquo; <a href="../">Paper Wise Analysis</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
     main = f"""<p class="pg-lead">Every {name} paper in the bank, one by one: how many easy (L1), medium (L2) and hard (L3) math questions it had, and how tough it was overall.</p>
 {tiles}
-<div class="know"><div><b>How to read the toughness</b><span>Toughness is the average level of a paper's questions on a scale of 1 (all L1) to 3 (all L3). The label compares a paper with all {len(papers)} {name} papers here: the easiest fifth are Easy, the toughest fifth are Very tough.</span></div></div>
+<div class="know"><div><b>How to read the toughness</b><span>Toughness is the average level of a paper's questions on a scale of 1 (all L1) to 3 (all L3). The label compares a paper with all {len(papers)} {name} papers here: the easiest fifth are Easy, the toughest fifth are Very tough. Tap a year to open or close its papers.</span></div></div>
 <nav class="qlinks" aria-label="On this page"><a href="#years">Year-wise</a><a href="#extremes">Toughest and easiest</a>{''.join(f'<a href="#y{y}">{y}</a>' for y in sorted(by_year, reverse=True))}</nav>
 <h2 id="years">Year-wise averages</h2>
-<p class="pg-fine">Share of L1, L2 and L3 questions across all the papers of each year. See the <a href="../questions-analysis/jee-main/">chapter-wise analysis of {name}</a> for the topics behind these numbers.</p>
+<p class="pg-fine">Share of L1, L2 and L3 questions across all the papers of each year. See the <a href="../../questions-analysis/{sl}/">chapter-wise analysis of {name}</a> for the topics behind these numbers.</p>
 <div class="pg-table"><table><thead><tr><th scope="col">Year</th><th scope="col" class="num">Papers</th><th scope="col" class="num">Questions</th><th scope="col" class="num lh l1">L1</th><th scope="col" class="num lh l2">L2</th><th scope="col" class="num lh l3">L3</th><th scope="col">Toughness</th></tr></thead><tbody>{yrows}</tbody></table></div>
 <h2 id="extremes">Toughest and easiest papers</h2>
 <div class="pw-two"><div><h3>Toughest 5</h3><ol class="pw-list">{top5(tough_l)}</ol></div><div><h3>Easiest 5</h3><ol class="pw-list">{top5(easy_l)}</ol></div></div>
-<p class="pg-fine">Planning your preparation? See the <a href="../../syllabus-priority/">syllabus priority</a> to know which chapters to start with, and the <a href="../../exams/jee-main/">JEE Main exam page</a> for dates, safe scores and the paper pattern.</p>
+<p class="pg-fine">Planning your preparation? See the <a href="../../../syllabus-priority/">syllabus priority</a> to know which chapters to start with, and the <a href="../../../exams/{sl}/">{E(name)} exam page</a> for dates, safe scores and the paper pattern.</p>
 <h2>All papers</h2>
 {secs}
-{cta(2, "Practise any of these papers in exam format, with the real time and marking, and see your own analysis. Starting is free.", cur='resources/paper-wise-analysis/')}"""
-    body = band(crumbs, f'{exlogo(e, "../../", 44)} {name}: Paper Wise Analysis') + '\n' + grid(main, 2, 'jee-main')
+{cta(3, "Practise any of these papers in exam format, with the real time and marking, and see your own analysis. Starting is free.", cur=f'resources/paper-wise-analysis/{sl}/', exam=e)}"""
+    body = band(crumbs, f'{exlogo(e, "../../../", 44)} {name}: Paper Wise Analysis') + '\n' + grid(main, 3, sl)
     ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
             {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'},
-            {'@type': 'ListItem', 'position': 2, 'name': 'Paper Wise Analysis', 'item': f'{SITE}/resources/paper-wise-analysis/'}]}]
-    return page(title, desc, f'{SITE}/resources/paper-wise-analysis/', body, 2, ld)
+            {'@type': 'ListItem', 'position': 2, 'name': 'Paper Wise Analysis', 'item': f'{SITE}/resources/paper-wise-analysis/'}, {'@type': 'ListItem', 'position': 3, 'name': name, 'item': f'{SITE}/resources/paper-wise-analysis/{sl}/'}]}]
+    return page(title, desc, f'{SITE}/resources/paper-wise-analysis/{sl}/', body, 3, ld)
 
+
+def paper_wise_hub():
+    title = 'Paper Wise Analysis: Levels and Toughness of Every JEE, KCET, NDA and IAT Paper | अंक-IT'
+    desc = 'Paper by paper math analysis for JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA and IAT: L1, L2 and L3 questions in every paper and its overall toughness.'
+    rows = ''; cards = ''
+    for e in ALL_EXAMS:
+        if e[0] not in STATS: continue
+        ps = STATS[e[0]]['paper_list']; avg = sum(tough_score(p) for p in ps) / len(ps); n = sum(p['n'] for p in ps)
+        rows += (f'<tr><td class="exn">{exlogo(e, "../../", 38)}<a href="{e[2]}/">{E(e[1])}</a></td><td class="num">{len(ps)}</td><td class="num">{n:,}</td>'
+                 f'<td class="num">{round(100 * sum(p["L1"] for p in ps) / n)}%</td><td class="num">{round(100 * sum(p["L2"] for p in ps) / n)}%</td><td class="num">{round(100 * sum(p["L3"] for p in ps) / n)}%</td><td class="num">{avg:.2f}/3</td></tr>')
+        cards += f'<li><a href="{e[2]}/">{E(e[1])}: Paper Wise Analysis</a><span>{len(ps)} papers · {ps[-1]["year"]}–{ps[0]["year"]}</span></li>'
+    crumbs = '<a href="../../">Home</a> &rsaquo; <span>Resources</span> &rsaquo; <span aria-current="page">Paper Wise Analysis</span>'
+    main = f"""<p class="pg-lead">Every paper of every exam in the bank, one by one: how many easy (L1), medium (L2) and hard (L3) math questions it had, and how tough it was overall.</p>
+<h2>Exams at a glance</h2>
+<div class="pg-table"><table class="wide"><thead><tr><th scope="col">Exam</th><th scope="col" class="num">Papers</th><th scope="col" class="num">Questions</th><th scope="col" class="num lh l1">L1</th><th scope="col" class="num lh l2">L2</th><th scope="col" class="num lh l3">L3</th><th scope="col" class="num">Avg. toughness</th></tr></thead><tbody>{rows}</tbody></table></div>
+<p class="pg-fine">Toughness is the average level of a paper's questions, from 1 (all L1) to 3 (all L3). For the chapters behind these numbers see the <a href="../questions-analysis/">questions analysis</a>; for what to study first, the <a href="../../syllabus-priority/">syllabus priority</a>.</p>
+<h2>Open an exam</h2>
+<ul class="pg-chlist exam-list">{cards}</ul>
+{cta(2, "Practise any paper in exam format, with the real time and marking, and see your own analysis. Starting is free.", cur='resources/paper-wise-analysis/')}"""
+    body = band(crumbs, 'Paper Wise Analysis') + '\n' + grid(main, 2)
+    ld = [{'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'Paper Wise Analysis', 'itemListElement': [{'@type': 'ListItem', 'position': k + 1, 'name': e[1] + ': Paper Wise Analysis', 'url': f'{SITE}/resources/paper-wise-analysis/{e[2]}/'} for k, e in enumerate([x for x in ALL_EXAMS if x[0] in STATS])]}]
+    return page(title, desc, f'{SITE}/resources/paper-wise-analysis/', body, 2, ld)
 
 def analysis_hub():
     total = sum(STATS[e[0]]['questions'] for e in EXAMS)
@@ -846,7 +868,7 @@ def exam_chapter_page(e, code):
 {tbl(['Topic', 'Questions', LVH], topics, 'pg-narrow', (1,))}
 {('<h2>The same chapter in other exams</h2>' + tbl(['Exam', 'Questions', LVH], others, 'pg-narrow', (1,))) if others else ''}
 {general}
-{related('../../../../', (f'exams/{sl}/', f'{name}: everything you should know'), (f'{ANA}/{sl}/', f'{name} chapter-wise analysis'), ('syllabus-priority/', 'Syllabus priority'), ('resources/paper-wise-analysis/', 'Paper wise analysis') if sl == 'jee-main' else ('chapter-weightage/', 'Chapter weightage'))}
+{related('../../../../', (f'exams/{sl}/', f'{name}: everything you should know'), (f'{ANA}/{sl}/', f'{name} chapter-wise analysis'), ('syllabus-priority/', 'Syllabus priority'), (f'resources/paper-wise-analysis/{sl}/', f'{name} paper wise analysis'))}
 {cta(4, f"Practise {name} {ch} questions with full solutions, build a DPP for this chapter and open whole papers. Everything is inside after you sign in.", exam=e)}"""
     body = band(crumbs, f'{exlogo(e, "../../../../", 40)} {E(name)}: {E(ch)}') + '\n' + grid(main, 4, sl)
     url_ = f'{SITE}/{ANA}/{sl}/{cs}/'
@@ -1286,7 +1308,7 @@ def weightage_page():
 
 
 def sitemap():
-    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8'), (SITE + '/question-counts/', '0.6'), (SITE + '/chapter-wise-count/', '0.6'), (SITE + '/chapter-weightage/', '0.7')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9'), (SITE + f'/{ANA}/', '0.8'), (SITE + '/resources/important-exams/', '0.8'), (SITE + '/resources/paper-wise-analysis/', '0.8'), (SITE + '/exams/cuet/', '0.8')] + [(exam_url(e), '0.9') for e in EXAMS] + [(f'{SITE}/{ANA}/{e[2]}/', '0.8') for e in EXAMS] + [(f'{SITE}/{ANA}/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
+    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8'), (SITE + '/question-counts/', '0.6'), (SITE + '/chapter-wise-count/', '0.6'), (SITE + '/chapter-weightage/', '0.7')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9'), (SITE + f'/{ANA}/', '0.8'), (SITE + '/resources/important-exams/', '0.8'), (SITE + '/resources/paper-wise-analysis/', '0.8')] + [(f'{SITE}/resources/paper-wise-analysis/{e[2]}/', '0.7') for e in EXAMS] + [ (SITE + '/exams/cuet/', '0.8')] + [(exam_url(e), '0.9') for e in EXAMS] + [(f'{SITE}/{ANA}/{e[2]}/', '0.8') for e in EXAMS] + [(f'{SITE}/{ANA}/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
     body = ''.join(f'<url><loc>{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}</urlset>\n'
 
@@ -1303,7 +1325,9 @@ def main():
     write('question-counts/index.html', question_counts_page()); write('chapter-wise-count/index.html', chapter_wise_page()); write('chapter-weightage/index.html', weightage_page())
     write('404.html', not_found_page())
     write('exams/index.html', exams_hub())
-    write('resources/important-exams/index.html', important_page()); write('resources/paper-wise-analysis/index.html', paper_wise_page()); write(f'{ANA}/index.html', analysis_hub())
+    write('resources/important-exams/index.html', important_page()); write('resources/paper-wise-analysis/index.html', paper_wise_hub());
+    for e in EXAMS: write(f'resources/paper-wise-analysis/{e[2]}/index.html', paper_wise_page(e))
+    write(f'{ANA}/index.html', analysis_hub())
     write('exams/important-exams/index.html', redirect_page('resources/important-exams/', 2)); write('exams/safe-scores/index.html', redirect_page('exams/', 2))   # old addresses keep working
     write('exams/cuet/index.html', exam_page(CUET)); write('exams/cuet/about/index.html', redirect_page('exams/cuet/', 3))
     for e in EXAMS:
