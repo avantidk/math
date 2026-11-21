@@ -483,3 +483,8 @@ body.dpop-on { overflow: hidden; }
   .dpop-h h2 { font-size: 16px; }
   .dpop-fab { display: grid; place-items: center; position: fixed; right: 16px; bottom: max(18px, env(safe-area-inset-bottom)); width: 54px; height: 54px; border-radius: 50%; border: 0; background: #0c1a3d; color: #fff; font-size: 30px; line-height: 1; padding: 0 0 4px; box-shadow: 0 8px 24px rgba(0,0,0,.4); z-index: 4; cursor: pointer; }
 }
+/* v1002: the maker's drop-down lists open from the bottom of the screen on phones */
+@media (max-width: 640px) {
+  .dmk .msel .mp { position: fixed !important; top: auto !important; bottom: 12px !important; left: 12px !important; right: 12px !important; width: auto !important; min-width: 0 !important; max-width: none !important; z-index: 1500 !important; max-height: 72vh; box-shadow: 0 -10px 44px rgba(0,0,0,.4); }
+  .dmk .msel .ml { max-height: 52vh !important; }
+}

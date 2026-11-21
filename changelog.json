@@ -1,5 +1,12 @@
 [
   {
+    "v": "1002",
+    "date": "21 Nov 2026",
+    "items": [
+      "Own DPP Maker on phones: the drop-down lists (chapters, subtopics, sources, years, question types) now open properly from the bottom of the screen. They were opening below the screen and could not be seen."
+    ]
+  },
+  {
     "v": "1001",
     "date": "21 Nov 2026",
     "items": [
