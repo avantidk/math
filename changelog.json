@@ -1,5 +1,16 @@
 [
   {
+    "v": "979",
+    "date": "21 Nov 2026",
+    "items": [
+      "Questions now open inside the dashboard. All PYQs, a topic, a difficulty bucket, Must Do and Bookmarked each show a compact list of 20 questions (more load as you scroll or tap Show more), so pages open fast.",
+      "Tap a question to open it: full text, options, Show answer, Full explanation, Others' solutions, Comments, Important and Report an error, with Previous / Next to move along the list. Practice starts at the first question you have not attempted, and Take Test makes a timed test from the list.",
+      "Filters: Hide attempted, Years, Attempt status, Difficulty and question type, with the order (year or level). Export, print and share moved into the ⋯ menu, which opens the Question Bank with exactly those questions selected.",
+      "The side menu moves one step up as you go deeper: opening a bucket shows Difficulty Wise Qs Buckets (Most Relevant, Beginner, Rank Booster, Advanced, Must Do of the last 5 years), and opening a topic lists the topics. The back arrow returns to the chapter.",
+      "The Question Bank (/qbank) is unchanged."
+    ]
+  },
+  {
     "v": "978",
     "date": "21 Nov 2026",
     "items": [

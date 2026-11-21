@@ -192,19 +192,59 @@ function chapterSide(mode, slug, ch, section, rows) {
   const sub = (mode === 'pyq' && e ? e.name + ' » ' + (D.maxYear) + ': ' + byY(D.maxYear) + ' Qs • ' + (D.maxYear - 1) + ': ' + byY(D.maxYear - 1) + ' Qs' : 'Non-PYQ practice');
   side({ back: mode === 'pyq' ? 'd/pyq/' + slug : 'd/np', title: c ? c.chapter : ch, sub, items: [
     { label: 'Overview', icon: IC.grid, hash: base + 'overview', active: section === 'overview' },
-    { label: mode === 'pyq' ? 'All PYQs' : 'All Questions', icon: IC.all, onclick: () => openQB(rows.map(r => r.id), (c ? c.chapter : ch) + ' · all'), href: '#' },
+    { label: mode === 'pyq' ? 'All PYQs' : 'All Questions', icon: IC.all, hash: base + 'all', active: section === 'all' },
     { label: 'Topic-wise Qs', icon: IC.list, hash: base + 'topics', active: section === 'topics' },
     { label: 'Bookmarked/Important Qs', icon: IC.mark, hash: base + 'bookmarked', active: section === 'bookmarked' },
     { label: 'Test History', icon: IC.test, hash: base + 'tests', active: section === 'tests' }] });
 }
-function viewChapter(mode, slug, ch, section) {
+/* Opening a difficulty bucket or a topic moves the menu one step up: its own menu with the chapter underneath, and the back arrow returns to the chapter */
+const BUCKETS = [['must', 'Most Relevant PYQ-based Qs', 'star'], ['l1', 'Beginner Qs', 'beginner'], ['l2', 'Rank Booster', 'booster'], ['l3', 'Advanced', 'advanced'], ['must5', 'Must Do Qs of last 5 years', 'fire']];
+function bucketSide(mode, slug, ch, active) {
+  const c = D.chByCode[ch], e = EX[slug], base = 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/';
+  const icon = { star: IC.star, beginner: IC.up, booster: IC.up, advanced: IC.up, fire: IC.fire };
+  side({ back: base + 'overview', title: 'Difficulty Wise Qs Buckets', sub: (mode === 'pyq' && e ? e.name : 'Non-PYQs') + ' » ' + (c ? c.chapter : ch),
+    items: BUCKETS.filter(b => mode === 'pyq' || !/^must/.test(b[0])).map(([k, t, ic]) => ({ label: t, icon: icon[ic], hash: base + k, active: active === k })) });
+}
+function topicList(rows, c) {
+  const by = new Map(); rows.forEach(r => { const k = r.tc || r.tp; if (!by.has(k)) by.set(k, { name: r.tp || 'Other', rows: [] }); by.get(k).rows.push(r); });
+  const order = (D.topics[c.chapter_code] || []).map(t => t.topic_code);
+  return [...by.entries()].sort((a, b) => { const ia = order.indexOf(a[0]), ib = order.indexOf(b[0]); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
+}
+function topicSide(mode, slug, ch, active, rows) {
+  const c = D.chByCode[ch], e = EX[slug], base = 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/';
+  side({ back: base + 'topics', title: mode === 'pyq' ? 'Topic-wise PYQs' : 'Topic-wise Qs', sub: (mode === 'pyq' && e ? e.name : 'Non-PYQs') + ' » ' + (c ? c.chapter : ch),
+    items: topicList(rows, c).map(([k, t]) => ({ label: t.name, icon: IC.list, badge: String(t.rows.length), hash: base + 't/' + encodeURIComponent(k), active: active === k })) });
+}
+let TOASTT = 0;
+function toast(m) { let t = document.getElementById('dToast'); if (!t) { t = h('div', { id: 'dToast', class: 'd-toast', role: 'status' }); document.body.append(t); } t.textContent = m; t.classList.add('on'); clearTimeout(TOASTT); TOASTT = setTimeout(() => t.classList.remove('on'), 2600); }
+const LIST_KINDS = ['all', 'must', 'must5', 'l1', 'l2', 'l3', 'bookmarked', 't'];
+/* a question list inside the dashboard (dash-list.js draws it) */
+function viewList(mode, slug, ch, kind, arg) {
+  const c = D.chByCode[ch], e = EX[slug], rows = scope(mode, slug, ch), idSet = new Set(rows.map(r => r.id));
+  const must = mode === 'pyq' ? (D.must[ch] || []).filter(id => idSet.has(id)) : [], mustSet = new Set(must), last5 = new Set(rows.filter(r => r.y && r.y > D.maxYear - 5).map(r => r.id));
+  let pool, title, what = 'Chapter';
+  if (kind === 'all') { pool = rows; title = mode === 'pyq' ? 'All PYQs' : 'All Questions'; chapterSide(mode, slug, ch, 'all', rows); }
+  else if (kind === 'bookmarked') { const bm = new Set(D.sum.bookmarks); pool = rows.filter(r => bm.has(r.id)); title = 'Bookmarked Qs'; chapterSide(mode, slug, ch, 'bookmarked', rows); }
+  else if (kind === 't') { const k = arg; pool = rows.filter(r => (r.tc || r.tp) === k); title = (pool[0] && pool[0].tp) || 'Topic'; what = 'Topic'; topicSide(mode, slug, ch, k, rows); }
+  else {
+    what = 'Bucket'; bucketSide(mode, slug, ch, kind);
+    if (kind === 'must') { pool = rows.filter(r => mustSet.has(r.id)); title = 'Most Relevant PYQ-based Qs'; }
+    else if (kind === 'must5') { pool = rows.filter(r => mustSet.has(r.id) && last5.has(r.id)); title = 'Must Do Qs of last 5 years'; }
+    else { const L = kind.toUpperCase(); pool = rows.filter(r => r.d === L); title = ({ L1: 'Beginner Qs · Level 1 (Easy)', L2: 'Rank Booster · Level 2 (Moderate)', L3: 'Advanced · Level 3 (Tough)' })[L]; }
+  }
+  const head = h('div', { class: 'd-head' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c ? c.chapter : ch));
+  window.DashList.render({ D, A, h, main, stat, IC, pct, openQB, toast, content: window.AvantiContent, mathReady: () => window.AvantiBoot.katex().catch(() => {}) },
+    { rows: pool, title, head, practiceLabel: 'Practice ' + what, testLabel: 'Take ' + what + ' Test', emptyText: kind === 'bookmarked' ? 'Tap the bookmark on any question to keep it here.' : 'No questions here yet.',
+      startTest: list => launchTestFrom(list, c, mode, e, 20, what.toLowerCase() + ' test') });
+}
+function viewChapter(mode, slug, ch, section, extra) {
   const c = D.chByCode[ch]; if (!c) return go(mode === 'pyq' ? 'd/pyq' : 'd/np');
   if (mode === 'np' && locked()) return go('d/np');
+  if (LIST_KINDS.includes(section)) return viewList(mode, slug, ch, section, extra);
   const rows = scope(mode, slug, ch); chapterSide(mode, slug, ch, section, rows);
   const e = EX[slug], tag = mode === 'pyq' ? (e ? e.name + ' PYQs' : 'PYQs') : 'Non-PYQs';
   const head = h('div', { class: 'd-head' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c.chapter_code), h('h2', { text: c.chapter }), h('p', { text: tag }));
-  if (section === 'topics') return viewTopics(head, rows, mode, c);
-  if (section === 'bookmarked') return viewBookmarks(head, rows, c.chapter);
+  if (section === 'topics') return viewTopics(head, rows, mode, c, slug);
   if (section === 'tests') return viewHistory(head, rows);
   /* overview */
   const total = rows.length, solved = solvedOf(rows), right = correctOf(rows), wrong = rows.filter(r => D.sum.results[r.id] === 'w').length, acc = solved ? pct(right, solved) : 0;
@@ -216,12 +256,12 @@ function viewChapter(mode, slug, ch, section) {
     h('section', { class: 'd-card' }, h('div', { class: 'd-card-h' }, h('h3', { text: 'Your progress' }), h('small', { text: 'from tests you have submitted' })),
       h('div', { class: 'd-stats' }, stat(IC.all, solved + '/' + total, mode === 'pyq' ? 'PYQs attempted' : 'Questions attempted'), stat(IC.target, right + '/' + total, 'Correct'), stat(IC.up, solved ? acc + '%' : '—', 'Accuracy')), bar(solved, total, 'big')),
     h('div', { class: 'd-three' },
-      tile({ cls: 'd-big', title: (mode === 'pyq' ? 'All Previous Year Qs' : 'All Questions') + ' →', sub: num(total) + (mode === 'pyq' ? ' PYQs' : ' questions'), icon: IC.clock, onclick: () => openQB(ids, title + ' · all'), extra: bar(solved, total) }),
+      tile({ cls: 'd-big', title: (mode === 'pyq' ? 'All Previous Year Qs' : 'All Questions') + ' →', sub: num(total) + (mode === 'pyq' ? ' PYQs' : ' questions'), icon: IC.clock, go: 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/' + 'all', extra: bar(solved, total) }),
       tile({ title: mode === 'pyq' ? 'Topic-Wise PYQs' : 'Topic-Wise Qs', sub: tops.length + ' topics', icon: IC.list, go: 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/topics' }),
-      mode === 'pyq' ? tile({ cls: 'd-gold', badge: 'Recommended', badgeCls: 'rec', title: 'Must Do PYQs', sub: must.length ? num(must.length) + ' Qs · high-yield, repeated patterns' : 'Not marked for this chapter yet', icon: IC.star, off: !must.length, onclick: () => openQB(must, title + ' · must do') })
+      mode === 'pyq' ? tile({ cls: 'd-gold', badge: 'Recommended', badgeCls: 'rec', title: 'Must Do PYQs', sub: must.length ? num(must.length) + ' Qs · high-yield, repeated patterns' : 'Not marked for this chapter yet', icon: IC.star, off: !must.length, go: must.length ? 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/' + 'must' : null })
         : tile({ title: 'Bookmarked Qs', sub: num(rows.filter(r => D.sum.bookmarks.includes(r.id)).length) + ' saved', icon: IC.mark, go: 'd/ch/np/-/' + ch + '/bookmarked' })),
     h('h3', { class: 'd-sec', text: 'Difficulty buckets' }),
-    h('div', { class: 'd-three' }, LEVELS.map(([L, name, word, key]) => { const r = lvl(L); return tile({ cls: 'd-lvl d-lvl-' + key, off: !r.length, icon: IC.up, title: name + ' · ' + word, sub: num(r.length) + ' Qs', onclick: () => openQB(r.map(x => x.id), title + ' · ' + name), extra: bar(solvedOf(r), r.length) }); })),
+    h('div', { class: 'd-three' }, LEVELS.map(([L, name, word, key]) => { const r = lvl(L); return tile({ cls: 'd-lvl d-lvl-' + key, off: !r.length, icon: IC.up, title: name + ' · ' + word, sub: num(r.length) + ' Qs', go: r.length ? 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/' + L.toLowerCase() : null, extra: bar(solvedOf(r), r.length) }); })),
     h('div', { class: 'd-two' },
       tile({ cls: 'd-test', icon: IC.bolt, title: 'Create Chapter Test', sub: 'A timed test from this chapter, started in one tap', extra: testLauncher(rows, c, mode, e) }),
       h('section', { class: 'd-card d-perf' }, h('div', { class: 'd-card-h' }, h('h3', { text: 'Chapter performance' })),
@@ -244,30 +284,34 @@ function yearBlocks(rows, yrs, mode) {
 }
 
 /* ---------- Create Chapter Test ---------- */
+async function launchTestFrom(rows, c, mode, e, count, label) {
+  const pool = rows.filter(r => r.ok); if (pool.length < 3) throw new Error('Not enough test-ready questions here yet.');
+  const n = Math.min(count, pool.length), fresh = pool.filter(r => D.sum.results[r.id] !== 'c'), pick = (fresh.length >= n ? fresh : pool).slice();
+  for (let i = pick.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pick[i], pick[j]] = [pick[j], pick[i]]; }
+  const chosen = pick.slice(0, n); let figs = {}; try { figs = await window.AvantiContent.get('qb/data/figures.json'); } catch (x) { figs = {}; }
+  const qs = chosen.map(r => { const x = D.raw.get(r.id), f = figs[r.id]; return { id: r.id, type: x.type, q: x.question, o: x.options || [], a: String(x.answer), ch: x.chapter_code, chn: c.chapter, tp: x.topic || '', f: f && f.svg ? { svg: f.svg } : null, s: r.P ? 'P' : 'N' }; });
+  const r = await A().sb.rpc('create_personal_test', { p_title: c.chapter + (mode === 'pyq' && e ? ' · ' + e.name : '') + ' · ' + label, p_duration_min: n * 3, p_marks_correct: 4, p_marks_wrong: 1, p_questions: qs, p_paper_key: 'chapter-' + c.chapter_code, p_audience: 'self', p_exam: 'JEE Main' });
+  if (r.error) throw new Error(r.error.message);
+  try { sessionStorage.setItem('avanti-auto', r.data.code); } catch (x) { /* storage blocked */ }
+  location.href = 'qbank#/t/' + r.data.code;
+}
 function testLauncher(rows, c, mode, e) {
   const pool = rows.filter(r => r.ok), sel = h('select', { class: 'd-sel', 'aria-label': 'Number of questions' }, [10, 20, 30].filter(n => n <= Math.max(10, pool.length)).map(n => h('option', { value: n, text: n + ' questions', selected: n === 20 })));
   const msg = h('small', { class: 'd-fine', role: 'status' });
   const btn = h('button', { type: 'button', class: 'btn pri', text: '⚡ Start test', disabled: pool.length < 3, onclick: async ev => {
     ev.stopPropagation(); btn.disabled = true; msg.textContent = 'Getting your questions ready…';
     try {
-      const n = Math.min(+sel.value, pool.length), fresh = pool.filter(r => D.sum.results[r.id] !== 'c'), pick = (fresh.length >= n ? fresh : pool).slice();
-      for (let i = pick.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pick[i], pick[j]] = [pick[j], pick[i]]; }
-      const chosen = pick.slice(0, n); let figs = {}; try { figs = await window.AvantiContent.get('qb/data/figures.json'); } catch (x) { figs = {}; }
-      const qs = chosen.map(r => { const x = D.raw.get(r.id), f = figs[r.id]; return { id: r.id, type: x.type, q: x.question, o: x.options || [], a: String(x.answer), ch: x.chapter_code, chn: c.chapter, tp: x.topic || '', f: f && f.svg ? { svg: f.svg } : null }; });
-      const r = await A().sb.rpc('create_personal_test', { p_title: c.chapter + (mode === 'pyq' && e ? ' · ' + e.name : '') + ' · chapter test', p_duration_min: n * 3, p_marks_correct: 4, p_marks_wrong: 1, p_questions: qs, p_paper_key: 'chapter-' + c.chapter_code, p_audience: 'self', p_exam: 'JEE Main' });
-      if (r.error) throw new Error(r.error.message);
-      try { sessionStorage.setItem('avanti-auto', r.data.code); } catch (x) { /* storage blocked */ }
-      location.href = 'qbank#/t/' + r.data.code;
+      await launchTestFrom(pool, c, mode, e, +sel.value, 'chapter test');
     } catch (x) { msg.textContent = x.message || 'Could not start the test.'; btn.disabled = false; }
   } });
   return h('div', { class: 'd-launch', onclick: ev => ev.stopPropagation() }, sel, btn, msg, pool.length < 3 ? h('small', { class: 'd-fine', text: 'Not enough test-ready questions here yet.' }) : h('small', { class: 'd-fine', text: '3 min per question · +4 / −1 · saved in Practice Tests & Results' }));
 }
 
 /* ---------- topics ---------- */
-function viewTopics(head, rows, mode, c) {
+function viewTopics(head, rows, mode, c, slug) {
   const by = new Map(); rows.forEach(r => { const k = r.tc || r.tp; if (!by.has(k)) by.set(k, { name: r.tp || 'Other', rows: [] }); by.get(k).rows.push(r); });
   const order = (D.topics[c.chapter_code] || []).map(t => t.topic_code), list = [...by.entries()].sort((a, b) => { const ia = order.indexOf(a[0]), ib = order.indexOf(b[0]); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib); });
-  main(head, h('div', { class: 'd-grid d-grid-topic' }, list.map(([k, t]) => tile({ cls: 'd-topic', title: t.name, sub: num(t.rows.length) + ' Qs · ' + solvedOf(t.rows) + ' attempted', onclick: () => openQB(t.rows.map(r => r.id), c.chapter + ' · ' + t.name), extra: bar(solvedOf(t.rows), t.rows.length) }))));
+  main(head, h('div', { class: 'd-grid d-grid-topic' }, list.map(([k, t]) => tile({ cls: 'd-topic', title: t.name, sub: num(t.rows.length) + ' Qs · ' + solvedOf(t.rows) + ' attempted', go: 'd/ch/' + mode + '/' + (slug || '-') + '/' + c.chapter_code + '/t/' + encodeURIComponent(k), extra: bar(solvedOf(t.rows), t.rows.length) }))));
 }
 
 /* ---------- bookmarks ---------- */
@@ -308,11 +352,11 @@ async function route() {
   main(loadingBox('Loading your dashboard…'));
   try { await Promise.all([load(), loadMine(false)]); } catch (e) { main(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'Could not load the questions' }), h('p', { text: e.message || 'Check your connection and try again.' }), h('button', { type: 'button', class: 'btn', text: 'Try again', onclick: () => { D.ready = null; route(); } }))); return; }
   if (tok !== NAV) return;
-  const [a, b, c, d, e] = parts;
+  const [a, b, c, d, e, f] = parts;
   if (!a) return viewHome();
   if (a === 'pyq') return b ? viewChapters('pyq', b) : viewExams();
   if (a === 'np') return viewChapters('np', null);
-  if (a === 'ch') return viewChapter(b, c === '-' ? null : c, d, e || 'overview');
+  if (a === 'ch') return viewChapter(b, c === '-' ? null : c, d, e || 'overview', f);
   if (a === 'bookmarks') return viewBookmarksPage();
   if (a === 'history') return viewHistoryPage();
   viewHome();
