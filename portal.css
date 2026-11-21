@@ -1090,3 +1090,25 @@ button.pt-linkcopy:hover { border-color: var(--accent); background: var(--panel,
 
 /* Free accounts: PDF download of PYQs only (checked again in the code) */
 html.plan-free [data-act="lexp"][data-k="pdf"] { display: inline-flex !important; }
+
+/* Must Solve find box and question slots; DPP seven blocks (v973) */
+.mfind { width: 100%; font: inherit; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--rule); background: var(--field); color: var(--ink); }
+.mslot { min-height: 72px; }
+.dpph { max-width: 1100px; margin: 0 auto; padding: 8px clamp(10px, 2vw, 20px) 24px; display: flex; flex-direction: column; gap: 16px; }
+.dpp-head h2 { margin: 0 0 4px; font: 700 clamp(22px, 3vw, 28px) var(--font-head); color: var(--head); } .dpp-head p { margin: 0; color: var(--muted); }
+.dpp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 14px; }
+.dpp-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 18px; min-height: 170px; border-radius: 16px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); font: inherit; cursor: pointer; box-shadow: var(--shadow-sm); transition: transform .15s, box-shadow .15s, border-color .15s; }
+.dpp-card:hover { transform: translateY(-2px); border-color: var(--tone, var(--accent)); box-shadow: var(--shadow); }
+.dpp-card.is-off { opacity: .62; } .dpp-card.is-off:hover { transform: none; box-shadow: var(--shadow-sm); border-color: var(--rule); }
+.dpp-card b { font: 700 18px var(--font-body); } .dpp-card small { color: var(--muted); font-size: 13px; line-height: 1.35; }
+.dpp-mark { display: inline-grid; place-items: center; min-width: 48px; height: 40px; padding: 0 10px; border-radius: 12px; background: var(--tone, var(--accent)); color: #fff; font: 800 13px var(--font-body); letter-spacing: .03em; }
+.dpp-n { margin-top: auto; font-size: 12.5px; color: var(--body); font-weight: 600; }
+.dpp-go { color: var(--tone, var(--accent)); font-weight: 700; font-size: 13px; }
+.dpp-lock { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12.5px; background: var(--gold); color: #1a2340; padding: 4px 10px; border-radius: 99px; }
+.dpp-mix { background: linear-gradient(135deg, var(--accent-soft), var(--panel)); }
+.dpp-back { align-self: flex-start; margin-bottom: 4px; }
+.dpp-modal { padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: auto; }
+.dpp-sel { font: 600 14px var(--font-body); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--rule); background: var(--field); color: var(--ink); max-width: 100%; }
+.dpp-pick { display: flex; flex-direction: column; gap: 8px; }
+.dpp-all { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 6px 0 10px; border-bottom: 1px solid var(--rule); } .dpp-all small { color: var(--muted); }
+.dpp-sheet { display: grid; grid-template-columns: 70px 1fr auto; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--rule); } .dpp-sheet:last-child { border-bottom: 0; } .dpp-sheet span { color: var(--muted); font-size: 13px; }

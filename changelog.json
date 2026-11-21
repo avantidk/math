@@ -1,5 +1,15 @@
 [
   {
+    "v": "973",
+    "date": "21 Nov 2026",
+    "items": [
+      "DPPs now open on seven blocks: BB Ex, Ln DY, Ln Ex, Cg ill, Cg Ex, Cg DPPs and Mixed Practice. Pick a chapter and a sheet (for example DY-1 of Ln DY) and download it as a PDF, or download a whole chapter's sheets in one PDF.",
+      "The six sheet libraries are part of Premium (Free accounts see them locked). Cg ill, Cg Ex and Cg DPPs say Coming soon until their sheets are added.",
+      "Mixed Practice is the existing DPP builder, with a back button to the seven blocks.",
+      "Must Solve is rebuilt: the first questions appear straight away, maths is typeset a few questions at a time, filters (chapter, type, level) are remembered, and a new Find box searches by topic, name or code. Selecting questions only counts questions that are still shown."
+    ]
+  },
+  {
     "v": "972",
     "date": "21 Nov 2026",
     "items": [

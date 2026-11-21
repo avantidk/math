@@ -1270,6 +1270,69 @@ async function renderHandouts() {
 }
 
 /* ---------- Must Solve tab: questions that repeat in JEE (exact or very similar) and sure-shot picks, by chapter and topic ---------- */
+
+/* ---------- DPPs: seven blocks (v973) ----------
+   Blocks 1-6 are sheet libraries (BB Ex, Ln DY, Ln Ex, Cg ill, Cg Ex, Cg DPPs): pick a chapter and a sheet and download it as a PDF.
+   Block 7, Mixed Practice, is the existing DPP builder. The six libraries are part of Premium; Free accounts see them locked. */
+let DPPMIX = false, DPP_IDX = null;
+const DPP_BOOKS = [
+  { k: 'BB Ex', sub: 'Exercise sheets, chapter by chapter', tone: '#2563eb' }, { k: 'Ln DY', sub: 'Do Yourself sheets after every class', tone: '#059669' },
+  { k: 'Ln Ex', sub: 'Exercise sheets, level by level', tone: '#7c3aed' }, { k: 'Cg ill', sub: 'Worked illustrations', tone: '#b45309' },
+  { k: 'Cg Ex', sub: 'Exercise sheets', tone: '#db2777' }, { k: 'Cg DPPs', sub: 'Daily practice problems', tone: '#0891b2' }];
+function sheetOf(q) {
+  const m = q.pb === 'Ln DY' ? /-DY(\d+)-/.exec(q.i) : q.pb === 'Ln Ex' ? /-O(\d+)-/.exec(q.i) : q.pb === 'BB Ex' ? /^BB-\d+-(\d+)-/.exec(q.i) : null;
+  return m ? { no: +m[1], label: (q.pb === 'Ln DY' ? 'DY-' : 'Ex-') + (+m[1]) } : null;
+}
+function dppIndex() {   /* book -> chapter code -> sheet number -> { label, ids } */
+  if (DPP_IDX) return DPP_IDX;
+  const idx = {};
+  (BANK ? BANK.all : []).forEach(q => { if (q.s !== 'N' || !q.pb) return; const sh = sheetOf(q); if (!sh) return;
+    const b = idx[q.pb] = idx[q.pb] || {}, c = b[q.cc] = b[q.cc] || {}, e = c[sh.no] = c[sh.no] || { label: sh.label, ids: [] }; e.ids.push(q.i); });
+  Object.values(idx).forEach(b => Object.values(b).forEach(c => Object.values(c).forEach(e => e.ids.sort((x, y) => (parseInt(x.split('-').pop(), 10) - parseInt(y.split('-').pop(), 10)) || x.localeCompare(y)))));
+  return (DPP_IDX = idx);
+}
+async function dppDownload(book, cc, sheets) {
+  if (!PERM().pdf) { toast('The sheet libraries are part of Premium.'); return; }
+  const c = CHMAP.get(cc), cn = c ? c.n : cc, ids = sheets.flatMap(s => s.ids), label = sheets.length === 1 ? sheets[0].label : sheets.length + ' sheets';
+  const title = book + ' · ' + cn + ' · ' + label, pages = idPages(ids, title, 'Worksheet', '', book + ' · ' + cn);
+  if (!pages.length) { toast('These questions are not in the bank now'); return; }
+  await doExport('pdf', { pages, file: title });
+}
+function dppPicker(b) {
+  const idx = dppIndex()[b.k] || {}, chapters = [...CHMAP.values()].filter(c => idx[c.c]).sort((x, y) => (x.o || 0) - (y.o || 0));
+  let cur = chapters[0] ? chapters[0].c : null;
+  const body = h('div', { class: 'dpp-pick' }), sel = h('select', { class: 'dpp-sel', 'aria-label': 'Chapter', onchange: e => { cur = e.target.value; draw(); } }, chapters.map(c => h('option', { value: c.c, text: c.c + ' ' + c.n })));
+  const draw = () => {
+    body.textContent = ''; const sheets = Object.keys(idx[cur] || {}).map(Number).sort((x, y) => x - y).map(n => idx[cur][n]);
+    body.append(h('div', { class: 'dpp-all' }, h('button', { type: 'button', class: 'btn pri', text: 'Download all ' + sheets.length + ' sheets in one PDF', onclick: () => dppDownload(b.k, cur, sheets) }),
+      h('small', { text: sheets.reduce((n, s) => n + s.ids.length, 0) + ' questions' })));
+    sheets.forEach(s => body.append(h('div', { class: 'dpp-sheet' }, h('b', { text: s.label }), h('span', { text: s.ids.length + ' questions' }), h('button', { type: 'button', class: 'btn', text: 'Download PDF', onclick: () => dppDownload(b.k, cur, [s]) }))));
+  };
+  if (cur) draw();
+  let ov; const esc = e => { if (e.key === 'Escape') close(); }, close = () => { if (ov) ov.remove(); document.removeEventListener('keydown', esc); };
+  ov = h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': b.k + ' sheets', onclick: e => { if (e.target === ov) close(); } },
+    h('div', { class: 'mcard' }, h('div', { class: 'mbar' }, h('b', { text: b.k + ' · download sheets' }), h('button', { type: 'button', class: 'btn', text: 'Close', onclick: close })),
+      h('div', { class: 'dpp-modal' }, h('label', { class: 'lbl', text: 'Chapter' }), sel, body)));
+  document.body.append(ov); document.addEventListener('keydown', esc);
+}
+function renderDppHome() {
+  const view = $('#viewDpp'); if (!view) return;
+  const idx = dppIndex(), free = !PERM().pdf, count = k => { const b = idx[k] || {}; let sheets = 0, qs = 0; Object.values(b).forEach(c => Object.values(c).forEach(e => { sheets++; qs += e.ids.length; })); return { sheets, qs }; };
+  const lockIc = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>';
+  const cards = DPP_BOOKS.map(b => {
+    const n = count(b.k), none = !n.sheets, off = free || none;
+    return h('button', { type: 'button', class: 'dpp-card' + (off ? ' is-off' : ''), 'aria-disabled': off ? 'true' : null, style: '--tone:' + b.tone,
+      onclick: () => { if (free) { toast('The sheet libraries are part of Premium.'); location.hash = '#/membership'; return; } if (none) { toast(b.k + ' is coming soon.'); return; } dppPicker(b); } },
+      h('span', { class: 'dpp-mark', text: b.k.toUpperCase().replace(' ', '-') }), h('b', { text: b.k }), h('small', { text: b.sub }),
+      h('span', { class: 'dpp-n', text: none ? 'Coming soon' : n.sheets + ' sheets · ' + n.qs.toLocaleString('en-IN') + ' questions' }),
+      free ? h('span', { class: 'dpp-lock', html: lockIc + ' Premium' }) : h('span', { class: 'dpp-go', text: none ? '' : 'Download PDFs ›' }));
+  });
+  cards.push(h('button', { type: 'button', class: 'dpp-card dpp-mix', style: '--tone:#1f3f95', onclick: () => { DPPMIX = true; setTabInner('lib'); } },
+    h('span', { class: 'dpp-mark', text: 'MIX' }), h('b', { text: 'Mixed Practice' }), h('small', { text: 'Build your own DPP by chapter, subtopic, source, level and question type' }), h('span', { class: 'dpp-go', text: 'Open DPP builder ›' })));
+  view.textContent = '';
+  view.append(h('div', { class: 'dpp-head' }, h('h2', { text: 'DPPs' }), h('p', { text: 'Download ready-made sheets as PDF, or build a mixed practice set.' })), h('div', { class: 'dpp-grid' }, cards));
+}
+
 let MUST = null, MTOP = null; const MS = { sel: new Set(), chs: [], kind: 'all', lv: ['L1', 'L2', 'L3'], ans: false, key: false };
 const MKIND = { e: ['Exact repeat', 'mk-e'], i: ['Similar type', 'mk-i'], u: ['Sure-shot', 'mk-u'] };
 const mYear = q => (q.y ? q.y : 'n/a') + ' ' + (q.e === 'KCET' ? 'KCET' : q.e === 'IAT' ? 'IAT' : q.e === 'NDA' ? 'NDA' : q.e === 'Adv' ? 'Adv' : 'Main');
@@ -1294,90 +1357,133 @@ function mustPop(title, ids, useQb) {
     h('div', { class: 'mcard' }, h('div', { class: 'mbar' }, h('b', { text: title }), h('button', { type: 'button', class: 'btn', text: 'Close', onclick: close })), body));
   document.body.append(ov); document.addEventListener('keydown', esc); math(body);
 }
+/* ---------- Must Solve (rebuilt in v973) ----------
+   One clear flow: the list is worked out from the filters (chapter, type, level, search), shown 20 per page, and each page is drawn in
+   small batches so it appears at once and the maths is typeset a few questions at a time. A newer draw always cancels an older one,
+   selection is kept only for questions that are still shown, and the filters are remembered in this browser.
+   The question cards are the Question Bank's own cards (same action bar); the plain card is only a stop-gap until the bank is ready. */
+const MUST_KEY = 'avanti-must-v2';
+let MUST_TOK = 0, MUST_DRAW = 0;
 async function renderMust() {
   const view = $('#viewMust'); if (!view) return;
+  const T = ++MUST_TOK, alive = () => T === MUST_TOK && view.isConnected;
   if (!MUST) { try { MUST = await (await fetch('must.json')).json(); } catch (e) { MUST = []; } }
+  if (!alive()) return;
   if (!MUST.length) { view.textContent = ''; view.append(h('p', { class: 'hint', text: 'Must Solve is not available yet.' })); return; }
-  try { await qbInit(); for (let k = 0; k < 150 && !(window.QBX && window.QBX.hasRows && window.QBX.hasRows()); k++) await new Promise(r => setTimeout(r, 100)); } catch (e) { /* fall back to simple cards */ }
-  const useQb = !!(window.QBX && window.QBX.cardFor && window.QBX.hasRows && window.QBX.hasRows());
   if (!MTOP) { try { MTOP = await (await fetch('qb/data/topics.json')).json(); } catch (e) { MTOP = []; } }
+  if (!alive()) return;
+  if (!MS.restored) {
+    MS.restored = true;
+    try { const s = JSON.parse(localStorage.getItem(MUST_KEY) || 'null');
+      if (s) { if (Array.isArray(s.chs)) MS.chs = s.chs.filter(c => MUST.some(m => m.c === c)); if (['all', 'e', 'i', 'u'].includes(s.kind)) MS.kind = s.kind; if (Array.isArray(s.lv) && s.lv.length) MS.lv = s.lv.filter(l => ['L1', 'L2', 'L3'].includes(l)); } } catch (e) { /* defaults */ }
+  }
+  const remember = () => { try { localStorage.setItem(MUST_KEY, JSON.stringify({ chs: MS.chs, kind: MS.kind, lv: MS.lv })); } catch (e) { /* optional */ } };
+  MS.q = MS.q || '';
+  const PER = 20; let page = 0, useQb = false;
+  const qbReady = () => !!(window.QBX && window.QBX.cardFor && window.QBX.hasRows && window.QBX.hasRows());
   const topIdx = (c, name) => { const i = MTOP.filter(t => t.chapter_code === c).findIndex(t => t.topic === name); return i < 0 ? 999 : i; };
-  const chs = MUST.map(m => CHMAP.get(m.c)).filter(Boolean);
-  const chName = c => (CHMAP.get(c) || { n: c }).n;
-  const list = h('div', { class: 'mlist qbhost' }), msg = h('div', { class: 'msg', 'aria-live': 'polite' });
-  const PER = 20; let page = 0;
-  const pager = (start, n, total) => {
-    const nav = h('nav', { class: 'qb-pager', 'aria-label': 'Pages' }, h('span', { class: 'qb-pinfo', text: (start + 1) + '\u2013' + (start + n) + ' of ' + total }));
-    const go = p => { page = p; draw(true); view.scrollIntoView({ block: 'start' }); window.scrollTo(0, 0); };
-    const btn = (label, p, on, dis) => nav.append(h('button', { type: 'button', class: 'qb-pbtn' + (on ? ' on' : ''), text: label, disabled: !!dis, 'aria-current': on ? 'page' : null, onclick: () => go(p) }));
-    const pages = MS.pages;
-    btn('\u2039 Prev', page - 1, false, page === 0);
-    const shown = []; for (let p = 0; p < pages; p++) if (p === 0 || p === pages - 1 || Math.abs(p - page) <= 2) shown.push(p);
-    shown.forEach((p, i) => { if (i && p - shown[i - 1] > 1) nav.append(h('span', { class: 'qb-pgap', text: '\u2026' })); btn(String(p + 1), p, p === page); });
-    btn('Next \u203a', page + 1, false, page === pages - 1);
-    return nav;
+  const chs = MUST.map(m => CHMAP.get(m.c)).filter(Boolean), chName = c => (CHMAP.get(c) || { n: c }).n;
+  const list = h('div', { class: 'mlist qbhost' });
+  const selCnt = h('span', { class: 'mselcnt' }), topN = h('span', { class: 'msel-n', text: '0' }), topOf = h('span', { class: 'msel-of' });
+  const selInfo = () => {
+    const flat = MS.flat || [], n = flat.filter(f => MS.sel.has(f.it.r)).length, all = flat.length;
+    selCnt.textContent = n ? n + ' selected · downloads only these' : 'None selected · downloads all ' + all + ' shown'; topN.textContent = String(n); topOf.textContent = 'of ' + all + ' shown';
   };
-  const selCnt = h('span', { class: 'mselcnt' });
-  const topN = h('span', { class: 'msel-n', text: '0' }), topOf = h('span', { class: 'msel-of' });
-  const selInfo = () => { const n = (MS.flat || []).filter(f => MS.sel.has(f.it.r)).length, all = (MS.flat || []).length; selCnt.textContent = n ? n + ' selected \u00b7 downloads only these' : 'None selected \u00b7 downloads all ' + all + ' shown'; topN.textContent = String(n); topOf.textContent = 'of ' + all + ' shown'; };
-  const tick = on => { (MS.flat || []).forEach(f => { if (on) MS.sel.add(f.it.r); else MS.sel.delete(f.it.r); }); list.querySelectorAll('.mpick input').forEach(c => { c.checked = MS.sel.has(c.dataset.r); }); selInfo(); };
-  const draw = (keep) => {
-    if (!keep) page = 0;
-    list.textContent = '';
-    /* flatten the filtered questions in chapter, topic, then most-repeated order, and show 20 per page */
-    const flat = [], yc = {};
+  /* 1. which questions match the filters, in chapter, topic, then most-repeated order */
+  const compute = () => {
+    const flat = [], yc = {}, term = MS.q.trim().toLowerCase();
     MUST.forEach(m => {
       if (MS.chs.length && !MS.chs.includes(m.c)) return;
-      const items = m.i.filter(it => (MS.kind === 'all' || it.k === MS.kind) && MS.lv.includes((BYID.get(it.r) || {}).d));
+      const items = m.i.filter(it => {
+        const q = BYID.get(it.r); if (!q || !MS.lv.includes(q.d)) return false;
+        if (MS.kind !== 'all' && it.k !== MS.kind) return false;
+        return !term || (it.l || '').toLowerCase().includes(term) || (q.tp || '').toLowerCase().includes(term) || String(it.r).toLowerCase().includes(term);
+      });
       if (!items.length) return;
-      const y = yc[m.c] = {}; items.forEach(it => [it.r, ...it.m].forEach(id => { const q = BYID.get(id); if (!q) return; const k = q.y ? (q.y >= 2019 ? String(q.y) : 'Before 2019') : 'Year n/a'; y[k] = (y[k] || 0) + 1; }));
+      const y = yc[m.c] = {};
+      items.forEach(it => [it.r, ...it.m].forEach(id => { const q = BYID.get(id); if (!q) return; const k = q.y ? (q.y >= 2019 ? String(q.y) : 'Before 2019') : 'Year n/a'; y[k] = (y[k] || 0) + 1; }));
       const tops = new Map();
-      items.forEach(it => { const q = BYID.get(it.r); if (!q) return; const nm = q.tc && !/UNMAPPED/.test(q.tc) ? q.tp : 'Mixed problems'; if (!tops.has(nm)) tops.set(nm, []); tops.get(nm).push(it); });
+      items.forEach(it => { const q = BYID.get(it.r), nm = q.tc && !/UNMAPPED/.test(q.tc) ? q.tp : 'Mixed problems'; if (!tops.has(nm)) tops.set(nm, []); tops.get(nm).push(it); });
       [...tops.entries()].sort((a, b) => (topIdx(m.c, a[0]) - topIdx(m.c, b[0])) || a[0].localeCompare(b[0])).forEach(([nm, its]) => {
         its.sort((a, b) => (b.m.length - a.m.length) || a.k.localeCompare(b.k));
         its.forEach(it => flat.push({ c: m.c, n: items.length, tp: nm, it }));
       });
     });
-    MS.flat = flat; selInfo(); MS.pages = Math.max(1, Math.ceil(flat.length / PER)); if (page >= MS.pages) page = MS.pages - 1;
-    const part = flat.slice(page * PER, page * PER + PER);
-    if (flat.length > PER) list.append(pager(page * PER, part.length, flat.length));
-    let curC = null, curT = null, sec = null, tsec = null, num = 0;
-    part.forEach(f => {
+    MS.flat = flat; MS.yc = yc;
+    const ids = new Set(flat.map(f => f.it.r)); MS.sel = new Set([...MS.sel].filter(id => ids.has(id)));   /* selection never keeps questions that are no longer shown */
+    MS.pages = Math.max(1, Math.ceil(flat.length / PER));
+  };
+  /* 2. one question: the strip (label, type, years) and the card */
+  const item = (f, no) => {
+    const it = f.it, q = BYID.get(it.r), times = it.m.length + 1;
+    const yrs = [it.r, ...it.m].map(id => BYID.get(id)).filter(Boolean).sort((a, b) => (b.y || 0) - (a.y || 0));
+    const pick = h('input', { type: 'checkbox', 'aria-label': 'Select question ' + it.l + ' for download', onchange: e => { if (e.target.checked) MS.sel.add(it.r); else MS.sel.delete(it.r); selInfo(); } });
+    pick.checked = MS.sel.has(it.r); pick.dataset.r = it.r;
+    const strip = h('div', { class: 'mstrip' },
+      h('label', { class: 'mpick', title: 'Select for download' }, pick),
+      h('b', { class: 'mlab', text: it.l }),
+      h('span', { class: 'mb ' + MKIND[it.k][1], text: MKIND[it.k][0] }),
+      it.k === 'u' ? h('span', { class: 'mb mtimes', text: 'Must know' }) : h('button', { type: 'button', class: 'mb mtimes mclk', title: 'Click to see all ' + times + ' questions with their years', 'aria-label': 'Asked ' + times + ' times: show all', text: 'Asked ' + times + ' times', onclick: () => mustPop(it.l + ' · asked ' + times + ' times', yrs.map(y => y.i), useQb) }),
+      h('span', { class: 'myl' }, h('span', { class: 'mylb', text: it.k === 'u' ? 'Came in:' : 'Years:' }), ...yrs.map(y => h('button', { type: 'button', class: 'myc mclk', title: (y.p || '') + ' · click to see this question', text: mYear(y), onclick: () => mustPop(it.l + ' · ' + mYear(y), [y.i], useQb) }))),
+      it.k === 'u' && it.w ? h('span', { class: 'mwhy', text: it.w }) : null);
+    const qc = useQb ? window.QBX.cardFor(it.r) : null;
+    if (qc) { const nn = qc.querySelector('.qb-num'); if (nn) nn.textContent = String(no); return h('div', { class: 'mitem qb' }, strip, qc); }
+    return h('article', { class: 'mq mitem' }, strip, h('div', { class: 'mqt', text: q.q }), (q.o || []).length ? h('ol', { class: 'mopts' }, q.o.map(o => h('li', { text: o }))) : null, h('div', { class: 'mans', text: 'Answer: ' + q.a }));
+  };
+  const pager = () => {
+    const total = (MS.flat || []).length, start = page * PER, n = Math.min(PER, total - start);
+    const nav = h('nav', { class: 'qb-pager', 'aria-label': 'Pages' }, h('span', { class: 'qb-pinfo', text: total ? (start + 1) + '–' + (start + n) + ' of ' + total : '0' }));
+    const to = p => { page = p; draw(true); view.scrollIntoView({ block: 'start' }); window.scrollTo(0, 0); };
+    const btn = (label, p, on, dis) => nav.append(h('button', { type: 'button', class: 'qb-pbtn' + (on ? ' on' : ''), text: label, disabled: !!dis, 'aria-current': on ? 'page' : null, onclick: () => to(p) }));
+    btn('‹ Prev', page - 1, false, page === 0);
+    const shown = []; for (let p = 0; p < MS.pages; p++) if (p === 0 || p === MS.pages - 1 || Math.abs(p - page) <= 2) shown.push(p);
+    shown.forEach((p, i) => { if (i && p - shown[i - 1] > 1) nav.append(h('span', { class: 'qb-pgap', text: '…' })); btn(String(p + 1), p, p === page); });
+    btn('Next ›', page + 1, false, page === MS.pages - 1);
+    return nav;
+  };
+  /* 3. draw one page: headers at once, questions a few at a time so the page never freezes */
+  const draw = keep => {
+    const D = ++MUST_DRAW;
+    if (!keep) page = 0;
+    compute(); if (page >= MS.pages) page = MS.pages - 1;
+    selInfo(); list.textContent = '';
+    const flat = MS.flat, part = flat.slice(page * PER, page * PER + PER);
+    if (flat.length > PER) list.append(pager());
+    if (!flat.length) { list.append(h('p', { class: 'hint', text: 'No questions match these filters.' })); return; }
+    let curC = null, curT = null, sec = null, tsec = null;
+    const jobs = [];
+    part.forEach((f, i) => {
       if (f.c !== curC) {
         curC = f.c; curT = null;
-        const ykeys = Object.keys(yc[f.c]).sort((a, b) => (b === 'Before 2019' ? -1 : a === 'Before 2019' ? 1 : b === 'Year n/a' ? -1 : a === 'Year n/a' ? 1 : b - a));
+        const ykeys = Object.keys(MS.yc[f.c]).sort((a, b) => (b === 'Before 2019' ? -1 : a === 'Before 2019' ? 1 : b === 'Year n/a' ? -1 : a === 'Year n/a' ? 1 : b - a));
         sec = h('section', { class: 'mch' },
           h('div', { class: 'mchh' }, h('span', { class: 'mchn', text: f.c }), h('h3', { text: chName(f.c) }), h('span', { class: 'mcnt', text: f.n + ' questions' })),
-          h('div', { class: 'myrs', 'aria-label': 'Year-wise count of these questions' }, h('b', { text: 'Year-wise: ' }), ...ykeys.map(k => h('span', { class: 'myr' }, k + ' ', h('b', { text: String(yc[f.c][k]) })))));
+          h('div', { class: 'myrs', 'aria-label': 'Year-wise count of these questions' }, h('b', { text: 'Year-wise: ' }), ...ykeys.map(k => h('span', { class: 'myr' }, k + ' ', h('b', { text: String(MS.yc[f.c][k]) })))));
         list.append(sec);
       }
       if (f.tp !== curT) { curT = f.tp; tsec = h('div', { class: 'mtop' }, h('h4', { text: f.tp })); sec.append(tsec); }
-      const it = f.it, q = BYID.get(it.r), times = it.m.length + 1;
-      const yrs = [it.r, ...it.m].map(id => BYID.get(id)).filter(Boolean).sort((a, b) => (b.y || 0) - (a.y || 0));
-      const pick = h('input', { type: 'checkbox', 'aria-label': 'Select question ' + it.l + ' for download', onchange: e => { if (e.target.checked) MS.sel.add(it.r); else MS.sel.delete(it.r); selInfo(); } }); pick.checked = MS.sel.has(it.r); pick.dataset.r = it.r;
-      const strip = h('div', { class: 'mstrip' },
-        h('label', { class: 'mpick', title: 'Select for download' }, pick),
-        h('b', { class: 'mlab', text: it.l }),
-        h('span', { class: 'mb ' + MKIND[it.k][1], text: MKIND[it.k][0] }),
-        it.k === 'u' ? h('span', { class: 'mb mtimes', text: 'Must know' }) : h('button', { type: 'button', class: 'mb mtimes mclk', title: 'Click to see all ' + times + ' questions with their years', 'aria-label': 'Asked ' + times + ' times: show all', text: 'Asked ' + times + ' times', onclick: () => mustPop(it.l + ' \u00b7 asked ' + times + ' times', yrs.map(y => y.i), useQb) }),
-        h('span', { class: 'myl' }, h('span', { class: 'mylb', text: it.k === 'u' ? 'Came in:' : 'Years:' }), ...yrs.map(y => h('button', { type: 'button', class: 'myc mclk', title: (y.p || '') + ' \u00b7 click to see this question', text: mYear(y), onclick: () => mustPop(it.l + ' \u00b7 ' + mYear(y), [y.i], useQb) }))),
-        it.k === 'u' && it.w ? h('span', { class: 'mwhy', text: it.w }) : null);
-      const qc = useQb ? window.QBX.cardFor(it.r) : null; if (qc) { const nn = qc.querySelector('.qb-num'); if (nn) nn.textContent = String(page * PER + (++num)); }
-      if (qc) { tsec.append(h('div', { class: 'mitem qb' }, strip, qc)); return; }
-      const opts = (q.o || []).length ? h('ol', { class: 'mopts' }, q.o.map(o => h('li', { text: o }))) : null;
-      tsec.append(h('article', { class: 'mq' }, strip, h('div', { class: 'mqt', text: q.q }), opts, h('div', { class: 'mans', text: 'Answer: ' + q.a })));
+      const slot = h('div', { class: 'mslot' }); tsec.append(slot); jobs.push([slot, f, page * PER + i + 1]);
     });
-    if (MS.key && part.length) list.append(h('section', { class: 'mkeybox' }, h('h3', { text: 'Answer key' }), h('div', { class: 'keyflow' }, part.map((f, i) => { const q = BYID.get(f.it.r) || {}; return h('span', { class: 'kitem' }, h('b', { text: (page * PER + i + 1) + '.' }), h('span', { text: ' ' + (q.a || '\u2014') })); }))));
-    if (flat.length > PER) list.append(pager(page * PER, part.length, flat.length));
-    msg.innerHTML = '<b>' + flat.length + '</b> questions to solve first' + (MS.chs.length === 1 ? ' in ' + MS.chs[0] + ' ' + chName(MS.chs[0]) : MS.chs.length ? ' in ' + MS.chs.length + ' chapters' : ' across all chapters') + (flat.length > PER ? ' \u00b7 showing ' + (page * PER + 1) + '-' + (page * PER + part.length) : '') + '.';
-    if (!flat.length) list.append(h('p', { class: 'hint', text: 'No questions match these filters.' }));
-    math(list);
+    if (MS.key && part.length) list.append(h('section', { class: 'mkeybox' }, h('h3', { text: 'Answer key' }), h('div', { class: 'keyflow' }, part.map((f, i) => { const q = BYID.get(f.it.r) || {}; return h('span', { class: 'kitem' }, h('b', { text: (page * PER + i + 1) + '.' }), ' ' + (q.a || '')); }))));
+    if (flat.length > PER) list.append(pager());
+    const BATCH = 4;
+    const step = () => {
+      if (D !== MUST_DRAW || !alive()) return;   /* a newer draw has started */
+      const chunk = jobs.splice(0, BATCH), nodes = chunk.map(([slot, f, no]) => { const n = item(f, no); slot.replaceWith(n); return n; });
+      nodes.forEach(n => math(n));
+      if (jobs.length) requestAnimationFrame(step);
+    };
+    step();
   };
   MS.redraw = () => draw(true);
-  const seg = (items, cur, set) => h('div', { class: 'seg' }, items.map(([k, t]) => h('button', { type: 'button', 'aria-pressed': String(cur() === k), text: t, onclick: e => { set(k); e.currentTarget.parentNode.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === e.currentTarget))); draw(); } })));
+  const seg = (items, cur, set) => h('div', { class: 'seg' }, items.map(([k, t]) => h('button', { type: 'button', 'aria-pressed': String(cur() === k), text: t, onclick: e => { set(k); e.currentTarget.parentNode.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === e.currentTarget))); remember(); draw(); } })));
   const chSel = msel('mustCh', 'chapters'), chItems = chs.map(c => [c.c, c.c + ' ' + c.n]);
-  const fillCh = () => mfill('mustCh', chItems, MS.chs, v => { MS.chs = v; draw(); fillCh(); }, 'chapters', { none: 'All chapters' });
-  const lvBtns = h('div', { class: 'seg' }, ['L1', 'L2', 'L3'].map(l => h('button', { type: 'button', 'aria-pressed': String(MS.lv.includes(l)), text: l, onclick: e => { MS.lv = MS.lv.includes(l) ? MS.lv.filter(x => x !== l) : MS.lv.concat(l); e.currentTarget.setAttribute('aria-pressed', String(MS.lv.includes(l))); draw(); } })));
+  const fillCh = () => { MS.chs = mfill('mustCh', chItems, MS.chs, v => { MS.chs = v; remember(); draw(); fillCh(); }, 'chapters', { none: 'All chapters' }); };
+  const lvBtns = h('div', { class: 'seg' }, ['L1', 'L2', 'L3'].map(l => h('button', { type: 'button', 'aria-pressed': String(MS.lv.includes(l)), text: l, onclick: e => {
+    const next = MS.lv.includes(l) ? MS.lv.filter(x => x !== l) : MS.lv.concat(l); if (!next.length) { toast('Keep at least one level on'); return; }
+    MS.lv = next; e.currentTarget.setAttribute('aria-pressed', String(MS.lv.includes(l))); remember(); draw(); } })));
+  const search = h('input', { type: 'search', class: 'mfind', placeholder: 'Find by topic, name or code', 'aria-label': 'Find a question', value: MS.q, oninput: e => { clearTimeout(search._t); search._t = setTimeout(() => { MS.q = e.target.value; draw(); }, 180); } });
+  const tick = on => { (MS.flat || []).forEach(f => { if (on) MS.sel.add(f.it.r); else MS.sel.delete(f.it.r); }); list.querySelectorAll('.mpick input').forEach(c => { c.checked = MS.sel.has(c.dataset.r); }); selInfo(); };
   view.textContent = '';
   /* top of the side panel, like the Question Bank: count, switches, Save as worksheet, Create test + Export menu */
   const mRow = wsRow('must') || h('div', { class: 'wsrow' });
@@ -1405,14 +1511,18 @@ async function renderMust() {
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Chapters (tick one or many)' }), chSel),
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Type' }), seg([['all', 'All'], ['e', 'Exact repeat'], ['i', 'Similar type'], ['u', 'Sure-shot']], () => MS.kind, k => { MS.kind = k; })),
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Level' }), lvBtns),
+    h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Find' }), search),
     h('div', { class: 'fld' }, h('span', { class: 'lbl', text: 'Choose questions' }),
       h('div', { class: 'mselbar' }, h('button', { type: 'button', class: 'btn', text: 'Select all shown', onclick: () => tick(true) }), h('button', { type: 'button', class: 'btn', text: 'Clear', onclick: () => tick(false) })),
       selCnt),
     h('div', { class: 'mlegend' }, h('p', { class: 'hint', html: '<b>Exact repeat:</b> the same question came again. <b>Similar type:</b> the same idea and method, different numbers or wording. <b>Sure-shot:</b> a standard JEE must-know picked by us.' })))),
-    h('div', { class: 'stage' }, list));   /* the count line above the list was removed; the side panel shows the count */
-  draw(); fillCh();
-  KATEX_P && KATEX_P.then(() => math(list)).catch(() => {});
+    h('div', { class: 'stage' }, list));
+  fillCh(); draw();
+  /* the Question Bank's cards need the bank to be built: start it now and swap the plain cards for them as soon as it is ready */
+  qbInit().then(async () => { for (let k = 0; k < 300 && alive() && !qbReady(); k++) await new Promise(r => setTimeout(r, 100)); if (alive() && qbReady() && !useQb) { useQb = true; draw(true); } }).catch(() => { /* the plain cards stay */ });
+  KATEX_P && KATEX_P.then(() => { if (alive()) math(list); }).catch(() => {});
 }
+
 const chName0 = c => (CHMAP.get(c) || { n: c }).n;
 function mustPages() {
   const all = (MS.flat || []).filter(f => BYID.get(f.it.r)), chosen = all.filter(f => MS.sel.has(f.it.r)), flat = chosen.length ? chosen : all;
@@ -1464,17 +1574,18 @@ function syncQbPop(t) {
   });
 }
 function setTab(t) {
+  if (t === 'lib') DPPMIX = false;   /* the DPPs tab always opens on the seven blocks */
   if (t === 'pyq') { pyqShow(); return; }
   const pv = $('#viewPyq'); if (pv) pv.hidden = true;
   setTabInner(t);
 }
-function hideViews() { ['Qb', 'Lib', 'Cw', 'Sw', 'Ho', 'Must', 'Syl', 'Pyq', 'Portal'].forEach(n => { const e = $('#view' + n); if (e) e.hidden = true; }); }
+function hideViews() { ['Qb', 'Dpp', 'Lib', 'Cw', 'Sw', 'Ho', 'Must', 'Syl', 'Pyq', 'Portal'].forEach(n => { const e = $('#view' + n); if (e) e.hidden = true; }); }
 function setTabInner(t) {
-  hideViews(); const v = $('#view' + ({ qb: 'Qb', lib: 'Lib', cw: 'Cw', sw: 'Sw', ho: 'Ho', must: 'Must', syl: 'Syl' })[t]); if (v) v.hidden = false;
+  hideViews(); const v = $('#view' + ({ qb: 'Qb', lib: (DPPMIX ? 'Lib' : 'Dpp'), cw: 'Cw', sw: 'Sw', ho: 'Ho', must: 'Must', syl: 'Syl' })[t]); if (v) v.hidden = false;
   if (window.AvantiPortal) window.AvantiPortal.leave();
   document.querySelectorAll('[data-act="tab"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === t)));
   syncQbPop(t);
-  if (t === 'qb') qbInit(); else if (t === 'syl') renderSyl(); else if (t === 'ho') renderHandouts(); else if (t === 'must') ensureDpp().then(renderMust); else if (t === 'cw' || t === 'sw') ensureDpp().then(() => { renderPdfTab(t); setTimeout(rescale, 0); }); else ensureDpp().then(() => { renderLib(); setTimeout(rescale, 0); });
+  if (t === 'qb') qbInit(); else if (t === 'syl') renderSyl(); else if (t === 'ho') renderHandouts(); else if (t === 'must') ensureDpp().then(renderMust); else if (t === 'cw' || t === 'sw') ensureDpp().then(() => { renderPdfTab(t); setTimeout(rescale, 0); }); else if (t === 'lib' && !DPPMIX) ensureDpp().then(renderDppHome); else ensureDpp().then(() => { renderLib(); setTimeout(rescale, 0); });
   setTimeout(rescale, 0);
 }
 
@@ -1924,6 +2035,7 @@ function buildShell() {
         h('nav', { class: 'tb-menu' }, tb('qb', 'Question Bank', true), tb('lib', 'DPPs'), tb('pyq', 'PYQs'), tb('must', 'Must Solve'), tb('ho', 'Handouts'), tb('tests', 'Tests'), h('div', { class: 'tb-prof', id: 'tbProfile' }))),
       h('main', { class: 'main' },
         h('div', { id: 'viewQb', class: 'qbhost' }),
+        h('div', { id: 'viewDpp', class: 'dpph', hidden: true }),
         h('div', { id: 'viewLib', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
         h('div', { id: 'viewPyq', class: 'pyqpick', hidden: true }),
         h('div', { id: 'viewCw', class: 'make', hidden: true }, h('p', { class: 'hint', text: 'Loading\u2026' })),
@@ -1948,6 +2060,7 @@ function buildLib() {
   return h('div', { id: 'viewLib', class: 'make' },
     h('div', { class: 'rail' },
       h('div', { class: 'card' },
+        h('button', { type: 'button', class: 'btn dpp-back', text: '\u2039 All DPPs', onclick: () => { DPPMIX = false; setTab('lib'); } }),
         h('h3', { text: 'Topicwise DPPs (After every class)' }),
         h('p', { class: 'hint', id: 'libNote' }),
         h('div', { class: 'tglrow' },
