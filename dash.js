@@ -17,7 +17,7 @@ const EXAMS = [
   { slug: 'nda', name: 'NDA', short: 'NDA', tone: '#b45309', banks: ['NDA'], logo: 'img/exams/nda.webp' },
   { slug: 'iat', name: 'IAT', short: 'IAT', tone: '#db2777', banks: ['IAT'], logo: 'img/exams/iat.webp' },
   { slug: 'cuet', name: 'CUET', short: 'CUET', tone: '#0891b2', banks: [] },
-  { slug: 'cbse-12', name: 'CBSE Class 12 Boards', short: 'CBSE', tone: '#dc2626', banks: [], note: 'Code 041' }
+  { slug: 'cbse-12', name: 'CBSE Class 12 Boards', short: 'CBSE', tone: '#dc2626', banks: ['CBSE', 'CBSE 12'], note: 'Code 041' }
 ];
 const EX = Object.fromEntries(EXAMS.map(e => [e.slug, e]));
 const EXAM_OF_BANK = {}; EXAMS.forEach(e => e.banks.forEach(b => { EXAM_OF_BANK[b] = e.slug; }));
@@ -615,13 +615,13 @@ async function route() {
 }
 /* The Tests pages (portal.js) ask the Question Bank engine for the questions. On the dashboard that engine is not loaded, so the same list is built here from
    the dashboard's own data. Downloads (PDF of a paper or an answer sheet) are made by the Question Bank, so those open there. */
-const QB_EXAM = { 'JEE Main': 'Main', 'AIEEE': 'Main', 'JEE Advanced': 'Adv', 'IIT': 'Adv', 'KCET': 'KCET', 'IAT': 'IAT', 'NDA': 'NDA' };
+const QB_EXAM = { 'JEE Main': 'Main', 'AIEEE': 'Main', 'JEE Advanced': 'Adv', 'IIT': 'Adv', 'KCET': 'KCET', 'IAT': 'IAT', 'NDA': 'NDA', 'CBSE': 'CBSE', 'CBSE 12': 'CBSE' };
 function qbCompact(r, figs) {
   const e = QB_EXAM[r.exam]; if (!e) return null;
   const P = r.source === 'PYQ';
   let o = r.options || []; if (typeof o === 'string') { try { o = JSON.parse(o); } catch (x) { o = []; } }
   const q = { i: String(r.id), s: P ? 'P' : 'N', e, y: P && r.year != null && r.year !== '' ? Number(r.year) : null, p: r.paper, t: r.type, cc: r.chapter_code, tc: String(r.topic_code || '').replace(/^JM-/, ''), tp: r.topic || '', d: r.difficulty, q: r.question || '', o, a: r.answer == null ? '' : String(r.answer) };
-  if (!P) { q.pb = r.publisher || 'Practice'; q.sec = r.section || ''; if (r.pyq) q.pq = r.pyq_ref || ''; }
+  if (!P) { q.pb = r.publisher || 'Practice'; q.sec = r.section || ''; if (r.pyq) q.pq = r.pyq_ref || ''; } else if (r.section) q.sec = r.section;
   if (r.oos) q.oo = 1;
   const f = r.figure && r.figure.svg ? r.figure : figs && figs[r.id] && figs[r.id].svg ? figs[r.id] : null; if (f) q.f = f;
   return q;

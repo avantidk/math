@@ -991,9 +991,9 @@ async function pageMyTests() {
 }
 
 /* ---------- My Performance: every account takes past papers for itself ---------- */
-const PAPER_EXAMS = ['JEE Main', 'JEE Advanced', 'IIT-JEE', 'AIEEE', 'KCET', 'NDA', 'IAT'];
-const PAPER_LABEL = { 'JEE Main': 'JEE Main', 'JEE Advanced': 'JEE Advanced', 'IIT-JEE': 'IIT-JEE (2000–2012)', 'AIEEE': 'AIEEE (2002–2012)', 'KCET': 'Karnataka CET (KCET)', 'NDA': 'NDA (UPSC)', 'IAT': 'IISER Aptitude Test (IAT)' };
-const examOfQ = x => x.e === 'KCET' ? 'KCET' : x.e === 'IAT' ? 'IAT' : x.e === 'NDA' ? 'NDA' : x.e === 'Adv' ? (x.y < 2013 ? 'IIT-JEE' : 'JEE Advanced') : (x.y < 2013 ? 'AIEEE' : 'JEE Main');
+const PAPER_EXAMS = ['JEE Main', 'JEE Advanced', 'IIT-JEE', 'AIEEE', 'KCET', 'NDA', 'IAT', 'CBSE 12'];
+const PAPER_LABEL = { 'JEE Main': 'JEE Main', 'JEE Advanced': 'JEE Advanced', 'IIT-JEE': 'IIT-JEE (2000–2012)', 'AIEEE': 'AIEEE (2002–2012)', 'KCET': 'Karnataka CET (KCET)', 'NDA': 'NDA (UPSC)', 'IAT': 'IISER Aptitude Test (IAT)', 'CBSE 12': 'CBSE Class 12 Boards' };
+const examOfQ = x => x.e === 'CBSE' ? 'CBSE 12' : x.e === 'KCET' ? 'KCET' : x.e === 'IAT' ? 'IAT' : x.e === 'NDA' ? 'NDA' : x.e === 'Adv' ? (x.y < 2013 ? 'IIT-JEE' : 'JEE Advanced') : (x.y < 2013 ? 'AIEEE' : 'JEE Main');
 /* Time and marking of every exam come from the database (table marking_schemes, one row per exam and effective year, so a yearly change never
    touches old results). These are used only if that table cannot be read. */
 const SCHEME_FALLBACK = {
@@ -1021,6 +1021,7 @@ const markText = sc => {
 const tq = q => {
   const x = snap(q), ok = gradable(q), written = q.t === 'Subjective';
   const o = { id: x.id, type: written ? 'WRITTEN' : x.type, q: x.q, o: x.o, a: x.a || '', ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' };
+  if (q.e === 'CBSE' && /^[A-E]$/i.test(String(q.sec || ''))) o.sec = String(q.sec).toUpperCase();   /* CBSE Class 12: the section decides the marks (B to E are shown as 4 options) */
   if (!ok) o.nk = true;   /* no answer key we can mark (or a written answer): shown in the test, not marked, answer shown in the review */
   return o;
 };
@@ -1177,7 +1178,7 @@ async function modeCustom() {
   const count = (f) => all.filter(f).length;
   const exams = Object.keys(EXN).filter(k => count(q => exOf(q) === k)), books = [...new Set(all.map(bookOf).filter(Boolean))].sort();
   const types = ['MCQ', 'MSQ', 'Numerical'].filter(t => count(q => q.t === t));
-  const S = { ex: new Set(['Main']), bk: new Set(), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 20, mins: 60, auto: true, per: 3, scheme: 'JEE Main', title: '' };
+  const S = { ex: new Set(['Main']), bk: new Set(), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 25, mins: 75, auto: true, per: 3, scheme: 'JEE Main', title: '' };
   const schemeNames = Object.keys(SC).filter(k => SC[k] && SC[k].rules);
   const pool = () => all.filter(q => (q.s === 'P' ? S.ex.has(q.e) && (!q.y || (q.y >= S.y1 && q.y <= S.y2)) : S.bk.has(bookOf(q)) && !free) && (!S.ch.size || S.ch.has(q.cc)) && S.lv.has(q.d) && S.ty.has(q.t) && (!S.skip || done[q.i] !== 'c'));
   const tog = (set, k, min) => { if (set.has(k)) { if (!min || set.size > min) set.delete(k); } else set.add(k); };
@@ -1186,12 +1187,12 @@ async function modeCustom() {
   const exBox = h('div', { class: 'cp-chips' }), bkBox = h('div', { class: 'cp-chips' }), lvBox = h('div', { class: 'cp-chips' }), tyBox = h('div', { class: 'cp-chips' }), chBox = h('div', { class: 'cp-chs' }), sumBox = h('aside', { class: 'cp-sum' });
   const yr1 = h('select', { class: 'pt-in', 'aria-label': 'From year', onchange: e => { S.y1 = +e.target.value; if (S.y1 > S.y2) { S.y2 = S.y1; yr2.value = S.y2; } draw(); } }), yr2 = h('select', { class: 'pt-in', 'aria-label': 'To year', onchange: e => { S.y2 = +e.target.value; if (S.y2 < S.y1) { S.y1 = S.y2; yr1.value = S.y1; } draw(); } });
   for (let y = yMax; y >= yMin; y--) { yr1.append(h('option', { value: y, text: y })); yr2.append(h('option', { value: y, text: y })); } yr1.value = S.y1; yr2.value = S.y2;
-  const nIn = h('input', { type: 'number', class: 'pt-in', min: 3, max: 100, value: S.n, 'aria-label': 'Number of questions', oninput: e => { S.n = Math.max(3, Math.min(100, +e.target.value || 3)); if (S.auto) { S.mins = S.n * S.per; minIn.value = S.mins; } draw(true); } });
+  const nIn = h('div', { class: 'pt-in cp-fixed', 'aria-label': 'Number of questions', text: '25 questions (always)' });
   const minIn = h('input', { type: 'number', class: 'pt-in', min: 5, max: 360, value: S.mins, 'aria-label': 'Time in minutes', oninput: e => { S.auto = false; S.mins = Math.max(5, Math.min(360, +e.target.value || 5)); draw(true); } });
   const perSel = h('select', { class: 'pt-in', 'aria-label': 'Time per question', onchange: e => { S.per = +e.target.value; S.auto = true; S.mins = S.n * S.per; minIn.value = S.mins; draw(true); } }, [[2, '2 min per question (fast)'], [3, '3 min per question (exam pace)'], [4, '4 min per question (relaxed)']].map(([v, t]) => h('option', { value: v, text: t, selected: v === 3 })));
   const scSel = h('select', { class: 'pt-in', 'aria-label': 'Marking scheme', onchange: e => { S.scheme = e.target.value; draw(true); } }, schemeNames.map(k => h('option', { value: k, text: k + ' (' + markText(SC[k]) + ')', selected: k === S.scheme })));
   const ordSel = h('select', { class: 'pt-in', 'aria-label': 'Order of questions', onchange: e => { S.order = e.target.value; } }, [['random', 'Random'], ['even', 'Chapters mixed evenly'], ['easy', 'Easy to hard']].map(([v, t]) => h('option', { value: v, text: t })));
-  const titleIn = h('input', { type: 'text', class: 'pt-in', maxlength: 80, placeholder: 'My practice test (optional name)', 'aria-label': 'Test name', oninput: e => { S.title = e.target.value.trim(); } });
+  const titleIn = h('input', { type: 'text', class: 'pt-in', maxlength: 80, placeholder: 'Your Practice Test', 'aria-label': 'Test name', oninput: e => { S.title = e.target.value.trim(); } });
   const skipBox = h('label', { class: 'cp-check' }, h('input', { type: 'checkbox', checked: true, onchange: e => { S.skip = e.target.checked; draw(); } }), h('span', {}, h('b', { text: 'Skip questions I have already solved correctly' }), h('small', { text: 'Keeps the test fresh. Uses your own results.' })));
   const go = h('button', { type: 'button', class: 'btn pri pt-big', text: 'Start test', onclick: async () => {
     go.disabled = true;
@@ -1200,7 +1201,7 @@ async function modeCustom() {
       if (S.order === 'even') qs = pickN(P2, S.n, true, new Set()); else qs = P2.slice(0, S.n);
       if (S.order === 'easy') qs = qs.slice().sort((a, b) => (a.d || 'L2').localeCompare(b.d || 'L2'));
       const chs = [...new Set(qs.map(q => q.cc))];
-      await launchTest({ title: S.title || 'Practice test · ' + (S.ch.size === 1 ? (CHN.get([...S.ch][0]) || {}).n : S.ch.size ? S.ch.size + ' chapters' : 'all chapters') + (chs.length ? '' : ''), qs, exam: S.scheme, mins: S.mins, key: 'custom' });
+      await launchTest({ title: S.title || 'Your Practice Test', qs, exam: S.scheme, mins: S.mins, key: 'custom' });
     } catch (e) { toast(e.message); go.disabled = false; } } });
   function draw(light) {
     const avail = pool().length, n = Math.min(S.n, avail);
@@ -1287,7 +1288,16 @@ async function modeFull() {
       } catch (err) { toast(err.message); b.disabled = false; } } },
       h('b', { text: ex }), h('small', { text: (sc.n_questions || '') + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }),
       sc.rules.notes && ex === 'JEE Advanced' ? h('small', { class: 'pt-hint', text: '14 questions today: Section 4 needs paragraph questions.' }) : null, h('span', { class: 'pp-go', text: 'Start ›' })); }).filter(Boolean);
-  cards.push(h('div', { class: 'pp-card is-off', 'aria-disabled': 'true' }, h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: 'Code 041 · 3 hours · coming soon' })));
+  /* CBSE Class 12 (Code 041): 38 questions, 80 marks, 3 hours. Section A is MCQ; sections B to E are written-answer questions that the bank holds as 4 options (or several correct options), made from the uploaded solutions. */
+  const cbse = SC['CBSE 12'], cbq = B.qs.filter(q => q.e === 'CBSE' && gradable(q)), bySec = k => cbq.filter(q => String(q.sec || '').toUpperCase() === k);
+  const cbMix = (cbse && cbse.rules && cbse.rules.mix) || { A: 20, B: 5, C: 6, D: 4, E: 3 }, cbReady = cbq.length >= 38 && Object.keys(cbMix).every(k => bySec(k).length >= cbMix[k]);
+  cards.push(cbReady ? h('button', { type: 'button', class: 'pp-card', onclick: async e => {
+      const b = e.currentTarget; b.disabled = true;
+      try { const used = new Set(), qs = []; Object.keys(cbMix).forEach(k => qs.push(...pickN(bySec(k), cbMix[k], true, used)));
+        await launchTest({ title: 'CBSE Class 12 full length mock', qs, exam: 'CBSE 12', mins: null, key: 'full-cbse' });
+      } catch (err) { toast(err.message); b.disabled = false; } } },
+      h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: '38 questions · ' + (cbse ? cbse.duration_min : 180) + ' min · 80 marks · no negative marking' }), h('small', { class: 'pt-hint', text: 'Sections A to E. Written-answer sections are shown as options.' }), h('span', { class: 'pp-go', text: 'Start ›' }))
+    : h('div', { class: 'pp-card is-off', 'aria-disabled': 'true' }, h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: 'Code 041 · 3 hours · 38 questions · 80 marks · coming soon' })));
   show(modeHead('Full Length Mock', 'Mixed chapters. PYQs and practice questions together, with the official duration and marking of the exam.'), h('div', { class: 'pp-papers' }, cards));
 }
 /* Export the questions of a finished test as a PDF: only questions, with the answer key, or with the key and full explanations */
@@ -1511,10 +1521,11 @@ async function pageTake(code) {
 let EX = null;
 const TYPE_NAME = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct', Numerical: 'Numerical value', Matching: 'Matching (single correct)', SUBJ: 'Written question: pick the final answer', WRITTEN: 'Written question (not auto-marked)' };
 /* the marking scheme by question type, shown before the test starts */
+const SEC_NAME = { A: 'Section A · MCQ and Assertion-Reason', B: 'Section B · Very Short Answer (VSA)', C: 'Section C · Short Answer (SA)', D: 'Section D · Long Answer (LA)', E: 'Section E · Case Study / Source-Based' };
 function schemeTable(info) {
   const secs = info.sections || []; if (!secs.length) return h('p', { class: 'pt-hint', text: 'Correct +' + num(info.marks_correct, 2) + ' · wrong −' + num(info.marks_wrong, 2) });
   const row = x => { const unmarked = +x.c === 0;
-    return h('tr', {}, h('th', { scope: 'row', text: TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
+    return h('tr', {}, h('th', { scope: 'row', text: x.sec && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
       h('td', { class: 'pt-num', text: unmarked ? 'not marked' : '+' + num(x.c, 2) + (x.p ? ' (partial marks possible)' : '') }),
       h('td', { class: 'pt-num', text: unmarked ? '—' : x.w != null ? (+x.w ? '−' + num(x.w, 2) : '0') : (x.type === 'MCQ' || x.type === 'Matching') ? (+info.marks_wrong ? '−' + num(info.marks_wrong, 2) : '0') : '0' })); };
   const unm = secs.filter(x => +x.c === 0).reduce((a, x) => a + x.n, 0);

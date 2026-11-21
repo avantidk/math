@@ -1001,10 +1001,10 @@ language sql stable security definer set search_path = public as $$
            'for_me', public.test_block_reason(t, me) is null, 'blocked', public.test_block_reason(t, me), 'audience', t.audience,
            'school_pending', public.approved_school(me) is null and not public.admin_of(me),
            'max_marks', (select coalesce(sum(coalesce((e -> 'm' ->> 'c')::numeric, t.marks_correct)), 0) from jsonb_array_elements(t.questions) e),
-           'sections', (select coalesce(json_agg(json_build_object('type', k.type, 'n', k.n, 'c', k.c, 'w', k.w, 'p', k.p) order by k.first), '[]'::json) from (
-               select e ->> 'type' as type, count(*) as n, coalesce((e -> 'm' ->> 'c')::numeric, t.marks_correct) as c, (e -> 'm' ->> 'w')::numeric as w,
+           'sections', (select coalesce(json_agg(json_build_object('sec', k.sec, 'type', k.type, 'n', k.n, 'c', k.c, 'w', k.w, 'p', k.p) order by k.first), '[]'::json) from (
+               select e ->> 'sec' as sec, e ->> 'type' as type, count(*) as n, coalesce((e -> 'm' ->> 'c')::numeric, t.marks_correct) as c, (e -> 'm' ->> 'w')::numeric as w,
                       coalesce((e -> 'm' ->> 'p')::boolean, false) as p, min(o) as first
-                 from jsonb_array_elements(t.questions) with ordinality z(e, o) group by 1, 3, 4, 5) k))
+                 from jsonb_array_elements(t.questions) with ordinality z(e, o) group by 1, 2, 4, 5, 6) k))
     from public.tests t
     join public.profiles me on me.id = auth.uid()
     left join public.profiles o on o.id = t.owner_id
@@ -2134,6 +2134,9 @@ insert into public.marking_schemes (exam, effective_year, label, duration_min, n
  ('CUET', 2027, 'CUET (Maths)', 60, 50, 250, '{"types":{"MCQ":{"c":5,"w":1}},"mix":{"MCQ":50},"notes":"Slot length set to 60 minutes: change it here if the slot differs."}'),
  ('CBSE 12', 2027, 'CBSE Class 12 Maths (Code 041)', 180, 38, 80, '{"types":{"MCQ":{"c":1,"w":0}},"sections":{"A":{"c":1,"w":0},"B":{"c":2,"w":0},"C":{"c":3,"w":0},"D":{"c":5,"w":0},"E":{"c":4,"w":0}},"mix":{"A":20,"B":5,"C":6,"D":4,"E":3},"notes":"Sections B to E use the 8-choice Expand Options answer."}')
 on conflict (exam, effective_year) do nothing;
+-- CBSE Class 12: Section A 20 x 1, B 5 x 2, C 6 x 3, D 4 x 5, E 3 x 4 = 38 questions, 80 marks, 3 hours, no negative marking. In a test, Sections B to E
+-- (written-answer sections) are shown as 4 options (or several correct options) made from the uploaded solutions.
+update public.marking_schemes set rules = '{"types":{"MCQ":{"c":1,"w":0},"MSQ":{"c":1,"w":0}},"sections":{"A":{"c":1,"w":0},"B":{"c":2,"w":0},"C":{"c":3,"w":0},"D":{"c":5,"w":0},"E":{"c":4,"w":0}},"mix":{"A":20,"B":5,"C":6,"D":4,"E":3},"notes":"Sections B to E are written-answer sections: in a test they are shown as 4 options (or several correct options)."}'::jsonb where exam = 'CBSE 12' and effective_year = 2027;
 
 create or replace function public.marking_schemes() returns json
 language sql stable security definer set search_path = public as $$

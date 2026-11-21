@@ -472,3 +472,4 @@ body.dpop-on { overflow: hidden; }
 .d-sel-fixed { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); font: 700 14px var(--font-body); }
 .pp-exams .pp-chip[data-n]::after { content: attr(data-n); margin-left: 8px; font: 700 11px var(--font-body); background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 99px; }
 .pp-exams .pp-chip[data-n][aria-pressed="true"]::after { background: rgba(255,255,255,.22); color: #fff; }
+.cp-fixed { display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
