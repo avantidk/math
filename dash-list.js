@@ -250,6 +250,7 @@ function render(env, o) {
     h('div', { class: 'dl-filters' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, statusMenu, levelMenu, types.length ? multi('Type', types, F.types, null, v => pool.filter(r => typeOf(r) === v).length) : null),
     h('div', { class: 'dl-bar' }, count, h('label', { class: 'dl-sortw' }, h('span', { html: ICON.sort }), sortSel)),
     ul, pager);
+  if (o.head) o.head.querySelectorAll('.d-crumb').forEach(c => c.classList.add('d-crumb-sr'));   /* kept in the page, not shown */
   main(o.head || null, wrap);
   env.mathReady().then(() => { apply(); }); apply();
 }

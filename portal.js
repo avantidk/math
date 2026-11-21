@@ -992,6 +992,7 @@ async function pageMyTests() {
 
 /* ---------- My Performance: every account takes past papers for itself ---------- */
 const PAPER_EXAMS = ['JEE Main', 'JEE Advanced', 'IIT-JEE', 'AIEEE', 'KCET', 'NDA', 'IAT'];
+const PAPER_LABEL = { 'JEE Main': 'JEE Main', 'JEE Advanced': 'JEE Advanced', 'IIT-JEE': 'IIT-JEE (2000–2012)', 'AIEEE': 'AIEEE (2002–2012)', 'KCET': 'Karnataka CET (KCET)', 'NDA': 'NDA (UPSC)', 'IAT': 'IISER Aptitude Test (IAT)' };
 const examOfQ = x => x.e === 'KCET' ? 'KCET' : x.e === 'IAT' ? 'IAT' : x.e === 'NDA' ? 'NDA' : x.e === 'Adv' ? (x.y < 2013 ? 'IIT-JEE' : 'JEE Advanced') : (x.y < 2013 ? 'AIEEE' : 'JEE Main');
 /* Time and marking of every exam come from the database (table marking_schemes, one row per exam and effective year, so a yearly change never
    touches old results). These are used only if that table cannot be read. */
@@ -1066,7 +1067,7 @@ async function pagePersonal(arg) {
   };
   const drawPapers = () => {
     examBar.textContent = '';
-    PAPER_EXAMS.forEach(e => { const n = papersOf(B, e).length; if (n) examBar.append(h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(e === exam), text: e + ' (' + n + ')', onclick: () => { exam = e; drawPapers(); } })); });
+    PAPER_EXAMS.forEach(e => { const n = papersOf(B, e).length; if (n) examBar.append(h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(e === exam), text: PAPER_LABEL[e] || e, 'data-n': n, onclick: () => { exam = e; drawPapers(); } })); });
     paperBox.textContent = '';
     const sc = SC[schemeExam(exam)] || SC['JEE Main'];
     papersOf(B, exam).forEach(pp => { const nm = pp.qs.filter(q => !gradable(q)).length;
@@ -1211,7 +1212,7 @@ async function modeCustom() {
       chBox.textContent = '';
       [['11', 'Class 11'], ['12', 'Class 12']].forEach(([c, t]) => { const L = [...CHN.values()].filter(x => String(x.c).startsWith(c) && count(q => q.cc === x.c)); if (!L.length) return;
         chBox.append(h('div', { class: 'cp-cls' }, h('div', { class: 'cp-cls-h' }, h('b', { text: t }), h('span', {}, h('button', { type: 'button', class: 'mlink', text: 'Select all', onclick: () => { L.forEach(x => S.ch.add(x.c)); draw(); } }), ' · ', h('button', { type: 'button', class: 'mlink', text: 'Clear', onclick: () => { L.forEach(x => S.ch.delete(x.c)); draw(); } }))),
-          h('div', { class: 'cp-chips' }, L.map(x => chip(x.c + ' ' + x.n, S.ch.has(x.c), () => { tog(S.ch, x.c); draw(); })))) ); });
+          h('div', { class: 'cp-chips' }, L.map(x => chip(x.n, S.ch.has(x.c), () => { tog(S.ch, x.c); draw(); })))) ); });
     }
     sumBox.textContent = '';
     const sc = SC[S.scheme] || SC['JEE Main'];

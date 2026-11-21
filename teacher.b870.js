@@ -1885,8 +1885,15 @@ async function qbInit() {
     host.innerHTML = '<div id="dash-root">' + html + '</div>';
     await window.AvantiBoot.loadScript(pre.js || 'qb/qb-all.b870.js');
     await window.__qbStart();
-    try { const o = sessionStorage.getItem('avanti-qbopen'); if (o) { sessionStorage.removeItem('avanti-qbopen'); if (o === 'syl') setTab('syl'); else { const b = document.querySelector('[data-qbpanel="' + o + '"]'); if (b) b.click(); } } } catch (e) { /* optional */ }
-    try { if (window.parent !== window) window.parent.postMessage({ qbReady: 1 }, window.location.origin); } catch (e) { /* not in a pop-up */ }
+    try {   /* opened from a dashboard pop-up: open the panel (retrying until it shows), then tell the pop-up it is ready */
+      const o = sessionStorage.getItem('avanti-qbopen');
+      if (o) {
+        sessionStorage.removeItem('avanti-qbopen'); let n = 0;
+        const shown = () => { const el = o === 'syl' ? $('#viewSyl') : document.getElementById(o); return !!el && !el.hidden; };
+        const ready = () => { try { if (window.parent !== window) window.parent.postMessage({ qbReady: 1 }, window.location.origin); } catch (e) { /* not in a pop-up */ } };
+        const iv = setInterval(() => { if (shown() || ++n > 50) { clearInterval(iv); ready(); return; } if (o === 'syl') setTab('syl'); else { const b = document.querySelector('[data-qbpanel="' + o + '"]'); if (b) b.click(); } }, 300);
+      }
+    } catch (e) { /* optional */ }
   } catch (e) { qbLoaded = false; host.textContent = 'The question bank did not load. Refresh the page.'; }
 }
 /* the Own DPP Maker of the dashboard: the same builder as the DPPs tab here, mounted inside the dashboard page */

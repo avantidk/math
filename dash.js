@@ -263,7 +263,8 @@ function popPage(title, path, qbPanel) {
   const old = document.getElementById('dPop'); if (old) old.remove();
   if (qbPanel) { try { sessionStorage.setItem('avanti-qbopen', qbPanel); } catch (x) { /* optional */ } }
   const frame = h('iframe', { class: 'dpop-f', title, src: '/' + path + '?embed=1', loading: 'eager' }), load = h('div', { class: 'dpop-load' }, h('div', { class: 'spin' }), h('p', { text: 'Loading…' }));
-  const ready = e => { if (e.origin === location.origin && e.data && e.data.qbReady) { load.remove(); window.removeEventListener('message', ready); } };
+  const ready = e => { if (e.origin === location.origin && e.data && e.data.qbReady) { load.remove(); window.removeEventListener('message', ready); clearTimeout(slow); } };
+  const slow = setTimeout(() => { if (!load.isConnected) return; load.textContent = ''; load.append(h('p', { text: 'This is taking longer than usual.' }), h('a', { class: 'btn', href: 'qbank#/qb', text: 'Open the Question Bank' })); }, 30000);
   if (qbPanel) window.addEventListener('message', ready); else frame.addEventListener('load', () => load.remove());
   const close = () => { window.removeEventListener('message', ready); box.remove(); document.removeEventListener('keydown', key); document.body.classList.remove('dpop-on'); };
   const key = e => { if (e.key === 'Escape') close(); };
@@ -287,7 +288,9 @@ function viewPick(k) {
   const pk = PICKS.find(x => x.k === k); if (!pk) return go('d/');
   side({ back: '', title: 'Special picks', sub: 'Quick sets to practise', items: PICKS.map(x => ({ label: x.t, icon: IC.test, hash: 'd/pick/' + x.k, active: x.k === k, badge: String(x.pool().length) })) });
   const rows = pk.pool();
+  const chs = chaptersOf(rows);
   window.DashList.render(listEnv(), { rows, title: pk.title, head: h('div', { class: 'd-head' }, crumb('Dashboard', pk.title)), testLabel: 'Take test', emptyText: 'Nothing here yet.',
+    filters: [{ key: 'ch', label: 'Chapter', values: chs.map(c => [c.chapter_code, c.chapter]), get: r => r.ch }],
     startTest: list => launchTestFrom(list, { chapter: pk.title, chapter_code: 'pick' }, 'pyq', null, 20, 'practice test') });
 }
 const UPCOMING = [['JEE Main 2027 · Session 1', '2027-01-20', 'jee-main'], ['JEE Advanced 2027', '2027-05-23', 'jee-advanced']];
@@ -472,9 +475,9 @@ function viewList(mode, slug, ch, kind, arg) {
     else if (kind === 'must5') { pool = rows.filter(r => mustSet.has(r.id) && last5.has(r.id)); title = 'Must Do Qs of last 5 years'; }
     else { const L = kind.toUpperCase(); pool = rows.filter(r => r.d === L); title = ({ L1: 'Confidence Booster · Level 1 (Easy)', L2: 'Balanced · Level 2 (Moderate)', L3: 'Rank Booster · Level 3 (Tough)' })[L]; }
   }
-  const sub = [c ? c.chapter : ch, mode === 'pyq' && e ? e.name : 'Practice questions'].join(' · ');   /* the list pages open straight on the title: no breadcrumb here */
+  const sub = [c ? c.chapter : ch, mode === 'pyq' && e ? e.name : 'Practice questions'].join(' · ');   /* the breadcrumb stays in the page for navigation and search, but is not shown on list pages */
   window.DashList.render(listEnv(),
-    { rows: pool, title, sub, head: null, practiceLabel: 'Practice ' + what, testLabel: 'Take ' + what + ' Test', emptyText: kind === 'bookmarked' ? 'Tap the bookmark on any question to keep it here.' : 'No questions here yet.',
+    { rows: pool, title, sub, head: h('div', { class: 'd-head' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c ? c.chapter : ch)), practiceLabel: 'Practice ' + what, testLabel: 'Take ' + what + ' Test', emptyText: kind === 'bookmarked' ? 'Tap the bookmark on any question to keep it here.' : 'No questions here yet.',
       startTest: list => launchTestFrom(list, c, mode, e, 20, what.toLowerCase() + ' test') });
 }
 function viewChapter(mode, slug, ch, section, extra) {
@@ -526,16 +529,16 @@ function yearBlocks(rows, yrs, mode) {
 /* ---------- Create Chapter Test ---------- */
 async function launchTestFrom(rows, c, mode, e, count, label) {
   const pool = rows.filter(r => r.ok); if (pool.length < 3) throw new Error('Not enough test-ready questions here yet.');
-  const n = Math.min(count, pool.length), fresh = pool.filter(r => D.sum.results[r.id] !== 'c'), pick = (fresh.length >= n ? fresh : pool).slice();
+  const n = Math.min(25, pool.length), fresh =   /* every test made here has 25 questions */ pool.filter(r => D.sum.results[r.id] !== 'c'), pick = (fresh.length >= n ? fresh : pool).slice();
   for (let i = pick.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pick[i], pick[j]] = [pick[j], pick[i]]; }
   const chosen = pick.slice(0, n); let figs = {}; try { figs = await window.AvantiContent.get('qb/data/figures.json'); } catch (x) { figs = {}; }
   const qs = chosen.map(r => { const x = D.raw.get(r.id), f = figs[r.id]; return { id: r.id, type: x.type, q: x.question, o: x.options || [], a: String(x.answer), ch: x.chapter_code, chn: c.chapter, tp: x.topic || '', f: f && f.svg ? { svg: f.svg } : null, s: r.P ? 'P' : 'N' }; });
-  const r = await A().sb.rpc('create_personal_test', { p_title: c.chapter + (mode === 'pyq' && e ? ' · ' + e.name : '') + ' · ' + label, p_duration_min: n * 3, p_marks_correct: 4, p_marks_wrong: 1, p_questions: qs, p_paper_key: 'chapter-' + c.chapter_code, p_audience: 'self', p_exam: 'JEE Main' });
+  const r = await A().sb.rpc('create_personal_test', { p_title: 'Your Practice Test', p_duration_min: n * 3, p_marks_correct: 4, p_marks_wrong: 1, p_questions: qs, p_paper_key: 'chapter-' + c.chapter_code, p_audience: 'self', p_exam: 'JEE Main' });
   if (r.error) throw new Error(r.error.message);
   location.hash = '#/t/' + r.data.code;
 }
 function testLauncher(rows, c, mode, e) {
-  const pool = rows.filter(r => r.ok), sel = h('select', { class: 'd-sel', 'aria-label': 'Number of questions' }, [10, 20, 30].filter(n => n <= Math.max(10, pool.length)).map(n => h('option', { value: n, text: n + ' questions', selected: n === 20 })));
+  const pool = rows.filter(r => r.ok), sel = h('b', { class: 'd-sel d-sel-fixed', text: '25 questions', value: '25' });
   const msg = h('small', { class: 'd-fine', role: 'status' });
   const btn = h('button', { type: 'button', class: 'btn pri', text: '⚡ Start test', disabled: pool.length < 3, onclick: async ev => {
     ev.stopPropagation(); btn.disabled = true; msg.textContent = 'Getting your questions ready…';

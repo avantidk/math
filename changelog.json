@@ -1,5 +1,15 @@
 [
   {
+    "v": "999",
+    "date": "21 Nov 2026",
+    "items": [
+      "Tests started from the Dashboard (chapter, DPP, special picks) are now called \"Your Practice Test\" and always have 25 questions.",
+      "Previous Year Papers: exam names are clearer (for example IIT-JEE (2000–2012), Karnataka CET (KCET), NDA (UPSC)), with the number of papers shown as a small badge. In Create Your Practice Test the chapters are listed by name only.",
+      "Special picks now have a Chapter filter. Breadcrumbs stay in the page but are no longer shown on question lists.",
+      "The Question Bank overview pop-ups now wait until the panel is really open, retry if it is slow, and offer a link to the Question Bank if it takes too long."
+    ]
+  },
+  {
     "v": "998",
     "date": "21 Nov 2026",
     "items": [
