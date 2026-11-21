@@ -54,11 +54,11 @@ function render(env, o) {
   let list = [], page = 0, openId = '';
   const wrap = h('div', { class: 'dl' }), ul = h('ul', { class: 'dl-list' }), pager = h('nav', { class: 'dl-pager', 'aria-label': 'Pages' }), count = h('span', { class: 'dl-count', role: 'status' });
   let expCount = null;
-  const solved = pool.filter(r => res()[r.id]).length, right = pool.filter(r => res()[r.id] === 'c').length;
+  const att = st => st === 'c' || st === 'w', solved = pool.filter(r => att(res()[r.id])).length, right = pool.filter(r => res()[r.id] === 'c').length;
 
   /* what is shown: filters, then the order */
   const apply = () => {
-    list = pool.filter(r => (!F.hide || !res()[r.id]) && (!F.years.size || F.years.has(r.y)) && (!F.lv.size || F.lv.has(r.d)) && (!F.types.size || F.types.has(typeOf(r)))
+    list = pool.filter(r => (!F.hide || !att(res()[r.id])) && (!F.years.size || F.years.has(r.y)) && (!F.lv.size || F.lv.has(r.d)) && (!F.types.size || F.types.has(typeOf(r)))
       && (!F.status || (F.status === 'u' ? !res()[r.id] : res()[r.id] === F.status)) && (o.filters || []).every(f => !F.extra[f.key].size || F.extra[f.key].has(f.get(r))));
     const key = r => (r.y || 0) * 1e3;
     const chOrd = c => ((env.D.chByCode[c] || {}).order || 999), qn = r => +((env.D.raw.get(r.id) || {}).qno) || 0;
@@ -102,7 +102,8 @@ function render(env, o) {
   /* the three-line menu of a question: subtopic, type, level, bookmark and report an error */
   function rowMenu(r, x, li) {
     const box = menu('', (panel, api) => {
-      const b = api.box.querySelector('.dl-fbtn'); b.className = 'dl-fbtn dl-ico dl-rowmenu'; b.innerHTML = ICON.menu; b.setAttribute('aria-label', 'Question options'); b.addEventListener('click', e => e.stopPropagation());
+      const b = api.box.querySelector('.dl-fbtn'); b.className = 'dl-fbtn dl-ico dl-rowmenu'; b.innerHTML = ICON.menu; b.setAttribute('aria-label', 'Question options');
+      b.addEventListener('click', e => { e.stopPropagation(); requestAnimationFrame(() => { if (panel.hidden) return; const r = b.getBoundingClientRect(), pw = Math.min(280, window.innerWidth * 0.88), ph = panel.offsetHeight, top = r.bottom + 6 + ph > window.innerHeight - 8 ? Math.max(8, r.top - ph - 6) : r.bottom + 6; panel.style.setProperty('position', 'fixed', 'important'); panel.style.setProperty('top', top + 'px', 'important'); panel.style.setProperty('bottom', 'auto', 'important'); panel.style.setProperty('left', Math.max(8, Math.min(window.innerWidth - pw - 8, r.right - pw)) + 'px', 'important'); panel.style.setProperty('right', 'auto', 'important'); panel.style.setProperty('z-index', '600', 'important'); const off = () => { api.close(); window.removeEventListener('scroll', off, true); }; window.addEventListener('scroll', off, true); }); });
       panel.classList.add('dl-pop-r', 'dl-rpop'); panel.addEventListener('click', e => e.stopPropagation());
       const info = (k, v) => h('div', { class: 'dl-ri' }, h('span', { text: k }), h('b', { text: v }));
       const bm = h('button', { type: 'button', class: 'dl-mi dl-mi-bm', 'data-id': r.id, onclick: () => { api.close(); toggleBm(r.id); } });
@@ -206,7 +207,7 @@ function render(env, o) {
     const run = kind => () => { if (!need()) return; env.toast('Preparing the download…'); T().exportIds(ids(), o.title, kind, 'Questions', '', '', { key: S.key, exp: S.exp }).catch(e => env.toast('Could not make the file: ' + ((e && e.message) || 'try again'))); };
     const pdfBlob = async () => { if (!need()) return null; env.toast('Preparing the PDF…'); try { return await T().pdfIds(ids(), o.title, 'Questions', '', ''); } catch (e) { env.toast('Could not make the PDF: ' + ((e && e.message) || 'try again')); return null; } };
     const exp = h('button', { type: 'button', class: 'btn pri dl-xbtn', 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: ICON.down + '<span>Export</span><i aria-hidden="true">▾</i>', onclick: e => P.dropMenu(e.currentTarget, [
-      { icon: P.icons.pdf, text: 'Download PDF', sub: 'Print-ready, with the Avanti header', onclick: run('pdf') },
+      { icon: P.icons.pdf, text: 'Download PDF', sub: 'Print-ready', onclick: run('pdf') },
       can('docx') ? { icon: P.icons.docx, text: 'Download Word', sub: 'Editable document', onclick: run('docx') } : null,
       can('pptx') ? { icon: P.icons.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: run('pptx') } : null,
       '-',
@@ -220,7 +221,7 @@ function render(env, o) {
         can('worksheets') ? h('button', { type: 'button', class: 'btn', text: 'Save as worksheet', onclick: () => { if (need()) P.saveWorksheet(ids(), o.title); } }) : null,
         can('createTests') ? h('button', { type: 'button', class: 'btn', text: 'Create test', onclick: () => { if (need()) P.createTestFrom(ids(), o.title); } }) : null));
   };
-  const practice = () => { const r = list.find(z => !res()[z.id]) || list[0]; if (r) step(list.indexOf(r)); };
+  const practice = () => { const r = list.find(z => !att(res()[z.id])) || list[0]; if (r) step(list.indexOf(r)); };
   const act = (cls, ic, text, fn) => h('button', { type: 'button', class: 'dl-act ' + cls, onclick: fn }, h('b', { text }), h('span', { class: 'dl-act-i', html: ic }));
   const testBtn = act('test', ICON.test, o.testLabel + ' →', async () => { testBtn.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (e) { env.toast(e.message || 'Could not start'); testBtn.disabled = false; } });
 

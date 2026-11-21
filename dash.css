@@ -393,3 +393,6 @@ body.dpop-on { overflow: hidden; }
 .d-collapsed .d-nav-i { justify-content: center; padding: 12px 0; }
 @media (max-width: 900px) { .d-colbtn { display: none; } .d-body.d-collapsed { grid-template-columns: minmax(0, 1fr); } .d-collapsed .d-side-h { display: flex; } .d-collapsed .d-nav-t { display: block; } .d-collapsed .d-nav-i { justify-content: flex-start; padding: 9px 14px; } .d-collapsed .d-side-top { flex-direction: row; } .d-side-top { flex: none; } .d-back-sp { display: none; } }
 .pp-pdf svg { width: 20px; height: 20px; color: var(--ink); }
+/* v994: bigger special-pick cards */
+.dh-pk { flex: 0 0 min(300px, 82%); padding: 20px 22px; gap: 6px; border-radius: 16px; min-height: 132px; justify-content: center; }
+.dh-pk b { font-size: 18px; } .dh-pk small { font-size: 14px; } .dh-pn { margin-top: 10px; font-size: 14px; }

@@ -589,7 +589,7 @@ async function pageWorksheets() {
   const rename = async w => { const t = await promptBox('Rename worksheet', 'Title', w.title); if (!t) return; const { error } = await sb().from('worksheets').update({ title: t, updated_at: new Date().toISOString() }).eq('id', w.id); if (error) toast('Could not rename: ' + error.message); else pageWorksheets(); };
   const del = async w => { if (!await confirmBox('Delete worksheet?', '"' + w.title + '" will be deleted. Tests made from it are not affected.', 'Delete', true)) return; const { error } = await sb().from('worksheets').delete().eq('id', w.id); if (error) toast('Could not delete: ' + error.message); else { toast('Worksheet deleted'); pageWorksheets(); AU().renderMenu(); } };
   const exportBtn = w => can('pdf') ? h('button', { type: 'button', class: 'btn pt-split', 'aria-haspopup': 'menu', 'aria-expanded': 'false', onclick: e => dropMenu(e.currentTarget, [
-      { icon: IC.pdf, text: 'Download PDF', sub: 'Print-ready, with the Avanti header', onclick: () => TE().exportIds(w.question_ids, w.title, 'pdf') },
+      { icon: IC.pdf, text: 'Download PDF', sub: 'Print-ready', onclick: () => TE().exportIds(w.question_ids, w.title, 'pdf') },
       can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable document', onclick: () => TE().exportIds(w.question_ids, w.title, 'docx') } : null,
       can('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: () => TE().exportIds(w.question_ids, w.title, 'pptx') } : null,
       can('share') ? '-' : null,
@@ -969,7 +969,7 @@ async function pageMyTests() {
   const subOf = t => [(t.target_classes || []).join(', '), (t.target_streams || []).join(', '), [t.school].concat(t.schools || []).filter(Boolean).join(', ') || 'All schools'].filter(Boolean).join(' \u00b7 ');
   const exp = (t, kind) => async () => { const ids = await idsOf(t); if (ids) TE().exportIds(ids, t.title, kind, 'Test paper', infoOf(t), subOf(t)); };
   const exportBtn = t => can('pdf') ? h('button', { type: 'button', class: 'btn pt-split', 'aria-haspopup': 'menu', 'aria-expanded': 'false', onclick: e => dropMenu(e.currentTarget, [
-      { icon: IC.pdf, text: 'Download PDF', sub: 'Print-ready, with the Avanti header', onclick: exp(t, 'pdf') },
+      { icon: IC.pdf, text: 'Download PDF', sub: 'Print-ready', onclick: exp(t, 'pdf') },
       can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable document', onclick: exp(t, 'docx') } : null,
       can('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: exp(t, 'pptx') } : null,
       can('share') ? '-' : null,

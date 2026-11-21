@@ -1,5 +1,14 @@
 [
   {
+    "v": "994",
+    "date": "21 Nov 2026",
+    "items": [
+      "Questions attempted now counts only questions you answered (right or wrong) in a submitted test. Questions left blank in a test are no longer counted as attempted, so the Dashboard, the chapter pages, the progress bar and Hide attempted all show the same numbers, and accuracy is worked out on answered questions.",
+      "The back arrow inside a chapter (All PYQs, Topic-wise, Bookmarked, Test History) now goes to that chapter's Overview.",
+      "The three-line menu of a question no longer gets cut off at the bottom of the list. The special picks cards are bigger. \"Print-ready, with the Avanti header\" now just says \"Print-ready\"."
+    ]
+  },
+  {
     "v": "993",
     "date": "21 Nov 2026",
     "items": [

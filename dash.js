@@ -86,7 +86,8 @@ async function loadMine(force) {
 }
 const scope = (mode, slug, ch) => D.rows.filter(r => (mode === 'pyq' ? r.P && (!slug || slug === '-' || r.ex === slug) : !r.P) && (!ch || r.ch === ch));
 const last5 = rows => rows.filter(r => r.y && r.y > D.maxYear - 5);
-const solvedOf = rows => rows.filter(r => D.sum.results[r.id]).length;
+const att = st => st === 'c' || st === 'w';   /* attempted = answered (right or wrong); a question left blank in a test is not counted */
+const solvedOf = rows => rows.filter(r => att(D.sum.results[r.id])).length;
 const correctOf = rows => rows.filter(r => D.sum.results[r.id] === 'c').length;
 
 /* ---------- small pieces ---------- */
@@ -253,9 +254,9 @@ function viewPick(k) {
 const UPCOMING = [['JEE Main 2027 · Session 1', '2027-01-20', 'jee-main'], ['JEE Advanced 2027', '2027-05-23', 'jee-advanced']];
 function viewHome() {
   side({ back: null, title: 'Dashboard', sub: 'Choose how you want to practise', items: homeItems('home') });
-  const pyq = D.rows.filter(r => r.P), np = D.rows.filter(r => !r.P), res = D.sum.results, solved = Object.keys(res).length, right = Object.values(res).filter(x => x === 'c').length;
+  const pyq = D.rows.filter(r => r.P), np = D.rows.filter(r => !r.P), res = D.sum.results, solved = D.rows.filter(r => att(res[r.id])).length, right = D.rows.filter(r => res[r.id] === 'c').length;
   const p = A().profile || {}, first = p.full_name ? p.full_name.split(' ')[0] : '', hr = new Date().getHours(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
-  const pyqDone = pyq.filter(r => res[r.id]).length, lock = locked();
+  const pyqDone = pyq.filter(r => att(res[r.id])).length, lock = locked();
   const days = d => Math.ceil((Date.parse(d + 'T00:00:00+05:30') - Date.now()) / 864e5);
   const stat3 = (n, l) => h('div', { class: 'dh-st' }, h('b', { text: n }), h('span', { text: l }));
   const hero = h('section', { class: 'dh-hero' },
@@ -378,7 +379,7 @@ function chapterSide(mode, slug, ch, section, rows) {
   const c = D.chByCode[ch], base = 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/', e = EX[slug];
   const byY = y => rows.filter(r => r.y === y).length;
   const sub = (mode === 'pyq' && e ? e.name + ' » ' + (D.maxYear) + ': ' + byY(D.maxYear) + ' Qs • ' + (D.maxYear - 1) + ': ' + byY(D.maxYear - 1) + ' Qs' : 'Non-PYQ practice');
-  side({ back: mode === 'pyq' ? 'd/pyq/' + slug : 'd/np', title: c ? c.chapter : ch, sub, items: [
+  side({ back: section === 'overview' ? (mode === 'pyq' ? 'd/pyq/' + slug : 'd/np') : base + 'overview', title: c ? c.chapter : ch, sub, items: [
     { label: 'Overview', icon: IC.grid, hash: base + 'overview', active: section === 'overview' },
     { label: mode === 'pyq' ? 'All PYQs' : 'All Questions', icon: IC.all, hash: base + 'all', active: section === 'all' },
     { label: 'Topic-wise Qs', icon: IC.list, hash: base + 'topics', active: section === 'topics' },
