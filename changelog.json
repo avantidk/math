@@ -1,5 +1,15 @@
 [
   {
+    "v": "972",
+    "date": "21 Nov 2026",
+    "items": [
+      "New dashboard at unkganit.com/dashboard. Start with PYQs or Non-PYQs, pick an exam (JEE Main, JEE Advanced, KCET, NDA, IAT; CUET and CBSE Class 12 are coming), then a chapter. The left menu changes at every step.",
+      "Chapter page: your progress, All PYQs, Topic-wise PYQs, Must Do PYQs, Level 1 / 2 / 3 buckets, a one-tap Chapter Test, chapter performance, and year-wise graph and table.",
+      "Bookmarked questions and Test History have their own pages. Question lists open in the Question Bank already filtered.",
+      "Free accounts see Non-PYQs with a lock; PYQs stay free."
+    ]
+  },
+  {
     "v": "971",
     "date": "21 Nov 2026",
     "items": [

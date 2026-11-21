@@ -2198,6 +2198,11 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       PYQ_PUBS = {}; ROWS.forEach(function (q) { BYID[q.id] = q; if (q.pyq && q.publisher) PYQ_PUBS[q.publisher] = 1; });
       Array.from(S.sel).forEach(function (id) { if (!BYID[id]) S.sel.delete(id); });
       buildChips();
+      /* a list sent here by the new dashboard (/dashboard): show exactly those questions, selected */
+      if (!PARTIAL) { try { var pre = sessionStorage.getItem('avanti-qbpreset'); if (pre) { sessionStorage.removeItem('avanti-qbpreset'); var po = JSON.parse(pre);
+        ['exam', 'year', 'cls', 'diff', 'type', 'ch', 'tp', 'src'].forEach(function (k) { S[k].clear(); }); S.q = ''; S.flag = false; S.attn = false; S.same = false; S.oos = false;
+        S.sel = new Set((po.ids || []).map(String).filter(function (i) { return BYID[i]; })); S.onlySel = S.sel.size > 0; var se0 = $('.qb-search'); if (se0) se0.value = '';
+        if (po.title && window.AvantiTeacher && window.AvantiTeacher.toast) setTimeout(function () { window.AvantiTeacher.toast(po.title + ' · ' + S.sel.size + ' questions'); }, 600); } } catch (x) { /* a bad note is ignored */ } }
       apply();
       if (!PARTIAL) setTimeout(startFigures, 0);
       if (!loadFlags.done) { loadFlags.done = true; loadFlags(); }

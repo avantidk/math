@@ -2200,6 +2200,57 @@ begin
 end $$;
 
 -- -------------------------------------------------------------------------------------
+-- 11b. Dashboard: bookmarks ("Mark as important") and each person's progress per question
+-- -------------------------------------------------------------------------------------
+create table if not exists public.bookmarks (
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  qid        text not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, qid)
+);
+alter table public.bookmarks enable row level security;
+drop policy if exists bookmarks_own on public.bookmarks;
+create policy bookmarks_own on public.bookmarks for select to authenticated using (user_id = auth.uid());
+
+-- turn a bookmark on or off; returns true when it is now on
+create or replace function public.toggle_bookmark(p_qid text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare me uuid := auth.uid();
+begin
+  if me is null then raise exception 'Please sign in.'; end if;
+  if p_qid is null or length(p_qid) > 60 then raise exception 'Question not found.'; end if;
+  if exists (select 1 from public.bookmarks where user_id = me and qid = p_qid) then
+    delete from public.bookmarks where user_id = me and qid = p_qid; return false;
+  end if;
+  insert into public.bookmarks (user_id, qid) values (me, p_qid);
+  return true;
+end $$;
+
+-- everything the dashboard needs about this person: bookmarked question ids, and for each question ever answered in a
+-- submitted test its best result ('c' correct, 'w' wrong, 's' skipped; correct beats wrong beats skipped)
+create or replace function public.dash_summary() returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'bookmarks', coalesce((select json_agg(b.qid order by b.created_at desc) from public.bookmarks b where b.user_id = auth.uid()), '[]'::json),
+    'results', coalesce((
+      select json_object_agg(r.qid, r.st) from (
+        select i.qid, case when bool_or(i.status = 'correct') then 'c' when bool_or(i.status = 'wrong') then 'w' else 's' end as st
+        from public.attempt_items i join public.attempts a on a.id = i.attempt_id
+        where a.user_id = auth.uid() and a.status = 'submitted' group by i.qid) r), '{}'::json));
+$$;
+
+-- this person's submitted tests (newest first), each with the ids of its questions so the dashboard can show one chapter's history
+create or replace function public.dash_tests() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(x order by x.submitted_at desc), '[]'::json) from (
+    select a.id as attempt_id, t.title, a.submitted_at, a.score, a.max_score, a.correct, a.wrong, a.skipped, a.time_taken_sec,
+      coalesce((select json_agg(i.qid) from public.attempt_items i where i.attempt_id = a.id), '[]'::json) as qids
+    from public.attempts a join public.tests t on t.id = a.test_id
+    where a.user_id = auth.uid() and a.status = 'submitted'
+    order by a.submitted_at desc limit 100) x;
+$$;
+
+-- -------------------------------------------------------------------------------------
 -- 12. Who may call which function
 -- -------------------------------------------------------------------------------------
 revoke execute on all functions in schema public from public, anon, authenticated;
@@ -2211,6 +2262,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer),
   public.create_personal_test(text, integer, numeric, numeric, jsonb, text, text), public.personal_overview(), public.my_rank(uuid), public.link_ranking(uuid),
   public.school_people(), public.request_role_change(text), public.my_role_request(), public.admin_role_requests(), public.admin_role_request(uuid, text),
+  public.toggle_bookmark(text), public.dash_summary(), public.dash_tests(),
   public.my_attempts(), public.my_tests(), public.list_schools(), public.is_premium_teacher(), public.price_paise(text),
   public.teacher_add_student(jsonb), public.teacher_add_students(jsonb), public.teacher_update_student(uuid, text, jsonb),
   public.school_students(text), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),

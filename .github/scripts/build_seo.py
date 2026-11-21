@@ -267,7 +267,7 @@ def header(depth, up=None):
     nav = exams_dd + rest
     login = f'<a class="sb sb-pri when-out" data-login href="{up}?login=1" rel="nofollow">Login</a>'
     grid_ico = svg('<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>', 22)
-    user = (f'<div class="sh-user when-in"><a class="sh-ico" href="{up}qbank" title="Dashboard" aria-label="Open your dashboard">{grid_ico}<span class="vh">Dashboard</span></a>'
+    user = (f'<div class="sh-user when-in"><a class="sh-ico" href="{up}dashboard" title="Dashboard" aria-label="Open your dashboard">{grid_ico}<span class="vh">Dashboard</span></a>'
             f'<div class="sh-pf"><a class="sh-av" data-av data-profile href="{up}qbank#/profile" aria-label="Your account" aria-haspopup="true" aria-expanded="false">&nbsp;</a><div class="pfm" role="menu"></div></div></div>')
     bars = svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', 22)
     stat = (f'<div class="sh-stat"><button type="button" class="sh-ico sh-statb" aria-haspopup="true" aria-expanded="false" title="Question bank numbers" aria-label="Question bank numbers">{bars}</button>'
@@ -301,7 +301,7 @@ def aside(depth, current=None, up=None):
     pop = sorted(CH, key=lambda c: -c['m'])[:8]
     chs = ''.join(f'<li><a href="{up}maths/{slug(c)}/"><span>{E(short(c))}</span><small>{c["m"]} Main</small></a></li>' for c in pop)
     return (f'<aside class="pg-side" aria-label="Sidebar"><div class="side-box side-share"><h2>Share this page</h2><div class="share" data-share></div></div><div class="side-cta"><h2>Practise free</h2><p>Question bank, DPPs, past papers and tests, with full solutions.</p>'
-            f'<a class="sb sb-gold when-out" data-login href="{up}?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold when-in" href="{up}qbank">Open your dashboard</a></div>'
+            f'<a class="sb sb-gold when-out" data-login href="{up}?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold when-in" href="{up}dashboard">Open your dashboard</a></div>'
             f'<div class="side-box"><h2>Exams</h2><ul class="side-list">{ex}</ul></div>'
             f'<div class="side-box"><h2>Popular chapters</h2><ul class="side-list side-ch">{chs}</ul><a class="side-more" href="{up}maths/">All chapters &rarr;</a></div>'
             f'<div class="side-box side-help"><h2>Need help?</h2><p>Questions about signing in, plans or a question in the bank?</p><a href="{up}contact/">Contact us &rarr;</a></div></aside>')
@@ -867,7 +867,7 @@ def home_block():
 <div><span class="eyebrow"><i></i>JEE · KCET · NDA · IAT Mathematics</span>
 <h1>Math question bank, PYQs and DPPs <em>with full solutions</em></h1>
 <p class="lead">Practise math with a question bank, PYQs (previous-year papers), DPPs, handouts and NTA-style online tests, all with full solutions, for Class 11 and 12 and for exams such as JEE, KCET, NDA and IAT.</p>
-<div class="hero-cta"><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Start practising free</a><a class="sb sb-gold sb-lg when-in" href="qbank">Open your dashboard</a><a class="sb sb-white-line sb-lg" href="#dashboard">See the dashboard</a></div>
+<div class="hero-cta"><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Start practising free</a><a class="sb sb-gold sb-lg when-in" href="dashboard">Open your dashboard</a><a class="sb sb-white-line sb-lg" href="#dashboard">See the dashboard</a></div>
 <ul class="hero-pts">{pts}</ul></div>
 {hero_shot}
 </div></section>
@@ -886,7 +886,7 @@ def home_block():
 <section class="sec" id="exams"><div class="swrap"><div class="sec-head"><span class="kick">Exams</span><h2>Built for the exams you are preparing for</h2><p>{sum(STATS[e[0]]["questions"] for e in EXAMS):,} previous-year math questions, paper by paper. Open an exam to see its questions by chapter and year.</p></div><div class="exc-grid">{exam_cards}</div></div></section>
 <section class="sec sec-alt" id="teachers"><div class="swrap split"><div><span class="kick">For teachers</span><h2>Set a test in minutes. See every result.</h2><p>Build an online test from the question bank, share one link with your class and get a ranked report the moment students finish.</p>
 <ul class="ticks">{tick(['Create tests from DPPs, PYQs or your own selection', 'One link for the whole class, with an exam window', 'Ranks, averages and question-wise analysis', 'Students register themselves and choose your school'])}</ul>
-<a class="sb sb-pri when-out" data-login href="?login=1" rel="nofollow">Login as a teacher</a><a class="sb sb-pri when-in" href="qbank">Go to my dashboard</a></div>
+<a class="sb sb-pri when-out" data-login href="?login=1" rel="nofollow">Login as a teacher</a><a class="sb sb-pri when-in" href="dashboard">Go to my dashboard</a></div>
 <div class="report" aria-hidden="true"><p class="report-h">Class result · Mock Test 3</p><small>Top scorers · example</small>{rep}</div></div></section>
 <section class="sec" id="plans"><div class="swrap"><div class="sec-head"><span class="kick">Plans</span><h2>Start free. Upgrade when you are ready.</h2><p>Premium is a one-year membership. Avanti students and teachers get it free.</p></div>{plans}</div></section>
 <section class="sec sec-alt" id="faq"><div class="swrap"><div class="sec-head"><span class="kick">FAQ</span><h2>Frequently asked questions</h2></div><div class="faq">{faq_html}</div></div></section>

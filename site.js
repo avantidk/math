@@ -14,7 +14,7 @@
      /#/t/<code> test links, /#/profile, ?code= (Google sign-in coming back) and ?login=1 when someone is already signed in. */
   var pg = de.getAttribute('data-page'), q = window.location.search, hs = window.location.hash;
   if (pg === 'index' && (/^#\/(?!home)/.test(hs) || /[?&](code|error_description)=/.test(q) || (user && /[?&]login=1/.test(q)))) {
-    window.location.replace(ROOT + 'qbank' + q.replace(/([?&])login=1&?/, '$1').replace(/[?&]$/, '') + hs);
+    window.location.replace(ROOT + (/^#\/(?!home)/.test(hs) ? 'qbank' : 'dashboard') + q.replace(/([?&])login=1&?/, '$1').replace(/[?&]$/, '') + hs);
   }
   /* safety net: if the host shows the "page not found" page for /qbank, open the file directly */
   if (/^\/qbank\/?$/.test(window.location.pathname) && /not found/i.test(d.title)) window.location.replace(ROOT + 'qbank.html' + q + hs);

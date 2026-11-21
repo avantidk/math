@@ -153,6 +153,7 @@ function renderMenu() {
   const slot = $('#tbProfile'); const p = A.profile; if (!slot || !p) return;
   slot.textContent = '';
   const perm = A.perm, student = p.role === 'student', teacher = p.role === 'teacher';
+  const pre = document.documentElement.getAttribute('data-page') === 'dash' ? 'qbank' : '';   /* on /dashboard the account pages live in /qbank */
   const items = [['#/profile', 'Edit profile'], ['#/personal', 'Practice Tests & Results']];
   if (perm.plan === 'premium' && !p.is_avanti) items.push(['#/membership', 'Membership']);
   if (student) {
@@ -168,7 +169,7 @@ function renderMenu() {
   if (perm.isAdmin) items.push(['#/approvals', 'Approvals']);
   items.push(['#/help', 'Help & Support']);
   const planLabel = perm.isAdmin ? 'Admin · Full access' : perm.plan === 'staff' ? 'Avanti teacher' : p.is_avanti ? 'Avanti · Premium' : perm.plan === 'premium' ? 'Premium' : 'Free';
-  const upgrade = perm.plan === 'free' ? h('a', { class: 'pf-up', role: 'menuitem', href: '#/membership', onclick: close },
+  const upgrade = perm.plan === 'free' ? h('a', { class: 'pf-up', role: 'menuitem', href: pre + '#/membership', onclick: close },
     h('span', { class: 'pf-up-ic', html: CROWN }),
     h('span', { class: 'pf-up-t' }, h('b', { text: 'Upgrade to Premium' }), h('small', { text: rupees(p.price_paise) + ' a year · ' + (teacher ? 'PDFs, student list & bulk upload' : 'PDFs & all-India comparison') })),
     h('span', { class: 'pf-up-go', 'aria-hidden': 'true', text: '›' })) : null;
@@ -177,7 +178,7 @@ function renderMenu() {
       h('span', { class: 'pf-mail', title: p.email || p.avanti_id || '', text: p.email || p.avanti_id || '' }),
       h('span', { class: 'pf-plan ' + (perm.plan === 'free' ? (teacher ? 'pf-free-t' : 'pf-free-s') : 'pf-gold'), text: perm.isAdmin || perm.plan === 'staff' ? planLabel : planLabel + ' · ' + (teacher ? 'Teacher' : 'Student') })),
     upgrade,
-    items.map(([href, t]) => h('a', { class: 'tb-item pf-item', role: 'menuitem', href, 'data-count': COUNT_KEY[href] || null, onclick: close }, h('span', { text: t }), COUNT_KEY[href] ? h('span', { class: 'pf-count' }) : null)),
+    items.map(([href, t]) => h('a', { class: 'tb-item pf-item', role: 'menuitem', href: pre + href, 'data-count': COUNT_KEY[href] || null, onclick: close }, h('span', { text: t }), COUNT_KEY[href] ? h('span', { class: 'pf-count' }) : null)),
     h('button', { type: 'button', class: 'tb-item pf-out', role: 'menuitem', text: 'Logout', onclick: () => A.signOut() }));
   const canHover = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
   const btn = h('button', { type: 'button', class: avatarClass(p, perm), id: 'pfBtn', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'Profile menu (' + planLabel + ')', title: planLabel, text: initials(p),
@@ -229,7 +230,7 @@ async function start() {
   $('#auth').hidden = true; $('#auth').textContent = '';
   $('#app').hidden = false; document.documentElement.classList.remove('to-app');
   document.querySelectorAll('[data-av]').forEach(el => { el.textContent = initials(p); el.title = p.full_name || p.email || p.avanti_id || 'Your profile'; });
-  if (!started) { started = true; window.AvantiBoot.start(); }
+  if (!started) { started = true; if (document.documentElement.getAttribute('data-page') === 'dash') window.AvantiDash.start(); else window.AvantiBoot.start(); }
   renderMenu();
   if (window.AvantiPortal) window.AvantiPortal.route();
 }

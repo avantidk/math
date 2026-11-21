@@ -114,7 +114,7 @@
           if (v.error) throw new Error('Sign-in failed: ' + v.error.message);
           store.set(ROLE_KEY, 'student');
           close();
-          if (opts.after || api.after) await (opts.after || api.after)(); else location.href = base + 'qbank';
+          if (opts.after || api.after) await (opts.after || api.after)(); else location.href = base + 'dashboard';
         } catch (x) { avErr.textContent = x.message || String(x); avErr.hidden = false; avBtn.disabled = false; avBtn.textContent = 'Login with Avanti ID'; }
       } },
         h('label', { 'for': 'lgId', text: 'Avanti ID' }), idIn, h('label', { 'for': 'lgDob', text: 'Date of birth' }), dobIn, avErr, avBtn));
@@ -130,7 +130,7 @@
       } }));
     var dialog = h('div', { class: 'lm-dialog' },
       h('button', { type: 'button', class: 'lm-x', 'aria-label': 'Close', text: '×', onclick: close }),
-      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=971', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
+      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=972', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
       h('h2', { id: 'lmTitle', text: 'Log in or register' }),
       h('p', { class: 'lm-sub', text: 'New here? Continue with Google and your account is created for you.' }),
       testLink ? h('p', { class: 'lm-note', text: 'Sign in to open your test.' }) : null,

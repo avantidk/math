@@ -5,7 +5,7 @@ set -u
 fail=0
 bad() { echo "::error::$1"; fail=1; }
 
-for f in index.html qbank.html dashboard.html auth.js portal.js portal.css boot.js teacher.b870.js qb/qb-all.b870.js qb/qb.b525.html vendor/supabase-js-2.45.4.min.js supabase/schema.sql; do
+for f in index.html qbank.html dashboard.html dash.js dash.css auth.js portal.js portal.css boot.js teacher.b870.js qb/qb-all.b870.js qb/qb.b525.html vendor/supabase-js-2.45.4.min.js supabase/schema.sql; do
   [ -f "$f" ] || bad "Missing $f. The site needs it for sign-in, plans or tests."
 done
 for f in app.js db.js teacher.js; do
@@ -17,10 +17,11 @@ if [ -f qbank.html ]; then
   done
   grep -q 'startup-patch\|tests-data' qbank.html index.html && bad "index.html or qbank.html is the old artifact page (startup-patch / tests-data)."
 fi
+grep -q 'dash.js' dashboard.html 2>/dev/null || bad "dashboard.html does not load dash.js (the new dashboard)."
 grep -q 'auth.js' index.html 2>/dev/null && bad "index.html (the public home page) must not load the dashboard code (auth.js). The question-bank app is qbank.html."
 [ -f site.js ] && [ -f site.css ] && [ -f login.js ] || bad "site.js / site.css / login.js are missing: the public home page and the Login pop-up need them."
 grep -q 'id="features"' index.html 2>/dev/null || bad "index.html lost the public home page. Run python3 .github/scripts/build_seo.py."
-LIVE="qbank.html boot.js auth.js portal.js teacher.b870.js qb/qb-all.b870.js qb/qb.b525.html"
+LIVE="qbank.html dashboard.html dash.js boot.js auth.js portal.js teacher.b870.js qb/qb-all.b870.js qb/qb.b525.html"
 for s in 'JrF7haaQnwBT8Jh5QPCMcF' 'STUDENT_URL' 'teacher_login' 'student_login' 'renderGod' 'renderResults' 'syncStudents' "claude.use('artifact')"; do
   grep -l -F "$s" $LIVE 2>/dev/null | while read -r f; do echo "::error::$f contains '$s' from the old Tests / Results / student-dashboard code."; done
   grep -q -F "$s" $LIVE 2>/dev/null && fail=1
