@@ -1,5 +1,12 @@
 [
   {
+    "v": "1007",
+    "date": "21 Nov 2026",
+    "items": [
+      "Chapter overview pages (PYQs and Non-PYQs) have a new design: a chapter banner with the facts (questions, years, topics, last 5 years) and two buttons (Practise all questions, Take chapter test), a progress card with a ring and your numbers, a row of ways to practise (All, Topic-wise, Must Do, Bookmarked), a difficulty card with the easy / moderate / tough split, and the year-wise graph and table."
+    ]
+  },
+  {
     "v": "1006",
     "date": "21 Nov 2026",
     "items": [

@@ -498,23 +498,37 @@ function viewChapter(mode, slug, ch, section, extra) {
   const ids = rows.map(r => r.id), must = mode === 'pyq' ? (D.must[ch] || []).filter(id => ids.includes(id)) : [], tops = [...new Set(rows.map(r => r.tp).filter(Boolean))];
   const lvl = L => rows.filter(r => r.d === L);
   const yrs = {}; rows.forEach(r => { if (r.y) yrs[r.y] = (yrs[r.y] || 0) + 1; });
-  const title = c.chapter;
-  main(head,
-    h('section', { class: 'd-card' }, h('div', { class: 'd-card-h' }, h('h3', { text: 'Your progress' }), h('small', { text: 'from tests you have submitted' })),
-      h('div', { class: 'd-stats' }, stat(IC.all, solved + '/' + total, mode === 'pyq' ? 'PYQs attempted' : 'Questions attempted'), stat(IC.target, right + '/' + total, 'Correct'), stat(IC.up, solved ? acc + '%' : '—', 'Accuracy')), bar(solved, total, 'big')),
-    h('div', { class: 'd-three' },
-      tile({ cls: 'd-big', title: (mode === 'pyq' ? 'All Previous Year Qs' : 'All Questions') + ' →', sub: num(total) + (mode === 'pyq' ? ' PYQs' : ' questions'), icon: IC.clock, go: 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/' + 'all', extra: bar(solved, total) }),
-      tile({ title: mode === 'pyq' ? 'Topic-Wise PYQs' : 'Topic-Wise Qs', sub: tops.length + ' topics', icon: IC.list, go: 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/topics' }),
-      mode === 'pyq' ? tile({ cls: 'd-gold', badge: 'Recommended', badgeCls: 'rec', title: 'Must Do PYQs', sub: must.length ? num(must.length) + ' Qs · high-yield, repeated patterns' : 'Not marked for this chapter yet', icon: IC.star, off: !must.length, go: must.length ? 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/' + 'must' : null })
-        : tile({ title: 'Bookmarked Qs', sub: num(rows.filter(r => D.sum.bookmarks.includes(r.id)).length) + ' saved', icon: IC.mark, go: 'd/ch/np/-/' + ch + '/bookmarked' })),
-    h('h3', { class: 'd-sec', text: 'Difficulty buckets' }),
-    h('div', { class: 'd-three' }, LEVELS.map(([L, name, word, key]) => { const r = lvl(L); return tile({ cls: 'd-lvl d-lvl-' + key, off: !r.length, icon: IC.up, title: name + ' · ' + word, sub: num(r.length) + ' Qs', go: r.length ? 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/' + L.toLowerCase() : null, extra: bar(solvedOf(r), r.length) }); })),
-    h('div', { class: 'd-two' },
-      tile({ cls: 'd-test', icon: IC.bolt, title: 'Create Chapter Test', sub: 'A timed test from this chapter, started in one tap', extra: testLauncher(rows, c, mode, e) }),
-      h('section', { class: 'd-card d-perf' }, h('div', { class: 'd-card-h' }, h('h3', { text: 'Chapter performance' })),
-        h('div', { class: 'd-perf-g' }, perfRow('Attempted', solved, total, ''), perfRow('Correct', right, total, 'ok'), perfRow('Wrong', wrong, total, 'bad')),
-        h('p', { class: 'd-fine', text: solved ? 'Accuracy ' + acc + '% over ' + solved + ' questions.' : 'Take a test to see your accuracy here.' }))),
-    yearBlocks(rows, yrs, mode));
+  const base = 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/', ys = Object.keys(yrs).map(Number), pool = rows.filter(r => r.ok);
+  const fact = (n, l) => h('div', { class: 'ov-fact' }, h('b', { text: n }), h('span', { text: l }));
+  const startBtn = h('button', { type: 'button', class: 'btn ov-ghost', disabled: pool.length < 3, onclick: async ev => { const b = ev.currentTarget; b.disabled = true; try { await launchTestFrom(pool, c, mode, e, 25, 'chapter test'); } catch (x) { toast(x.message || 'Could not start the test.'); b.disabled = false; } } }, h('span', { html: IC.bolt }), 'Take chapter test');
+  const hero = h('section', { class: 'ov-hero' },
+    h('div', { class: 'ov-hero-t' },
+      h('div', { class: 'ov-chip' }, h('span', { class: 'ov-code', text: c.chapter_code }), mode === 'pyq' && e ? h('span', { class: 'ov-ex' }, logo(e), e.name + ' · Previous year questions') : h('span', { class: 'ov-ex', text: 'Practice questions' })),
+      h('h2', { text: c.chapter }),
+      h('p', { text: total ? 'Everything asked from this chapter, in one place: practise by topic or level, or take a timed test.' : 'Questions for this chapter are coming soon.' }),
+      h('div', { class: 'ov-cta' }, h('a', { class: 'btn ov-gold', href: '#' + base + 'all', text: 'Practise all questions' }), startBtn, h('small', { text: '25 questions · 75 min' }))),
+    h('div', { class: 'ov-facts' }, fact(num(total), mode === 'pyq' ? 'questions' : 'practice questions'), mode === 'pyq' && ys.length ? fact(Math.min(...ys) + '–' + Math.max(...ys), 'years covered') : null, fact(String(tops.length), 'topics'), mode === 'pyq' ? fact(num(last5(rows).length), 'in the last 5 years') : null));
+  /* progress: a ring and the numbers behind it */
+  const R = 46, C = 2 * Math.PI * R, pAtt = total ? solved / total : 0;
+  const ring = h('div', { class: 'ov-ring', role: 'img', 'aria-label': Math.round(pAtt * 100) + ' percent attempted', html: '<svg viewBox="0 0 120 120" width="132" height="132"><circle cx="60" cy="60" r="' + R + '" fill="none" stroke="currentColor" stroke-opacity=".12" stroke-width="11"/><circle cx="60" cy="60" r="' + R + '" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="' + (pAtt > 0 ? 'round' : 'butt') + '" stroke-dasharray="' + (C * pAtt).toFixed(1) + ' ' + C.toFixed(1) + '" transform="rotate(-90 60 60)"/></svg><div><b>' + Math.round(pAtt * 100) + '%</b><span>attempted</span></div>' });
+  const metric = (cls, ic, n, l) => h('div', { class: 'ov-m ' + cls }, h('span', { class: 'ov-m-i', html: ic }), h('div', {}, h('b', { text: n }), h('small', { text: l })));
+  const progress = h('section', { class: 'ov-card ov-prog' }, h('div', { class: 'ov-card-h' }, h('h3', { text: 'Your progress' }), h('small', { text: 'from tests you have submitted' })),
+    h('div', { class: 'ov-prog-b' }, ring, h('div', { class: 'ov-metrics' }, metric('', IC.all, solved + ' / ' + total, 'Attempted'), metric('ok', IC.target, String(right), 'Correct'), metric('bad', IC.test, String(wrong), 'Wrong'), metric('acc', IC.up, solved ? acc + '%' : '—', 'Accuracy'))),
+    h('p', { class: 'ov-note', text: solved ? 'You have answered ' + solved + ' of ' + total + ' questions here.' : 'Answer questions here, or take a chapter test, and your numbers appear.' }));
+  /* ways to practise */
+  const way = (o) => tile(Object.assign({ cls: 'ov-way' }, o));
+  const ways = h('div', { class: 'ov-ways' },
+    way({ title: mode === 'pyq' ? 'All previous year questions' : 'All questions', sub: num(total) + ' questions', icon: IC.clock, go: base + 'all', extra: bar(solved, total) }),
+    way({ title: 'Topic-wise', sub: tops.length + ' topics', icon: IC.list, go: base + 'topics' }),
+    mode === 'pyq' ? way({ cls: 'ov-way ov-way-gold', badge: 'Recommended', badgeCls: 'rec', title: 'Must Do', sub: must.length ? num(must.length) + ' high-yield, repeated questions' : 'Not marked for this chapter yet', icon: IC.star, off: !must.length, go: must.length ? base + 'must' : null }) : null,
+    way({ title: 'Bookmarked', sub: num(rows.filter(r => D.sum.bookmarks.includes(r.id)).length) + ' saved', icon: IC.mark, go: base + 'bookmarked' }));
+  /* difficulty: the split, then the three levels */
+  const lvN = LEVELS.map(([L]) => lvl(L).length), lvT = lvN.reduce((x, y) => x + y, 0) || 1;
+  const split = h('div', { class: 'ov-split', role: 'img', 'aria-label': 'Share of easy, moderate and tough questions' }, lvN.map((n, i) => h('i', { class: 'l' + (i + 1), style: 'width:' + (100 * n / lvT).toFixed(1) + '%', title: LEVELS[i][1] + ': ' + n })));
+  const levels = h('section', { class: 'ov-card' }, h('div', { class: 'ov-card-h' }, h('h3', { text: 'By difficulty' }), h('small', { text: 'Start where you are comfortable' })), split,
+    h('div', { class: 'ov-lv' }, LEVELS.map(([L, name, word, key], i) => { const r = lvl(L), go2 = r.length ? base + L.toLowerCase() : null;
+      return h(go2 ? 'a' : 'div', { class: 'ov-lvc ov-lvc-' + (i + 1) + (r.length ? '' : ' is-off'), href: go2 ? '#' + go2 : null }, h('span', { class: 'ov-dot' }), h('div', {}, h('b', { text: name }), h('small', { text: word + ' · ' + num(r.length) + ' questions' })), h('span', { class: 'ov-go', html: IC.chev })); })));
+  main(h('div', { class: 'd-head d-head-sr' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c.chapter_code)), hero, progress, h('h3', { class: 'ov-h', text: 'Practise' }), ways, levels, yearBlocks(rows, yrs, mode));
 }
 const perfRow = (label, v, t, tone) => h('div', { class: 'd-perf-r' }, h('span', { text: label }), h('b', { text: v + ' / ' + t }), bar(v, t, tone));
 function yearBlocks(rows, yrs, mode) {

@@ -510,3 +510,36 @@ body.dpop-on { overflow: hidden; }
 @media (max-width: 760px) { .mk-bar { grid-template-columns: minmax(0, 1fr); padding: 14px; } .mk-ticks span { font-size: 10px; } }
 
 .mk-bar.mk-one { grid-template-columns: minmax(0, 1fr); box-shadow: none; padding: 12px 14px; }
+/* ---- Chapter overview (v1007) ---- */
+.d-head-sr { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.ov-hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 22px; align-items: center; padding: clamp(20px, 3vw, 30px); border-radius: 20px; color: #fff; background: radial-gradient(110% 150% at 100% 0%, #2a4cc0 0%, rgba(42,76,192,0) 55%), linear-gradient(135deg, #0c1a3d, #14307f); box-shadow: var(--shadow); }
+.ov-chip { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.ov-code { font: 800 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; background: rgba(245,184,46,.18); color: #f5b82e; padding: 7px 10px; border-radius: 8px; }
+.ov-ex { display: inline-flex; align-items: center; gap: 8px; font: 600 13px var(--font-body); color: #cdd8f3; } .ov-ex .d-logo, .ov-ex img { width: 22px; height: 22px; border-radius: 6px; background: #fff; object-fit: contain; } .ov-ex .d-mono { font-size: 10px; padding: 3px 6px; }
+.ov-hero h2 { margin: 0 0 8px; font: 700 clamp(26px, 3.4vw, 36px)/1.15 var(--font-head); color: #fff; }
+.ov-hero p { margin: 0; color: #cdd8f3; font-size: 15px; line-height: 1.55; max-width: 520px; }
+.ov-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; } .ov-cta .btn { min-height: 42px; padding: 0 18px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; } .ov-cta small { color: #bccaee; font-size: 12.5px; }
+.ov-gold { background: #f5b82e !important; color: #1a2340 !important; border-color: #f5b82e !important; font-weight: 700; } .ov-ghost { background: rgba(255,255,255,.12) !important; color: #fff !important; border-color: rgba(255,255,255,.3) !important; } .ov-ghost svg { width: 18px; height: 18px; }
+.ov-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ov-fact { display: flex; flex-direction: column; gap: 3px; padding: 14px; border-radius: 14px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); } .ov-fact b { font: 700 clamp(20px, 2.6vw, 26px)/1 var(--font-head); color: #fff; } .ov-fact span { font-size: 12px; color: #bccaee; }
+.ov-card { background: var(--panel); border: 1px solid var(--rule); border-radius: 18px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow-sm); }
+.ov-card-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; } .ov-card-h h3 { margin: 0; font: 700 17px var(--font-body); color: var(--ink); } .ov-card-h small { color: var(--muted); font-size: 12.5px; }
+.ov-prog-b { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+.ov-ring { position: relative; width: 132px; height: 132px; flex: none; color: var(--accent); } .ov-ring > div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; } .ov-ring b { font: 700 26px var(--font-head); color: var(--ink); } .ov-ring span { font-size: 11.5px; color: var(--muted); }
+.ov-metrics { flex: 1; min-width: 260px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ov-m { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--accent-soft); } .ov-m-i { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--panel); color: var(--accent); flex: none; } .ov-m b { display: block; font: 700 18px var(--font-body); color: var(--ink); } .ov-m small { color: var(--muted); font-size: 12px; }
+.ov-m.ok .ov-m-i { color: var(--ok, #17794a); } .ov-m.bad .ov-m-i { color: #d6293e; } .ov-m.acc .ov-m-i { color: #7c3aed; }
+.ov-note { margin: 0; color: var(--muted); font-size: 13px; }
+.ov-h { margin: 8px 0 -4px; font: 700 18px var(--font-body); color: var(--ink); }
+.ov-ways { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.ov-way { border-top: 4px solid var(--accent); min-height: 130px; } .ov-way-gold { border-top-color: #e5b93b; }
+.ov-split { display: flex; height: 12px; border-radius: 99px; overflow: hidden; background: var(--accent-soft); } .ov-split i { display: block; height: 100%; } .ov-split .l1 { background: #3aa76d; } .ov-split .l2 { background: #e0a21b; } .ov-split .l3 { background: #d6293e; }
+.ov-lv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.ov-lvc { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); text-decoration: none; transition: transform .15s, border-color .15s; } a.ov-lvc:hover { transform: translateY(-2px); border-color: var(--accent); }
+.ov-lvc b { display: block; font: 700 15px var(--font-body); } .ov-lvc small { color: var(--muted); font-size: 12.5px; } .ov-lvc > div { flex: 1; min-width: 0; } .ov-go { color: var(--muted); display: grid; } .ov-lvc.is-off { opacity: .5; }
+.ov-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; } .ov-lvc-1 .ov-dot { background: #3aa76d; } .ov-lvc-2 .ov-dot { background: #e0a21b; } .ov-lvc-3 .ov-dot { background: #d6293e; }
+@media (max-width: 900px) { .ov-hero { grid-template-columns: minmax(0, 1fr); } .ov-lv { grid-template-columns: minmax(0, 1fr); } .ov-prog-b { gap: 18px; } .ov-ring { margin: 0 auto; } }
+@media (max-width: 520px) { .ov-metrics { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-width: 0; } .ov-facts { gap: 8px; } .ov-fact { padding: 12px; } }
+.ov-fact b { white-space: nowrap; font-size: clamp(18px, 2.1vw, 24px) !important; }
+.ov-card { min-width: 0; }
+@media (max-width: 700px) { .ov-prog-b { flex-direction: column; align-items: stretch; } .ov-metrics { flex: 1 1 auto; width: 100%; min-width: 0; } .ov-m { min-width: 0; padding: 10px 12px; } .ov-m > div { min-width: 0; } }
