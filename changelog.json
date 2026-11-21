@@ -1,5 +1,15 @@
 [
   {
+    "v": "982",
+    "date": "21 Nov 2026",
+    "items": [
+      "DPPs now open inside the Dashboard: pick a source (BB Ex, Ln DY, Ln Ex, Cg ill, Cg Ex, Cg DPPs) in the left menu and see its questions straight away, in exercise order. All filters (Chapter, Exercise, Difficulty, Type, Attempt status) sit in one line at the top.",
+      "Mixed Practice uses the same layout: sources as tick boxes on the left, filters in one line on top.",
+      "No PDF button during an exam any more. After the test, Practice Tests & Results lets you download the paper, the answer key, the explanations, or a short marking scheme and answers sheet.",
+      "The ready-made DPP PDF sheets are still available from the ⋯ menu on the DPP page."
+    ]
+  },
+  {
     "v": "981",
     "date": "21 Nov 2026",
     "items": [

@@ -47,6 +47,16 @@ const IC = {
 
 /* ---------- data ---------- */
 const D = { ready: null, rows: [], raw: new Map(), chapters: [], chByCode: {}, topics: {}, must: {}, maxYear: 2026, sum: { bookmarks: [], results: {} }, tests: null };
+/* DPP sources and their exercise (sheet) numbers, read from the question ids */
+const SOURCES = [
+  { k: 'bb', name: 'BB Ex', sub: 'Exercise sheets, chapter by chapter', tone: '#2563eb' }, { k: 'dy', name: 'Ln DY', sub: 'Do Yourself sheets after every class', tone: '#059669' },
+  { k: 'lx', name: 'Ln Ex', sub: 'Exercise sheets, level by level', tone: '#7c3aed' }, { k: 'ci', name: 'Cg ill', sub: 'Worked illustrations', tone: '#b45309' },
+  { k: 'ce', name: 'Cg Ex', sub: 'Exercise sheets', tone: '#db2777' }, { k: 'cd', name: 'Cg DPPs', sub: 'Daily practice problems', tone: '#0891b2' }];
+const SRC = Object.fromEntries(SOURCES.map(x => [x.k, x]));
+function sheetOf(book, id) {
+  const m = book === 'Ln DY' ? /-DY(\d+)-/.exec(id) : book === 'Ln Ex' ? /-O(\d+)-/.exec(id) : book === 'BB Ex' ? /^BB-\d+-(\d+)-/.exec(id) : null;
+  return m ? { no: +m[1], label: (book === 'Ln DY' ? 'DY-' : 'Ex-') + (+m[1]) } : null;
+}
 const isGradable = r => { const a = String(r.answer == null ? '' : r.answer).trim(); if (!a) return false;
   if (r.type === 'Numerical') return /^-?\d+(\.\d+)?$/.test(a) || /^-?\d+(\.\d+)?\s*to\s*-?\d+(\.\d+)?$/i.test(a);
   return (r.type === 'MCQ' || r.type === 'MSQ') && (r.options || []).length > 0 && /^[A-D](,[A-D])*$/.test(a); };
@@ -61,7 +71,8 @@ function load() {
       const P = r.source === 'PYQ' || (pyq.indexOf && false);
       const isP = r.source === 'PYQ';
       D.raw.set(String(r.id), r);
-      D.rows.push({ id: String(r.id), P: isP, ex: isP ? (EXAM_OF_BANK[r.exam] || null) : null, y: isP ? Number(r.year) || null : null, ch: r.chapter_code, tp: r.topic || '', tc: r.topic_code || '', d: r.difficulty, ok: isGradable(r) });
+      const bk = isP ? '' : (r.book || r.publisher || ''), sh = isP ? null : sheetOf(bk, String(r.id));
+      D.rows.push({ id: String(r.id), P: isP, ex: isP ? (EXAM_OF_BANK[r.exam] || null) : null, y: isP ? Number(r.year) || null : null, ch: r.chapter_code, tp: r.topic || '', tc: r.topic_code || '', d: r.difficulty, ok: isGradable(r), bk, shl: sh ? sh.label : '', shn: sh ? sh.no : 0 });
       if (!P) { /* kept for readability */ }
     });
     D.rows.forEach(r => { if (r.y && r.y > D.maxYear) D.maxYear = r.y; });
@@ -128,9 +139,51 @@ const homeItems = active => [
   { label: 'Home', icon: IC.grid, hash: 'd/', active: active === 'home' },
   { label: 'PYQs', icon: IC.clock, hash: 'd/pyq', active: active === 'pyq' },
   { label: 'Non-PYQs', icon: IC.list, hash: 'd/np', active: active === 'np', off: false },
+  { label: 'DPPs', icon: IC.test, hash: 'd/dpp', active: active === 'dpp' },
   { label: 'Bookmarked Qs', icon: IC.mark, hash: 'd/bookmarks', active: active === 'bookmarks' },
   { label: 'Test History', icon: IC.test, hash: 'd/history', active: active === 'history' }
 ];
+
+/* ---------- DPPs: sources, then the exercise, then the questions ---------- */
+const MIXSEL = new Set(['BB Ex', 'Ln DY', 'Ln Ex']);   /* the sources ticked on the Mixed Practice page */
+const dppCount = name => D.rows.filter(r => !r.P && r.bk === name).length;
+function dppLocked() {
+  side({ back: '', title: 'DPPs', items: homeItems('dpp') });
+  main(h('section', { class: 'd-lockcard' }, h('span', { html: IC.lock }), h('h2', { text: 'DPPs are part of Premium' }), h('p', { text: 'The practice sheets of BB Ex, Ln DY, Ln Ex and more open with a Premium plan. PYQs stay free.' }), h('a', { class: 'btn pri', href: 'qbank#/membership', text: '★ Get Premium' })));
+}
+function viewDpp() {
+  side({ back: '', title: 'DPPs', sub: 'Practice sheets by source', items: homeItems('dpp') });
+  const free = locked(), lockIc = svg('<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>').replace('width="20" height="20"', 'width="16" height="16"');
+  const cards = SOURCES.map(x => {
+    const n = dppCount(x.name), sheets = new Set(D.rows.filter(r => !r.P && r.bk === x.name && r.shl).map(r => r.ch + r.shl)).size, none = !n, off = free || none;
+    return h('a', { class: 'dpp-card' + (off ? ' is-off' : ''), href: free ? 'qbank#/membership' : none ? '#d/dpp' : '#d/dpp/' + x.k, style: '--tone:' + x.tone, onclick: e => { if (none && !free) { e.preventDefault(); toast(x.name + ' is coming soon.'); } } },
+      h('span', { class: 'dpp-mark', text: x.name.toUpperCase().replace(' ', '-') }), h('b', { text: x.name }), h('small', { text: x.sub }),
+      h('span', { class: 'dpp-n', text: none ? 'Coming soon' : (sheets ? sheets + ' sheets · ' : '') + num(n) + ' questions' }),
+      free ? h('span', { class: 'dpp-lock', html: lockIc + ' Premium' }) : h('span', { class: 'dpp-go', text: none ? '' : 'Open questions ›' }));
+  });
+  cards.push(h('a', { class: 'dpp-card dpp-mix', href: free ? 'qbank#/membership' : '#d/dpp/mix', style: '--tone:#1f3f95' }, h('span', { class: 'dpp-mark', text: 'MIX' }), h('b', { text: 'Mixed Practice' }), h('small', { text: 'Tick the sources you want and practise them together, with filters for chapter, exercise, level and type' }), h('span', { class: 'dpp-go', text: 'Open Mixed Practice ›' })));
+  main(h('div', { class: 'dpp-head' }, h('h2', { text: 'DPPs' }), h('p', { text: 'Pick a source, then the exercise, and practise its questions.' })), h('div', { class: 'dpp-grid' }, cards));
+}
+/* one source (BB Ex, Ln DY, ...) or Mixed Practice: the sources are the left menu, the filters are one line on top */
+function viewDppSrc(k) {
+  if (locked()) return dppLocked();
+  const mix = k === 'mix', src = SRC[k]; if (!mix && !src) return go('d/dpp');
+  const names = mix ? [...MIXSEL] : [src.name];
+  const items = SOURCES.map(x => mix
+    ? { label: x.name, icon: MIXSEL.has(x.name) ? svg('<rect x="4" y="4" width="16" height="16" rx="3" fill="currentColor" opacity=".18"/><path d="m8 12 3 3 5-6"/>') : svg('<rect x="4" y="4" width="16" height="16" rx="3"/>'), badge: String(dppCount(x.name)), active: MIXSEL.has(x.name), href: '#', onclick: () => { if (MIXSEL.has(x.name)) MIXSEL.delete(x.name); else MIXSEL.add(x.name); viewDppSrc('mix'); } }
+    : { label: x.name, icon: IC.list, badge: String(dppCount(x.name)), hash: 'd/dpp/' + x.k, active: x.k === k });
+  side({ back: 'd/dpp', title: mix ? 'Mixed Practice' : 'DPPs', sub: mix ? 'Tick the sources to mix' : 'Choose a source', items });
+  const pool = D.rows.filter(r => !r.P && names.includes(r.bk));
+  const chs = [...new Set(pool.map(r => r.ch))].map(c => D.chByCode[c]).filter(Boolean).sort((a, b) => a.order - b.order);
+  const shs = new Map(); pool.forEach(r => { if (r.shl) shs.set(r.bk + '|' + r.shl, { t: (mix ? r.bk + ' ' : '') + r.shl, n: r.shn, b: r.bk }); });
+  const exList = [...shs.entries()].sort((a, b) => a[1].b.localeCompare(b[1].b) || a[1].n - b[1].n).map(([key, v]) => [key, v.t]);
+  const title = mix ? 'Mixed Practice' : src.name, head = h('div', { class: 'd-head' }, crumb('DPPs', title));
+  window.DashList.render(listEnv(), { rows: pool, title, head, compact: true, seqOrder: true, testLabel: 'Take test',
+    filters: [{ key: 'ch', label: 'Chapter', values: chs.map(c => [c.chapter_code, c.chapter_code + ' ' + c.chapter]), get: r => r.ch }].concat(exList.length ? [{ key: 'ex', label: 'Exercise', values: exList, get: r => r.bk + '|' + r.shl }] : []),
+    emptyText: mix && !names.length ? 'Tick at least one source on the left.' : title + ' questions are coming soon.',
+    startTest: list => launchTestFrom(list, { chapter: title + ' DPP', chapter_code: 'dpp' }, 'np', null, 20, 'DPP test'),
+    menuExtra: [{ text: 'Download ready-made sheets as PDF', note: 'Opens the PDF sheets page of the Question Bank.', onclick: () => { location.href = 'qbank#/dpps'; } }] });
+}
 
 /* ---------- Step 1: source ---------- */
 function viewHome() {
@@ -210,6 +263,7 @@ function topicSide(mode, slug, ch, active, rows) {
 let TOASTT = 0;
 function toast(m) { let t = document.getElementById('dToast'); if (!t) { t = h('div', { id: 'dToast', class: 'd-toast', role: 'status' }); document.body.append(t); } t.textContent = m; t.classList.add('on'); clearTimeout(TOASTT); TOASTT = setTimeout(() => t.classList.remove('on'), 2600); }
 const LIST_KINDS = ['all', 'must', 'must5', 'l1', 'l2', 'l3', 'bookmarked', 't'];
+const listEnv = () => ({ D, A, h, main, stat, IC, pct, openQB, toast, content: window.AvantiContent, mathReady: () => window.AvantiBoot.katex().catch(() => {}) });
 /* a question list inside the dashboard (dash-list.js draws it) */
 function viewList(mode, slug, ch, kind, arg) {
   const c = D.chByCode[ch], e = EX[slug], rows = scope(mode, slug, ch), idSet = new Set(rows.map(r => r.id));
@@ -225,7 +279,7 @@ function viewList(mode, slug, ch, kind, arg) {
     else { const L = kind.toUpperCase(); pool = rows.filter(r => r.d === L); title = ({ L1: 'Beginner Qs · Level 1 (Easy)', L2: 'Rank Booster · Level 2 (Moderate)', L3: 'Advanced · Level 3 (Tough)' })[L]; }
   }
   const head = h('div', { class: 'd-head' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c ? c.chapter : ch));
-  window.DashList.render({ D, A, h, main, stat, IC, pct, openQB, toast, content: window.AvantiContent, mathReady: () => window.AvantiBoot.katex().catch(() => {}) },
+  window.DashList.render(listEnv(),
     { rows: pool, title, head, practiceLabel: 'Practice ' + what, testLabel: 'Take ' + what + ' Test', emptyText: kind === 'bookmarked' ? 'Tap the bookmark on any question to keep it here.' : 'No questions here yet.',
       startTest: list => launchTestFrom(list, c, mode, e, 20, what.toLowerCase() + ' test') });
 }
@@ -339,6 +393,7 @@ async function route() {
   const hs = location.hash || '';
   if (/^#\/(?!home)/.test(hs)) { location.replace('qbank' + location.search + hs); return; }   /* an old link such as #/profile or #/t/CODE belongs to the question bank */
   const tok = ++NAV;
+  const navK = /^#d\/dpp/.test(hs) ? 'lib' : 'dash'; document.querySelectorAll('.tb-menu .tb').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.k === navK)));
   const parts = hs.replace(/^#d\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
   main(loadingBox('Loading your dashboard…'));
   try { await Promise.all([load(), loadMine(false)]); } catch (e) { main(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'Could not load the questions' }), h('p', { text: e.message || 'Check your connection and try again.' }), h('button', { type: 'button', class: 'btn', text: 'Try again', onclick: () => { D.ready = null; route(); } }))); return; }
@@ -348,6 +403,7 @@ async function route() {
   if (a === 'pyq') return b ? viewChapters('pyq', b) : viewExams();
   if (a === 'np') return viewChapters('np', null);
   if (a === 'ch') return viewChapter(b, c === '-' ? null : c, d, e || 'overview', f);
+  if (a === 'dpp') return b ? viewDppSrc(b) : viewDpp();
   if (a === 'bookmarks') return viewBookmarksPage();
   if (a === 'history') return viewHistoryPage();
   viewHome();

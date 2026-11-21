@@ -25,6 +25,7 @@ function rich(t) {
   return out + plainTxt(s.slice(last));
 }
 const srcLine = x => {
+  if (x.source && x.source !== 'PYQ') return (x.paper ? String(x.paper) : (x.book || x.publisher || 'Practice')) + (x.qno ? ' · Q' + x.qno : '');
   const name = EXAM_NAME[x.exam] || x.exam || '', p = String(x.paper || '').replace(String(x.year || ''), '').replace(/\s*\(([^)]*)\)/g, ' · $1').replace(/\s+/g, ' ').replace(/^[\s,.\-–·]+|[\s,.\-–·]+$/g, '');
   return name + (x.year ? ' ' + x.year : '') + (p ? ' (' + p + ')' : '');
 };
@@ -45,7 +46,8 @@ function menu(label, build) {   /* build(panel, refreshLabel) fills the panel; r
 /* ---------- the list ---------- */
 function render(env, o) {
   const { D, A, main } = env, pool = o.rows, res = () => D.sum.results;
-  const F = { hide: false, years: new Set(), status: '', lv: new Set(), types: new Set(), sort: 'new' };
+  const F = { hide: false, years: new Set(), status: '', lv: new Set(), types: new Set(), sort: o.seqOrder ? 'seq' : 'new', extra: {} };
+  (o.filters || []).forEach(f => { F.extra[f.key] = new Set(); });
   const typeOf = r => (D.raw.get(r.id) || {}).type || 'MCQ';
   const years = [...new Set(pool.map(r => r.y).filter(Boolean))].sort((a, b) => b - a), types = [...new Set(pool.map(typeOf))];
   let list = [], shown = 0, openId = '';
@@ -55,14 +57,15 @@ function render(env, o) {
   /* what is shown: filters, then the order */
   const apply = () => {
     list = pool.filter(r => (!F.hide || !res()[r.id]) && (!F.years.size || F.years.has(r.y)) && (!F.lv.size || F.lv.has(r.d)) && (!F.types.size || F.types.has(typeOf(r)))
-      && (!F.status || (F.status === 'u' ? !res()[r.id] : res()[r.id] === F.status)));
+      && (!F.status || (F.status === 'u' ? !res()[r.id] : res()[r.id] === F.status)) && (o.filters || []).every(f => !F.extra[f.key].size || F.extra[f.key].has(f.get(r))));
     const key = r => (r.y || 0) * 1e3;
-    list.sort((a, b) => F.sort === 'new' ? (b.y || 0) - (a.y || 0) || (a.id < b.id ? 1 : -1) : F.sort === 'old' ? (a.y || 0) - (b.y || 0) || (a.id < b.id ? -1 : 1) : F.sort === 'easy' ? String(a.d).localeCompare(String(b.d)) || (b.y || 0) - (a.y || 0) : String(b.d).localeCompare(String(a.d)) || (b.y || 0) - (a.y || 0));
+    const chOrd = c => ((env.D.chByCode[c] || {}).order || 999), qn = r => +((env.D.raw.get(r.id) || {}).qno) || 0;
+    list.sort((a, b) => F.sort === 'seq' ? chOrd(a.ch) - chOrd(b.ch) || String(a.bk).localeCompare(String(b.bk)) || (a.shn || 0) - (b.shn || 0) || qn(a) - qn(b) || (a.id < b.id ? -1 : 1) : F.sort === 'new' ? (b.y || 0) - (a.y || 0) || (a.id < b.id ? 1 : -1) : F.sort === 'old' ? (a.y || 0) - (b.y || 0) || (a.id < b.id ? -1 : 1) : F.sort === 'easy' ? String(a.d).localeCompare(String(b.d)) || (b.y || 0) - (a.y || 0) : String(b.d).localeCompare(String(a.d)) || (b.y || 0) - (a.y || 0));
     shown = Math.min(PAGE, list.length); openId = ''; ul.textContent = '';
     for (let i = 0; i < shown; i++) ul.append(row(list[i], i));
     paint();
   };
-  const filtered = () => F.hide || F.years.size || F.lv.size || F.types.size || F.status;
+  const filtered = () => F.hide || F.years.size || F.lv.size || F.types.size || F.status || (o.filters || []).some(f => F.extra[f.key].size);
   const paint = () => {
     count.textContent = 'Showing ' + (filtered() ? '' : 'all ') + 'Qs (' + Math.min(shown, list.length) + '/' + list.length + (filtered() ? ' of ' + pool.length : '') + ')';
     more.textContent = '';
@@ -141,23 +144,33 @@ function render(env, o) {
   const statusMenu = menu('Attempt status', (panel, api) => {
     [['', 'All'], ['c', 'Solved correctly'], ['w', 'Got wrong'], ['s', 'Left unanswered'], ['u', 'Not attempted']].forEach(([k, t]) => panel.append(h('label', { class: 'dl-opt-i' }, h('input', { type: 'radio', name: 'dl-st', checked: k === '', onchange: () => { F.status = k; api.setLabel(k ? t : 'Attempt status', k); api.close(); apply(); } }), h('span', { text: t }))));
   });
-  const sortSel = h('select', { class: 'dl-sort', 'aria-label': 'Order', onchange: e => { F.sort = e.target.value; apply(); } }, [['new', 'Year-wise (New to Old)'], ['old', 'Year-wise (Old to New)'], ['easy', 'Level (Easy to Hard)'], ['hard', 'Level (Hard to Easy)']].map(([k, t]) => h('option', { value: k, text: t })));
+  const sortSel = h('select', { class: 'dl-sort', 'aria-label': 'Order', onchange: e => { F.sort = e.target.value; apply(); } }, (o.seqOrder ? [['seq', 'Exercise order'], ['easy', 'Level (Easy to Hard)'], ['hard', 'Level (Hard to Easy)']] : [['new', 'Year-wise (New to Old)'], ['old', 'Year-wise (Old to New)'], ['easy', 'Level (Easy to Hard)'], ['hard', 'Level (Hard to Easy)']]).map(([k, t]) => h('option', { value: k, text: t })));
   const typeChips = types.length > 1 ? h('div', { class: 'dl-types' }, types.map(t => { const n = pool.filter(r => typeOf(r) === t).length, b = h('button', { type: 'button', class: 'dl-chipb', 'aria-pressed': 'false', onclick: () => { F.types.has(t) ? F.types.delete(t) : F.types.add(t); b.setAttribute('aria-pressed', String(F.types.has(t))); apply(); } }, t, h('i', { text: String(n) })); return b; })) : null;
   const exportMenu = menu('', (panel, api) => {
     api.box.querySelector('.dl-fbtn').className = 'dl-fbtn dl-ico'; api.box.querySelector('.dl-fbtn').innerHTML = ICON.more; api.box.querySelector('.dl-fbtn').setAttribute('aria-label', 'More options');
     panel.classList.add('dl-pop-r');
     panel.append(h('button', { type: 'button', class: 'dl-mi', text: 'Export, print or share these questions', onclick: () => { api.close(); env.openQB(list.map(r => r.id), o.title); } }),
       h('small', { class: 'dl-mnote', text: 'Opens the Question Bank with exactly these ' + list.length + ' questions selected.' }));
+    (o.menuExtra || []).forEach(x => panel.append(h('button', { type: 'button', class: 'dl-mi', text: x.text, onclick: () => { api.close(); x.onclick(); } }), x.note ? h('small', { class: 'dl-mnote', text: x.note }) : null));
   });
   const practice = () => { const r = list.find(z => !res()[z.id]) || list[0]; if (r) step(list.indexOf(r)); };
   const act = (cls, ic, text, fn) => h('button', { type: 'button', class: 'dl-act ' + cls, onclick: fn }, h('b', { text }), h('span', { class: 'dl-act-i', html: ic }));
   const testBtn = act('test', ICON.test, o.testLabel + ' →', async () => { testBtn.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (e) { env.toast(e.message || 'Could not start'); testBtn.disabled = false; } });
 
-  wrap.append(
+  const levelMenu = multi('Difficulty', ['L1', 'L2', 'L3'], F.lv, v => ({ L1: 'Level 1 · Easy', L2: 'Level 2 · Moderate', L3: 'Level 3 · Tough' })[v]);
+  const extraMenus = (o.filters || []).map(f => { const nice = new Map(f.values); return multi(f.label, f.values.map(v => v[0]), F.extra[f.key], v => nice.get(v)); });
+  if (o.compact) {
+    /* DPP pages: everything in one line on top, then the questions */
+    const typeMenu = types.length > 1 ? multi('Type', types, F.types) : null;
+    const smallTest = h('button', { type: 'button', class: 'btn pri dl-small', text: (o.testLabel || 'Take test') + ' →', onclick: async e => { const btn = e.currentTarget; btn.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (x) { env.toast(x.message || 'Could not start'); } btn.disabled = false; } });
+    wrap.append(h('div', { class: 'dl-top' }, h('h2', { text: o.title }), h('div', { class: 'dl-top-r' }, o.startTest ? smallTest : null, exportMenu)),
+      h('div', { class: 'dl-filters dl-oneline' }, tog, extraMenus, years.length ? multi('Years', years, F.years) : null, levelMenu, typeMenu, statusMenu, h('label', { class: 'dl-sortw dl-sort-r' }, h('span', { html: ICON.sort }), sortSel)),
+      h('div', { class: 'dl-bar' }, count), ul, more);
+  } else wrap.append(
     h('div', { class: 'dl-top' }, h('h2', { text: o.title }), exportMenu),
     h('div', { class: 'd-stats dl-stats' }, env.stat(env.IC.all, solved + '/' + pool.length, 'Qs attempted'), env.stat(env.IC.target, right + '/' + pool.length, 'Correct Qs'), env.stat(env.IC.up, solved ? env.pct(right, solved) + '%' : '—', 'Accuracy')),
     h('div', { class: 'dl-acts2' }, act('prac', ICON.prac, o.practiceLabel + ' →', practice), testBtn),
-    h('div', { class: 'dl-filters' }, tog, multi('Years', years, F.years), statusMenu, multi('Difficulty', ['L1', 'L2', 'L3'], F.lv, v => ({ L1: 'Level 1 · Easy', L2: 'Level 2 · Moderate', L3: 'Level 3 · Tough' })[v])),
+    h('div', { class: 'dl-filters' }, tog, extraMenus, years.length ? multi('Years', years, F.years) : null, statusMenu, levelMenu),
     typeChips, h('div', { class: 'dl-bar' }, count, h('label', { class: 'dl-sortw' }, h('span', { html: ICON.sort }), sortSel)),
     ul, more);
   main(o.head || null, wrap);

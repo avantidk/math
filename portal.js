@@ -1247,13 +1247,45 @@ async function modeFull() {
   show(modeHead('Full Length Mock', 'Mixed chapters. PYQs and practice questions together, with the official duration and marking of the exam.'), h('div', { class: 'pp-papers' }, cards));
 }
 /* Export the questions of a finished test as a PDF: only questions, with the answer key, or with the key and full explanations */
+/* Marking scheme and answers of a finished test as a small PDF: the marks by question type, then every question with the right answer, your answer and your marks */
+async function markingSheet(attemptId, title) {
+  const R = await rpc('attempt_report', { p_attempt: attemptId });
+  let info = null; try { info = await rpc('test_info', { p_code: R.test.code }); } catch (e) { info = null; }
+  await window.AvantiBoot.loadScript('vendor/jspdf-2.5.1.umd.min.js');
+  const { jsPDF } = window.jspdf, doc = new jsPDF({ unit: 'mm', format: 'a4' }), W = 210, M = 14;
+  const lat = t => String(t == null ? '' : t).replace(/\\[()\[\]]/g, '').replace(/\\[a-zA-Z]+/g, ' ').replace(/[{}^_$]/g, '').replace(/[−–—]/g, '-').replace(/[^\x20-\x7e -ÿ]/g, '?').replace(/\s+/g, ' ').trim();
+  let y = 18; const room = n => { if (y + n > 285) { doc.addPage(); y = 18; } };
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.text(lat(title).slice(0, 80), M, y); y += 7;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90);
+  const a = R.attempt, t = R.test;
+  doc.text(lat('Marking scheme and answers  |  ' + t.n_questions + ' questions  |  ' + t.duration_min + ' min  |  Your score ' + num(a.score, 2) + ' / ' + num(a.max_score, 2)), M, y); y += 9; doc.setTextColor(0);
+  const secs = (info && info.sections) || [];
+  if (secs.length) {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text('Marking scheme', M, y); y += 6; doc.setFontSize(10);
+    const cols = [M, 90, 112, 150]; ['Question type', 'Questions', 'Correct', 'Wrong'].forEach((h2, i) => doc.text(h2, cols[i], y)); y += 2; doc.line(M, y, W - M, y); y += 5; doc.setFont('helvetica', 'normal');
+    secs.forEach(x => { room(7); const un = +x.c === 0;
+      doc.text(lat(TYPE_NAME[x.type] || x.type).slice(0, 44), cols[0], y); doc.text(String(x.n), cols[1], y);
+      doc.text(un ? 'not marked' : '+' + num(x.c, 2) + (x.p ? ' (partial marks)' : ''), cols[2], y);
+      doc.text(un ? '-' : (x.w != null ? (+x.w ? '-' + num(x.w, 2) : '0') : (x.type === 'MCQ' || x.type === 'Matching') && +t.marks_wrong ? '-' + num(t.marks_wrong, 2) : '0'), cols[3], y); y += 6; });
+    y += 4;
+  }
+  room(16); doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text('Answers', M, y); y += 6; doc.setFontSize(10);
+  const c2 = [M, 28, 66, 118, 170]; ['No.', 'Type', 'Correct answer', 'Your answer', 'Marks'].forEach((h2, i) => doc.text(h2, c2[i], y)); y += 2; doc.line(M, y, W - M, y); y += 5; doc.setFont('helvetica', 'normal');
+  (R.items || []).forEach(it => { room(7);
+    doc.text(String(it.pos), c2[0], y); doc.text(lat(it.type || '').slice(0, 14), c2[1], y); doc.text(lat(it.correct_answer || '-').slice(0, 30), c2[2], y); doc.text(lat(it.response || '-').slice(0, 28), c2[3], y);
+    doc.text(it.marks == null ? '-' : (it.marks > 0 ? '+' : '') + num(it.marks, 2), c2[4], y); y += 6; });
+  const blob = doc.output('blob'), link2 = document.createElement('a'); link2.href = URL.createObjectURL(blob); link2.download = lat(title).replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') + '_marking_scheme_and_answers.pdf';
+  document.body.append(link2); link2.click(); link2.remove(); setTimeout(() => URL.revokeObjectURL(link2.href), 4000);
+}
+/* Export of a finished test (Practice Tests & Results): the paper, with the answer key, with the explanations, or the marking scheme and answers */
 async function exportResult(attemptId, title) {
   let mode = 'k';
-  const opts = [['q', 'Questions only'], ['k', 'Questions + Answer Key'], ['e', 'Questions + Answer Key + Full Explanations']];
+  const opts = [['q', 'Question paper only'], ['k', 'Question paper + Answer Key'], ['e', 'Question paper + Answer Key + Full Explanations'], ['m', 'Marking scheme and answers (short PDF)']];
   const rows = opts.map(([k, t]) => h('label', { class: 'pt-radio' }, h('input', { type: 'radio', name: 'expmode', value: k, checked: k === mode, onchange: () => { mode = k; } }), h('span', { text: t })));
-  modal('Export "' + title + '"', h('div', { class: 'pt-form' }, h('p', { class: 'pt-hint', text: 'Choose what the PDF should contain.' }), rows),
+  modal('Download "' + title + '"', h('div', { class: 'pt-form' }, h('p', { class: 'pt-hint', text: 'Choose what the PDF should contain. Downloads are available after you finish a test.' }), rows),
     [{ text: 'Cancel', onclick: () => {} }, { text: 'Download PDF', pri: true, onclick: async () => {
       try {
+        if (mode === 'm') { await markingSheet(attemptId, title); return; }
         const R = await rpc('attempt_report', { p_attempt: attemptId }), ids = (R.items || []).map(i => i.qid).filter(Boolean);
         if (!ids.length) { toast('The questions of this test are not available.'); return; }
         await TE().exportIds(ids, title, 'pdf', 'Test', '', '', { key: mode !== 'q', exp: mode === 'e' });
@@ -1470,7 +1502,6 @@ function runExam(d) {
     h('ul', { class: 'ex-legend' }, [['ans', 'Answered'], ['na', 'Not answered'], ['nv', 'Not visited'], ['mk', 'Marked for review'], ['am', 'Answered and marked']].map(([k, t]) => h('li', {}, h('i', { class: 'ex-p ' + k }), t))),
     h('button', { type: 'button', class: 'btn pri ex-submit2', text: 'Submit test', onclick: () => askSubmit() }));
   root.append(h('header', { class: 'ex-top' }, h('strong', { class: 'ex-title', text: d.title }), saved, timer,
-    h('button', { type: 'button', class: 'btn ex-qp', text: 'Question paper PDF', title: 'Download the question paper as a PDF', onclick: e => paperPdf(e.currentTarget) }),
     h('button', { type: 'button', class: 'btn ex-palbtn', text: 'Questions', 'aria-expanded': 'false', onclick: e => { const o = root.classList.toggle('pal-open'); e.target.setAttribute('aria-expanded', String(o)); } }),
     h('button', { type: 'button', class: 'btn pri', text: 'Submit', onclick: () => askSubmit() })), pauseBar, h('div', { class: 'ex-body' }, main, side));
 
@@ -1543,14 +1574,6 @@ function runExam(d) {
   }
   X.onOffline = () => setPaused(true); X.onOnline = () => { X.dirty = true; save(true); };
   window.addEventListener('offline', X.onOffline); window.addEventListener('online', X.onOnline);
-  /* the question paper as a PDF, made from the questions on this page (the question bank is closed while a test is running) */
-  async function paperPdf(btn) {
-    btn.disabled = true;
-    try {
-      const T = TE(); if (!T || !T.rawPaper) throw new Error('The question paper is not available here.');
-      await T.rawPaper(qs.map(q => ({ i: q.id, s: q.s === 'P' ? 'P' : 'N', t: q.type, q: q.q, o: q.o || [], a: '', f: q.f || null, tp: q.tp || '', d: 'L2', cc: 'x', e: 'Main' })), d.title, 'Time ' + d.duration_min + ' min');
-    } catch (e) { toast(e.message || 'Could not make the PDF'); } finally { btn.disabled = false; }
-  }
   function tickTimer() {
     tickQ();
     if (X.paused) { pauseBar.hidden = false; timer.classList.add('paused'); }

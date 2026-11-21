@@ -1895,13 +1895,6 @@ window.AvantiTeacher = {
   bank: () => ensureDpp().then(() => ({ qs: BANK.all, byId: BYID, chapters: CHMAP })),
   /* saved worksheets: the same PDF / Word / PowerPoint export and share menu as DPPs (plan checks inside) */
   exportIds: async (ids, title, kind, label, info, subLine, opts) => { await ensureDpp(); let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } if (opts) pages = pages.map(p => Object.assign({}, p, { key: !!opts.key, exp: !!opts.exp })); doExport(kind, { pages, file: title }); },
-  /* the question paper of a test that is running: made from the questions on the page, without opening the question bank (it is closed during a test) */
-  rawPaper: async (qs, title, info) => {
-    if (!KATEX_P) KATEX_P = window.AvantiBoot.katex().then(() => loadScript(CDN.auto)); await KATEX_P;
-    const pages = packPages(qs, (g, i, n) => ({ title, sub: 'Question paper', tag: false, infoLine: info || '', subLine: '', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : '' }));
-    if (!pages.length) { toast('No questions to print'); return; }
-    return doExport('pdf', { pages, file: title });
-  },
   pdfIds: async (ids, title, label, info, subLine) => { await ensureDpp(); const pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
   shareIds: async (btn, ids, title) => { await ensureDpp(); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
   math: node => math(node)

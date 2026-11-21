@@ -182,3 +182,9 @@ a.d-tile:hover, .d-tile[onclick]:hover, .d-tile:not(.is-off):hover { transform: 
 .d-toast.on { opacity: 1; transform: translate(-50%, 0); }
 @media (max-width: 700px) { .dl-acts2 { grid-template-columns: 1fr; } .dl-detail { padding-left: 14px; } .dl-main { grid-template-columns: 30px minmax(0, 1fr); padding-left: 10px; } }
 .dl-row.open .dl-q { display: none; }
+
+/* DPP pages: the filters in one line on top */
+.dl-oneline { flex-wrap: wrap; gap: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--rule); border-radius: 14px; }
+.dl-oneline .dl-sort-r { margin-left: auto; }
+.dl-top-r { display: flex; align-items: center; gap: 8px; }
+.dl-small { padding: 8px 16px; }
