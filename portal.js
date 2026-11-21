@@ -1118,26 +1118,69 @@ async function launchTest(o) {
   location.hash = '#/t/' + r.code;   /* the instructions come first; the test starts when you press Start */
 }
 /* pick n questions, chapters mixed evenly when asked */
-function pickN(pool, n, even, used) {
-  const list = pool.filter(q => !used.has(q.i)); let out = [];
-  if (even) {
-    const g = new Map(); shuffled(list).forEach(q => { if (!g.has(q.cc)) g.set(q.cc, []); g.get(q.cc).push(q); });
-    const lists = shuffled([...g.values()]); for (let i = 0; out.length < n && lists.some(l => l.length); i++) { const l = lists[i % lists.length]; if (l.length) out.push(l.pop()); }
-  } else out = shuffled(list).slice(0, n);
+/* the difficulty slider of the mocks: share of L1, L2 and L3 questions at each of its five stops (null = no bias) */
+const TOUGH_MIX = [[1, 0, 0], [.6, .3, .1], null, [.1, .3, .6], [0, 0, 1]];
+const TOUGH_NAME = ['Easy', 'Mostly easy', 'Balanced', 'Mostly tough', 'Tough'];
+const TOUGH_HINT = ['Only Level 1 (easy) questions.', 'About 60% easy, 30% moderate and 10% tough questions.', 'The usual mix of easy, moderate and tough questions.', 'About 10% easy, 30% moderate and 60% tough questions.', 'Only Level 3 (tough) questions.'];
+function takeEven(list, k) {   /* chapters mixed evenly */
+  const out = [], g = new Map(); shuffled(list).forEach(q => { if (!g.has(q.cc)) g.set(q.cc, []); g.get(q.cc).push(q); });
+  const lists = shuffled([...g.values()]); for (let i = 0; out.length < k && lists.some(l => l.length); i++) { const l = lists[i % lists.length]; if (l.length) out.push(l.pop()); }
+  return out;
+}
+/* pick n questions; tough (0 to 4) steers the levels. At the two ends (Easy, Tough) only that level is used, so a test can be shorter if there are too few. */
+function pickN(pool, n, even, used, tough) {
+  const list = pool.filter(q => !used.has(q.i)), take = (arr, k) => (even ? takeEven(arr, k) : shuffled(arr).slice(0, k)), mx = tough == null ? null : TOUGH_MIX[tough];
+  let out;
+  if (!mx) out = take(list, n);
+  else {
+    const by = { L1: [], L2: [], L3: [] }; list.forEach(q => { (by[q.d] || by.L2).push(q); });
+    const lv = ['L1', 'L2', 'L3'], want = mx.map(x => Math.round(x * n)); const top = want.indexOf(Math.max(...want)); want[top] += n - want.reduce((a, x) => a + x, 0);
+    out = []; lv.forEach((k, i) => { if (want[i] > 0) out.push(...take(by[k], want[i])); });
+    if (out.length < n && tough !== 0 && tough !== 4) {   /* a level ran short: fill from the other levels, nearest to the wanted end first */
+      const got = new Set(out), order = tough === 1 ? lv : lv.slice().reverse();
+      order.forEach(k => { if (out.length < n) { const more = take(by[k].filter(q => !got.has(q)), n - out.length); more.forEach(q => got.add(q)); out.push(...more); } });
+    }
+    out = shuffled(out);
+  }
   out.forEach(q => used.add(q.i)); return out;
 }
 /* the questions of a test: for each type in mix (for example MCQ 20, Numerical 5) about ratioP of them from PYQs and the rest from practice questions */
-function compose(poolP, poolN, mix, ratioP, even) {
+function compose(poolP, poolN, mix, ratioP, even, tough) {
   const used = new Set(), out = [];
   Object.entries(mix).forEach(([type, n]) => {
     const tp = poolP.filter(q => q.t === type), tn = poolN.filter(q => q.t === type), nP = Math.min(tp.length, Math.round(n * ratioP));
-    let got = pickN(tp, nP, even, used).concat(pickN(tn, n - nP, even, used));
-    if (got.length < n) got = got.concat(pickN(tp, n - got.length, even, used));
-    if (got.length < n) got = got.concat(pickN(tn, n - got.length, even, used));
+    let got = pickN(tp, nP, even, used, tough).concat(pickN(tn, n - nP, even, used, tough));
+    if (got.length < n) got = got.concat(pickN(tp, n - got.length, even, used, tough));
+    if (got.length < n) got = got.concat(pickN(tn, n - got.length, even, used, tough));
     out.push(...got);
   });
   return out;
 }
+/* the control bar on top of the mocks: where the questions come from (PYQ, Non-PYQ, Mix) and how tough they are (slider).
+   Free accounts have PYQ only: the other two buttons are locked and lead to Premium. */
+function mockBar(onChange, o) {
+  o = o || {};
+  const free = isFree(), st = { src: o.src || (free ? 'P' : 'M'), tough: 2 };
+  const lockIc = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>';
+  const seg = h('div', { class: 'mk-seg', role: 'group', 'aria-label': 'Where the questions come from' });
+  const hint = h('p', { class: 'mk-hint', role: 'status' }), slider = h('input', { type: 'range', class: 'mk-range', min: 0, max: 4, step: 1, value: 2, 'aria-label': 'Difficulty of the questions' });
+  const drawSeg = () => { seg.textContent = ''; [['P', 'PYQ', 'Previous year questions'], ['N', 'Non-PYQ', 'Practice questions'], ['M', 'Mix', 'Both']].forEach(([k, t, sub]) => {
+    const off = free && k !== 'P';
+    seg.append(h('button', { type: 'button', class: 'mk-sb' + (off ? ' is-off' : ''), 'aria-pressed': String(st.src === k), title: off ? 'Practice questions are part of Premium' : sub, onclick: () => { if (off) { location.hash = '#/membership'; return; } st.src = k; drawSeg(); onChange(); } },
+      h('b', { text: t }), off ? h('span', { class: 'mk-lock', html: lockIc }) : h('small', { text: sub })));
+  }); };
+  const drawHint = () => { hint.textContent = TOUGH_NAME[st.tough] + ': ' + TOUGH_HINT[st.tough]; };
+  slider.addEventListener('input', () => { st.tough = +slider.value; drawHint(); onChange(); });
+  drawSeg(); drawHint();
+  const el = h('section', { class: 'mk-bar' },
+    h('div', { class: 'mk-col' }, h('span', { class: 'mk-l', text: 'Question source' }), seg, free ? h('small', { class: 'mk-fine', html: 'Free accounts use previous year questions. <a href="#/membership">Get Premium</a> for practice questions.' }) : null),
+    o.noTough ? null : h('div', { class: 'mk-col' }, h('span', { class: 'mk-l', text: 'Difficulty' }), slider, h('div', { class: 'mk-ticks', 'aria-hidden': 'true' }, TOUGH_NAME.map(t => h('span', { text: t }))), hint));
+  return { el, st };
+}
+const srcWord = { P: 'PYQ', N: 'Practice', M: 'Mixed' };
+const mockTag = st => ' · ' + srcWord[st.src] + (st.tough === 2 ? '' : ' · ' + TOUGH_NAME[st.tough]);
+/* how many questions of a list match the bar: source, then level (the two ends keep one level only) */
+function mockPool(list, st) { const l = list.filter(q => st.src === 'M' || (st.src === 'P') === (q.s === 'P')); return st.tough === 0 ? l.filter(q => q.d === 'L1') : st.tough === 4 ? l.filter(q => q.d === 'L3') : l; }
 const TXI = {
   pyq: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
   chapter: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H20v14H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H20M9 9h6M9 13h4"/></svg>',
@@ -1192,7 +1235,7 @@ function dd(label, groups, set, onChange, o) {   /* groups: [{ h, items: [[value
       panel.append(h('label', { class: 'dl-opt-i' }, cb, h('span', { class: 'dl-ot2', text: t }), c != null ? h('em', { class: 'dl-cn', text: String(c) }) : null)); });
   });
   btn.addEventListener('click', e => { e.stopPropagation(); if (o.lock) { o.lock(); return; } if (!panel.hidden) { api.close(); return; } if (DD_OPEN) DD_OPEN.close(); panel.hidden = false; btn.setAttribute('aria-expanded', 'true'); DD_OPEN = api; });
-  box.append(btn, panel); paint(); api.paint = paint;
+  box.append(btn, panel); paint(); box.paint = paint;
   return box;
 }
 async function modeCustom() {
@@ -1206,13 +1249,14 @@ async function modeCustom() {
   const count = (f) => all.filter(f).length;
   const exams = Object.keys(EXN).filter(k => count(q => exOf(q) === k)), books = [...new Set(all.map(bookOf).filter(Boolean))].sort();
   const types = ['MCQ', 'MSQ', 'Numerical'].filter(t => count(q => q.t === t));
-  const S = { ex: new Set(['Main']), bk: new Set(), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 25, mins: 75, auto: true, per: 3, scheme: 'JEE Main', title: '' };
+  const S = { src: 'P', ex: new Set(['Main']), bk: new Set(), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 25, mins: 75, auto: true, per: 3, scheme: 'JEE Main', title: '' };
   const schemeNames = Object.keys(SC).filter(k => SC[k] && SC[k].rules);
-  const pool = () => all.filter(q => (q.s === 'P' ? S.ex.has(q.e) && (!q.y || (q.y >= S.y1 && q.y <= S.y2)) : S.bk.has(bookOf(q)) && !free) && (!S.ch.size || S.ch.has(q.cc)) && S.lv.has(q.d) && S.ty.has(q.t) && (!S.skip || done[q.i] !== 'c'));
+  const pool = () => all.filter(q => (q.s === 'P' ? S.src !== 'N' && S.ex.has(q.e) && (!q.y || (q.y >= S.y1 && q.y <= S.y2)) : S.src !== 'P' && S.bk.has(bookOf(q)) && !free) && (!S.ch.size || S.ch.has(q.cc)) && S.lv.has(q.d) && S.ty.has(q.t) && (!S.skip || done[q.i] !== 'c'));
   const tog = (set, k, min) => { if (set.has(k)) { if (!min || set.size > min) set.delete(k); } else set.add(k); };
   const chip = (text, on, fn, small, dis) => h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(!!on), disabled: !!dis, onclick: fn }, text, small != null ? h('em', { class: 'cp-n', text: String(small) }) : null);
   const sect = (n, t, sub, ...kids) => h('section', { class: 'cp-sec' }, h('div', { class: 'cp-sh' }, h('b', { class: 'cp-no', text: String(n) }), h('div', {}, h('h2', { text: t }), sub ? h('p', { text: sub }) : null)), ...kids);
   const sumBox = h('aside', { class: 'cp-sum' }), again = () => draw();
+  const srcBar = mockBar(() => { S.src = srcBar.st.src; if (S.src !== 'P' && !S.bk.size) books.forEach(b => S.bk.add(b)); bkBox.paint && bkBox.paint(); exBox.classList.toggle('is-dim', S.src === 'N'); bkBox.classList.toggle('is-dim', S.src === 'P'); draw(); }, { noTough: true, src: 'P' });
   const exBox = dd('Exams', [{ items: exams.map(k => [k, EXN[k], count(q => exOf(q) === k)]) }], S.ex, again, { none: 'No exam picked', min: 0 });
   const bkBox = dd('Practice books', [{ items: books.map(b => [b, b, count(q => bookOf(q) === b)]) }], S.bk, again, { none: free ? '🔒 Premium' : 'No practice questions', lock: free ? () => { location.hash = '#/membership'; } : null });
   const lvBox = dd('Difficulty', [{ items: [['L1', 'Level 1 · Easy', count(q => q.d === 'L1')], ['L2', 'Level 2 · Moderate', count(q => q.d === 'L2')], ['L3', 'Level 3 · Tough', count(q => q.d === 'L3')]] }], S.lv, again, { min: 1 });
@@ -1242,14 +1286,14 @@ async function modeCustom() {
     const sc = SC[S.scheme] || SC['JEE Main'];
     sumBox.append(h('h3', { text: 'Your test' }),
       h('div', { class: 'cp-big' }, h('strong', { text: String(n) }), h('span', { text: ' of ' + avail + ' matching questions' })),
-      h('ul', { class: 'cp-facts' }, [['Questions', String(n)], ['Time', S.mins + ' min'], ['Marking', markText(sc)], ['Chapters', S.ch.size ? S.ch.size + ' chosen' : 'All'], ['Sources', [...[...S.ex].map(k => EXN[k]), ...[...S.bk]].join(', ') || '—']].map(([a, b]) => h('li', {}, h('span', { text: a }), h('b', { text: b })))),
+      h('ul', { class: 'cp-facts' }, [['Questions', String(n)], ['Time', S.mins + ' min'], ['Marking', markText(sc)], ['Chapters', S.ch.size ? S.ch.size + ' chosen' : 'All'], ['Sources', [...(S.src === 'N' ? [] : [...S.ex].map(k => EXN[k])), ...(S.src === 'P' ? [] : [...S.bk])].join(', ') || '—']].map(([a, b]) => h('li', {}, h('span', { text: a }), h('b', { text: b })))),
       avail < S.n ? h('p', { class: 'pt-hint', text: 'Only ' + avail + ' questions match, so the test will have ' + avail + '. Widen the choices to get more.' }) : '', go);
     go.disabled = avail < 3;
   }
   draw();
   show(modeHead('Create Your Practice Test', 'Build exactly the test you need. The marks and the instructions are shown before you start.'),
     h('div', { class: 'cp-wrap' }, h('div', { class: 'cp-main' },
-      sect(1, 'Source', 'Previous year questions and practice questions.', h('div', { class: 'cp-pills' }, exBox, bkBox), h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'From year (previous year questions)' }), yr1), h('label', { class: 'pt-fld' }, h('span', { text: 'To year' }), yr2))),
+      sect(1, 'Source', 'Previous year questions and practice questions.', srcBar.el, h('div', { class: 'cp-pills' }, exBox, bkBox), h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'From year (previous year questions)' }), yr1), h('label', { class: 'pt-fld' }, h('span', { text: 'To year' }), yr2))),
       sect(2, 'Chapters', 'Pick one or more chapters. Leave it as it is for every chapter.', h('div', { class: 'cp-pills' }, chBox)),
       sect(3, 'Difficulty and type', null, h('div', { class: 'cp-pills' }, lvBox, tyBox), skipBox),
       sect(4, 'Size, time and marking', null, h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Number of questions' }), nIn), h('label', { class: 'pt-fld' }, h('span', { text: 'Time per question' }), perSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Total time (minutes)' }), minIn)),
@@ -1257,19 +1301,27 @@ async function modeCustom() {
       sumBox));
 }
 async function modeChapter() {
-  if (isFree()) { location.hash = '#/membership'; return; }
-  show(modeHead('Chapter Wise Mock', 'Choose a chapter.'), loading('Loading the question bank…'));
+  show(modeHead('Chapter Wise Mock', 'Choose the source and the difficulty, then a chapter.'), loading('Loading the question bank…'));
   const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
-  const all = B.qs.filter(gradable), sc = SC['JEE Main'];
-  const cards = [...CHN.values()].map(c => { const p = all.filter(q => q.cc === c.c); return { c, n: p.length, np: p.filter(q => q.s === 'N').length, py: p.filter(q => q.s === 'P').length }; }).filter(x => x.n >= 10);
-  show(modeHead('Chapter Wise Mock', 'Pick a chapter. You get ' + sc.n_questions + ' questions: PYQs and practice questions mixed. ' + sc.duration_min + ' minutes, ' + markText(sc) + '.'),
-    h('div', { class: 'pp-papers' }, cards.map(x => h('button', { type: 'button', class: 'pp-card', onclick: async e => {
-      const b = e.currentTarget; b.disabled = true;
-      try {
-        const p = all.filter(q => q.cc === x.c.c), qs = compose(p.filter(q => q.s === 'P'), p.filter(q => q.s === 'N'), sc.rules.mix, 0.5, false), n = qs.length;
-        await launchTest({ title: x.c.n + ' · chapter wise mock', qs, exam: 'JEE Main', mins: Math.max(10, Math.round(sc.duration_min * n / sc.n_questions)), key: 'chapter-' + x.c.c });
-      } catch (err) { toast(err.message); b.disabled = false; } } },
-      h('b', { text: x.c.c + ' ' + x.c.n }), h('small', { text: x.py + ' PYQs · ' + x.np + ' practice questions' }), h('span', { class: 'pp-go', text: 'Start ›' })))));
+  const all = B.qs.filter(gradable), sc = SC['JEE Main'], free = isFree();
+  const grid = h('div', { class: 'pp-papers' }), bar = mockBar(() => draw()), st = bar.st;
+  const info = h('p', { class: 'pt-hint', role: 'status' });
+  function draw() {
+    grid.textContent = '';
+    const cards = [...CHN.values()].map(c => ({ c, all: all.filter(q => q.cc === c.c) })).map(x => Object.assign(x, { match: mockPool(x.all, st) })).filter(x => x.all.length >= 10);
+    info.textContent = 'You get up to ' + sc.n_questions + ' questions: ' + (st.src === 'P' ? 'previous year questions' : st.src === 'N' ? 'practice questions' : 'previous year and practice questions mixed') + '. ' + sc.duration_min + ' minutes, ' + markText(sc) + '. Each start picks new random questions.';
+    cards.forEach(x => { const need = 5, off = x.match.length < need;
+      grid.append(h('button', { type: 'button', class: 'pp-card' + (off ? ' is-off' : ''), disabled: off, onclick: async e => {
+        const b = e.currentTarget; b.disabled = true;
+        try {
+          const p = x.match, ratio = st.src === 'P' ? 1 : st.src === 'N' ? 0 : 0.5, qs = compose(p.filter(q => q.s === 'P'), p.filter(q => q.s === 'N'), sc.rules.mix, ratio, false, st.tough), n = qs.length;
+          if (n < need) throw new Error('Not enough questions for this choice. Widen the difficulty or the source.');
+          await launchTest({ title: x.c.n + ' · chapter wise mock' + mockTag(st), qs, exam: 'JEE Main', mins: Math.max(10, Math.round(sc.duration_min * n / sc.n_questions)), key: 'chapter-' + x.c.c });
+        } catch (err) { toast(err.message); b.disabled = false; } } },
+        h('b', { text: x.c.n }), h('small', { text: off ? 'Too few questions for this choice' : Math.min(x.match.length, sc.n_questions) + ' of ' + x.match.length + ' matching questions' }), h('span', { class: 'pp-go', text: off ? '' : 'Start ›' }))); });
+  }
+  draw();
+  show(modeHead('Chapter Wise Mock', 'Choose the source and the difficulty, then a chapter.'), bar.el, info, grid);
 }
 async function modeSure() {
   show(modeHead('Must Solve / Repeated Questions', 'Only the questions that came again and again, and the ones sure to come.'), loading('Loading…'));
@@ -1295,21 +1347,27 @@ async function modeSure() {
 }
 const FULL_EXAMS = [['JEE Main', 'Main'], ['JEE Advanced', 'Adv'], ['KCET', 'KCET'], ['NDA', 'NDA'], ['IAT', 'IAT'], ['CUET', null]];
 async function modeFull() {
-  if (isFree()) { location.hash = '#/membership'; return; }
-  show(modeHead('Full Length Mock', 'Official duration and marking.'), loading('Loading the question bank…'));
+  show(modeHead('Full Length Mock', 'Choose the source and the difficulty, then an exam.'), loading('Loading the question bank…'));
   const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
-  const all = B.qs.filter(gradable);
-  const cards = FULL_EXAMS.map(([ex, code]) => { const sc = SC[ex]; if (!sc) return null;
-    return h('button', { type: 'button', class: 'pp-card', onclick: async e => {
-      const b = e.currentTarget; b.disabled = true;
-      try {
-        const pyq = all.filter(q => q.s === 'P' && (code ? q.e === code : q.cc.startsWith('12'))), np = all.filter(q => q.s === 'N' && (code ? true : q.cc.startsWith('12')));
-        const mix = Object.assign({}, sc.rules.mix), qs = compose(pyq, np, mix, 0.6, true);
-        if (qs.length < 5) throw new Error('Not enough questions for this mock yet.');
-        await launchTest({ title: ex + ' full length mock', qs, exam: ex, mins: null, key: 'full-' + ex });
-      } catch (err) { toast(err.message); b.disabled = false; } } },
-      h('b', { text: ex }), h('small', { text: (sc.n_questions || '') + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }),
-      sc.rules.notes && ex === 'JEE Advanced' ? h('small', { class: 'pt-hint', text: '14 questions today: Section 4 needs paragraph questions.' }) : null, h('span', { class: 'pp-go', text: 'Start ›' })); }).filter(Boolean);
+  const all = B.qs.filter(gradable), bar = mockBar(() => draw()), st = bar.st, grid = h('div', { class: 'pp-papers' }), note = h('p', { class: 'pt-hint', role: 'status' });
+  const cards = [];
+  function draw() {
+    grid.textContent = '';
+    note.textContent = (st.src === 'P' ? 'Previous year questions' : st.src === 'N' ? 'Practice questions' : 'Previous year and practice questions mixed') + ', with the official duration and marking of the exam. Each start picks new random questions.';
+    FULL_EXAMS.forEach(([ex, code]) => { const sc = SC[ex]; if (!sc) return;
+      const pyq = all.filter(q => q.s === 'P' && (code ? q.e === code : q.cc.startsWith('12'))), np = all.filter(q => q.s === 'N' && (code ? true : q.cc.startsWith('12'))), have = mockPool(pyq.concat(np), st).length, off = have < 5;
+      grid.append(h('button', { type: 'button', class: 'pp-card' + (off ? ' is-off' : ''), disabled: off, onclick: async e => {
+        const b = e.currentTarget; b.disabled = true;
+        try {
+          const ratio = st.src === 'P' ? 1 : st.src === 'N' ? 0 : 0.6, mix = Object.assign({}, sc.rules.mix), qs = compose(mockPool(pyq, st), mockPool(np, st), mix, ratio, true, st.tough);
+          if (qs.length < 5) throw new Error('Not enough questions for this choice. Widen the difficulty or the source.');
+          await launchTest({ title: ex + ' full length mock' + mockTag(st), qs, exam: ex, mins: null, key: 'full-' + ex });
+        } catch (err) { toast(err.message); b.disabled = false; } } },
+        h('b', { text: ex }), h('small', { text: (sc.n_questions || '') + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }),
+        h('small', { class: 'pt-hint', text: off ? 'Too few questions for this choice' : have + ' matching questions' }),
+        sc.rules.notes && ex === 'JEE Advanced' ? h('small', { class: 'pt-hint', text: '14 questions today: Section 4 needs paragraph questions.' }) : null, h('span', { class: 'pp-go', text: off ? '' : 'Start ›' }))); });
+    cards.forEach(c => grid.append(c));
+  }
   /* CBSE Class 12 (Code 041): 38 questions, 80 marks, 3 hours. Section A is MCQ; sections B to E are written-answer questions that the bank holds as 4 options (or several correct options), made from the uploaded solutions. */
   const cbse = SC['CBSE 12'], cbq = B.qs.filter(q => q.e === 'CBSE' && gradable(q)), bySec = k => cbq.filter(q => String(q.sec || '').toUpperCase() === k);
   const cbMix = (cbse && cbse.rules && cbse.rules.mix) || { A: 20, B: 5, C: 6, D: 4, E: 3 }, cbReady = cbq.length >= 38 && Object.keys(cbMix).every(k => bySec(k).length >= cbMix[k]);
@@ -1320,7 +1378,8 @@ async function modeFull() {
       } catch (err) { toast(err.message); b.disabled = false; } } },
       h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: '38 questions · ' + (cbse ? cbse.duration_min : 180) + ' min · 80 marks · no negative marking' }), h('small', { class: 'pt-hint', text: 'Sections A to E. Written-answer sections are shown as options.' }), h('span', { class: 'pp-go', text: 'Start ›' }))
     : h('div', { class: 'pp-card is-off', 'aria-disabled': 'true' }, h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: 'Code 041 · 3 hours · 38 questions · 80 marks · coming soon' })));
-  show(modeHead('Full Length Mock', 'Mixed chapters. PYQs and practice questions together, with the official duration and marking of the exam.'), h('div', { class: 'pp-papers' }, cards));
+  draw();
+  show(modeHead('Full Length Mock', 'Choose the source and the difficulty, then an exam.'), bar.el, note, grid);
 }
 /* Export the questions of a finished test as a PDF: only questions, with the answer key, or with the key and full explanations */
 /* Marking scheme and answers of a finished test as a small PDF: the marks by question type, then every question with the right answer, your answer and your marks */

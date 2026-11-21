@@ -2158,6 +2158,12 @@ begin
   end if;
   if p_audience in ('all_teachers', 'all_students') and not public.admin_of(me) then raise exception 'Only the admin can make a test for everyone'; end if;
   if nullif(trim(p_title), '') is null then raise exception 'The test needs a title'; end if;
+  -- practice questions (Non-PYQs) are part of Premium: a Free account may only make tests of previous year questions (each question carries s = 'P' or 'N')
+  if not (public.admin_of(me) or me.is_staff or public.plan_of(me) in ('premium', 'staff'))
+     and p_questions is not null and jsonb_typeof(p_questions) = 'array'
+     and exists (select 1 from jsonb_array_elements(p_questions) q where q ->> 's' = 'N') then
+    raise exception 'Practice questions are part of Premium. A Free account can make tests of previous year questions.';
+  end if;
   if p_questions is null or jsonb_typeof(p_questions) <> 'array' or jsonb_array_length(p_questions) not between 1 and 300 then raise exception 'A test needs 1 to 300 questions'; end if;
   if p_exam is not null then
     -- the official marking scheme of the exam (latest year unless one is named) is stamped on every question, so the marks cannot be changed from the browser

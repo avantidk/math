@@ -1,5 +1,14 @@
 [
   {
+    "v": "1005",
+    "date": "21 Nov 2026",
+    "items": [
+      "Chapter Wise Mock and Full Length Mock now have a control bar on top: choose the question source (PYQ, Non-PYQ or Mix) and the difficulty with a five-step slider (Easy, Mostly easy, Balanced, Mostly tough, Tough). Free students and teachers can now use both mocks with previous year questions; Non-PYQ and Mix are locked for them and lead to Premium. Each start picks new random questions, and the cards show how many questions match.",
+      "Create Your Practice Test has the same PYQ / Non-PYQ / Mix choice.",
+      "The database now refuses a Free account's test if it contains practice questions. (Needs the database file.)"
+    ]
+  },
+  {
     "v": "1004",
     "date": "21 Nov 2026",
     "items": [
