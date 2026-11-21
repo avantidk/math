@@ -2071,11 +2071,13 @@ begin
   if auth.uid() is null or n like '%..%' then return false; end if;
   select * into me from public.profiles where id = auth.uid();
   if me.id is null or me.role is null and not me.is_staff then return false; end if;
+  if not public.session_ok() then return false; end if;   -- this device was signed out because the account signed in somewhere else
   if public.admin_of(me) then return true; end if;
   if n like 'admin/%' then return me.is_staff and me.role = 'teacher'; end if;   -- Word / PowerPoint export code: Avanti teachers (the admin is allowed above)
   if n = 'handouts/index.json' then return true; end if;
   if n ~ '^handouts/(11M1|12M13)(_|/)' then return true; end if;   -- the first Class 11 and the first Class 12 handout are free for every signed-in account
   if n like 'handouts/%' then return public.plan_of(me) in ('premium', 'staff'); end if;
+  if n = 'qb/data/nonpyq.json' then return public.plan_of(me) in ('premium', 'staff') and not public.in_test(); end if;   -- practice questions (books, sheets): Premium and Avanti
   if n like 'qb/%' or n like 'sol/%' or n in ('must.json', 'bank-meta.json') then return not public.in_test(); end if;
   return false;
 end $$;
@@ -2594,6 +2596,46 @@ begin
 end $$;
 
 -- -------------------------------------------------------------------------------------
+-- 11k. One device at a time (version 977)
+--   The newest sign-in is the active one. Every login has its own session id inside the access token (claim session_id); claim_session
+--   records it when a browser signs in, session_ok() says whether this token is still the active one, and content_allowed() refuses
+--   every private file to a device that has been replaced. The replaced device also shows a message and signs out.
+-- -------------------------------------------------------------------------------------
+create table if not exists public.active_sessions (
+  user_id    uuid primary key references public.profiles(id) on delete cascade,
+  session_id uuid not null,
+  device     text,
+  claimed_at timestamptz not null default now()
+);
+alter table public.active_sessions enable row level security;
+revoke all on public.active_sessions from anon, authenticated;
+
+create or replace function public.jwt_session() returns uuid
+language plpgsql stable as $$
+begin
+  return nullif(auth.jwt() ->> 'session_id', '')::uuid;
+exception when others then
+  return null;
+end $$;
+
+create or replace function public.claim_session(p_device text default null) returns json
+language plpgsql security definer set search_path = public as $$
+declare sid uuid := public.jwt_session();
+begin
+  if auth.uid() is null then raise exception 'Please sign in'; end if;
+  if sid is null then return json_build_object('ok', true, 'tracked', false); end if;
+  insert into public.active_sessions (user_id, session_id, device) values (auth.uid(), sid, left(p_device, 200))
+  on conflict (user_id) do update set session_id = excluded.session_id, device = excluded.device, claimed_at = now();
+  return json_build_object('ok', true, 'tracked', true);
+end $$;
+
+create or replace function public.session_ok() returns boolean
+language sql stable security definer set search_path = public as $$
+  select case when public.jwt_session() is null or auth.uid() is null then true
+              else coalesce((select a.session_id = public.jwt_session() from public.active_sessions a where a.user_id = auth.uid()), true) end
+$$;
+
+-- -------------------------------------------------------------------------------------
 -- 12. Who may call which function
 -- -------------------------------------------------------------------------------------
 revoke execute on all functions in schema public from public, anon, authenticated;
@@ -2611,7 +2653,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.submit_qb_report(text, text), public.qb_reports_list(), public.qb_report_resolve(uuid),
   public.my_attempts(), public.my_tests(), public.list_schools(), public.is_premium_teacher(), public.price_paise(text),
   public.teacher_add_student(jsonb), public.teacher_add_students(jsonb), public.teacher_update_student(uuid, text, jsonb),
-  public.school_students(text), public.admin_all_students(), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),
+  public.claim_session(text), public.session_ok(), public.school_students(text), public.admin_all_students(), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),
   public.request_school_change(text), public.admin_school_requests(), public.admin_school_request(uuid, text, text, text),
   public.admin_set_teacher_school(uuid, text, text, text), public.admin_update_teacher(uuid, text, text), public.admin_pending_students(),
   public.admin_schools(), public.admin_rename_school(text, text), public.admin_delete_school(text),

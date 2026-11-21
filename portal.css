@@ -1127,3 +1127,7 @@ html.plan-free [data-act="lexp"][data-k="pdf"] { display: inline-flex !important
 .ex-subj { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; } .ex-subj .ex-opts { width: 100%; }
 .pt-radio { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; cursor: pointer; } .pt-radio:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
 .pt-code { font: 700 11.5px var(--font-body); background: var(--accent-soft); color: var(--accent); border-radius: 8px; padding: 3px 8px; }
+
+/* locked (Premium) items shown but not usable by Free accounts */
+.qb-ms-item.is-lock, .qb-ytile.is-lock { opacity: .55; cursor: pointer; }
+.qb-ms-item.is-lock input { pointer-events: none; }

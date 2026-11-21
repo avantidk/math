@@ -21,7 +21,7 @@ tests and results. It replaced an older Claude artifact.
   `robots.txt` are GENERATED from `syllabus.json` by `python3 .github/scripts/build_seo.py` (exam counts come from `.github/scripts/exam-stats.json`, made by `exam_stats.py` from the private bank: numbers only): edit that script (and `site.css`), never the generated
   files, then run it (with `SEO_VER=<build>`) and commit the result. Public pages must contain no questions, answers, solutions or handouts.
   Public pages have a strict Content-Security-Policy: every script must come from this site (`vendor/` holds the libraries), never a CDN.
-- `auth.js`: sign-in, plan permissions (read from the database via `my_profile`), profile menu.
+- `auth.js`: sign-in, plan permissions (read from the database via `my_profile`), profile menu, one device at a time (claim_session / session_ok). `manifest.json`, `sw.js`, `pwa.js`, `pwa.css`, `offline.html`: install as an app (PWA).
 - `portal.js`, `portal.css`: profile, membership, tests, results, students, approvals, help.
 - `teacher.b870.js`, `qb/qb-all.b870.js`, `qb/qb.b525.html`: Question Bank, DPPs, PYQs, Must Solve, Handouts (with plan checks).
 - The private content (questions, answers, solutions, Must Solve, handouts, Word/PowerPoint code) is NOT in this public

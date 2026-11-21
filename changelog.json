@@ -1,5 +1,14 @@
 [
   {
+    "v": "977",
+    "date": "21 Nov 2026",
+    "items": [
+      "One device at a time: signing in on a new device signs the account out of the old one, which shows a clear message. Tests in progress stay saved.",
+      "Free accounts: PYQs stay free. Practice questions (BB Ex, Ln Ex, Ln DY and the other books) are Premium: they are shown with a lock and are refused by the server to Free accounts.",
+      "Install as an app: on Android (Chrome, Install app) and iPhone / iPad (Safari, Share, Add to Home Screen). The site has an app icon, a standalone window and an offline page."
+    ]
+  },
+  {
     "v": "976",
     "date": "21 Nov 2026",
     "items": [

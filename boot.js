@@ -32,7 +32,7 @@ function h(tag, props, ...kids) {
 }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 window.AvantiUtil = Object.freeze({ h, esc });
-const BUILD = '976';
+const BUILD = '977';
 const RELEASED = '21 Nov 2026';   /* date of this release, shown in the footer */
 const SB_URL = 'https://usehxhvzhdbcmnmqaxoo.supabase.co';
 const SB_KEY = 'sb_publishable_QQ_N_B6kl416kbGMF0DQtw_9Jg58PoN';
@@ -163,7 +163,9 @@ async function start() {
   const kcss = window.fetch('katex.css').then(r => r.text()).catch(() => null), kjs = katex().catch(() => null);
   /* the big question files start only after the first screen's files are in */
   const gate = Promise.all([first, html, kcss, kjs].map(p => Promise.resolve(p).catch(() => null)));
-  ['pyq', 'nonpyq'].forEach(n => { data[n] = gate.then(() => getJson('qb/data/' + n + '.json')); });
+  /* practice questions (nonpyq.json) are part of Premium: the database refuses the file to Free accounts, so they are not even asked for */
+  const paid = !!(window.AvantiAuth && window.AvantiAuth.perm && window.AvantiAuth.perm.premium);
+  ['pyq', 'nonpyq'].forEach(n => { data[n] = gate.then(() => (n === 'nonpyq' && !paid ? [] : getJson('qb/data/' + n + '.json'))); });
   window.__qbPre = { html, js: QB_JS, data, first };
   Object.values(data).concat([html]).forEach(p => p.catch(() => {}));
   try {

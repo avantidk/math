@@ -84,6 +84,34 @@ async function rpc(name, args) {
   return data;
 }
 A.rpc = rpc;
+
+/* ---------- one device at a time ----------
+   Each sign-in has its own session id (inside the access token). When this browser signs in it claims the account (claim_session); the
+   database then refuses private files to any other device and session_ok() answers false there. A replaced device shows a message and signs out. */
+const SID_KEY = 'avanti-sid';
+let kickedShown = false, sessionTimer = null;
+function jwtSid() {
+  try { const t = A.session && A.session.access_token; if (!t) return null; return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).session_id || null; } catch (e) { return null; }
+}
+function kicked() {
+  if (kickedShown) return; kickedShown = true; clearInterval(sessionTimer);
+  document.querySelectorAll('.ex').forEach(e => e.remove()); document.body.classList.remove('ex-on');   /* a test in progress is already saved on the server */
+  const out = async () => { store.set(SID_KEY, null); store.set('avanti-md-menu', null); try { await sb.auth.signOut({ scope: 'local' }); } catch (e) { /* leaving anyway */ } location.replace(ROOT + '?login=1'); };
+  const box = h('div', { role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'kickT', style: 'position:fixed;inset:0;z-index:99999;background:rgba(8,14,32,.78);display:flex;align-items:center;justify-content:center;padding:16px' },
+    h('div', { style: 'background:#fff;color:#0e1a33;max-width:430px;width:100%;border-radius:18px;padding:26px;font:15px/1.5 system-ui,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.4)' },
+      h('h2', { id: 'kickT', style: 'margin:0 0 8px;font-size:21px', text: 'Signed out on this device' }),
+      h('p', { style: 'margin:0 0 16px', text: 'Your account was opened on another device. Only one device can be signed in at a time, so this one was signed out. A test you were writing is saved: sign in again to carry on.' }),
+      h('button', { type: 'button', style: 'font:600 15px system-ui;padding:11px 18px;border:0;border-radius:11px;background:#1f3f95;color:#fff;cursor:pointer', text: 'Sign in again here', onclick: out })));
+  document.body.append(box);
+}
+async function checkSession() { if (kickedShown) return; try { if (!(await rpc('session_ok'))) kicked(); } catch (e) { /* offline, or the database step is not done yet */ } }
+async function ensureSession() {
+  const sid = jwtSid(); if (!sid) return true;
+  if (store.get(SID_KEY) !== sid) { try { await rpc('claim_session', { p_device: (navigator.userAgent || '').slice(0, 160) }); store.set(SID_KEY, sid); } catch (e) { /* the database step is not done yet: carry on */ } }
+  else { try { if (!(await rpc('session_ok'))) { kicked(); return false; } } catch (e) { /* offline: carry on */ } }
+  if (!sessionTimer) { sessionTimer = setInterval(checkSession, 60000); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkSession(); }); }
+  return true;
+}
 A.refresh = async function () {
   const p = await rpc('my_profile');
   if (!p) throw new Error('Your profile was not found. Sign out and sign in again.');
@@ -92,7 +120,7 @@ A.refresh = async function () {
   return p;
 };
 A.signOut = async function () {
-  store.set('avanti-md-menu', null);
+  store.set('avanti-md-menu', null); store.set(SID_KEY, null);
   try { if (window.AvantiContent) await window.AvantiContent.clearCaches(); } catch (e) { /* nothing cached */ }
   try { await sb.auth.signOut(); } catch (e) { /* the page reloads anyway */ }
   location.replace(ROOT);
@@ -219,6 +247,7 @@ async function start() {
     if (!p || !p.role) { rolePage(); return; }
   }
   PROFILE = p; PERM = permsFor(p); applyGuards(PERM);
+  if (!(await ensureSession())) return;
   /* right after sign-in: every required detail must be filled before the dashboard opens */
   if (window.AvantiPortal && window.AvantiPortal.profileMissing(p).length) {
     const root = $('#auth'); root.hidden = false; $('#app').hidden = true;

@@ -53,7 +53,7 @@ const isGradable = r => { const a = String(r.answer == null ? '' : r.answer).tri
 function load() {
   if (D.ready) return D.ready;
   const C = window.AvantiContent;
-  D.ready = Promise.all([C.get('qb/data/pyq.json'), C.get('qb/data/nonpyq.json'), C.get('qb/data/chapters.json'), C.get('qb/data/topics.json').catch(() => []), C.get('must.json').catch(() => [])]).then(([pyq, np, chs, tops, must]) => {
+  D.ready = Promise.all([C.get('qb/data/pyq.json'), (A().perm.premium ? C.get('qb/data/nonpyq.json') : Promise.resolve([])), C.get('qb/data/chapters.json'), C.get('qb/data/topics.json').catch(() => []), C.get('must.json').catch(() => [])]).then(([pyq, np, chs, tops, must]) => {
     D.chapters = (chs || []).slice().sort((a, b) => a.order - b.order); D.chapters.forEach(c => { D.chByCode[c.chapter_code] = c; });
     (tops || []).forEach(t => { (D.topics[t.chapter_code] = D.topics[t.chapter_code] || []).push(t); });
     (must || []).forEach(m => { D.must[m.c] = (m.i || []).map(x => x.r); });

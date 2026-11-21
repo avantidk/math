@@ -1753,12 +1753,12 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       row('h-oos', oh, ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'NDA'].filter(function (e) { return oosRows.some(function (q) { return q.exam === e; }); }).map(function (e) { var t = box('qb-ytile', e === 'JEE Advanced' ? 'Advanced' : e, oosRows.filter(function (q) { return q.exam === e; }).length); makeYearBtn(t, null, e, true); return t; }));
     }
     var sc = {}; np.forEach(function (q) { var k = srcOf(q); sc[k] = (sc[k] || 0) + 1; });
-    row('h-np', box('qb-tile', 'Non-PYQ', np.length), SRC_VALS.filter(function (v) { return v !== 'PYQs'; }).map(function (v) { var t = box('qb-ytile', v, sc[v] || 0); makeSrcBtn(t, v); return t; }));
+    row('h-np', box('qb-tile', 'Non-PYQ', np.length), SRC_VALS.filter(function (v) { return v !== 'PYQs'; }).map(function (v) { var t = box('qb-ytile', v, sc[v] || 0); if (srcLocked(v)) { t.classList.add('is-lock'); t.title = 'Part of Premium'; t.setAttribute('aria-disabled', 'true'); t.addEventListener('click', upsell); } else makeSrcBtn(t, v); return t; }));
   }
   function buildChips() {
     buildYearTiles();
     var defs = {
-      src: { vals: SRC_VALS, label: function (v) { return v; } },
+      src: { vals: SRC_VALS, label: function (v) { return (srcLocked(v) ? '\ud83d\udd12 ' : '') + v; }, lock: srcLocked },
       exam: { vals: EXAM_VALS, label: function (v) { return v; } },
       year: { vals: uniq(VR().filter(function (q) { return q.year; }).map(function (q) { return String(q.year); })).sort(), label: function (v) { return SESSION[v] || v; } },
       cls: { vals: uniq(VR().map(function (q) { return String(q.class); })).sort(), label: function (v) { return 'Class ' + v; } },
@@ -1781,6 +1781,9 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       });
     });
   }
+  /* practice questions (every source except PYQs) are part of Premium: Free accounts see them locked */
+  function srcLocked(v) { return v !== 'PYQs' && !QBP('premium'); }
+  function upsell() { var T = window.AvantiTeacher; if (T && T.toast) T.toast('Practice questions are part of Premium.'); location.hash = '#/membership'; }
   var SRC_VALS = ['PYQs', 'BB Ex', 'Ln Ex', 'Ln DY'], EXAM_VALS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET', 'IAT', 'NDA'];
   function srcLabel(q) { return q.publisher || 'Practice'; }
   function srcOf(q) { return q.source === 'PYQ' ? 'PYQs' : (q.publisher || 'Practice'); }
@@ -1802,11 +1805,12 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     btn.addEventListener('click', function () { open(panel.hidden); });
     document.addEventListener('click', function (e) { if (!panel.hidden && e.target.isConnected && !box.contains(e.target)) open(false); });
     box.addEventListener('keydown', function (e) { if (e.key === 'Escape') { open(false); btn.focus(); } });
-    bAll.addEventListener('click', function () { d.vals.forEach(function (v) { S[f].add(v); }); apply(); });
+    bAll.addEventListener('click', function () { d.vals.forEach(function (v) { if (!(d.lock && d.lock(v))) S[f].add(v); }); apply(); });
     bNone.addEventListener('click', function () { S[f].clear(); apply(); });
     var boxes = {};
     d.vals.forEach(function (v) {
       var lab = el('label', 'qb-ms-item'); var cb = el('input'); cb.type = 'checkbox';
+      if (d.lock && d.lock(v)) { cb.disabled = true; lab.classList.add('is-lock'); lab.title = 'Part of Premium'; lab.addEventListener('click', function (e) { e.preventDefault(); upsell(); }); }
       cb.addEventListener('change', function () { if (cb.checked) S[f].add(v); else S[f].delete(v); apply(); });
       var n = el('span', 'n', '0'); lab.appendChild(cb); lab.appendChild(el('span', null, d.label(v))); lab.appendChild(n); list.appendChild(lab);
       boxes[v] = { cb: cb, n: n, lab: lab };

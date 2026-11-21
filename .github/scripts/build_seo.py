@@ -177,14 +177,21 @@ def page(title, desc, canon, body, depth, jsonld=None, og_title=None, up=None, n
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src https://usehxhvzhdbcmnmqaxoo.supabase.co; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src https://usehxhvzhdbcmnmqaxoo.supabase.co; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'none'">
 <title>{E(title)}</title>
 {head(title, desc, canon, depth, jsonld, og_title).replace('index, follow, max-image-preview:large', 'noindex, follow') if noindex else head(title, desc, canon, depth, jsonld, og_title)}<meta name="theme-color" content="#0c1a3d">
 <link rel="icon" type="image/png" sizes="32x32" href="{up}img/icon/icon-32.png?v={VER}">
-<link rel="apple-touch-icon" sizes="180x180" href="{up}img/icon/icon-180.png?v={VER}">
+<link rel="apple-touch-icon" sizes="180x180" href="{up}img/icon/pwa-180.png?v={VER}">
+<link rel="manifest" href="{up}manifest.json?v={VER}">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="अंक-IT">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preload" href="{up}vendor/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{up}site.css?v={VER}">
+<link rel="stylesheet" href="{up}pwa.css?v={VER}">
 <script src="{up}site.js?v={VER}"></script>
+<script src="{up}pwa.js?v={VER}" defer></script>
 <script src="{up}login.js?v={VER}" defer></script>
 </head>
 <body class="{'site' if raw else 'pg'}">
