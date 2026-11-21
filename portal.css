@@ -1131,3 +1131,6 @@ html.plan-free [data-act="lexp"][data-k="pdf"] { display: inline-flex !important
 /* locked (Premium) items shown but not usable by Free accounts */
 .qb-ms-item.is-lock, .qb-ytile.is-lock { opacity: .55; cursor: pointer; }
 .qb-ms-item.is-lock input { pointer-events: none; }
+
+/* Dashboard link in the Question Bank top bar */
+html body .tb-menu a.tb.tb-dash { text-decoration: none; display: inline-flex; align-items: center; }

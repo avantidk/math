@@ -429,6 +429,1160 @@
   ],
   "title": "Complete Guide to the AIEEE Exam"
  },
+ "compendium": {
+  "intro": "10-Year Historical Trends, Percentile Distributions, Category Target Scores & College-Branch Allocation Guide",
+  "kicker": "ADMISSIONS INTELLIGENCE & ANALYTICS REPORT",
+  "sections": [
+   {
+    "blocks": [
+     {
+      "p": "JEE Main is administered across multiple sessions out of 300 marks (75 questions of 4 marks each; 25 per subject). Normalized percentile scores map test-takers across shifts to determine eligibility for Top NITs, IIITs, GFTIs, and eligibility for JEE Advanced. Because candidate volume has expanded from roughly 11–12 lakh test-takers in the late 2010s to over 14–15 lakh candidates in recent cycles, raw marks corresponding to a given percentile have risen in moderate- difficulty shifts. Top NIT admissions depend heavily on both All India Rank (AIR) and Home State versus Other State quotas."
+     }
+    ],
+    "h": "JEE Main (Joint Entrance Examination - Main)",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Category",
+          "Top NITs (CSE/IT/Data) Trichy, Surathkal, Warangal, Rourkela",
+          "Mid/Top NITs (ECE/EE/Circuit) Calicut, VNIT, MNIT, IIIT Allahabad",
+          "Reputed Core / Newer NIT CSE Mech, Chem, Civil in Tier-1 NITs",
+          "Minimum Safe Qualifying Score"
+         ],
+         [
+          "General (Open)",
+          "235 – 265 (99.6+ %ile, AIR < 4.5k)",
+          "195 – 225 (98.6+ %ile, AIR < 16k)",
+          "160 – 185 (97.2+ %ile, AIR < 32k)",
+          "92 – 95 (~93.2 %ile)"
+         ],
+         [
+          "OBC-NCL",
+          "205 – 230 (98.8+ %ile, CR < 1.8k)",
+          "165 – 190 (97.0+ %ile, CR < 5.5k)",
+          "135 – 155 (94.5+ %ile, CR < 12k)",
+          "75 – 80 (~79.3 %ile)"
+         ],
+         [
+          "GEN-EWS",
+          "210 – 235 (99.0+ %ile, CR < 1.5k)",
+          "170 – 195 (97.3+ %ile, CR < 4.5k)",
+          "140 – 160 (95.0+ %ile, CR < 10k)",
+          "78 – 82 (~81.3 %ile)"
+         ],
+         [
+          "SC",
+          "145 – 170 (94.5+ %ile, CR < 800)",
+          "115 – 135 (90.0+ %ile, CR < 2.5k)",
+          "85 – 105 (83.0+ %ile, CR < 6.5k)",
+          "52 – 56 (~60.1 %ile)"
+         ],
+         [
+          "ST",
+          "125 – 145 (91.0+ %ile, CR < 400)",
+          "95 – 115 (85.0+ %ile, CR < 1.2k)",
+          "70 – 85 (76.0+ %ile, CR < 3.5k)",
+          "40 – 45 (~46.7 %ile)"
+         ]
+        ]
+       }
+      ],
+      "h": "Category-Wise Safe Marks for Tier-1 Institutes & Branches"
+     },
+     {
+      "blocks": [
+       {
+        "p": "Derived from aggregate candidate cohort data (11.5 to 14.5 lakh registered test-takers across shifts in moderate difficulty cycles)."
+       },
+       {
+        "table": [
+         [
+          "Raw Marks (/300)",
+          "Percentile Range",
+          "Approximate Common AIR",
+          "Institutional Placement & Branch Viability"
+         ],
+         [
+          "280 – 300",
+          "99.98 – 100.00",
+          "1 – 250",
+          "Confirmed Top NIT CSE (Trichy, Surathkal, Warangal); Prime IIIT-H CSE zone."
+         ],
+         [
+          "250 – 279",
+          "99.75 – 99.97",
+          "251 – 3,000",
+          "All Tier-1 NITs CSE/AI-DS; IIIT Allahabad/Bangalore CSE."
+         ],
+         [
+          "215 – 249",
+          "99.10 – 99.74",
+          "3,001 – 11,000",
+          "Top NITs ECE; Tier-2 NITs CSE (Calicut, Rourkela, Jaipur, Kurukshetra)."
+         ],
+         [
+          "180 – 214",
+          "97.80 – 99.09",
+          "11,001 – 26,000",
+          "Top NITs Electrical/Mechanical; Mid-level IIITs CSE; DTU/NSUT IT branches."
+         ],
+         [
+          "150 – 179",
+          "95.50 – 97.79",
+          "26,001 – 54,000",
+          "Top NITs Civil/Chem/Metallurgy; Newer NITs CSE/ECE; State Top Govt Colleges."
+         ],
+         [
+          "120 – 149",
+          "92.00 – 95.49",
+          "54,001 – 98,000",
+          "Newer NITs Core Branches; Reputed Private Universities (BIT Mesra, Thapar, LNMIIT)."
+         ],
+         [
+          "95 – 119",
+          "87.00 – 91.99",
+          "98,001 – 1,55,000",
+          "General Cutoff Threshold; Reserved Categories Core NIT seats."
+         ],
+         [
+          "65 – 94",
+          "75.00 – 86.99",
+          "1,55,001 – 2,80,000",
+          "SC/ST Home-State Seats in NITs/GFTIs; State counselling eligibility."
+         ]
+        ]
+       }
+      ],
+      "h": "10-Year Normalized Trend: Raw Marks vs Percentile vs AIR"
+     },
+     {
+      "blocks": [
+       {
+        "p": "Qualifying cutoffs for JEE Advanced vary each year based on question paper difficulty, total registration count, and category seat ratios. The table below summarizes multi-year qualifying percentiles and typical top-institute expectations."
+       },
+       {
+        "table": [
+         [
+          "Exam Cycle Era",
+          "General Qualifying %ile",
+          "OBC-NCL / EWS Qualifying %ile",
+          "SC / ST Qualifying %ile",
+          "Top NIT CSE Safe %ile (Open)"
+         ],
+         [
+          "Early NTA Era (2019–2020)",
+          "89.7 – 90.4 %ile",
+          "72.8 – 74.3 %ile",
+          "54.0 – 56.0 %ile (SC) / 44.3 – 45.0 %ile (ST)",
+          "99.70 – 99.92 %ile"
+         ],
+         [
+          "Mid NTA Era (2021–2023)",
+          "87.8 – 90.8 %ile",
+          "68.0 – 79.6 %ile",
+          "46.8 – 60.1 %ile (SC) / 34.7 – 47.7 %ile (ST)",
+          "99.75 – 99.95 %ile"
+         ],
+         [
+          "Recent Cycles (2024–2026)",
+          "92.5 – 93.6 %ile",
+          "78.5 – 82.0 %ile",
+          "58.0 – 61.5 %ile (SC) / 45.0 – 48.0 %ile (ST)",
+          "99.80 – 99.97 %ile"
+         ]
+        ]
+       }
+      ],
+      "h": "Multi-Year JEE Main Qualifying Cutoffs & Top Percentile Benchmarks"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Conducted for the top 2.5 lakh qualifiers of JEE Main. Maximum aggregate marks vary each year (historically between 360 and 396 marks across Paper 1 and Paper 2). Cutoffs and ranks are universally evaluated against aggregate percentage achieved. Unlike percentage-based board exams, JEE Advanced scoring features partial marking, integer-type numerical answers, and negative marking in select sections. Consequently, scores around 50%–60% place candidates in premier rank brackets, while scores above 70% correspond to top-150 ranks nationwide."
+     }
+    ],
+    "h": "JEE Advanced (Indian Institutes of Technology)",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Marks Percentage",
+          "Equivalent (/360)",
+          "CRL Rank Range",
+          "Target College & Branch Options"
+         ],
+         [
+          "≥ 72%",
+          "260+",
+          "Top 150",
+          "IIT Bombay, IIT Delhi CSE."
+         ],
+         [
+          "62% – 71%",
+          "223 – 259",
+          "151 – 750",
+          "IIT Madras, Kanpur, Kharagpur CSE; IIT Bombay/Delhi MnC & Electrical."
+         ],
+         [
+          "52% – 61%",
+          "187 – 222",
+          "751 – 2,200",
+          "IIT Roorkee, Guwahati, BHU CSE; Top 5 IITs Mechanical, Chemical & Aerospace."
+         ],
+         [
+          "42% – 51%",
+          "151 – 186",
+          "2,201 – 5,000",
+          "Gen-2 IITs (Hyderabad, Indore, Gandhinagar) CSE/ECE; Top 7 IITs Core/Civil."
+         ],
+         [
+          "34% – 41%",
+          "122 – 150",
+          "5,001 – 10,500",
+          "Gen-2 IITs Core Engineering; Gen-3 IITs (Tirupati, Palakkad, Goa) Circuit branches."
+         ],
+         [
+          "27% – 33%",
+          "97 – 121",
+          "10,501 – 17,500",
+          "Gen-3 IITs Core, Dual-Degree (BS-MS / B.Tech-M.Tech 5-Year Integrated) courses."
+         ]
+        ]
+       }
+      ],
+      "h": "10-Year Score Percentage vs Common Rank List (CRL)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Target Objective",
+          "General (CRL)",
+          "OBC-NCL",
+          "GEN-EWS",
+          "SC Category",
+          "ST Category"
+         ],
+         [
+          "Top 7 IIT CSE / MnC",
+          "62% – 70%+",
+          "54% – 60%+",
+          "56% – 62%+",
+          "38% – 44%+",
+          "33% – 38%+"
+         ],
+         [
+          "Top 7 IIT Core / 2nd Gen CSE",
+          "46% – 55%",
+          "38% – 46%",
+          "40% – 48%",
+          "26% – 32%",
+          "22% – 28%"
+         ],
+         [
+          "Any Branch in Older IITs",
+          "37% – 44%",
+          "31% – 36%",
+          "32% – 37%",
+          "20% – 25%",
+          "17% – 21%"
+         ],
+         [
+          "Confirmed IIT Seat (Any Campus)",
+          "29% – 33%",
+          "25% – 28%",
+          "26% – 29%",
+          "15% – 18%",
+          "13% – 16%"
+         ]
+        ]
+       }
+      ],
+      "h": "Category-Wise Safe Percentage Matrix for Confirmed IIT Admissions"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Engineering Discipline",
+          "Top 5 IITs (Bombay, Delhi, Madras, Kanpur, Kharagpur)",
+          "IIT Roorkee & IIT Guwahati",
+          "Gen-2 IITs (Hyderabad, Indore, BHU, Gandhinagar)",
+          "Gen-3 IITs (Tirupati, Palakkad, Bhilai, Jammu, Goa)"
+         ],
+         [
+          "Computer Science (CSE)",
+          "CRL 1 – 650",
+          "CRL 650 – 1,350",
+          "CRL 800 – 2,800",
+          "CRL 2,500 – 6,500"
+         ],
+         [
+          "Electrical / ECE",
+          "CRL 350 – 2,200",
+          "CRL 1,800 – 3,800",
+          "CRL 2,200 – 6,200",
+          "CRL 5,500 – 10,500"
+         ],
+         [
+          "Mechanical Engineering",
+          "CRL 1,400 – 4,800",
+          "CRL 3,500 – 6,500",
+          "CRL 4,500 – 9,500",
+          "CRL 8,000 – 13,500"
+         ],
+         [
+          "Chemical & Civil Engineering",
+          "CRL 2,800 – 8,200",
+          "CRL 5,500 – 9,800",
+          "CRL 6,800 – 12,500",
+          "CRL 10,000 – 16,500"
+         ]
+        ]
+       }
+      ],
+      "h": "Branch-Wise Rank Expectations Across Older & Newer IITs (CRL)"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Admissions to prestigious engineering institutions in Karnataka (RVCE, BMSCE, MSRIT, PESIT) are computed using an exact 50:50 composite weightage: 50% from 2nd PUC / 12th Board PCM (out of 300) and 50% from the KCET Exam (180 marks: 60 Physics, 60 Chemistry, 60 Mathematics). Because board marks carry half the weight of the rank calculation, small variations in 2nd PUC PCM marks can shift a candidate's rank by several hundred positions at the top and several thousand positions in the mid-tier."
+     }
+    ],
+    "h": "KCET (Karnataka Common Entrance Test)",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "KCET Score (/180)",
+          "Class 12 PCM (/300)",
+          "Composite % (/100)",
+          "Rank Range",
+          "Primary Seat Viability (Karnataka Engineering)"
+         ],
+         [
+          "155 – 175",
+          "296 – 300",
+          "96.0 – 99.0",
+          "1 – 350",
+          "RVCE CSE (Top General Merit Choice in Karnataka)."
+         ],
+         [
+          "138 – 154",
+          "290 – 295",
+          "91.5 – 95.9",
+          "351 – 1,500",
+          "BMSCE / MSRIT Computer Science; RVCE Information Science & ECE."
+         ],
+         [
+          "120 – 137",
+          "280 – 289",
+          "85.0 – 91.4",
+          "1,501 – 4,800",
+          "BMSCE/MSRIT ECE; Dayananda Sagar (DSCE) CSE; UVCE CSE."
+         ],
+         [
+          "100 – 119",
+          "265 – 279",
+          "77.0 – 84.9",
+          "4,801 – 12,000",
+          "RVCE/BMSCE Mechanical/Civil; BIT Bangalore CSE; Top Tier-2 Colleges."
+         ],
+         [
+          "80 – 99",
+          "240 – 264",
+          "67.0 – 76.9",
+          "12,001 – 28,000",
+          "Tier-2 Engineering Colleges CSE/AI-DS; Mid- Tier Government Colleges."
+         ],
+         [
+          "60 – 79",
+          "210 – 239",
+          "55.0 – 66.9",
+          "28,001 – 65,000",
+          "Tier-3 Bangalore & Tier-2 Regional Engineering Colleges Core branches."
+         ]
+        ]
+       }
+      ],
+      "h": "KCET Composite Marks vs Engineering Merit Rank"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "College & Branch",
+          "General Merit (GM)",
+          "OBC (2A / 3A / 3B)",
+          "SC Category",
+          "ST Category"
+         ],
+         [
+          "RVCE - Computer Science (CSE)",
+          "Rank < 280",
+          "Rank < 650 – 1,100",
+          "Rank < 2,800",
+          "Rank < 3,900"
+         ],
+         [
+          "BMSCE / MSRIT - CSE / ISE",
+          "Rank < 1,200",
+          "Rank < 2,200 – 3,400",
+          "Rank < 7,500",
+          "Rank < 9,800"
+         ],
+         [
+          "RVCE / BMSCE - Electronics (ECE)",
+          "Rank < 2,600",
+          "Rank < 4,800 – 6,200",
+          "Rank < 14,000",
+          "Rank < 18,500"
+         ],
+         [
+          "Top 5 Colleges - Mechanical / Civil",
+          "Rank < 12,000",
+          "Rank < 18,000 – 24,000",
+          "Rank < 45,000",
+          "Rank < 52,000"
+         ]
+        ]
+       }
+      ],
+      "h": "Category-Wise Closing Ranks for Premier Institutions"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Evaluation Component",
+          "Raw Maximum",
+          "Weightage in Rank",
+          "Key Strategic Takeaway"
+         ],
+         [
+          "KCET Physics + Chemistry + Math",
+          "180 Marks (60 each)",
+          "50.0%",
+          "No negative marking; speed and accuracy across all 180 questions drive rank jumps."
+         ],
+         [
+          "2nd PUC / Class 12 PCM Aggregate",
+          "300 Marks (100 each)",
+          "50.0%",
+          "Scoring 290+/300 provides a decisive cushion even if KCET score dips slightly."
+         ],
+         [
+          "Category & Rural / Kannada Quota",
+          "State Matrix",
+          "Seat Allocation",
+          "Category-specific cutoffs apply during KEA option entry rounds."
+         ]
+        ]
+       }
+      ],
+      "h": "Subject Weightage & Composite Score Mechanics"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Administered by the Indian Institutes of Science Education and Research for 5-Year BS-MS dual degrees across 7 IISERs and the 4-Year BS program at IISc Bangalore and IIT Madras (Medical Sciences). The examination evaluates 240 aggregate marks (60 each in Physics, Chemistry, Mathematics, Biology). All four subjects carry equal weightage regardless of whether a candidate took PCM or PCB in Class 12, making cross-subject familiarity or strong accuracy in three subjects a common path to competitive scores."
+     },
+     {
+      "table": [
+       [
+        "Target Institution",
+        "General (UR)",
+        "OBC-NCL",
+        "EWS",
+        "SC Category",
+        "ST Category"
+       ],
+       [
+        "IISc Bangalore (BS Program)",
+        "175 – 195+ (AIR < 120)",
+        "155 – 170+ (CR < 60)",
+        "160 – 175+ (CR < 40)",
+        "120 – 135+ (CR < 25)",
+        "105 – 120+ (CR < 15)"
+       ],
+       [
+        "IISER Pune / IISER Kolkata",
+        "145 – 165 (AIR < 900)",
+        "120 – 135 (CR < 450)",
+        "125 – 140 (CR < 250)",
+        "85 – 100 (CR < 220)",
+        "70 – 85 (CR < 120)"
+       ],
+       [
+        "IISER Mohali / Bhopal",
+        "125 – 142 (AIR < 2,100)",
+        "102 – 118 (CR < 1,100)",
+        "108 – 122 (CR < 550)",
+        "70 – 84 (CR < 500)",
+        "55 – 68 (CR < 260)"
+       ],
+       [
+        "IISER TVM / Tirupati / Berhampur",
+        "105 – 120 (AIR < 3,800)",
+        "85 – 98 (CR < 2,100)",
+        "90 – 102 (CR < 950)",
+        "55 – 68 (CR < 950)",
+        "42 – 52 (CR < 480)"
+       ]
+      ]
+     }
+    ],
+    "h": "IAT (IISER Aptitude Test)",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Score Band (/240)",
+          "Approximate AIR Range (UR)",
+          "Typical Admission & Academic Outlook"
+         ],
+         [
+          "175 – 240",
+          "1 – 150",
+          "IISc Bangalore BS / top IISERs with strong preference flexibility."
+         ],
+         [
+          "140 – 174",
+          "151 – 1,200",
+          "IISER Pune, Kolkata, or Mohali across subsequent counselling rounds."
+         ],
+         [
+          "105 – 139",
+          "1,201 – 3,800",
+          "IISER Bhopal, Tirupati, Thiruvananthapuram, or Berhampur (UR / EWS / OBC)."
+         ],
+         [
+          "45 – 104",
+          "3,801+",
+          "Reserved category allotments or later-round seat movements depending on intake."
+         ]
+        ]
+       }
+      ],
+      "h": "IAT Score Tiers & Research Program Outlook"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Administered biannually by UPSC for entry into the Indian Army, Navy, and Air Force. Total evaluation spans 1,800 marks (Stage 1: Written Examination out of 900; Stage 2: SSB Interview out of 900). Note: NDA admissions observe strictly merit-based criteria with no caste-based reservation. Candidates must clear both sectional minimums in the written test and the overall written cutoff to be called for the 5-day Services Selection Board (SSB) assessment, followed by medical fitness clearance."
+     },
+     {
+      "table": [
+       [
+        "Selection Stage",
+        "Evaluation Scheme",
+        "Minimum Qualifying Threshold",
+        "Safe Competitive Score (Merit Security)"
+       ],
+       [
+        "Written Paper 1: Mathematics",
+        "300 Marks (120 Questions)",
+        "25% Sectional Cutoff (75 Marks)",
+        "115 – 145 Marks"
+       ],
+       [
+        "Written Paper 2: GAT",
+        "600 Marks (150 Questions)",
+        "25% Sectional Cutoff (150 Marks)",
+        "310 – 360 Marks"
+       ],
+       [
+        "Total Written Exam (Stage 1)",
+        "900 Aggregate Marks",
+        "315 – 355 Marks (Varies by session)",
+        "420 – 480+ Marks (Guarantees strong merit buffer)"
+       ],
+       [
+        "SSB Interview (Stage 2)",
+        "900 Marks (Psych, GTO, Interview)",
+        "360 Marks (Recommendation minimum)",
+        "410 – 450 Marks"
+       ],
+       [
+        "Final Merit List Aggregate",
+        "1,800 Total Combined Marks",
+        "705 – 725 Marks (Last recommended cadet)",
+        "820 – 890+ Marks (Required for IAF Flying Branch)"
+       ]
+      ]
+     }
+    ],
+    "h": "NDA (National Defence Academy & Naval Academy Examination)",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Target Wing / Stage",
+          "Typical Written Score Zone",
+          "Key Selection & Merit Notes"
+         ],
+         [
+          "IAF Flying / Naval Entry",
+          "415 – 480+ / 900",
+          "Higher final merit buffer plus specific aircrew/medical and PABT/CPSS standards."
+         ],
+         [
+          "Indian Army (NDA)",
+          "340 – 420 / 900",
+          "Balanced performance across Written + SSB determines final merit list position."
+         ],
+         [
+          "SSB Interview Stage",
+          "360 – 450+ / 900",
+          "Assesses officer-like qualities through psychological tests, GTO tasks, and interview."
+         ]
+        ]
+       }
+      ],
+      "h": "Service Wing & Stage-Wise Selection Benchmarks"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "Normalized scores determine admission to central institutions like the University of Delhi (DU), BHU, JNU, and Allahabad University. The primary competitive benchmark evaluates an 800-mark scale (1 Language + 3 Domain Subjects @ 200 marks each) for Commerce and Humanities, and a 600-mark PCM/PCB aggregate for Sciences. Because each subject is normalized across multiple shifts, raw scores can convert differently depending on shift difficulty; high percentiles in domain subjects are critical for top North Campus programmes."
+     },
+     {
+      "table": [
+       [
+        "Target College & Program",
+        "General (Unreserved)",
+        "OBC-NCL",
+        "EWS",
+        "SC Category",
+        "ST Category"
+       ],
+       [
+        "DU North Campus - Tier 1 SRCC, St. Stephen's, Hindu, Hansraj (B.Com Hons, Econ Hons, Pol Sci)",
+        "775 – 796 / 800 (99.7+ %ile)",
+        "730 – 760 / 800 (98.2+ %ile)",
+        "740 – 768 / 800 (98.6+ %ile)",
+        "660 – 700 / 800 (93.5+ %ile)",
+        "620 – 665 / 800 (90.0+ %ile)"
+       ],
+       [
+        "DU South Campus - Tier 1 Venkateswara, ARSD, Gargi, DCAC (Popular Honours)",
+        "720 – 755 / 800 (97.5+ %ile)",
+        "665 – 705 / 800 (94.0+ %ile)",
+        "675 – 715 / 800 (95.0+ %ile)",
+        "585 – 635 / 800 (87.0+ %ile)",
+        "525 – 580 / 800 (81.0+ %ile)"
+       ],
+       [
+        "DU Sciences (B.Sc Hons) Physics, Chemistry, Maths, Zoology (Evaluated out of 600 in PCM/PCB)",
+        "525 – 570 / 600 (North Campus)",
+        "460 – 505 / 600 (North Campus)",
+        "475 – 518 / 600 (North Campus)",
+        "380 – 430 / 600 (North Campus)",
+        "320 – 375 / 600 (North Campus)"
+       ],
+       [
+        "Central Universities BHU, Allahabad University (B.A. / B.Sc / B.Com Core)",
+        "610 – 680 / 800",
+        "540 – 610 / 800",
+        "555 – 625 / 800",
+        "430 – 500 / 800",
+        "370 – 440 / 800"
+       ]
+      ]
+     }
+    ],
+    "h": "CUET UG (Common University Entrance Test)",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Subject Percentile Band",
+          "Typical Domain Score (/200)",
+          "Admission Competitiveness"
+         ],
+         [
+          "99.5 – 100.0 %ile",
+          "192 – 200",
+          "Prime contention for top North Campus colleges (SRCC, Hindu, Miranda, St. Stephen's)."
+         ],
+         [
+          "97.0 – 99.4 %ile",
+          "175 – 191",
+          "Competitive for North/South Campus honours programmes and top central university seats."
+         ],
+         [
+          "90.0 – 96.9 %ile",
+          "145 – 174",
+          "Strong option pool across South/Off Campus DU colleges, BHU, and state/central universities."
+         ]
+        ]
+       }
+      ],
+      "h": "Percentile vs Program Competitiveness (CUET UG)"
+     }
+    ]
+   }
+  ],
+  "title": "Comprehensive Entrance Examinations Cutoff & Score Matrix"
+ },
+ "cuet": {
+  "intro": "Simple, table-by-table breakdown of exam structure, subject choices, question counts, candidate numbers, fees, seat matrix, and top universities. The Common University Entrance Test — Undergraduate (CUET-UG) is India's single-window national entrance exam for admission into 47+ Central Universities (including Delhi University, BHU, JNU, Allahabad University, Jamia Millia Islamia) as well as over 250 State, Deemed, and Private Universities across Science, Commerce, Arts, Engineering, and Management streams.",
+  "kicker": "NATIONAL CENTRAL & PARTICIPATING UNIVERSITIES ADMISSION HANDBOOK",
+  "sections": [
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Particular",
+        "Official Details"
+       ],
+       [
+        "Exam Name & Full Form",
+        "CUET-UG — Common University Entrance Test (Undergraduate)"
+       ],
+       [
+        "Conducting Authority",
+        "NTA — National Testing Agency (Ministry of Education, Govt. of India)"
+       ],
+       [
+        "Official Websites",
+        "cuet.nta.nic.in & nta.ac.in"
+       ],
+       [
+        "Frequency",
+        "Once a year (held in May–June; online registration starts in February– March)"
+       ],
+       [
+        "Exam Mode",
+        "Online CBT (Computer-Based Test) conducted in multiple shifts across India and abroad"
+       ],
+       [
+        "Question Paper Languages",
+        "13 Languages: English, Hindi, Assamese, Bengali, Gujarati, Kannada, Malayalam, Marathi, Odia, Punjabi, Tamil, Telugu, and Urdu"
+       ],
+       [
+        "Marking Scheme",
+        {
+         "list": [
+          "+5 marks for every correct answer",
+          "−1 mark negative marking for every wrong answer",
+          "0 marks for unattempted questions"
+         ]
+        }
+       ],
+       [
+        "Syllabus Covered",
+        "Strictly Class 12 NCERT Syllabus (Domain subjects) + Reading Comprehension/Grammar (Languages) + Quantitative/Logical Reasoning & GK (General Test)"
+       ],
+       [
+        "Age Limit & Eligibility",
+        "No age limit. Candidates who have passed or are appearing in Class 12 (10+2) are eligible (each university sets its own subject mapping & minimum pass criteria)."
+       ]
+      ]
+     }
+    ],
+    "h": "Exam Overview & Basic Facts",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "p": "Under the standardized NTA pattern, candidates can choose up to 5 subjects across three sections (Languages, Domain-Specific Subjects, and General Aptitude Test). Every single paper has 50 compulsory Multiple Choice Questions (MCQs) to be solved in 60 minutes."
+     }
+    ],
+    "h": "Subject Structure, Question Counts & Marking Pattern",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Section",
+          "Available Subjects",
+          "Questions / Paper",
+          "Duration",
+          "Max Marks"
+         ],
+         [
+          "Section I: Languages",
+          "13 Languages (English, Hindi, Kannada, Tamil, Telugu, Bengali, Marathi, Gujarati, Malayalam, Odia, Punjabi, Assamese, Urdu)",
+          "50 MCQs (All Compulsory)",
+          "60 Mins",
+          "250 Marks"
+         ],
+         [
+          "Section II: Domain Subjects",
+          "23 Class 12 Subjects: Mathematics/Applied Maths, Physics, Chemistry, Biology, Computer Science/IP, Accountancy, Economics, Business Studies, History, Political Science, Geography, Psychology, Sociology, etc.",
+          "50 MCQs (All Compulsory)",
+          "60 Mins",
+          "250 Marks"
+         ],
+         [
+          "Section III: General Aptitude Test (GAT)",
+          "General Knowledge, Current Affairs, General Mental Ability, Numerical Ability, Quantitative Reasoning (Class 8–10 level), Logical & Analytical Reasoning",
+          "50 MCQs (All Compulsory)",
+          "60 Mins",
+          "250 Marks"
+         ],
+         [
+          "Maximum 5- Subject Total",
+          "Any combination of up to 5 subjects (e.g., 1 Language + 3 Domains + 1 General Test, or 1 Language + 4 Domains)",
+          "250 MCQs Total",
+          "5 Hours (Across Shifts)",
+          "1,250 Marks"
+         ]
+        ]
+       }
+      ],
+      "h": "Three-Section Paper Structure (50 Compulsory Questions per Subject)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Target Degree Course",
+          "Recommended CUET-UG Subject Combination (e.g., Delhi University / BHU)"
+         ],
+         [
+          "B.Sc. (Hons.) Mathematics / Statistics / Computer Science",
+          "1 Language (English) + Mathematics / Applied Maths + Any 2 Domain Subjects (Physics, Chemistry, Computer Science, Economics) — Total 1,000 Marks"
+         ],
+         [
+          "B.Sc. (Hons.) Physics / Chemistry / Electronics",
+          "Physics + Chemistry + Mathematics + 1 Language (30% qualifying marks needed at DU) — Total 750 Marks"
+         ],
+         [
+          "B.A. (Hons.) Economics / B.Com (Hons.) at DU",
+          "1 Language + Mathematics / Applied Maths (or Accountancy for B.Com) + Any 2 Domain Subjects — Total 1,000 Marks"
+         ],
+         [
+          "B.Tech (CIC Delhi Univ, BHU, Central Univs)",
+          "1 Language (English) + Mathematics + General Aptitude Test (GAT) (plus Physics/Chemistry at select universities) — Total 750 Marks"
+         ],
+         [
+          "BBA / BMS / Integrated BBA-MBA (DU Shaheed Sukhdev)",
+          "1 Language (English) + Mathematics / Applied Maths + General Aptitude Test (GAT) — Total 750 Marks"
+         ]
+        ]
+       }
+      ],
+      "h": "Important Subject Combinations for Class 12 Science & Maths Students"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "CUET-UG is India's largest undergraduate entrance examination by candidate volume, crossing 13–14 lakh applicants every year. Unlike a single centralized counselling portal, each participating university runs its own admission portal using NTA normalized scores."
+     },
+     {
+      "table": [
+       [
+        "Exam Year",
+        "Registered Candidates",
+        "Appeared (Wrote Exam)",
+        "Participating Universities",
+        "Approx. Total UG Seats"
+       ],
+       [
+        "CUET-UG 2026",
+        "~13,60,000+",
+        "~11,20,000+",
+        "300+ Universities",
+        "~3,20,000+ (71,000+ in DU alone)"
+       ],
+       [
+        "CUET-UG 2025",
+        "13,54,699",
+        "10,71,735",
+        "280+ Universities",
+        "~3,10,000+ (71,624 in DU alone)"
+       ],
+       [
+        "CUET-UG 2024",
+        "13,47,820",
+        "11,13,610",
+        "261 Universities",
+        "~3,00,000+"
+       ],
+       [
+        "CUET-UG 2023",
+        "14,99,796",
+        "11,16,018",
+        "250 Universities",
+        "~2,80,000+"
+       ],
+       [
+        "CUET-UG 2022 (First)",
+        "14,90,293",
+        "9,68,201",
+        "90 Universities",
+        "~2,00,000+"
+       ]
+      ]
+     }
+    ],
+    "h": "Year-Wise Registration, Attendance & Selection Numbers",
+    "subs": []
+   },
+   {
+    "blocks": [],
+    "h": "Application Fee & Annual University Tuition Fees",
+    "subs": [
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "Candidate Category",
+          "Up to 3 Subjects",
+          "Each Extra Subject (4th & 5th)",
+          "All 5 Subjects Total"
+         ],
+         [
+          "General (Unreserved / UR)",
+          "₹1,000",
+          "+ ₹400 each",
+          "₹1,800"
+         ],
+         [
+          "OBC-NCL / GEN-EWS",
+          "₹900",
+          "+ ₹375 each",
+          "₹1,650"
+         ],
+         [
+          "SC / ST / PwD / PwBD / Third Gender",
+          "₹800",
+          "+ ₹350 each",
+          "₹1,500"
+         ],
+         [
+          "Exam Centres Outside India (All Categories)",
+          "₹4,500",
+          "+ ₹1,800 each",
+          "₹8,100"
+         ]
+        ]
+       }
+      ],
+      "h": "CUET-UG Exam Registration Fee (Centres in India)"
+     },
+     {
+      "blocks": [
+       {
+        "table": [
+         [
+          "University / College Type",
+          "Annual Fee (Approx.)",
+          "Key Affordability Benefit"
+         ],
+         [
+          "Delhi University (Hindu, Miranda, St. Stephen's, SRCC, Hansraj)",
+          "₹15,000 – ₹32,000 / yr",
+          "World-class education at ultra-low public university fees"
+         ],
+         [
+          "Banaras Hindu University (BHU) & Allahabad University",
+          "₹3,000 – ₹12,000 / yr",
+          "Lowest residential central university fees in India"
+         ],
+         [
+          "JNU New Delhi & Jamia Millia Islamia",
+          "₹2,000 – ₹18,000 / yr",
+          "Generous Merit-cum-Means scholarships + subsidized hostels"
+         ],
+         [
+          "SC / ST / PwD Students (Central Universities)",
+          "Full Fee Waiver / Reimbursement",
+          "Eligible for NSP Central Scholarships & university fee concessions"
+         ]
+        ]
+       }
+      ],
+      "h": "Annual College Tuition Fees in Top Central Universities"
+     }
+    ]
+   },
+   {
+    "blocks": [
+     {
+      "p": "All Central Universities (DU, BHU, JNU, Jamia, AU, etc.) follow the Government of India reservation policy. There is NO state domicile quota in Central Universities—students from every state compete equally."
+     },
+     {
+      "table": [
+       [
+        "Category Code",
+        "Category Name",
+        "Seat Share (%)",
+        "Certificate & Eligibility Rule"
+       ],
+       [
+        "UR (General)",
+        "Unreserved / Open Merit",
+        "40.5%",
+        "Open to all candidates purely on normalized CUET score"
+       ],
+       [
+        "OBC-NCL",
+        "Other Backward Classes (Non-Creamy Layer)",
+        "27.0%",
+        "Central OBC-NCL list + annual family income < ₹8 Lakh"
+       ],
+       [
+        "SC",
+        "Scheduled Caste",
+        "15.0%",
+        "Valid Scheduled Caste certificate"
+       ],
+       [
+        "GEN-EWS",
+        "Economically Weaker Section (General)",
+        "10.0%",
+        "Annual family income < ₹8 Lakh + EWS certificate"
+       ],
+       [
+        "ST",
+        "Scheduled Tribe",
+        "7.5%",
+        "Valid Scheduled Tribe certificate"
+       ],
+       [
+        "PwBD / CW / ECA / Sports",
+        "Supernumerary & Horizontal Quotas",
+        "5% PwBD + Supernumerary",
+        "5% horizontal for PwBD; extra seats at DU for Armed Forces wards (CW), Sports, ECA, and Kashmiri Migrants"
+       ]
+      ]
+     }
+    ],
+    "h": "Seat Matrix & Reservation Rules (Central Universities)",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "University Group",
+        "Premier Institutions & Flagship Undergraduate Programmes"
+       ],
+       [
+        "University of Delhi (DU) — Top Colleges",
+        {
+         "list": [
+          "St. Stephen's College & Hindu College (B.Sc. Maths, Physics, Chemistry, Economics)",
+          "Miranda House & Lady Shri Ram College (LSR) (Women's — Maths, Stats, Economics)",
+          "SRCC (Shri Ram College of Commerce) (B.Com Hons., Economics Hons.)",
+          "Hansraj College, Kirori Mal College, Ramjas College, Sri Venkateswara College",
+          "Shaheed Sukhdev College of Business Studies (SSCBS) (BMS, BBA-FIA, B.Sc. CS)"
+         ]
+        }
+       ],
+       [
+        "Top Central Universities",
+        {
+         "list": [
+          "Banaras Hindu University (BHU), Varanasi (B.Sc. Hons. Maths/Bio, B.Com, B.A., B.Tech Dairy/Food)",
+          "Jawaharlal Nehru University (JNU), New Delhi (B.A. Hons. Foreign Languages, B.Sc.-M.Sc. Ayurveda)",
+          "University of Allahabad, Prayagraj",
+          "Jamia Millia Islamia, New Delhi",
+          "Aligarh Muslim University (AMU)",
+          "University of Hyderabad (5-Year Integrated M.Sc. Maths, Physics, Chemistry, Systems Biology)",
+          "Central Universities of Rajasthan, Punjab, Haryana, South Bihar, Tamil Nadu, Karnataka, Kerala"
+         ]
+        }
+       ],
+       [
+        "Top State, Deemed & Private Universities",
+        {
+         "list": [
+          "Dr. B.R. Ambedkar University Delhi (AUD)",
+          "Guru Gobind Singh Indraprastha University (GGSIPU)",
+          "Tata Institute of Social Sciences (TISS), Mumbai",
+          "ICAR Agricultural Universities (B.Sc. Agriculture)",
+          "UPES Dehradun, Bennett University, Amity, Galgotias, Shiv Nadar / SRM / Manipal (select courses)"
+         ]
+        }
+       ]
+      ]
+     }
+    ],
+    "h": "Top Universities & Colleges Accepting CUET-UG",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Step",
+        "Stage",
+        "What the Student Must Do"
+       ],
+       [
+        "1",
+        "Check University Mapping & Apply (Feb–Mar)",
+        "Verify exact subject requirements of your target universities (e.g., DU requires subjects studied in Class 12), fill the NTA form on cuet.nta.nic.in, and pay the fee."
+       ],
+       [
+        "2",
+        "City Slip, Admit Card & Exam (May–June)",
+        "Download your City Intimation Slip and Admit Card, then appear for your chosen 60-minute CBT papers across scheduled shifts."
+       ],
+       [
+        "3",
+        "Answer Key & NTA Scorecard (July)",
+        "NTA releases provisional answer keys for challenge, followed by the final scorecard showing subject-wise Normalized Marks (out of 250) and Percentiles."
+       ],
+       [
+        "4",
+        "Separate University Portal Registration (July–Aug)",
+        "Crucial Step: Register separately on each target university's counselling portal (e.g., DU CSAS Portal, BHU CAP Portal) using your CUET application number."
+       ],
+       [
+        "5",
+        "Preference Filling & Seat Allotment (Aug–Sept)",
+        "Arrange college + course combinations in priority order, accept your allotted seat across rounds, complete online document verification, and pay the college fee."
+       ]
+      ]
+     }
+    ],
+    "h": "Step-by-Step Timeline from Application to College Admission",
+    "subs": []
+   }
+  ],
+  "title": "Complete Guide to the CUET-UG Exam"
+ },
  "iat": {
   "intro": "Simple, table-by-table breakdown of exam structure, question counts, candidate numbers, fees, IISER seat matrix, and top institutes. The IISER Aptitude Test (IAT) is India's sole national entrance examination for admission into the 7 Indian Institutes of Science Education and Research (IISERs). It is also accepted for flagship undergraduate science and engineering degrees at IISc Bangalore, IIT Madras, IIT Guwahati, IACS Kolkata, and IIEST Shibpur.",
   "kicker": "NATIONAL SCIENCE & RESEARCH UNDERGRADUATE ENTRANCE HANDBOOK",
@@ -1376,6 +2530,380 @@
    }
   ],
   "title": "Complete Guide to the IIT-JEE Exam"
+ },
+ "important": {
+  "intro": "Master table-by-table guide to every major Mathematics-based entrance test across Pure Maths & Research, Top Engineering Institutes, Management, Architecture, Maritime, and Defence. Beyond JEE Main, JEE Advanced, NDA, IAT, KCET, and CUET-UG, having Mathematics in Class 12 unlocks India's highest-paying and most prestigious undergraduate degrees. Below is the complete, category-wise reference guide of all other important Mathematics exams you can write after Class 12.",
+  "kicker": "COMPLETE CAREER & ENTRANCE ROADMAP FOR CLASS 12 MATHS STUDENTS",
+  "sections": [
+   {
+    "blocks": [
+     {
+      "p": "These exams lead to elite national research institutes with zero or minimal tuition fees, guaranteed monthly stipends, and top global placements in Quantitative Finance, Data Science, AI, and Academia."
+     },
+     {
+      "table": [
+       [
+        "Exam Name",
+        "Conducting Body & Colleges",
+        "Maths Weightage & Question Count",
+        "Seats, Fees & Stipend"
+       ],
+       [
+        "ISI Admission Test",
+        {
+         "list": [
+          "Indian Statistical Institute",
+          "ISI Kolkata (B.Stat. Hons.)",
+          "ISI Bengaluru (B.Math. Hons.)",
+          "ISI Delhi (B.S. Data Science)"
+         ]
+        },
+        {
+         "list": [
+          "100% Mathematics:",
+          "UGA (2 Hrs): 30 MCQs (+4 / −1)",
+          "UGB (2 Hrs): 8 Subjective proof-based Maths problems"
+         ]
+        },
+        {
+         "list": [
+          "~120–140 seats total",
+          "₹0 Tuition Fee",
+          "₹5,000/month stipend + ₹5,000/yr book grant"
+         ]
+        }
+       ],
+       [
+        "CMI Entrance Exam",
+        {
+         "list": [
+          "Chennai Mathematical Institute",
+          "B.Sc. (Hons.) Maths & Computer Science",
+          "B.Sc. (Hons.) Maths & Physics"
+         ]
+        },
+        {
+         "list": [
+          "100% Mathematics:",
+          "Part A: Objective Maths MCQs/Short Answer",
+          "Part B: Subjective Olympiad-style proof problems (3.5 Hrs total)"
+         ]
+        },
+        {
+         "list": [
+          "~60–75 seats",
+          "Full tuition waivers + ₹5,000/month fellowship for top students"
+         ]
+        }
+       ],
+       [
+        "NEST (National Entrance Screening Test)",
+        {
+         "list": [
+          "NISER Bhubaneswar & UM-DAE CEBS Mumbai",
+          "5-Year Integrated M.Sc. (Maths, Physics, Chemistry, Bio)"
+         ]
+        },
+        {
+         "list": [
+          "25% Weightage (50 Marks):",
+          "4 sections (PCMB) of 17 Qs each (50 marks each)",
+          "Best 3 sections counted (150 marks total)"
+         ]
+        },
+        {
+         "list": [
+          "~257 seats (200 NISER + 57 CEBS)",
+          "₹60,000/year DISHA scholarship + ₹20,000 summer internship grant"
+         ]
+        }
+       ]
+      ]
+     }
+    ],
+    "h": "Pure Mathematics, Statistics & Research Exams (Highest Prestige)",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "p": "Top autonomous universities and national private-college consortia conduct their own dedicated computer-based entrance exams where Mathematics plays a decisive role:"
+     },
+     {
+      "table": [
+       [
+        "Exam Name",
+        "Target Institutes",
+        "Question Pattern & Maths Share",
+        "Key Advantage"
+       ],
+       [
+        "BITSAT (BITS Admission Test)",
+        "BITS Pilani, BITS Goa & BITS Hyderabad (B.E. / Integrated M.Sc.)",
+        {
+         "list": [
+          "130 Qs (390 Marks, 3 Hrs):",
+          "Maths: 40 Qs (Highest)",
+          "Physics: 30 Qs",
+          "Chemistry: 30 Qs",
+          "English & Logical Reasoning: 30 Qs",
+          "+12 Bonus Qs if you finish early"
+         ]
+        },
+        "No reservation (100% merit-based); held twice a year (May & June); ~3,000 seats"
+       ],
+       [
+        "IIIT-H UGEE",
+        "IIIT Hyderabad (5-Year Dual Degree: B.Tech + M.S. by Research)",
+        {
+         "list": [
+          "2 Sections (3 Hours):",
+          "SUPR (60 mins): PCM Subject Test",
+          "REAP (120 mins): Research Aptitude & Mathematical Logic (+interview)"
+         ]
+        },
+        "Direct entry to India's top CSE & AI research programmes outside JoSAA"
+       ],
+       [
+        "COMEDK UGET",
+        "150+ Private Engineering Colleges in Karnataka (RVCE, BMSCE, MSRIT, DSCE)",
+        {
+         "list": [
+          "180 MCQs (180 Marks, 3 Hrs):",
+          "Maths: 60 Qs",
+          "Physics: 60 Qs",
+          "Chemistry: 60 Qs",
+          "Zero negative marking"
+         ]
+        },
+        "Open to all Indian students (no Karnataka domicile needed); ~20,000+ seats"
+       ],
+       [
+        "VITEEE",
+        "VIT Vellore, Chennai, AP & Bhopal",
+        {
+         "list": [
+          "125 MCQs (2.5 Hours):",
+          "Maths: 40 Qs",
+          "Physics: 35 Qs",
+          "Chemistry: 35 Qs",
+          "Aptitude: 10 Qs",
+          "English: 5 Qs"
+         ]
+        },
+        "Large intake across top campuses; scholarship fee slabs for top 1,000 ranks"
+       ],
+       [
+        "MET (Manipal Entrance Test)",
+        "MIT Manipal, MIT Bengaluru, SMIT Sikkim, MUJ Jaipur",
+        {
+         "list": [
+          "60 Questions (240 Marks, 2 Hrs):",
+          "Maths: 20 Qs",
+          "Physics: 15 Qs",
+          "Chemistry: 15 Qs",
+          "English: 10 Qs"
+         ]
+        },
+        "Board marks + MET score combined (50:50 weightage) for final rank"
+       ],
+       [
+        "SRMJEEE & AEEE",
+        "SRMIST (Kattankulathur) & Amrita Vishwa Vidyapeetham (Coimbatore/Bengaluru)",
+        {
+         "list": [
+          "SRMJEEE: 130 Qs (40 Maths, 35 Phy, 35 Chem, 10 Eng, 10 Apt)",
+          "AEEE: 100 Qs (40 Maths, 30 Phy, 25 Chem, 5 Eng)"
+         ]
+        },
+        "Multiple exam phases; up to 75–100% tuition scholarships for top rankers"
+       ]
+      ]
+     }
+    ],
+    "h": "Premier National & Private Engineering Exams",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "p": "Several major state CETs award double weightage (50% of total exam marks) exclusively to Mathematics, making them ideal for students strong in Class 11–12 Maths:"
+     },
+     {
+      "table": [
+       [
+        "State Exam",
+        "Premier Colleges Covered",
+        "Maths Weightage & Marking",
+        "Outside-State Eligibility"
+       ],
+       [
+        "MHT CET (Maharashtra)",
+        "COEP Pune, VJTI Mumbai, ICT Mumbai, SPIT, PICT Pune",
+        {
+         "list": [
+          "50% Marks (100 / 200):",
+          "50 Maths Qs × 2 marks = 100",
+          "50 Physics + 50 Chem × 1 mark = 100",
+          "No negative marking"
+         ]
+        },
+        "All-India candidates eligible (JEE Main or MHT CET score accepted for All- India quota)"
+       ],
+       [
+        "WBJEE (West Bengal)",
+        "Jadavpur University, IEM Kolkata, Heritage, Kalyani Govt Engg",
+        {
+         "list": [
+          "50% Marks (100 / 200):",
+          "Paper 1 (2 Hrs): 75 Maths Qs (100 marks)",
+          "Paper 2 (2 Hrs): Phy + Chem (100 marks)"
+         ]
+        },
+        "Open to all Indian citizens (Jadavpur University reserves 90% for WB domicile, 10% open)"
+       ],
+       [
+        "KEAM (Kerala)",
+        "CET Thiruvananthapuram, GEC Thrissur, TKM Kollam, MEC Kochi",
+        {
+         "list": [
+          "50% Weightage (75 / 150 Qs):",
+          "150 MCQs total (75 Maths, 45 Physics, 30 Chemistry) in 180 mins"
+         ]
+        },
+        "Non-Keralite Category II candidates eligible for private/self- financing seats"
+       ],
+       [
+        "AP & TS EAPCET (Andhra / Telangana)",
+        "JNTU Hyderabad, Osmania Univ, AU Visakhapatnam, CBIT, Vasavi",
+        {
+         "list": [
+          "50% Marks (80 / 160):",
+          "160 MCQs (80 Maths, 40 Physics, 40 Chemistry); no negative marking"
+         ]
+        },
+        "15% unreserved seats open to non- local candidates"
+       ]
+      ]
+     }
+    ],
+    "h": "Top State-Level Engineering Entrance Exams (With High Maths Weightage)",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "p": "Mathematics after Class 12 is not limited to engineering—it is the gateway to top IIM management degrees, architecture, Merchant Navy officer ranks, and direct Army technical commissions:"
+     },
+     {
+      "table": [
+       [
+        "Exam / Entry Name",
+        "Target Career & Institutes",
+        "Role of Class 12 Maths",
+        "Key Details"
+       ],
+       [
+        "IPMAT Indore & IPMAT Rohtak / JIPMAT",
+        "5-Year Integrated BBA + MBA at IIM Indore, IIM Rohtak, IIM Ranchi, IIM Jammu, IIM Bodh Gaya, IIFT",
+        {
+         "list": [
+          "IPMAT Indore: Dedicated Higher Maths section (Matrices, Functions, Logs, P&C, Probability, Trig) + Quant + Verbal",
+          "Rohtak & JIPMAT: Quantitative Aptitude"
+         ]
+        },
+        "Direct IIM admission right after Class 12 without writing CAT later"
+       ],
+       [
+        "NATA (National Aptitude Test in Architecture)",
+        "5-Year B.Arch across all Architecture colleges in India (SPA, JJ College, CEPT, RVCA)",
+        "Class 12 PCM mandatory. Tests Mathematics, General Aptitude, Visual Reasoning, and Drawing/Sketching (200 marks)",
+        "Conducted by Council of Architecture (CoA) multiple times a year"
+       ]
+      ]
+     },
+     {
+      "table": [
+       [
+        "Exam / Entry Name",
+        "Target Career & Institutes",
+        "Role of Class 12 Maths",
+        "Key Details"
+       ],
+       [
+        "IMU CET (Indian Maritime Univ)",
+        "Merchant Navy Officer: B.Tech Marine Engineering, B.Sc. Nautical Science, DNS",
+        {
+         "list": [
+          "25% Weightage (50 / 200 MCQs):",
+          "50 Maths + 50 Physics + 25 Chem + 40 English + 35 Aptitude"
+         ]
+        },
+        "Requires 60% in Class 12 PCM + medical/eyesight fitness"
+       ],
+       [
+        "Indian Army TES (10+2 Technical Entry)",
+        "Permanent Commission Officer (Lieutenant) in Indian Army Corps of Engineers / Signals / EME",
+        {
+         "list": [
+          "No Separate Written Exam:",
+          "Requires Class 12 PCM (min 60%) + JEE Main CRL Rank"
+         ]
+        },
+        "Direct shortlist for 5- day SSB Interview; 100% free B.Tech + officer training"
+       ],
+       [
+        "Indian Navy 10+2 B.Tech Cadet Entry",
+        "Permanent Commission Officer (Sub-Lieutenant) at Indian Naval Academy (INA Ezhimala)",
+        {
+         "list": [
+          "No Separate Written Exam:",
+          "Requires Class 12 PCM (min 70%) + JEE Main CRL Rank"
+         ]
+        },
+        "Direct SSB Interview call; 4- year B.Tech degree funded by Indian Navy"
+       ]
+      ]
+     }
+    ],
+    "h": "Management (5-Year IIM Integrated MBA), Architecture, Maritime & Defence",
+    "subs": []
+   },
+   {
+    "blocks": [
+     {
+      "table": [
+       [
+        "Month Window",
+        "Exams Conducted",
+        "Target Career Track"
+       ],
+       [
+        "January – April",
+        "JEE Main (Sessions 1 & 2), NDA-I, VITEEE, MHT CET, WBJEE, SRMJEEE, AEEE, NATA",
+        "Core Engineering (NIT/IIIT/State), Architecture & Armed Forces"
+       ],
+       [
+        "May",
+        "JEE Advanced, BITSAT (Session 1), ISI Admission Test, CMI Entrance Exam, COMEDK, CUET-UG, IPMAT Indore/Rohtak, IMU CET",
+        "IITs, BITS Pilani, ISI/CMI Maths Research, Central Univs, IIM IPM & Merchant Navy"
+       ],
+       [
+        "June – September",
+        "IAT (IISER), NEST (NISER/CEBS), BITSAT (Session 2), IIIT-H UGEE, NDA-II, Army TES & Navy B.Tech SSB",
+        "IISERs/IISc/NISER Research, IIIT Hyderabad & Defence Technical Entries"
+       ]
+      ]
+     },
+     {
+      "p": "Smart Strategy for a Class 12 Maths Student: Preparing thoroughly for JEE Main + NCERT Class 11– 12 Mathematics automatically covers 85–90% of the syllabus for BITSAT, COMEDK, State CETs, IAT, NEST, CUET-UG, IMU CET, and Army/Navy TES. Add Olympiad-style proof practice only if targeting ISI Kolkata/Bengaluru or CMI Chennai."
+     }
+    ],
+    "h": "Quick Exam Calendar & Priority Checklist for Class 12 Maths Students",
+    "subs": []
+   }
+  ],
+  "title": "Important Mathematics Exams After Class 12"
  },
  "jee-advanced": {
   "intro": "Simple, table-by-table breakdown of exam structure, question patterns, candidate numbers, fees, IIT seat matrix, and top institutes. The Joint Entrance Examination (Advanced), popularly known as JEE Advanced, is the second and final stage of India's national engineering entrance system. It is the sole gateway for admission to undergraduate degrees (B.Tech, B.S., Dual Degree, Integrated M.Tech) across all 23 Indian Institutes of Technology (IITs) as well as premier research institutes like IISc Bangalore, IIST, IISERs, and RGIPT.",

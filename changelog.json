@@ -1,5 +1,16 @@
 [
   {
+    "v": "978",
+    "date": "21 Nov 2026",
+    "items": [
+      "New site menu: a Dashboard button, Exams, Maths and Resources menus, Plans and Help. The page you are on is underlined, and the phone menu has the same items.",
+      "Every exam page now has its date and a live countdown. JEE Advanced 2027 is on 23 May 2027. JEE Main shows the NTA schedule for its January and April 2026 sessions (the 2027 dates will follow when NTA announces them).",
+      "Each exam page also links to the official information bulletin, and shows safe scores by category and the marks vs percentile vs rank tables with charts for JEE Main, JEE Advanced, KCET, IAT, NDA and CUET-UG.",
+      "New pages: CUET-UG (guide, dates, safe scores), Safe scores and cutoffs for all six exams, and Important Mathematics Exams After Class 12.",
+      "The Question Bank top bar now has a Dashboard link too."
+    ]
+  },
+  {
     "v": "977",
     "date": "21 Nov 2026",
     "items": [

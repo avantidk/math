@@ -58,16 +58,27 @@
     }
     buildUserMenus();
     window.addEventListener('avanti-menu', buildUserMenus);
-    /* Exams menu: opens on hover or keyboard focus (CSS). On touch screens (no hover) a tap opens it, another tap closes it. */
-    var dd = d.querySelector('.sh-dd');
+    /* Header menus (Exams, Maths, Resources): open on hover or keyboard focus (CSS). On touch screens (no hover) a tap opens one, another tap closes it. */
     var canHover = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
-    if (dd) {
+    var dds = Array.prototype.slice.call(d.querySelectorAll('.sh-dd'));
+    dds.forEach(function (dd) {
       var btn = dd.querySelector('.sh-ddb');
       var setOpen = function (v) { dd.classList.toggle('open', v); btn.setAttribute('aria-expanded', String(v)); if (!v) btn.blur(); };
-      if (!canHover) btn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); setOpen(!dd.classList.contains('open')); });
+      if (!canHover) btn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); var was = dd.classList.contains('open'); dds.forEach(function (o) { if (o !== dd) { o.classList.remove('open'); } }); setOpen(!was); });
       d.addEventListener('click', function (e) { if (dd.classList.contains('open') && !dd.contains(e.target)) setOpen(false); });
       d.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
-    }
+    });
+    /* the page you are on is underlined in the menu */
+    (function () {
+      var path = window.location.pathname.replace(/index\.html$/, ''), mark = function (a) { a.classList.add('on'); a.setAttribute('aria-current', 'page'); };
+      Array.prototype.forEach.call(d.querySelectorAll('.sh-nav > a, .sh-dd > .sh-ddb'), function (a) {
+        var u; try { u = new URL(a.getAttribute('href'), window.location.href); } catch (e) { return; }
+        if (u.hash || u.search) return;
+        var base = u.pathname.replace(/index\.html$/, '');
+        if (base === '/' ) return;
+        if (path === base || path.indexOf(base) === 0 || (/\/exams\//.test(path) && /\/exams\/safe-scores\/$/.test(base) && /\/exams\/(safe-scores|important-exams)\//.test(path))) mark(a);
+      });
+    })();
     /* phone menu: closes when you click anywhere else, press Escape, or choose a link */
     var menu = d.querySelector('.sh-menu');
     if (menu) {
@@ -150,24 +161,42 @@
       d.addEventListener('click', function (ev) { if (!pp.hidden && !box.contains(ev.target)) close(); });
       d.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && !pp.hidden) { close(); more.focus(); } });
     });
-    /* question bank numbers menu: hover or keyboard focus (CSS); a tap opens it on touch screens */
-    (function () {
-      var box = d.querySelector('.sh-stat'); if (!box) return; var b = box.querySelector('.sh-statb');
-      b.addEventListener('click', function (e) { e.stopPropagation(); box.classList.toggle('open'); b.setAttribute('aria-expanded', String(box.classList.contains('open'))); });
-      d.addEventListener('click', function (e) { if (box.classList.contains('open') && !box.contains(e.target)) { box.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); } });
-      d.addEventListener('keydown', function (e) { if (e.key === 'Escape') { box.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); } });
-    })();
     /* phone menu: built from the main navigation above, so the page itself lists every link only once */
     (function () {
       var nav = d.querySelector('.sh-menu nav'), src = d.querySelector('.sh-nav'); if (!nav || !src) return;
-      var mk = function (href, text, img) { var a = d.createElement('a'); a.href = href; if (img) { var im = d.createElement('img'); im.className = 'exlogo'; im.src = img; im.alt = ''; im.width = 26; im.height = 26; a.appendChild(im); } a.appendChild(d.createTextNode(text)); return a; };
-      var ex = src.querySelector('.sh-ddb'), cards = src.querySelectorAll('.mega-card');
-      if (ex && cards.length) {
-        var sub = d.createElement('details'); sub.className = 'sh-sub'; var sm = d.createElement('summary'); sm.appendChild(d.createTextNode('Exams ')); sm.insertAdjacentHTML('beforeend', ex.querySelector('svg') ? ex.querySelector('svg').outerHTML : ''); sub.appendChild(sm);
-        Array.prototype.forEach.call(cards, function (cd) { var a = cd.querySelector('.stretch'), im = cd.querySelector('img'); if (a) sub.appendChild(mk(a.href, a.textContent, im ? im.src : '')); });
-        sub.appendChild(mk(ex.href, 'All exams')); nav.appendChild(sub);
-      }
-      Array.prototype.forEach.call(src.children, function (el) { if (el.tagName === 'A') nav.appendChild(mk(el.href, el.textContent)); });
+      var mk = function (href, text, img, cls) { var a = d.createElement('a'); a.href = href; if (cls) a.className = cls; if (img) { var im = d.createElement('img'); im.className = 'exlogo'; im.src = img; im.alt = ''; im.width = 26; im.height = 26; a.appendChild(im); } a.appendChild(d.createTextNode(text)); return a; };
+      Array.prototype.forEach.call(src.children, function (el) {
+        if (el.tagName === 'A') {
+          var a = mk(el.href, el.textContent.trim(), '', el.classList.contains('sh-dash') ? 'mm-dash' : '');
+          if (el.classList.contains('sh-dash') && el.querySelector('svg')) a.insertAdjacentHTML('afterbegin', el.querySelector('svg').outerHTML);
+          nav.appendChild(a); return;
+        }
+        var ddb = el.querySelector('.sh-ddb'); if (!ddb) return;
+        var sub = d.createElement('details'); sub.className = 'sh-sub'; var sm = d.createElement('summary');
+        sm.appendChild(d.createTextNode(ddb.textContent.trim() + ' ')); if (ddb.querySelector('svg')) sm.insertAdjacentHTML('beforeend', ddb.querySelector('svg').outerHTML); sub.appendChild(sm);
+        var cards = el.querySelectorAll('.mega-card');
+        if (cards.length) {
+          Array.prototype.forEach.call(cards, function (cd) { var a = cd.querySelector('.stretch'), im = cd.querySelector('img'); if (a) sub.appendChild(mk(a.href, a.textContent, im ? im.src : '')); });
+          sub.appendChild(mk(ddb.href, 'All exams', '', 'mm-more'));
+          Array.prototype.forEach.call(el.querySelectorAll('.mega-foot a:not(.mega-all)'), function (a) { sub.appendChild(mk(a.href, a.textContent)); });
+        } else {
+          Array.prototype.forEach.call(el.querySelectorAll('.sh-panel a'), function (a) { sub.appendChild(mk(a.href, a.querySelector('b') ? a.querySelector('b').textContent : a.textContent)); });
+        }
+        nav.appendChild(sub);
+      });
+    })();
+    /* countdown to an exam day (Indian time): <div class="cd" data-cd="2027-05-23"> with spans data-u="d|h|m|s" */
+    (function () {
+      var boxes = d.querySelectorAll('[data-cd]'); if (!boxes.length) return;
+      var tick = function () {
+        Array.prototype.forEach.call(boxes, function (b) {
+          var t = new Date(b.getAttribute('data-cd') + 'T00:00:00+05:30').getTime(), left = Math.max(0, Math.floor((t - Date.now()) / 1000));
+          var v = { d: Math.floor(left / 86400), h: Math.floor(left % 86400 / 3600), m: Math.floor(left % 3600 / 60), s: left % 60 };
+          ['d', 'h', 'm', 's'].forEach(function (k) { var el = b.querySelector('[data-u="' + k + '"]'); if (el) el.textContent = String(v[k]).padStart(k === 'd' ? 1 : 2, '0'); });
+          if (left === 0) b.classList.add('cd-done');
+        });
+      };
+      tick(); setInterval(tick, 1000);
     })();
     /* mobile menu: close it after a link is chosen */
     Array.prototype.forEach.call(d.querySelectorAll('.sh-menu a'), function (a) {

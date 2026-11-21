@@ -32,7 +32,7 @@ def extract(path):
                 ws.sort(key=lambda w: w['x0'])
                 items.append((pg.page_number, ws[0]['top'], 'l', (' '.join(w['text'] for w in ws), max(w['size'] for w in ws), all('Bold' in w['fontname'] for w in ws))))
     items.sort(key=lambda x: (x[0], x[1]))
-    doc = {'kicker': '', 'title': '', 'sections': []}; sec = sub = None; para = []
+    doc = {'kicker': '', 'title': '', 'sections': []}; sec = sub = None; para = []; last = ''   # last = what the previous line was ('title', 'sec' or other), so a heading that wraps onto two lines is joined
     def flush():
         nonlocal para
         if para and sec is not None:
@@ -40,13 +40,17 @@ def extract(path):
         para = []
     for _, _, k, v in items:
         if k == 't':
-            flush(); (sub or sec)['blocks'].append({'table': v}) if sec is not None else None; continue
+            last = ''; flush(); (sub or sec)['blocks'].append({'table': v}) if sec is not None else None; continue
         txt, size, bold = v; txt = clean(txt)
         if size < 9.2 and (re.search(r'Page \d+ of \d+', txt) or size < 9): continue
-        if size >= 19: doc['title'] = txt; continue
+        if size >= 19:
+            doc['title'] = clean(doc['title'] + ' ' + txt) if last == 'title' else txt; last = 'title'; continue
         if size >= 13:
+            if last == 'sec' and sec is not None and not sec['blocks'] and not sec['subs'] and not para: sec['h'] = clean(sec['h'] + ' ' + txt); continue
+            last = 'sec'
             if sec is None and para: doc['intro'] = clean(' '.join(para)); para = []
             flush(); sec = {'h': re.sub(r'^\d+\.\s*', '', txt), 'blocks': [], 'subs': []}; sub = None; doc['sections'].append(sec); continue
+        last = ''
         if size >= 10.8 and bold and sec is not None: flush(); sub = {'h': re.sub(r'^[A-Z]\.\s*', '', txt), 'blocks': []}; sec['subs'].append(sub); continue
         if sec is None:
             if size < 10: doc['kicker'] = txt

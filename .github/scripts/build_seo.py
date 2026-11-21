@@ -16,7 +16,7 @@ Y0, Y1 = D['from'], D['to']
 # Chapters that are no longer in the JEE syllabus. They are listed (not given pages of their own: there is no syllabus data for them).
 OOS = [('12M25', 'Linear Programming Problem'), ('12M26', 'Mathematical Reasoning'), ('12M27', 'Solution of Triangle'), ('12M28', 'Height and Distance')]
 CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', 'unkganit@gmail.com')   # public contact address shown on the Contact, Privacy and Terms pages
-UPDATED = '17 November 2026'
+UPDATED = '21 November 2026'
 
 SLUG = {1: 'fundamentals-of-mathematics', 2: 'sets-relations-and-functions', 3: 'trigonometry', 4: 'quadratic-equations',
         5: 'complex-numbers', 6: 'sequences-and-series', 7: 'permutations-and-combinations', 8: 'binomial-theorem',
@@ -90,6 +90,13 @@ EXAMS = [   # (key in the stats, name shown, url slug, short line, about)
   'The IISER Aptitude Test (IAT) is the entrance test for the BS-MS programmes of the Indian Institutes of Science Education and Research (IISERs). Mathematics is one of its sections.'),
 ]
 
+# CUET-UG has a guide and score tables but no questions in the bank yet, so it is kept apart from EXAMS (which need question counts).
+CUET = ('CUET', 'CUET-UG', 'cuet', 'The Common University Entrance Test for DU, BHU and other central universities.',
+  'CUET-UG, the Common University Entrance Test (UG), is conducted by the National Testing Agency (NTA) for admission to undergraduate programmes of the University of Delhi, BHU, JNU, Allahabad University and many other central, state and private universities. Mathematics is one of its domain subjects.')
+ALL_EXAMS = EXAMS + [CUET]
+COMP = GUIDES.get('compendium'); IMPORTANT = GUIDES.get('important')
+COMP_SEC = {'jee-main': 0, 'jee-advanced': 1, 'kcet': 2, 'iat': 3, 'nda': 4, 'cuet': 5}   # which section of the cutoff compendium belongs to which exam
+
 # Plain facts for the exam pages. Patterns change, so the pages tell readers to check the official notification.
 FACTS = {
  'JEE Main': [('Full name', 'Joint Entrance Examination (Main)'), ('Conducted by', 'National Testing Agency (NTA)'),
@@ -129,11 +136,13 @@ SHORT = {'JEE Main': ('NTA', 'NITs, IIITs and other institutes; qualifier for JE
          'AIEEE': ('CBSE', 'NITs, IIITs and other institutes (until 2012)', 'Pen and paper / online'),
          'KCET': ('KEA, Karnataka', 'Professional courses in Karnataka', 'Pen and paper (OMR)'),
          'NDA': ('UPSC', 'National Defence Academy and Naval Academy', 'Pen and paper (OMR)'),
-         'IAT': ('IISERs', 'BS-MS programmes of the IISERs', 'Computer-based')}
+         'IAT': ('IISERs', 'BS-MS programmes of the IISERs', 'Computer-based'),
+         'CUET': ('NTA', 'Central universities (DU, BHU, JNU and more)', 'Computer-based')}
 def exam_logo(e, size=44):
     return f'<img class="exlogo" src="{{up}}img/exams/{e[2]}.svg" alt="" width="{size}" height="{size}" loading="lazy">'
 def exam_url(e): return f"{SITE}/exams/{e[2]}/"
 def exam_meta(e):
+    if e[0] not in STATS: return 'Guide, dates and safe scores · questions coming soon'
     s = STATS[e[0]]
     return f"{s['questions']:,} questions · {s['first']}–{s['last']} · {s['papers']} papers"
 
@@ -263,28 +272,37 @@ STAT_MENU = [('question-counts/', 'Mathematics Bank: Question Counts'), ('chapte
 def header(depth, up=None):
     up = '../' * depth if up is None else up
     home = up or './'
-    a = lambda frag: up + frag
     chev = svg('<path d="m6 9 6 6 6-6"/>', 16)
-    def lk(t, f): return f'<a href="{a("#" + f)}">{t}</a>'
-    cards = ''.join(f'<div class="mega-card" role="none">{exlogo(e, up, 44)}<span class="mc-body"><a class="stretch" role="menuitem" href="{up}exams/{e[2]}/">{E(e[1])}</a><span class="mc-tag">{E(e[3])}</span><span class="mc-meta">{E(exam_meta(e))}</span></span></div>' for e in EXAMS)
-    exams_dd = (f'<div class="sh-dd"><a class="sh-ddb" href="{up}exams/" aria-haspopup="true" aria-expanded="false">Exams {chev}</a>'
-                f'<div class="sh-mega" role="menu"><div class="mega-in"><p class="mega-h">Exams we cover <span>previous-year math questions, shift by shift</span></p><div class="mega-grid">{cards}</div>'
-                f'<a class="mega-all" href="{up}exams/">View all exams &rarr;</a></div></div></div>')
-    rest = lk('Features', 'features') + lk('How it works', 'how') + lk('Chapters', 'chapters') + lk('Plans', 'plans') + lk('FAQ', 'faq')
-    nav = exams_dd + rest
+    grid_ico = svg('<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>', 20)
+    def dd(label, href, panel, cls=''):
+        return f'<div class="sh-dd {cls}"><a class="sh-ddb" href="{href}" aria-haspopup="true" aria-expanded="false">{label} {chev}</a>{panel}</div>'
+    def item(href, title, sub):
+        return f'<a role="menuitem" href="{up}{href}"><b>{E(title)}</b><small>{E(sub)}</small></a>'
+    cards = ''.join(f'<div class="mega-card" role="none">{exlogo(e, up, 44)}<span class="mc-body"><a class="stretch" role="menuitem" href="{up}exams/{e[2]}/">{E(e[1])}</a><span class="mc-tag">{E(e[3])}</span><span class="mc-meta">{E(exam_meta(e))}</span></span></div>' for e in ALL_EXAMS)
+    exams_panel = (f'<div class="sh-mega" role="menu"><div class="mega-in"><p class="mega-h">Exams we cover <span>previous-year math questions, dates and safe scores</span></p><div class="mega-grid">{cards}</div>'
+                   f'<div class="mega-foot"><a class="mega-all" href="{up}exams/">View all exams &rarr;</a><a href="{up}exams/safe-scores/">Safe scores and cutoffs</a><a href="{up}exams/important-exams/">Important exams after Class 12</a></div></div></div>')
+    maths_panel = ('<div class="sh-panel" role="menu"><div class="pn-in"><p class="pn-h">Mathematics</p>'
+                   + item('maths/', f'All {len(CH)} chapters', 'Topics, subtopics and question counts')
+                   + item('syllabus-priority/', 'Syllabus priority', 'Which chapters are asked the most')
+                   + item('chapter-weightage/', 'Chapter weightage', 'Weightage by exam and year')
+                   + item('chapter-wise-count/', 'Chapter-wise count', 'Questions in every chapter')
+                   + item('question-counts/', 'Question counts', 'The numbers behind the bank') + '</div></div>')
+    res_panel = ('<div class="sh-panel" role="menu"><div class="pn-in"><p class="pn-h">Resources</p>'
+                 + item('exams/#dates', 'Exam dates and countdowns', 'Live countdown to the next exam')
+                 + item('exams/safe-scores/', 'Safe scores and cutoffs', 'Marks vs percentile vs rank, by category')
+                 + item('exams/important-exams/', 'Important exams after Class 12', 'A roadmap of every maths-based exam')
+                 + item('exams/jee-main/about/', 'Exam guides', 'Pattern, fees, seats and colleges') + '</div></div>')
+    nav = (f'<a class="sh-dash" href="{up}dashboard">{grid_ico}<span>Dashboard</span></a>'
+           + dd('Exams', f'{up}exams/', exams_panel) + dd('Maths', f'{up}maths/', maths_panel, 'rel') + dd('Resources', f'{up}exams/safe-scores/', res_panel, 'rel')
+           + f'<a href="{up}#plans">Plans</a><a href="{up}contact/">Help</a>')
     login = f'<a class="sb sb-pri when-out" data-login href="{up}?login=1" rel="nofollow">Login</a>'
-    grid_ico = svg('<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>', 22)
-    user = (f'<div class="sh-user when-in"><a class="sh-ico" href="{up}dashboard" title="Dashboard" aria-label="Open your dashboard">{grid_ico}<span class="vh">Dashboard</span></a>'
-            f'<div class="sh-pf"><a class="sh-av" data-av data-profile href="{up}qbank#/profile" aria-label="Your account" aria-haspopup="true" aria-expanded="false">&nbsp;</a><div class="pfm" role="menu"></div></div></div>')
-    bars = svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', 22)
-    stat = (f'<div class="sh-stat"><button type="button" class="sh-ico sh-statb" aria-haspopup="true" aria-expanded="false" title="Question bank numbers" aria-label="Question bank numbers">{bars}</button>'
-            f'<div class="sh-pop" role="menu">' + ''.join(f'<a role="menuitem" href="{up}{u}">{E(t)}</a>' for u, t in STAT_MENU) + '</div></div>')
+    user = (f'<div class="sh-user when-in"><div class="sh-pf"><a class="sh-av" data-av data-profile href="{up}qbank#/profile" aria-label="Your account" aria-haspopup="true" aria-expanded="false">&nbsp;</a><div class="pfm" role="menu"></div></div></div>')
     burger = svg('<path d="M4 7h16M4 12h16M4 17h16"/>', 22)
     return f"""<a class="skip" href="#main">Skip to content</a>
 <header class="sh"><div class="swrap sh-in">
 <a class="sh-logo" href="{home}" aria-label="अंक-IT Mathematics Dashboard, home"><img src="{up}{LOGO}?v={VER}" alt="अंक-IT Mathematics Dashboard logo" width="220" height="81"></a>
 <nav class="sh-nav" aria-label="Main">{nav}</nav>
-<div class="sh-end">{stat}{login}{user}
+<div class="sh-end">{login}{user}
 <details class="sh-menu"><summary aria-label="Menu">{burger}</summary><nav aria-label="Menu" data-built="js"></nav></details></div>
 </div></header>"""
 
@@ -295,16 +313,16 @@ def footer(depth, up=None, share=False):
     return f"""<footer class="sf"><div class="swrap">
 <div class="sf-grid">
 <div><img src="{up}img/ankit-logo-dark-sm.png?v={VER}" alt="अंक-IT Mathematics Dashboard logo" width="139" height="52"><p>Math practice for Class 11 and 12 and for JEE, KCET, NDA and IAT: a 16,000+ question bank with full solutions, past papers from 2000, DPPs, handwritten handouts and NTA-style online tests.</p>{SHARE_FOOT if share else ''}</div>
-<div><p class="sf-h">Explore</p><ul><li><a href="{up}maths/">Math chapters</a></li><li><a href="{up}syllabus-priority/">Syllabus priority</a></li><li><a href="{up}exams/">All exams</a></li><li><a href="{a("#features")}">Feature overview</a></li><li><a href="{a("#plans")}">Plans and pricing</a></li><li><a href="{a("#faq")}">Common questions</a></li></ul></div>
+<div><p class="sf-h">Explore</p><ul><li><a href="{up}maths/">Math chapters</a></li><li><a href="{up}syllabus-priority/">Syllabus priority</a></li><li><a href="{up}exams/">All exams</a></li><li><a href="{up}exams/safe-scores/">Safe scores and cutoffs</a></li><li><a href="{up}exams/important-exams/">Important exams after Class 12</a></li><li><a href="{a("#features")}">Feature overview</a></li><li><a href="{a("#plans")}">Plans and pricing</a></li><li><a href="{a("#faq")}">Common questions</a></li></ul></div>
 <div><p class="sf-h">Company</p><ul><li><a href="{up}about/">About us</a></li><li><a href="{up}contact/">Contact us</a></li><li><a href="{up}privacy/">Privacy policy</a></li><li><a href="{up}terms/">Terms of use</a></li></ul></div>
 </div>
-<div class="sf-base"><span>&copy; 2026 अंक-IT Mathematics Dashboard</span><span>JEE Main · JEE Advanced · KCET · NDA · IAT</span></div>
+<div class="sf-base"><span>&copy; 2026 अंक-IT Mathematics Dashboard</span><span>JEE Main · JEE Advanced · KCET · NDA · IAT · CUET</span></div>
 </div></footer>"""
 
 def aside(depth, current=None, up=None):
     up = '../' * depth if up is None else up
     cur = ' aria-current="page"'
-    ex = ''.join(f'<li><a href="{up}exams/{e[2]}/"{cur if e[2] == current else ""}>{exlogo(e, up, 34)}<span><b>{E(e[1])}</b><small>{STATS[e[0]]["questions"]:,} questions</small></span></a></li>' for e in EXAMS)
+    ex = ''.join(f'<li><a href="{up}exams/{e[2]}/"{cur if e[2] == current else ""}>{exlogo(e, up, 34)}<span><b>{E(e[1])}</b><small>{STATS[e[0]]["questions"]:,} questions</small></span></a></li>' for e in EXAMS) + f'<li><a href="{up}exams/cuet/"{cur if current == "cuet" else ""}>{exlogo(CUET, up, 34)}<span><b>CUET-UG</b><small>Guide and safe scores</small></span></a></li>'
     pop = sorted(CH, key=lambda c: -c['m'])[:8]
     chs = ''.join(f'<li><a href="{up}maths/{slug(c)}/"><span>{E(short(c))}</span><small>{c["m"]} Main</small></a></li>' for c in pop)
     return (f'<aside class="pg-side" aria-label="Sidebar"><div class="side-box side-share"><h2>Share this page</h2><div class="share" data-share></div></div><div class="side-cta"><h2>Practise free</h2><p>Question bank, DPPs, past papers and tests, with full solutions.</p>'
@@ -335,7 +353,9 @@ def cta(depth, text, cur=None, exam=None):
              ('exams/', 'All exams we cover', 'JEE Main, JEE Advanced, KCET, NDA, IAT and more.', 'cap'),
              ('exams/jee-main/about/', 'JEE Main exam guide', 'Pattern, fees, cutoffs, seats and top colleges.', 'book'),
              ('exams/kcet/about/', 'KCET exam guide', 'Pattern, fees, seat matrix and colleges in Karnataka.', 'book'),
-             ('exams/nda/about/', 'NDA exam guide', 'Written paper, SSB interview, vacancies and salary.', 'book')]
+             ('exams/nda/about/', 'NDA exam guide', 'Written paper, SSB interview, vacancies and salary.', 'book'),
+             ('exams/safe-scores/', 'Safe scores and cutoffs', 'Marks vs percentile vs rank, and the safe score for a good college and branch.', 'chart'),
+             ('exams/important-exams/', 'Important exams after Class 12', 'Every major mathematics-based entrance exam in one roadmap.', 'cap')]
     seen, picks = set(), []
     for path, t, b, ic in pool:
         if path == cur or path in seen or (path.endswith('/about/') and path.split('/')[1] not in GUIDES): continue
@@ -458,10 +478,95 @@ OFFICIAL = {'jee-main': [('NTA JEE Main (official site)', 'https://jeemain.nta.n
             'kcet': [('Karnataka Examinations Authority (official site)', 'https://cetonline.karnataka.gov.in/kea/')],
             'iat': [('IISER admissions (official site)', 'https://iiseradmission.in/')]}
 
+# Important dates. Only dates the owner supplied are shown; every other exam says the date is not announced yet.
+DATES = {'jee-main': {
+    'title': 'JEE Main important dates (NTA schedule)', 'cols': ['Event', 'Session 1 (January 2026)', 'Session 2 (April 2026)'], 'bold': ('Examination Dates', 'Declaration of Result'),
+    'rows': [('Online Application Submission', '31 Oct – 27 Nov 2025 (up to 9:00 P.M.)', 'Last week of January 2026 onwards'),
+             ('Last Date for Fee Transaction', '27 Nov 2025 (up to 11:50 P.M.)', 'To be notified later'),
+             ('Application Form Correction', 'To be displayed on NTA website', 'To be displayed on NTA website'),
+             ('City Intimation Slip', 'First Week of Jan 2026 (Tentative)', 'Second Week of Mar 2026 (Tentative)'),
+             ('Admit Card Download', '03–04 days before exam date', '03–04 days before exam date'),
+             ('Examination Dates', '21 Jan 2026 – 30 Jan 2026', '02 Apr 2026 – 09 Apr 2026'),
+             ('Answer Key & Response Challenge', 'To be displayed on NTA website', 'To be displayed on NTA website'),
+             ('Declaration of Result', 'By 12 February 2026', 'By 20 April 2026')],
+    'note': 'These are the sessions NTA has published. The dates of JEE Main 2027 will be added here as soon as NTA announces them.'}}
+NEXT_DATE = {'jee-advanced': ('2027-05-23', 'JEE Advanced 2027', 'Sunday, 23 May 2027')}   # exam day (Indian time)
+BULLETIN = {'jee-main': ('NTA JEE Main', 'https://jeemain.nta.nic.in/'), 'jee-advanced': ('JEE Advanced', 'https://jeeadv.ac.in/'),
+            'kcet': ('Karnataka Examinations Authority', 'https://cetonline.karnataka.gov.in/kea/'), 'nda': ('UPSC', 'https://upsc.gov.in/'),
+            'iat': ('IISER admissions', 'https://iiseradmission.in/'), 'cuet': ('NTA CUET-UG', 'https://cuet.nta.nic.in/')}
+OFFICIAL['cuet'] = [('NTA CUET-UG (official site)', 'https://cuet.nta.nic.in/')]
+PDF_ICO = svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14h6M9 17h4"/>', 20)
+
+def countdown(e):
+    key, name, sl = e[0], e[1], e[2]
+    if sl in NEXT_DATE:
+        iso, label, nice = NEXT_DATE[sl]
+        return (f'<div class="cd" data-cd="{iso}" role="timer" aria-label="Countdown to {E(label)}"><p class="cd-t"><b>{E(label)}</b> &middot; {E(nice)}</p>'
+                '<div class="cd-n"><div><b data-u="d">&ndash;</b><span>days</span></div><div><b data-u="h">&ndash;</b><span>hours</span></div><div><b data-u="m">&ndash;</b><span>minutes</span></div><div><b data-u="s">&ndash;</b><span>seconds</span></div></div>'
+                f'<p class="cd-fine">Counting down to the exam day ({E(nice)}). Dates can change: confirm on the official website.</p></div>')
+    who = SHORT.get(key, ('the conducting body',))[0] if key in SHORT else 'the conducting body'
+    return (f'<div class="cd cd-tba"><p class="cd-t"><b>Next {E(name)} exam</b></p><p class="cd-wait">Date to be announced by {E(who)}.</p>'
+            '<p class="cd-fine">A live countdown appears here as soon as the exam date is published.</p></div>')
+
+def dates_block(e):
+    key, name, sl = e[0], e[1], e[2]
+    if sl in ('aieee', 'iit-jee'): return ''
+    out = f'<h2 id="dates">{E(name)}: exam date and countdown</h2>' + countdown(e)
+    d = DATES.get(sl)
+    if d:
+        th = ''.join(f'<th scope="col">{E(c)}</th>' for c in d['cols'])
+        rows = ''
+        for r in d['rows']:
+            b = r[0] in d['bold']
+            rows += f'<tr><th scope="row">{E(r[0])}</th>' + ''.join(f'<td>{"<b>" + E(c) + "</b>" if b else E(c)}</td>' for c in r[1:]) + '</tr>'
+        out += f'<h3 class="dt-h">{E(d["title"])}</h3><div class="pg-table gd-tbl dt-tbl"><table><thead><tr>{th}</tr></thead><tbody>{rows}</tbody></table></div><p class="pg-fine">{E(d["note"])}</p>'
+    bl = BULLETIN.get(sl)
+    if bl:
+        out += (f'<p class="bulletin"><a class="bl-btn" href="{bl[1]}" target="_blank" rel="noopener noreferrer">{PDF_ICO}<span>Official information bulletin<small>{E(bl[0])}: the original bulletin (PDF) is published here</small></span></a></p>')
+    return out
+
+def rank_range(txt, vmax):
+    nums = [float(x.replace(',', '')) for x in re.findall(r'\d[\d,]*(?:\.\d+)?', txt or '')]
+    if not nums: return None
+    lo = nums[0]; hi = nums[1] if len(nums) > 1 else (vmax if '+' in (txt or '') else lo)
+    return min(lo, hi), max(lo, hi)
+
+def rank_chart(table, vcol, rcol, vmax, caption, prefix='', unit='marks'):
+    items = ''
+    for r in table[1:]:
+        rg = rank_range(r[vcol] if isinstance(r[vcol], str) else '', vmax)
+        if not rg: continue
+        lo, hi = rg; o = max(0, min(100, round(100 * lo / vmax))); w = max(2, min(100 - o, round(100 * (hi - lo) / vmax)))
+        r_txt = r[rcol] if isinstance(r[rcol], str) else ''
+        items += f'<li><span class="rk-v">{E(r[vcol])}</span><span class="rk-track"><i class="o{o} w{w}"></i></span><span class="rk-r">{E(prefix + r_txt)}</span></li>'
+    if not items: return ''
+    return (f'<figure class="rk"><figcaption>{E(caption)}</figcaption><ol class="rk-list">{items}</ol><p class="rk-ax"><span>0</span><span>{vmax:g} {unit}</span></p></figure>')
+
+# (sub-section number, column of the score, column of the rank, highest score, caption, text before the rank)
+RK_CHART = {'jee-main': (1, 0, 2, 300, 'Raw marks (out of 300) and the approximate All India Rank', 'AIR '),
+            'jee-advanced': (0, 1, 2, 360, 'Marks (equivalent out of 360) and the Common Rank List range', 'CRL '),
+            'kcet': (0, 0, 3, 180, 'KCET score (out of 180) and the engineering merit rank', 'Rank '),
+            'iat': (0, 0, 1, 240, 'IAT score (out of 240) and the approximate general-category rank', 'AIR '),
+            'cuet': (0, 1, 0, 200, 'Domain subject score (out of 200) and the percentile', '')}
+
+def safe_block(e, h2=True, hid=True):
+    key, name, sl = e[0], e[1], e[2]
+    if not COMP or sl not in COMP_SEC: return ''
+    sec = COMP['sections'][COMP_SEC[sl]]
+    out = (f'<h2{" id=\"safe-scores\"" if hid else ""}>{E(name)}: safe scores and 10-year marks vs rank</h2>' if h2 else '')
+    out += gd_blocks(sec['blocks'])
+    for i, sb in enumerate(sec['subs']):
+        out += f'<div class="gd-sub"><h3>{E(sb["h"])}</h3>{gd_blocks(sb["blocks"])}'
+        c = RK_CHART.get(sl)
+        if c and c[0] == i:
+            tb = next((b['table'] for b in sb['blocks'] if 'table' in b), None)
+            if tb: out += rank_chart(tb, c[1], c[2], c[3], c[4], c[5])
+        out += '</div>'
+    return out + '<p class="pg-fine">Compiled from published cutoffs and public reports for 2015&ndash;2026. These are approximate: they move every year with paper difficulty, the number of candidates, category and counselling round. Use them to plan, and always check the official results.</p>'
+
 def guide_page(e):
     key, name, sl, tag, about = e
-    g = GUIDES[sl]; s = STATS[key]
-    nyr = s['last'] - s['first'] + 1
+    g = GUIDES[sl]; s = STATS.get(key)
     title = f'{name} Exam Guide: Pattern, Fees, Seats, Colleges | अंक-IT'
     intro = g['intro'].split('. ', 1)[1] if '. ' in g['intro'] else g['intro']
     desc = f'{name} exam guide: {intro}'
@@ -472,15 +577,19 @@ def guide_page(e):
         subs = ''.join(f'<div class="gd-sub"><h3>{E(sb["h"])}</h3>{gd_blocks(sb["blocks"])}</div>' for sb in sec['subs'])
         secs += (f'<section class="gd-sec" id="{sid}"><h2><span class="gd-ico">{svg(GD_ICONS[(i - 1) % len(GD_ICONS)], 22)}</span><span class="gd-t"><small>Section {i}</small>{E(sec["h"])}</span></h2>'
                  f'{gd_blocks(sec["blocks"])}{subs}</section>')
-    tiles = (f'<div class="gd-tiles"><div><b>{s["questions"]:,}</b><span>math questions in our bank</span></div><div><b>{s["first"]}&ndash;{s["last"]}</b><span>{nyr} years of papers</span></div>'
-             f'<div><b>{s["papers"]}</b><span>papers (shifts and sessions)</span></div><div><b>{len(g["sections"])}</b><span>sections in this guide</span></div></div>')
-    others = ''.join(f'<li><a href="../../{x[2]}/about/">{exlogo(x, "../../../", 32)}<span>{E(x[1])} exam guide</span></a></li>' for x in EXAMS if x[2] != sl and x[2] in GUIDES)
+    if s:
+        nyr = s['last'] - s['first'] + 1
+        tiles = (f'<div class="gd-tiles"><div><b>{s["questions"]:,}</b><span>math questions in our bank</span></div><div><b>{s["first"]}&ndash;{s["last"]}</b><span>{nyr} years of papers</span></div>'
+                 f'<div><b>{s["papers"]}</b><span>papers (shifts and sessions)</span></div><div><b>{len(g["sections"])}</b><span>sections in this guide</span></div></div>')
+    else:
+        tiles = f'<div class="gd-tiles"><div><b>{len(g["sections"])}</b><span>sections in this guide</span></div><div><b>{len(g["sections"][0]["blocks"]) + sum(len(x["blocks"]) for x in g["sections"][1:])}</b><span>tables and notes</span></div></div>'
+    others = ''.join(f'<li><a href="../../{x[2]}/about/">{exlogo(x, "../../../", 32)}<span>{E(x[1])} exam guide</span></a></li>' for x in ALL_EXAMS if x[2] != sl and x[2] in GUIDES)
     crumbs = f'<a href="../../../">Home</a> &rsaquo; <a href="../../">Exams</a> &rsaquo; <a href="../">{E(name)}</a> &rsaquo; <span aria-current="page">Exam guide</span>'
-    official = ('<p class="gd-off"><b>Official websites:</b> ' + ' &middot; '.join(f'<a href="{u}" target="_blank" rel="noopener">{E(t)}</a>' for t, u in OFFICIAL[sl]) + '</p>') if sl in OFFICIAL else ''
+    official = ('<p class="gd-off"><b>Official websites (the exam\'s information bulletin is published there):</b> ' + ' &middot; '.join(f'<a href="{u}" target="_blank" rel="noopener">{E(t)}</a>' for t, u in OFFICIAL[sl]) + '</p>') if sl in OFFICIAL else ''
     main = f"""<p class="gd-kick">{E(g["kicker"].title())}</p>
 <p class="pg-lead">{E(intro)}</p>
 {tiles}
-<div class="gd-go"><a class="sb sb-green" href="../">{E(name)} math analysis</a><a class="sb sb-line" href="../../">All exams</a></div>
+<div class="gd-go"><a class="sb sb-green" href="../">{E(name)} {"math analysis" if s else "page"}</a><a class="sb sb-line" href="../../">All exams</a></div>
 <nav class="gd-toc" aria-label="On this page"><p class="gd-toc-h">On this page</p><div>{toc}</div></nav>
 {secs}
 {official}<p class="pg-fine">The figures in this guide are rounded or approximate and are compiled from the official notifications and public reports. They change from year to year, so always confirm the latest rules, dates and fees on the official website of the exam.</p>
@@ -517,19 +626,24 @@ def exam_page(e):
     know = (f'<div class="know"><div><b>Want the full picture of {E(name)}?</b><span>Paper pattern, fees, cutoffs, seats and reservation, top colleges and the step-by-step timeline.</span></div>'
             f'<a class="know-btn" href="about/">{BOOK}Know more about {E(name)}{ARROW}</a></div>') if sl in GUIDES else ''
     crumbs = f'<a href="../../">Home</a> &rsaquo; <a href="../">Exams</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
+    q_links = [('#glance', 'At a glance')] + ([('#dates', 'Date and countdown')] if sl not in ('aieee', 'iit-jee') else []) + ([('#safe-scores', 'Safe scores')] if sl in COMP_SEC else []) + [('#chapters', 'Chapter-wise questions'), ('#years', 'Year-wise')] + ([('about/', 'Full exam guide')] if sl in GUIDES else [])
+    quick = '<nav class="qlinks" aria-label="On this page">' + ''.join(f'<a href="{h}">{E(t)}</a>' for h, t in q_links) + '</nav>'
     main = f"""<p class="pg-lead">{E(tag)}</p>
 <p>{E(about)}</p>
-<h2>{E(name)} at a glance</h2>
+{quick}
+<h2 id="glance">{E(name)} at a glance</h2>
 <div class="pg-table pg-facts"><table><tbody>{facts}</tbody></table></div>
 <p class="pg-fine">Exam patterns change from year to year. Always check the official notification for the latest rules and dates.</p>
 {know}
+{dates_block(e)}
+{safe_block(e)}
 <h2>{E(name)} in this question bank</h2>
 <div class="pg-table pg-facts"><table><tbody>{glance}</tbody></table></div>
-<h2>Chapter-wise questions</h2>
+<h2 id="chapters">Chapter-wise questions</h2>
 <p>How many {E(name)} math questions come from each chapter. Open a chapter to see its topic-wise and year-wise counts for {E(name)}.</p>
 <p class="pg-fine">{basis} L1 easy, L2 medium, L3 hard. The dot graph shows the last five years of the exam, from the oldest on the left.</p>
 {tbl(['Chapter', 'Questions', LVH, 'Last 5 years'], crows, '', (1,))}
-<h2>Year-wise questions</h2>
+<h2 id="years">Year-wise questions</h2>
 <p class="pg-fine">Each row is one year of {E(name)}: how many questions were asked and their level (L1 easy, L2 medium, L3 hard).</p>
 {yr_strip}
 {cta(2, f"Practise {name} questions chapter-wise with full solutions, build DPPs and open whole papers in exam format. Everything is inside after you sign in.", cur=f'exams/{sl}/', exam=e)}"""
@@ -539,6 +653,78 @@ def exam_page(e):
             {'@type': 'ListItem', 'position': 2, 'name': 'Exams', 'item': SITE + '/exams/'},
             {'@type': 'ListItem', 'position': 3, 'name': name, 'item': exam_url(e)}]}]
     return page(title, desc, exam_url(e), body, 2, ld)
+
+def cuet_page():
+    e = CUET; key, name, sl, tag, about = e
+    g = GUIDES['cuet']
+    title = f'{name} Exam: Pattern, Dates, Safe Scores, Colleges | अंक-IT'
+    desc = 'CUET-UG exam guide for Class 12 students: pattern, marking, fees, seats, top universities and safe scores for DU, BHU and other central universities.'
+    first = g['sections'][0]; facts = gd_blocks(first['blocks'])
+    crumbs = f'<a href="../../">Home</a> &rsaquo; <a href="../">Exams</a> &rsaquo; <span aria-current="page">{E(name)}</span>'
+    quick = '<nav class="qlinks" aria-label="On this page"><a href="#glance">At a glance</a><a href="#dates">Date and countdown</a><a href="#safe-scores">Safe scores</a><a href="about/">Full exam guide</a></nav>'
+    know = (f'<div class="know"><div><b>Want the full picture of {E(name)}?</b><span>Paper pattern, fees, seats and reservation, top universities and the step-by-step timeline.</span></div>'
+            f'<a class="know-btn" href="about/">{BOOK}Know more about {E(name)}{ARROW}</a></div>')
+    main = f"""<p class="pg-lead">{E(tag)}</p>
+<p>{E(about)}</p>
+{quick}
+<h2 id="glance">{E(name)} at a glance</h2>
+{facts}
+<p class="pg-fine">Exam patterns change from year to year. Always check the official notification for the latest rules and dates.</p>
+{know}
+{dates_block(e)}
+{safe_block(e)}
+<div class="soon"><b>CUET-UG math questions are coming.</b><span>Previous-year and practice mathematics questions for CUET-UG are being added to the question bank. Until then, practise the Class 12 chapters from the dashboard.</span></div>
+{cta(2, "Practise Class 12 mathematics chapter by chapter with full solutions. Everything is inside after you sign in.", cur='exams/cuet/', exam=e)}"""
+    body = band(crumbs, f'{exlogo(e, "../../", 44)} {E(name)}: Exam Guide, Dates and Safe Scores') + '\n' + grid(main, 2, sl)
+    ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
+            {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'}, {'@type': 'ListItem', 'position': 2, 'name': 'Exams', 'item': SITE + '/exams/'},
+            {'@type': 'ListItem', 'position': 3, 'name': name, 'item': exam_url(e)}]}]
+    return page(title, desc, exam_url(e), body, 2, ld)
+
+def doc_sections(g):
+    secs = ''; toc = ''
+    for i, sec in enumerate(g['sections'], 1):
+        sid = f'sec{i}'
+        toc += f'<a href="#{sid}"><b>{i}</b>{E(sec["h"])}</a>'
+        subs = ''.join(f'<div class="gd-sub"><h3>{E(sb["h"])}</h3>{gd_blocks(sb["blocks"])}</div>' for sb in sec['subs'])
+        secs += (f'<section class="gd-sec" id="{sid}"><h2><span class="gd-ico">{svg(GD_ICONS[(i - 1) % len(GD_ICONS)], 22)}</span><span class="gd-t"><small>Section {i}</small>{E(sec["h"])}</span></h2>'
+                 f'{gd_blocks(sec["blocks"])}{subs}</section>')
+    return toc, secs
+
+def important_page():
+    g = IMPORTANT; toc, secs = doc_sections(g)
+    title = 'Important Mathematics Exams After Class 12: Complete Roadmap | अंक-IT'
+    desc = 'Every major mathematics-based entrance exam after Class 12: pure maths and research, engineering, state exams, management, architecture, defence, with a quick exam calendar and checklist.'
+    crumbs = '<a href="../../">Home</a> &rsaquo; <a href="../">Exams</a> &rsaquo; <span aria-current="page">Important exams after Class 12</span>'
+    main = f"""<p class="gd-kick">{E(g["kicker"].title())}</p>
+<p class="pg-lead">{E(g["intro"])}</p>
+<nav class="gd-toc" aria-label="On this page"><p class="gd-toc-h">On this page</p><div>{toc}</div></nav>
+{secs}
+<p class="pg-fine">Dates, fees and patterns change every year. Always confirm them on the official website of each exam.</p>
+{cta(2, "Practise mathematics chapter by chapter for JEE, KCET, NDA, IAT and more, with full solutions. Starting is free.", cur='exams/important-exams/')}"""
+    body = band(crumbs, 'Important Mathematics Exams After Class 12') + '\n' + grid(main, 2)
+    ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
+            {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'}, {'@type': 'ListItem', 'position': 2, 'name': 'Exams', 'item': SITE + '/exams/'},
+            {'@type': 'ListItem', 'position': 3, 'name': 'Important exams after Class 12', 'item': SITE + '/exams/important-exams/'}]}]
+    return page(title, desc, SITE + '/exams/important-exams/', body, 2, ld)
+
+def safe_hub_page():
+    title = 'Safe Scores, Cutoffs and Marks vs Rank: JEE, KCET, IAT, NDA, CUET | अंक-IT'
+    desc = 'Category-wise safe scores for a good college and branch, and 10-year marks vs percentile vs rank tables for JEE Main, JEE Advanced, KCET, IAT, NDA and CUET-UG.'
+    crumbs = '<a href="../../">Home</a> &rsaquo; <a href="../">Exams</a> &rsaquo; <span aria-current="page">Safe scores and cutoffs</span>'
+    order = [x for x in ALL_EXAMS if x[2] in COMP_SEC]; order.sort(key=lambda x: COMP_SEC[x[2]])
+    toc = ''.join(f'<a href="#{x[2]}"><b>{k}</b>{E(x[1])}</a>' for k, x in enumerate(order, 1))
+    secs = ''.join(f'<section class="gd-sec" id="{x[2]}"><h2><span class="gd-ico">{exlogo(x, "../../", 30)}</span><span class="gd-t"><small>Exam {k}</small>{E(x[1])}</span></h2>{safe_block(x, h2=False)}<p><a class="sb sb-line" href="../{x[2]}/">{E(x[1])} page: dates, countdown and questions</a></p></section>' for k, x in enumerate(order, 1))
+    main = f"""<p class="gd-kick">{E(COMP["kicker"].title())}</p>
+<p class="pg-lead">{E(COMP["intro"])}</p>
+<nav class="gd-toc" aria-label="On this page"><p class="gd-toc-h">Jump to an exam</p><div>{toc}</div></nav>
+{secs}
+{cta(2, "Set a target score, then practise chapter by chapter with full solutions. Starting is free.", cur='exams/safe-scores/')}"""
+    body = band(crumbs, 'Safe Scores, Cutoffs and Marks vs Rank') + '\n' + grid(main, 2)
+    ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
+            {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'}, {'@type': 'ListItem', 'position': 2, 'name': 'Exams', 'item': SITE + '/exams/'},
+            {'@type': 'ListItem', 'position': 3, 'name': 'Safe scores and cutoffs', 'item': SITE + '/exams/safe-scores/'}]}]
+    return page(title, desc, SITE + '/exams/safe-scores/', body, 2, ld)
 
 def exam_chapter_page(e, code):
     key, name, sl, tag, about = e
@@ -619,23 +805,30 @@ def redirect_page(to, depth):
 
 def exams_hub():
     total = sum(STATS[e[0]]['questions'] for e in EXAMS)
-    title = 'Exams: JEE Main, JEE Advanced, KCET, NDA, IAT Math Papers | अंक-IT'
-    desc = f'Compare JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA and IAT: who conducts each exam, what it is for, the mode, and {total:,} previous-year math questions in the bank.'
+    title = 'Exams: JEE Main, JEE Advanced, KCET, NDA, IAT, CUET Math | अंक-IT'
+    desc = f'Compare JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA, IAT and CUET-UG: who conducts each exam, what it is for, the mode, and {total:,} previous-year math questions in the bank.'
     rows = ''.join(f'<tr><td class="exn">{exlogo(e, "../", 38)}<a href="{e[2]}/">{E(e[1])}</a></td><td>{E(SHORT[e[0]][0])}</td><td>{E(SHORT[e[0]][1])}</td><td>{E(SHORT[e[0]][2])}</td>'
                    f'<td class="num">{STATS[e[0]]["questions"]:,}</td><td>{STATS[e[0]]["first"]}–{STATS[e[0]]["last"]}</td></tr>' for e in EXAMS)
-    cards = ''.join(f'<li><a href="{e[2]}/">{E(e[1])}</a><span>{E(e[3])}</span><span>{E(exam_meta(e))}</span></li>' for e in EXAMS)
+    rows += f'<tr><td class="exn">{exlogo(CUET, "../", 38)}<a href="cuet/">{E(CUET[1])}</a></td><td>{E(SHORT["CUET"][0])}</td><td>{E(SHORT["CUET"][1])}</td><td>{E(SHORT["CUET"][2])}</td><td class="num">Soon</td><td>&ndash;</td></tr>'
+    cards = ''.join(f'<li><a href="{e[2]}/">{E(e[1])}</a><span>{E(e[3])}</span><span>{E(exam_meta(e))}</span></li>' for e in ALL_EXAMS)
+    cds = ''.join(f'<div class="cd-card"><h3><a href="{e[2]}/#dates">{exlogo(e, "../", 30)} {E(e[1])}</a></h3>{countdown(e)}</div>' for e in ALL_EXAMS if e[2] not in ('aieee', 'iit-jee'))
     crumbs = '<a href="../">Home</a> &rsaquo; <span aria-current="page">Exams</span>'
-    main = f"""<p class="pg-lead">{len(EXAMS)} exams · {total:,} previous-year math questions</p>
+    main = f"""<p class="pg-lead">{len(ALL_EXAMS)} exams · {total:,} previous-year math questions</p>
 <p>Every previous-year math question in the bank, grouped by exam. The table compares the exams at a glance. Open an exam for its details and its questions by chapter and by year.</p>
 <h2>Exams compared</h2>
 <div class="pg-table"><table class="wide"><thead><tr><th scope="col">Exam</th><th scope="col">Conducted by</th><th scope="col">For admission to</th><th scope="col">Mode</th><th scope="col" class="num">Questions</th><th scope="col">Years</th></tr></thead><tbody>{rows}</tbody></table></div>
 <p class="pg-fine">Exam patterns change from year to year. Always check the official notification for the latest rules and dates.</p>
+<h2 id="dates">Exam dates and countdown</h2>
+<p>The next exam of each entrance test. A live countdown appears for every exam whose date has been announced.</p>
+<div class="cd-grid">{cds}</div>
+<h2>Plan your target</h2>
+<ul class="pg-chlist exam-list"><li><a href="safe-scores/">Safe scores and cutoffs</a><span>Category-wise safe scores for a good college and branch, and 10-year marks vs percentile vs rank.</span></li><li><a href="important-exams/">Important exams after Class 12</a><span>Every major mathematics-based entrance exam in one roadmap, with a calendar and checklist.</span></li></ul>
 <h2>Open an exam</h2>
 <ul class="pg-chlist exam-list">{cards}</ul>
 {cta(1, "Pick an exam, open its papers shift by shift and practise with full solutions. Starting is free.", cur='exams/')}"""
     body = band(crumbs, "Exams we cover") + '\n' + grid(main, 1)
     ld = [{'@context': 'https://schema.org', '@type': 'ItemList', 'name': 'Exams', 'itemListElement': [
-            {'@type': 'ListItem', 'position': k + 1, 'name': e[1], 'url': exam_url(e)} for k, e in enumerate(EXAMS)]}]
+            {'@type': 'ListItem', 'position': k + 1, 'name': e[1], 'url': exam_url(e)} for k, e in enumerate(ALL_EXAMS)]}]
     return page(title, desc, f'{SITE}/exams/', body, 1, ld)
 
 # ---------- About, Contact, Privacy, Terms ----------
@@ -890,7 +1083,7 @@ def home_block():
 <h3 class="chc-h">Class 12 <small>{sum(1 for c in CH if cls(c) == "12")} chapters</small></h3><div class="chc-grid">{c12}</div>
 <h3 class="chc-h">Out of syllabus <small>no longer in the current JEE syllabus, but still in the question bank</small></h3><div class="chc-grid">{oos}</div>
 <p class="chp-note"><a class="sb sb-line" href="maths/">See all chapters with question counts</a></p></div></section>
-<section class="sec" id="exams"><div class="swrap"><div class="sec-head"><span class="kick">Exams</span><h2>Built for the exams you are preparing for</h2><p>{sum(STATS[e[0]]["questions"] for e in EXAMS):,} previous-year math questions, paper by paper. Open an exam to see its questions by chapter and year.</p></div><div class="exc-grid">{exam_cards}</div></div></section>
+<section class="sec" id="exams"><div class="swrap"><div class="sec-head"><span class="kick">Exams</span><h2>Built for the exams you are preparing for</h2><p>{sum(STATS[e[0]]["questions"] for e in EXAMS):,} previous-year math questions, paper by paper. Open an exam to see its questions by chapter and year.</p></div><div class="exc-grid">{exam_cards}</div><div class="home-cd">{countdown(EXAM_BY_KEY["JEE Advanced"])}</div><p class="home-more"><a href="exams/#dates">All exam dates and countdowns</a> &middot; <a href="exams/safe-scores/">Safe scores and cutoffs</a> &middot; <a href="exams/important-exams/">Important exams after Class 12</a> &middot; <a href="exams/cuet/">CUET-UG guide</a></p></div></section>
 <section class="sec sec-alt" id="teachers"><div class="swrap split"><div><span class="kick">For teachers</span><h2>Set a test in minutes. See every result.</h2><p>Build an online test from the question bank, share one link with your class and get a ranked report the moment students finish.</p>
 <ul class="ticks">{tick(['Create tests from DPPs, PYQs or your own selection', 'One link for the whole class, with an exam window', 'Ranks, averages and question-wise analysis', 'Students register themselves and choose your school'])}</ul>
 <a class="sb sb-pri when-out" data-login href="?login=1" rel="nofollow">Login as a teacher</a><a class="sb sb-pri when-in" href="dashboard">Go to my dashboard</a></div>
@@ -1003,7 +1196,7 @@ def weightage_page():
 
 
 def sitemap():
-    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8'), (SITE + '/question-counts/', '0.6'), (SITE + '/chapter-wise-count/', '0.6'), (SITE + '/chapter-weightage/', '0.7')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9')] + [(exam_url(e), '0.8') for e in EXAMS] + [(exam_url(e) + 'about/', '0.7') for e in EXAMS if e[2] in GUIDES] + [(f'{SITE}/exams/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
+    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8'), (SITE + '/question-counts/', '0.6'), (SITE + '/chapter-wise-count/', '0.6'), (SITE + '/chapter-weightage/', '0.7')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9'), (SITE + '/exams/safe-scores/', '0.8'), (SITE + '/exams/important-exams/', '0.8'), (SITE + '/exams/cuet/', '0.8'), (SITE + '/exams/cuet/about/', '0.7')] + [(exam_url(e), '0.8') for e in EXAMS] + [(exam_url(e) + 'about/', '0.7') for e in EXAMS if e[2] in GUIDES] + [(f'{SITE}/exams/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms')]
     body = ''.join(f'<url><loc>{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}</urlset>\n'
 
@@ -1020,6 +1213,8 @@ def main():
     write('question-counts/index.html', question_counts_page()); write('chapter-wise-count/index.html', chapter_wise_page()); write('chapter-weightage/index.html', weightage_page())
     write('404.html', not_found_page())
     write('exams/index.html', exams_hub())
+    write('exams/safe-scores/index.html', safe_hub_page()); write('exams/important-exams/index.html', important_page())
+    write('exams/cuet/index.html', cuet_page()); write('exams/cuet/about/index.html', guide_page(CUET))
     for e in EXAMS:
         write(f'exams/{e[2]}/index.html', exam_page(e))
         if e[2] in GUIDES: write(f'exams/{e[2]}/about/index.html', guide_page(e))
