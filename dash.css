@@ -494,10 +494,7 @@ body.dpop-on { overflow: hidden; }
 .cp-pop { min-width: 360px; max-height: 380px; }
 .cp-pop-h { display: flex; gap: 8px; padding: 2px 4px 8px; border-bottom: 1px solid var(--rule); margin-bottom: 4px; }
 .cp-pop-g { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px 2px; font-size: 13px; color: var(--ink); }
-@media (max-width: 640px) {
-  .cp-dd { flex: 1 1 100%; } .cp-dd .dl-fbtn { width: 100%; }
-  .cp-pop { position: fixed !important; left: 12px !important; right: 12px !important; top: auto !important; bottom: 12px !important; min-width: 0; max-height: 72vh; z-index: 1500; box-shadow: 0 -10px 44px rgba(0,0,0,.4); }
-}
+@media (max-width: 640px) { .cp-dd { flex: 1 1 100%; } .cp-dd .dl-fbtn { width: 100%; } }
 /* ---- mock control bar: source (PYQ / Non-PYQ / Mix) and difficulty slider ---- */
 .mk-bar { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px 28px; padding: 16px 20px; background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; box-shadow: var(--shadow-sm); margin-bottom: 4px; }
 .mk-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; } .mk-l { font: 700 12px var(--font-body); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
@@ -511,3 +508,5 @@ body.dpop-on { overflow: hidden; }
 .mk-hint { margin: 0; font-size: 13px; color: var(--ink); }
 .cp-dd.is-dim { opacity: .45; pointer-events: none; }
 @media (max-width: 760px) { .mk-bar { grid-template-columns: minmax(0, 1fr); padding: 14px; } .mk-ticks span { font-size: 10px; } }
+
+.mk-bar.mk-one { grid-template-columns: minmax(0, 1fr); box-shadow: none; padding: 12px 14px; }

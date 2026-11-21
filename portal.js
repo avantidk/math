@@ -731,7 +731,7 @@ function paperInfo(x) {
   const label = (/\b(19|20)\d{2}\b/.test(p) ? p : (EXN[x.e] || x.e) + ' ' + (x.y || '') + ' · ' + p).trim();
   return { key: paperKey(x), e: x.e, label, t, sh };
 }
-const gradable = q => { if (!q || !q.a) return false; if (q.t === 'Numerical') return /^-?\d+(\.\d+)?$/.test(q.a.trim()) || /^-?\d+(\.\d+)?\s*to\s*-?\d+(\.\d+)?$/i.test(q.a.trim()); return (q.t === 'MCQ' || q.t === 'MSQ' || q.t === 'Matching') && (q.o || []).length > 0 && /^[A-D](,[A-D])*$/.test(q.a); };
+const gradable = q => { if (!q || !q.a) return false; if (q.t === 'Numerical') return /^-?\d+(\.\d+)?$/.test(q.a.trim()) || /^-?\d+(\.\d+)?\s*to\s*-?\d+(\.\d+)?$/i.test(q.a.trim()); return (q.t === 'MCQ' || q.t === 'MSQ' || q.t === 'Matching' || q.t === 'Comprehension') && (q.o || []).length > 0 && /^[A-D](,[A-D])*$/.test(q.a); };
 let CHN = new Map();
 function snap(q) { const ch = CHN.get(q.cc); return { id: q.i, type: q.t, q: q.q, o: q.o || [], a: q.a, ch: q.cc, chn: ch ? ch.n : q.cc, tp: q.tp || '', f: q.f && q.f.svg ? { svg: q.f.svg } : null, d: q.d, src: q.s === 'P' ? (q.e === 'Main' ? 'JEE Main' : q.e === 'Adv' ? 'JEE Advanced' : q.e) + (q.y ? ' ' + q.y : '') : 'Practice' }; }
 async function pageCreate(arg, r) {
@@ -1020,7 +1020,7 @@ const markText = sc => {
 /* a question as it is stored inside a test (the answer key stays on the server; students never get ids or keys) */
 const tq = q => {
   const x = snap(q), ok = gradable(q), written = q.t === 'Subjective';
-  const o = { id: x.id, type: written ? 'WRITTEN' : x.type, q: x.q, o: x.o, a: x.a || '', ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' };
+  const o = { id: x.id, type: written ? 'WRITTEN' : x.type === 'Comprehension' ? (/,/.test(x.a || '') ? 'MSQ' : 'MCQ') : x.type, q: x.q, o: x.o, a: x.a || '', ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' };
   if (q.e === 'CBSE' && /^[A-E]$/i.test(String(q.sec || ''))) o.sec = String(q.sec).toUpperCase();   /* CBSE Class 12: the section decides the marks (B to E are shown as 4 options) */
   if (!ok) o.nk = true;   /* no answer key we can mark (or a written answer): shown in the test, not marked, answer shown in the review */
   return o;
@@ -1172,8 +1172,8 @@ function mockBar(onChange, o) {
   const drawHint = () => { hint.textContent = TOUGH_NAME[st.tough] + ': ' + TOUGH_HINT[st.tough]; };
   slider.addEventListener('input', () => { st.tough = +slider.value; drawHint(); onChange(); });
   drawSeg(); drawHint();
-  const el = h('section', { class: 'mk-bar' },
-    h('div', { class: 'mk-col' }, h('span', { class: 'mk-l', text: 'Question source' }), seg, free ? h('small', { class: 'mk-fine', html: 'Free accounts use previous year questions. <a href="#/membership">Get Premium</a> for practice questions.' }) : null),
+  const el = h('section', { class: 'mk-bar' + (o.noSrc || o.noTough ? ' mk-one' : '') },
+    o.noSrc ? null : h('div', { class: 'mk-col' }, h('span', { class: 'mk-l', text: 'Question source' }), seg, free ? h('small', { class: 'mk-fine', html: 'Free accounts use previous year questions. <a href="#/membership">Get Premium</a> for practice questions.' }) : null),
     o.noTough ? null : h('div', { class: 'mk-col' }, h('span', { class: 'mk-l', text: 'Difficulty' }), slider, h('div', { class: 'mk-ticks', 'aria-hidden': 'true' }, TOUGH_NAME.map(t => h('span', { text: t }))), hint));
   return { el, st };
 }
@@ -1234,7 +1234,15 @@ function dd(label, groups, set, onChange, o) {   /* groups: [{ h, items: [[value
     g.items.forEach(([v, t, c]) => { const cb = h('input', { type: 'checkbox', onchange: e => { if (e.target.checked) set.add(v); else if (o.min && set.size <= o.min) e.target.checked = true; else set.delete(v); change(); } }); boxes.set(v, cb);
       panel.append(h('label', { class: 'dl-opt-i' }, cb, h('span', { class: 'dl-ot2', text: t }), c != null ? h('em', { class: 'dl-cn', text: String(c) }) : null)); });
   });
-  btn.addEventListener('click', e => { e.stopPropagation(); if (o.lock) { o.lock(); return; } if (!panel.hidden) { api.close(); return; } if (DD_OPEN) DD_OPEN.close(); panel.hidden = false; btn.setAttribute('aria-expanded', 'true'); DD_OPEN = api; });
+  const place = () => {   /* the list opens right under its button (above it when there is no room below) */
+    const r = btn.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight, w = Math.min(Math.max(r.width, 320), vw - 16), room = vh - r.bottom - 12, above = room < 220 && r.top > room;
+    const maxH = Math.max(200, Math.min(380, (above ? r.top : room) - 12));
+    panel.style.setProperty('position', 'fixed', 'important'); panel.style.setProperty('left', Math.max(8, Math.min(vw - w - 8, r.left)) + 'px', 'important'); panel.style.setProperty('right', 'auto', 'important');
+    panel.style.setProperty('width', w + 'px', 'important'); panel.style.setProperty('min-width', '0', 'important'); panel.style.setProperty('max-height', maxH + 'px', 'important'); panel.style.setProperty('z-index', '1500', 'important');
+    if (above) { panel.style.setProperty('top', 'auto', 'important'); panel.style.setProperty('bottom', (vh - r.top + 6) + 'px', 'important'); } else { panel.style.setProperty('bottom', 'auto', 'important'); panel.style.setProperty('top', (r.bottom + 6) + 'px', 'important'); }
+  };
+  btn.addEventListener('click', e => { e.stopPropagation(); if (o.lock) { o.lock(); return; } if (!panel.hidden) { api.close(); return; } if (DD_OPEN) DD_OPEN.close(); panel.hidden = false; place(); btn.setAttribute('aria-expanded', 'true'); DD_OPEN = api;
+    const follow = ev => { if (panel.hidden) { window.removeEventListener('scroll', follow, true); window.removeEventListener('resize', follow); return; } if (ev && ev.target && ev.target !== document && panel.contains(ev.target)) return; place(); }; window.addEventListener('scroll', follow, true); window.addEventListener('resize', follow); });
   box.append(btn, panel); paint(); box.paint = paint;
   return box;
 }
@@ -1248,23 +1256,24 @@ async function modeCustom() {
   const years = all.filter(q => q.y).map(q => q.y), yMin = Math.min(...years), yMax = Math.max(...years);
   const count = (f) => all.filter(f).length;
   const exams = Object.keys(EXN).filter(k => count(q => exOf(q) === k)), books = [...new Set(all.map(bookOf).filter(Boolean))].sort();
-  const types = ['MCQ', 'MSQ', 'Numerical'].filter(t => count(q => q.t === t));
-  const S = { src: 'P', ex: new Set(['Main']), bk: new Set(), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 25, mins: 75, auto: true, per: 3, scheme: 'JEE Main', title: '' };
+  const TYPE_NICE = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct (MSQ)', Numerical: 'Numerical value', Matching: 'Match the following', Comprehension: 'Comprehension (passage based)' };
+  const types = Object.keys(TYPE_NICE).filter(t => count(q => q.t === t)).concat([...new Set(all.map(q => q.t))].filter(t => !TYPE_NICE[t] && t !== 'Subjective'));
+  const S = { src: 'P', ex: new Set(['Main']), bk: new Set(), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), tough: 2, ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 25, mins: 75, auto: true, per: 3, scheme: 'JEE Main', title: '' };
   const schemeNames = Object.keys(SC).filter(k => SC[k] && SC[k].rules);
-  const pool = () => all.filter(q => (q.s === 'P' ? S.src !== 'N' && S.ex.has(q.e) && (!q.y || (q.y >= S.y1 && q.y <= S.y2)) : S.src !== 'P' && S.bk.has(bookOf(q)) && !free) && (!S.ch.size || S.ch.has(q.cc)) && S.lv.has(q.d) && S.ty.has(q.t) && (!S.skip || done[q.i] !== 'c'));
+  const pool = () => all.filter(q => (q.s === 'P' ? S.src !== 'N' && S.ex.has(q.e) && (!q.y || (q.y >= S.y1 && q.y <= S.y2)) : S.src !== 'P' && S.bk.has(bookOf(q)) && !free) && (!S.ch.size || S.ch.has(q.cc)) && (diff.st.tough === 0 ? q.d === 'L1' : diff.st.tough === 4 ? q.d === 'L3' : true) && S.ty.has(q.t) && (!S.skip || done[q.i] !== 'c'));
   const tog = (set, k, min) => { if (set.has(k)) { if (!min || set.size > min) set.delete(k); } else set.add(k); };
   const chip = (text, on, fn, small, dis) => h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(!!on), disabled: !!dis, onclick: fn }, text, small != null ? h('em', { class: 'cp-n', text: String(small) }) : null);
   const sect = (n, t, sub, ...kids) => h('section', { class: 'cp-sec' }, h('div', { class: 'cp-sh' }, h('b', { class: 'cp-no', text: String(n) }), h('div', {}, h('h2', { text: t }), sub ? h('p', { text: sub }) : null)), ...kids);
   const sumBox = h('aside', { class: 'cp-sum' }), again = () => draw();
+  const diff = mockBar(() => draw(), { noSrc: true });
   const srcBar = mockBar(() => { S.src = srcBar.st.src; if (S.src !== 'P' && !S.bk.size) books.forEach(b => S.bk.add(b)); bkBox.paint && bkBox.paint(); exBox.classList.toggle('is-dim', S.src === 'N'); bkBox.classList.toggle('is-dim', S.src === 'P'); draw(); }, { noTough: true, src: 'P' });
   const exBox = dd('Exams', [{ items: exams.map(k => [k, EXN[k], count(q => exOf(q) === k)]) }], S.ex, again, { none: 'No exam picked', min: 0 });
   const bkBox = dd('Practice books', [{ items: books.map(b => [b, b, count(q => bookOf(q) === b)]) }], S.bk, again, { none: free ? '🔒 Premium' : 'No practice questions', lock: free ? () => { location.hash = '#/membership'; } : null });
-  const lvBox = dd('Difficulty', [{ items: [['L1', 'Level 1 · Easy', count(q => q.d === 'L1')], ['L2', 'Level 2 · Moderate', count(q => q.d === 'L2')], ['L3', 'Level 3 · Tough', count(q => q.d === 'L3')]] }], S.lv, again, { min: 1 });
-  const tyBox = dd('Question types', [{ items: types.map(t => [t, { MCQ: 'Single correct', MSQ: 'One or more correct', Numerical: 'Numerical value' }[t], count(q => q.t === t)]) }], S.ty, again, { min: 1 });
+  const tyBox = dd('Question types', [{ items: types.map(t => [t, TYPE_NICE[t] || t, count(q => q.t === t)]) }], S.ty, again, { min: 1 });
   const chBox = dd('Chapters', [['11', 'Class 11'], ['12', 'Class 12']].map(([c, t]) => ({ h: t, items: [...CHN.values()].filter(x => String(x.c).startsWith(c) && count(q => q.cc === x.c)).map(x => [x.c, x.n, count(q => q.cc === x.c)]) })).filter(g => g.items.length), S.ch, again, { none: 'All chapters' });
   const yr1 = h('select', { class: 'pt-in', 'aria-label': 'From year', onchange: e => { S.y1 = +e.target.value; if (S.y1 > S.y2) { S.y2 = S.y1; yr2.value = S.y2; } draw(); } }), yr2 = h('select', { class: 'pt-in', 'aria-label': 'To year', onchange: e => { S.y2 = +e.target.value; if (S.y2 < S.y1) { S.y1 = S.y2; yr1.value = S.y1; } draw(); } });
   for (let y = yMax; y >= yMin; y--) { yr1.append(h('option', { value: y, text: y })); yr2.append(h('option', { value: y, text: y })); } yr1.value = S.y1; yr2.value = S.y2;
-  const nIn = h('div', { class: 'pt-in cp-fixed', 'aria-label': 'Number of questions', text: '25 questions (always)' });
+  const nIn = h('input', { type: 'number', class: 'pt-in', min: 5, max: 100, value: S.n, 'aria-label': 'Number of questions', oninput: e => { S.n = Math.max(5, Math.min(100, +e.target.value || 5)); if (S.auto) { S.mins = S.n * S.per; minIn.value = S.mins; } draw(true); } });
   const minIn = h('input', { type: 'number', class: 'pt-in', min: 5, max: 360, value: S.mins, 'aria-label': 'Time in minutes', oninput: e => { S.auto = false; S.mins = Math.max(5, Math.min(360, +e.target.value || 5)); draw(true); } });
   const perSel = h('select', { class: 'pt-in', 'aria-label': 'Time per question', onchange: e => { S.per = +e.target.value; S.auto = true; S.mins = S.n * S.per; minIn.value = S.mins; draw(true); } }, [[2, '2 min per question (fast)'], [3, '3 min per question (exam pace)'], [4, '4 min per question (relaxed)']].map(([v, t]) => h('option', { value: v, text: t, selected: v === 3 })));
   const scSel = h('select', { class: 'pt-in', 'aria-label': 'Marking scheme', onchange: e => { S.scheme = e.target.value; draw(true); } }, schemeNames.map(k => h('option', { value: k, text: k + ' (' + markText(SC[k]) + ')', selected: k === S.scheme })));
@@ -1274,8 +1283,7 @@ async function modeCustom() {
   const go = h('button', { type: 'button', class: 'btn pri pt-big', text: 'Start test', onclick: async () => {
     go.disabled = true;
     try {
-      let P2 = shuffled(pool()), qs;
-      if (S.order === 'even') qs = pickN(P2, S.n, true, new Set()); else qs = P2.slice(0, S.n);
+      const qs0 = pickN(pool(), S.n, S.order === 'even', new Set(), diff.st.tough); let qs = qs0;
       if (S.order === 'easy') qs = qs.slice().sort((a, b) => (a.d || 'L2').localeCompare(b.d || 'L2'));
       const chs = [...new Set(qs.map(q => q.cc))];
       await launchTest({ title: S.title || 'Your Practice Test', qs, exam: S.scheme, mins: S.mins, key: 'custom' });
@@ -1286,7 +1294,7 @@ async function modeCustom() {
     const sc = SC[S.scheme] || SC['JEE Main'];
     sumBox.append(h('h3', { text: 'Your test' }),
       h('div', { class: 'cp-big' }, h('strong', { text: String(n) }), h('span', { text: ' of ' + avail + ' matching questions' })),
-      h('ul', { class: 'cp-facts' }, [['Questions', String(n)], ['Time', S.mins + ' min'], ['Marking', markText(sc)], ['Chapters', S.ch.size ? S.ch.size + ' chosen' : 'All'], ['Sources', [...(S.src === 'N' ? [] : [...S.ex].map(k => EXN[k])), ...(S.src === 'P' ? [] : [...S.bk])].join(', ') || '—']].map(([a, b]) => h('li', {}, h('span', { text: a }), h('b', { text: b })))),
+      h('ul', { class: 'cp-facts' }, [['Questions', String(n)], ['Time', S.mins + ' min'], ['Marking', markText(sc)], ['Chapters', S.ch.size ? S.ch.size + ' chosen' : 'All'], ['Difficulty', TOUGH_NAME[diff.st.tough]], ['Sources', [...(S.src === 'N' ? [] : [...S.ex].map(k => EXN[k])), ...(S.src === 'P' ? [] : [...S.bk])].join(', ') || '—']].map(([a, b]) => h('li', {}, h('span', { text: a }), h('b', { text: b })))),
       avail < S.n ? h('p', { class: 'pt-hint', text: 'Only ' + avail + ' questions match, so the test will have ' + avail + '. Widen the choices to get more.' }) : '', go);
     go.disabled = avail < 3;
   }
@@ -1295,7 +1303,7 @@ async function modeCustom() {
     h('div', { class: 'cp-wrap' }, h('div', { class: 'cp-main' },
       sect(1, 'Source', 'Previous year questions and practice questions.', srcBar.el, h('div', { class: 'cp-pills' }, exBox, bkBox), h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'From year (previous year questions)' }), yr1), h('label', { class: 'pt-fld' }, h('span', { text: 'To year' }), yr2))),
       sect(2, 'Chapters', 'Pick one or more chapters. Leave it as it is for every chapter.', h('div', { class: 'cp-pills' }, chBox)),
-      sect(3, 'Difficulty and type', null, h('div', { class: 'cp-pills' }, lvBox, tyBox), skipBox),
+      sect(3, 'Difficulty and question type', null, diff.el, h('div', { class: 'cp-pills' }, tyBox), skipBox),
       sect(4, 'Size, time and marking', null, h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Number of questions' }), nIn), h('label', { class: 'pt-fld' }, h('span', { text: 'Time per question' }), perSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Total time (minutes)' }), minIn)),
         h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Marking scheme' }), scSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Order of questions' }), ordSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Test name' }), titleIn)))),
       sumBox));

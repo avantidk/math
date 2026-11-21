@@ -1,5 +1,13 @@
 [
   {
+    "v": "1006",
+    "date": "21 Nov 2026",
+    "items": [
+      "Create Your Practice Test: the number of questions is editable again (5 to 100, time follows automatically), difficulty is the same five-step slider as in the mocks, and question types now include Match the following and Comprehension (passage based) as well as MCQ, MSQ and Numerical. Comprehension questions are taken as single or multiple choice.",
+      "The drop-down lists of Create Your Practice Test now open right under their button, on phones too."
+    ]
+  },
+  {
     "v": "1005",
     "date": "21 Nov 2026",
     "items": [
