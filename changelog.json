@@ -1,5 +1,13 @@
 [
   {
+    "v": "989",
+    "date": "21 Nov 2026",
+    "items": [
+      "The Dashboard menu item now opens inside the page, without reloading everything, like the other menu items. It also looks the same as the others now.",
+      "A new, more professional Dashboard home: a greeting banner with your numbers, countdown cards for JEE Main and JEE Advanced, six practice cards (PYQs, Non-PYQs, DPPs, Tests, Handouts, Bookmarks), your progress and your recent tests."
+    ]
+  },
+  {
     "v": "988",
     "date": "21 Nov 2026",
     "items": [

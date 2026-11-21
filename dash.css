@@ -311,3 +311,43 @@ button.dl-opt:focus { outline: none; } button.dl-opt:focus-visible { outline: 2p
 button.dl-opt:not(.ok):not(.bad):active { background: var(--panel); }
 button.dl-opt.ok:hover { border-color: var(--ok, #17794a); background: color-mix(in srgb, var(--ok, #17794a) 14%, transparent); }
 button.dl-opt.bad:hover { border-color: #d6293e; background: color-mix(in srgb, #d6293e 12%, transparent); }
+/* ---- Dashboard home (v989) ---- */
+.dh-hero { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 22px; align-items: center; padding: clamp(20px, 3vw, 30px); border-radius: 20px; color: #fff; background: radial-gradient(120% 140% at 100% 0%, #2a4cc0 0%, rgba(42,76,192,0) 55%), linear-gradient(135deg, #0c1a3d, #14307f); box-shadow: var(--shadow); }
+.dh-kick { font: 800 12px/1 var(--font-body); letter-spacing: .16em; color: #f5b82e; }
+.dh-hero h2 { margin: 10px 0 8px; font: 700 clamp(24px, 3.2vw, 34px)/1.15 var(--font-head); color: #fff; }
+.dh-hero p { margin: 0; color: #cdd8f3; font-size: 15px; line-height: 1.55; max-width: 520px; }
+.dh-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.dh-cta .btn { text-decoration: none; min-height: 42px; padding: 0 20px; }
+.dh-gold { background: #f5b82e !important; color: #1a2340 !important; border-color: #f5b82e !important; font-weight: 700; }
+.dh-ghost { background: rgba(255,255,255,.12) !important; color: #fff !important; border-color: rgba(255,255,255,.3) !important; }
+.dh-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.dh-st { display: flex; flex-direction: column; gap: 4px; padding: 14px 12px; border-radius: 14px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); min-width: 0; }
+.dh-st b { font: 700 clamp(22px, 3vw, 30px)/1 var(--font-head); color: #fff; } .dh-st span { font-size: 12px; color: #bccaee; line-height: 1.3; }
+.dh-soon { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.dh-ex { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--rule); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+.dh-ex:hover { border-color: var(--accent); transform: translateY(-2px); }
+.dh-days { flex: none; width: 62px; height: 62px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--accent-soft); color: var(--accent); }
+.dh-days b { font: 700 24px/1 var(--font-head); } .dh-days i { font: 600 11px var(--font-body); font-style: normal; letter-spacing: .06em; text-transform: uppercase; }
+.dh-ex-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; } .dh-ex-t b { font-size: 15px; } .dh-ex-t small { color: var(--muted); font-size: 12.5px; }
+.dh-go { color: var(--muted); display: grid; }
+.dh-h { margin: 6px 0 -4px; font: 700 18px var(--font-body); color: var(--ink); }
+.dh-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.dh-card { --tone: #2450c8; position: relative; display: flex; flex-direction: column; gap: 6px; padding: 18px 18px 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--rule); border-top: 4px solid var(--tone); color: var(--ink); text-decoration: none; box-shadow: var(--shadow-sm); transition: transform .15s, box-shadow .15s; }
+.dh-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.dh-ci { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: color-mix(in srgb, var(--tone) 14%, transparent); color: var(--tone); }
+.dh-ct { margin-top: 6px; font: 700 18px var(--font-body); } .dh-cs { color: var(--muted); font-size: 13.5px; line-height: 1.4; }
+.dh-cm { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--rule); display: flex; align-items: center; justify-content: space-between; font: 600 13px var(--font-body); color: var(--tone); } .dh-cm i { display: grid; }
+.dh-lock { display: inline-flex; align-items: center; gap: 6px; } .dh-card.is-lock { opacity: .85; }
+.dh-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.dh-box { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow-sm); }
+.dh-bh { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; } .dh-bh h3 { margin: 0; font: 700 16px var(--font-body); color: var(--ink); } .dh-bh small, .dh-bh a { color: var(--muted); font-size: 12.5px; text-decoration: none; } .dh-bh a { color: var(--accent); font-weight: 600; }
+.dh-pl { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 6px; font-size: 13.5px; } .dh-pl span { color: var(--muted); } .dh-pl b { color: var(--ink); text-align: right; }
+.dh-tl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.dh-tl a { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--rule); color: var(--ink); text-decoration: none; } .dh-tl li:last-child a { border-bottom: 0; } .dh-tl a:hover { background: var(--accent-soft); border-radius: 8px; }
+.dh-tt { display: flex; flex-direction: column; min-width: 0; } .dh-tt b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .dh-tt small { color: var(--muted); font-size: 12px; }
+.dh-sc { flex: none; font: 700 14px var(--font-body); color: var(--accent); }
+.dh-empty { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; } .dh-empty p { margin: 0; color: var(--muted); font-size: 14px; } .dh-empty .btn { text-decoration: none; }
+@media (max-width: 900px) { .dh-hero { grid-template-columns: 1fr; } .dh-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dh-two { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .dh-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .dh-card { padding: 14px 12px 12px; } .dh-ci { width: 38px; height: 38px; } .dh-ct { font-size: 16px; } .dh-cs { font-size: 12.5px; } .dh-cm { font-size: 12px; } .dh-stats { gap: 8px; } .dh-st { padding: 12px 10px; } .dh-days { width: 54px; height: 54px; } }
+/* top-bar menu: every item the same, the open one lit */
+html body .tb-menu a.tb { text-decoration: none; display: block; text-align: center; }

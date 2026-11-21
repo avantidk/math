@@ -9,7 +9,7 @@ const ICON = {
   moon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>'
 };
 /* [key, label, link]. Every item opens a dashboard page, on /dashboard and on /qbank alike; /qbank itself is only the Question Bank (profile menu). */
-const NAV = [['dash', 'Dashboard', 'dashboard'], ['pyq', 'PYQs', 'dashboard#d/pyq'], ['lib', 'DPPs', 'dashboard#d/dpp'], ['tests', 'Tests', 'dashboard#/modes'], ['ho', 'Handouts', 'dashboard#d/handouts']];
+const NAV = [['dash', 'Dashboard', 'dashboard#d/'], ['pyq', 'PYQs', 'dashboard#d/pyq'], ['lib', 'DPPs', 'dashboard#d/dpp'], ['tests', 'Tests', 'dashboard#/modes'], ['ho', 'Handouts', 'dashboard#d/handouts']];
 /* the Guide and Question Bank overview buttons, in the top bar of both apps */
 const QB_ITEMS = [['heroov', 'Mathematics Bank: Question Counts'], ['overview', 'Chapter-wise Count'], ['syl', 'Syllabus Priority'], ['wchart', 'Chapter Weightage']];
 const tools = () => [
@@ -23,7 +23,7 @@ const themeBtn = () => h('button', { type: 'button', class: 'tb-theme', id: 'the
 /* mode 'qbank': tab buttons handled by teacher.b870.js; mode 'dash': plain links. active = the key that is lit. */
 function nav(mode, active) {
   return h('nav', { class: 'tb-menu' }, NAV.map(([k, t, to]) => {
-    return h('a', { class: 'tb' + (k === 'dash' ? ' tb-dash' : ''), href: to, 'data-k': k, 'aria-pressed': String(k === active), text: t });
+    return h('a', { class: 'tb', href: to, 'data-k': k, 'aria-pressed': String(k === active), text: t });
   }), h('div', { class: 'tb-prof', id: 'tbProfile' }));
 }
 /* light / dark switch for the dashboard (on /qbank teacher.b870.js does the same job) */

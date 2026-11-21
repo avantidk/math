@@ -212,17 +212,41 @@ function viewDppSrc(k, exKey) {
 }
 
 /* ---------- Step 1: source ---------- */
+const UPCOMING = [['JEE Main 2027 · Session 1', '2027-01-21', 'jee-main'], ['JEE Advanced 2027', '2027-05-23', 'jee-advanced']];
 function viewHome() {
   side({ back: null, title: 'Dashboard', sub: 'Choose how you want to practise', items: homeItems('home') });
   const pyq = D.rows.filter(r => r.P), np = D.rows.filter(r => !r.P), res = D.sum.results, solved = Object.keys(res).length, right = Object.values(res).filter(x => x === 'c').length;
-  const p = A().profile || {};
-  main(h('div', { class: 'd-head' }, h('h2', { text: 'Hi' + (p.full_name ? ', ' + p.full_name.split(' ')[0] : '') + ' 👋' }), h('p', { text: 'What do you want to practise today?' })),
-    h('div', { class: 'd-stats' }, stat(IC.all, num(solved), 'Questions attempted in tests'), stat(IC.target, solved ? pct(right, solved) + '%' : '—', 'Accuracy'), stat(IC.mark, num(D.sum.bookmarks.length), 'Bookmarked')),
-    h('div', { class: 'd-two' },
-      tile({ cls: 'd-src d-src-pyq', icon: IC.clock, title: 'PYQs', sub: 'Previous year questions from real exam papers', go: 'd/pyq', extra: h('div', { class: 'd-src-n' }, h('strong', { text: num(pyq.length) }), h('small', { text: 'questions · 2027 ready' })) }),
-      tile({ cls: 'd-src d-src-np' + (locked() ? ' is-lock' : ''), icon: IC.list, title: 'Non-PYQs', sub: 'Practice questions from books and DPP sheets', badge: locked() ? 'Premium' : '', badgeCls: 'lock',
-        go: locked() ? null : 'd/np', onclick: locked() ? () => { location.href = '#/membership'; } : null,
-        extra: h('div', { class: 'd-src-n' }, locked() ? h('span', { class: 'd-lockline', html: IC.lock + ' Unlock with Premium' }) : [h('strong', { text: num(np.length) }), h('small', { text: 'questions' })]) })));
+  const p = A().profile || {}, first = p.full_name ? p.full_name.split(' ')[0] : '', hr = new Date().getHours(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  const pyqDone = pyq.filter(r => res[r.id]).length, lock = locked();
+  const days = d => Math.ceil((Date.parse(d + 'T00:00:00+05:30') - Date.now()) / 864e5);
+  const stat3 = (n, l) => h('div', { class: 'dh-st' }, h('b', { text: n }), h('span', { text: l }));
+  const hero = h('section', { class: 'dh-hero' },
+    h('div', { class: 'dh-hero-t' }, h('span', { class: 'dh-kick', text: greet.toUpperCase() }), h('h2', { text: first ? first + ', ready to practise?' : 'Ready to practise?' }),
+      h('p', { text: 'Pick up where you left off: previous year questions, practice sets, DPPs and full tests, all in one place.' }),
+      h('div', { class: 'dh-cta' }, h('a', { class: 'btn dh-gold', href: '#d/pyq', text: 'Practise PYQs' }), h('a', { class: 'btn dh-ghost', href: '#/modes', text: 'Take a test' }))),
+    h('div', { class: 'dh-stats' }, stat3(num(solved), 'Questions attempted'), stat3(solved ? pct(right, solved) + '%' : '—', 'Accuracy'), stat3(num(D.sum.bookmarks.length), 'Bookmarked')));
+  const soon = UPCOMING.map(([n, d, sl]) => ({ n, d, sl, k: days(d) })).filter(x => x.k > 0);
+  const strip = soon.length ? h('section', { class: 'dh-soon', 'aria-label': 'Upcoming exams' }, soon.map(x => h('a', { class: 'dh-ex', href: 'exams/' + x.sl + '/', title: 'Dates, safe scores and pattern' },
+    h('span', { class: 'dh-days' }, h('b', { text: String(x.k) }), h('i', { text: 'days' })), h('span', { class: 'dh-ex-t' }, h('b', { text: x.n }), h('small', { text: new Date(x.d + 'T12:00:00+05:30').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }) })), h('span', { class: 'dh-go', html: IC.chev })))) : null;
+  const card = (tone, icon, title, sub, meta, o) => h('a', { class: 'dh-card' + (o && o.lock ? ' is-lock' : ''), href: o && o.href ? o.href : '#' + o.go, style: '--tone:' + tone, onclick: o && o.lock ? (e => { e.preventDefault(); location.hash = '#/membership'; }) : null },
+    h('span', { class: 'dh-ci', html: icon }), h('b', { class: 'dh-ct', text: title }), h('small', { class: 'dh-cs', text: sub }),
+    h('span', { class: 'dh-cm' }, o && o.lock ? h('span', { class: 'dh-lock', html: IC.lock + ' Premium' }) : h('span', { text: meta }), h('i', { html: IC.chev })));
+  const cards = h('div', { class: 'dh-grid' },
+    card('#2450c8', IC.clock, 'PYQs', 'Real papers, chapter by chapter', num(pyq.length) + ' questions', { go: 'd/pyq' }),
+    card('#d9961a', IC.list, 'Non-PYQs', 'Practice from books and sheets', num(np.length) + ' questions', { go: 'd/np', lock }),
+    card('#7c3aed', IC.test, 'DPPs', 'BB Ex, Ln DY, Ln Ex and more', 'Daily practice', { go: 'd/dpp', lock }),
+    card('#e11d48', IC.grid, 'Tests', 'Mock tests and your own tests', '5 test types', { href: '#/modes' }),
+    card('#16a06a', IC.mark, 'Handouts', 'Handwritten revision notes', 'Class 11 and 12', { go: 'd/handouts' }),
+    card('#0891b2', IC.mark, 'Bookmarks', 'Questions you marked', num(D.sum.bookmarks.length) + ' saved', { go: 'd/bookmarks' }));
+  const prog = h('section', { class: 'dh-box' }, h('div', { class: 'dh-bh' }, h('h3', { text: 'Your progress' }), h('small', { text: 'from submitted tests' })),
+    h('div', { class: 'dh-prog' }, h('div', { class: 'dh-pl' }, h('span', { text: 'PYQs attempted' }), h('b', { text: num(pyqDone) + ' / ' + num(pyq.length) })), bar(pyqDone, pyq.length)),
+    h('div', { class: 'dh-prog' }, h('div', { class: 'dh-pl' }, h('span', { text: 'Correct answers' }), h('b', { text: solved ? num(right) + ' of ' + num(solved) + ' (' + pct(right, solved) + '%)' : '—' })), bar(right, solved || 1, 'ok')));
+  const tests = (D.tests || []).slice(0, 4);
+  const rec = h('section', { class: 'dh-box' }, h('div', { class: 'dh-bh' }, h('h3', { text: 'Recent tests' }), h('a', { href: '#d/history', text: 'All tests ›' })),
+    tests.length ? h('ul', { class: 'dh-tl' }, tests.map(t => h('li', {}, h('a', { href: '#/report/' + t.attempt_id }, h('span', { class: 'dh-tt' }, h('b', { text: t.title }), h('small', { text: t.submitted_at ? new Date(t.submitted_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '' })),
+      h('span', { class: 'dh-sc', text: t.score == null ? '—' : +(+t.score).toFixed(2) + ' / ' + +(+t.max_score).toFixed(2) }))))) :
+      h('div', { class: 'dh-empty' }, h('p', { text: 'No tests yet. Take your first test to see your score and analysis here.' }), h('a', { class: 'btn pri', href: '#/modes', text: 'Take a test' })));
+  main(hero, strip, h('h3', { class: 'dh-h', text: 'Practise' }), cards, h('div', { class: 'dh-two' }, prog, rec));
 }
 
 /* ---------- Step 2: exams (PYQ path) ---------- */
@@ -469,7 +493,7 @@ function viewBookmarksPage() { side({ back: '', title: 'Bookmarked Qs', sub: 'Yo
 /* ---------- test history ---------- */
 function viewHistory(head, rows) {
   const ids = rows ? new Set(rows.map(r => r.id)) : null, list = (D.tests || []).filter(t => !ids || (t.qids || []).some(q => ids.has(q)));
-  const body = !list.length ? h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'No tests yet' }), h('p', { text: ids ? 'Tests with questions from this chapter appear here.' : 'Your submitted tests appear here.' }), h('a', { class: 'btn', href: 'qbank#/personal', text: 'Practice Tests & Results' }))
+  const body = !list.length ? h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'No tests yet' }), h('p', { text: ids ? 'Tests with questions from this chapter appear here.' : 'Your submitted tests appear here.' }), h('a', { class: 'btn', href: '#/modes', text: 'Take a test' }))
     : h('div', { class: 'd-tw' }, h('table', { class: 'd-t' }, h('thead', {}, h('tr', {}, ['Test', 'Date', 'Score', 'Right', 'Wrong', ''].map(x => h('th', { text: x })))),
       h('tbody', {}, list.map(t => h('tr', {}, h('td', {}, h('b', { text: t.title })), h('td', { text: t.submitted_at ? new Date(t.submitted_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—' }),
         h('td', { text: t.score == null ? '—' : +(+t.score).toFixed(2) + ' / ' + +(+t.max_score).toFixed(2) }), h('td', { text: String(t.correct == null ? '—' : t.correct) }), h('td', { text: String(t.wrong == null ? '—' : t.wrong) }),
