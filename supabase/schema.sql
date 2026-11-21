@@ -1979,7 +1979,7 @@ begin
   if me.id is null then return '{}'::json; end if;
   return json_build_object(
     'tests', (select count(*) from public.tests t where (t.audience = 'school' and t.owner_id = me.id) or (public.admin_of(me) and t.audience <> 'self')),   -- School Tests & Results
-    'personal', (select count(*) from public.tests t where t.owner_id = me.id and t.audience = 'self'),   -- Practice Tests & Results
+    'personal', (select count(*) from public.tests t join public.attempts z on z.test_id = t.id and z.user_id = me.id where t.owner_id = me.id and t.audience = 'self'),   -- My Performance: only tests that were started or submitted
     'worksheets', (select count(*) from public.worksheets w where w.owner_id = me.id),
     'students', case when public.admin_of(me) then (select count(*) from public.student_allowlist) + (select count(*) from public.profiles x where x.role = 'student' and x.avanti_id is null)
                      when me.role = 'teacher' and public.approved_school(me) is not null then
@@ -2188,6 +2188,7 @@ begin
                (select count(*) from public.attempts z where z.test_id = t.id and z.status = 'submitted') as takers
           from public.tests t left join public.attempts a on a.test_id = t.id and a.user_id = me.id
          where t.owner_id = me.id and t.audience in ('self', 'teachers_link', 'all_teachers', 'all_students')
+           and (t.audience <> 'self' or a.id is not null)   -- a personal test that was never started is not listed
          order by t.created_at desc limit 300) x),
     'taken', (select coalesce(json_agg(x order by x.started_at desc), '[]'::json) from (
         select t.code, t.title, t.audience, t.duration_min, t.n_questions, a.id as attempt_id, a.status as attempt_status, a.score, a.max_score,
@@ -2629,7 +2630,7 @@ language plpgsql security definer set search_path = public as $$
 declare sid uuid := public.jwt_session();
 begin
   if auth.uid() is null then raise exception 'Please sign in'; end if;
-  if sid is null then return json_build_object('ok', true, 'tracked', false); end if;
+  if sid is null or public.is_admin() then return json_build_object('ok', true, 'tracked', false); end if;   -- the admin may be signed in on many devices
   insert into public.active_sessions (user_id, session_id, device) values (auth.uid(), sid, left(p_device, 200))
   on conflict (user_id) do update set session_id = excluded.session_id, device = excluded.device, claimed_at = now();
   return json_build_object('ok', true, 'tracked', true);
@@ -2637,7 +2638,7 @@ end $$;
 
 create or replace function public.session_ok() returns boolean
 language sql stable security definer set search_path = public as $$
-  select case when public.jwt_session() is null or auth.uid() is null then true
+  select case when public.jwt_session() is null or auth.uid() is null or public.is_admin() then true
               else coalesce((select a.session_id = public.jwt_session() from public.active_sessions a where a.user_id = auth.uid()), true) end
 $$;
 

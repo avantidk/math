@@ -1070,10 +1070,13 @@ async function pagePersonal(arg) {
     paperBox.textContent = '';
     const sc = SC[schemeExam(exam)] || SC['JEE Main'];
     papersOf(B, exam).forEach(pp => { const nm = pp.qs.filter(q => !gradable(q)).length;
-      paperBox.append(h('button', { type: 'button', class: 'pp-card', onclick: e => startPaper(pp, e.currentTarget) },
-        h('b', { text: pp.label }), h('small', { text: pp.qs.length + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }), nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null, h('span', { class: 'pp-go', text: 'Open instructions ›' }))); });
+      paperBox.append(h('div', { class: 'pp-card pp-card2' },
+        h('button', { type: 'button', class: 'pp-main', onclick: e => startPaper(pp, e.currentTarget) },
+          h('b', { text: pp.label }), h('small', { text: pp.qs.length + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }), nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null, h('span', { class: 'pp-go', text: 'Open Instructions and Start ›' })),
+        h('button', { type: 'button', class: 'pp-pdf', title: 'Download the question paper (PDF)', 'aria-label': 'Download ' + pp.label + ' as PDF', html: IC.pdf, onclick: async e => { const b = e.currentTarget; b.disabled = true; try { await TE().exportIds(pp.qs.map(q => q.i), pp.label, 'pdf', 'Question paper', '', '', { key: false, exp: false }); } catch (x) { toast('Could not make the PDF: ' + ((x && x.message) || 'try again')); } b.disabled = false; } }))); });
   };
   const status = x => !x.attempt_id ? badge('Not started', 'mute') : x.attempt_status === 'submitted' ? badge('Submitted', 'ok') : badge('In progress', 'mid');
+  ov.mine = ov.mine.filter(x => x.audience !== 'self' || x.attempt_id);   /* a test you never started is not a test: only started or submitted ones are listed */
   const mineRows = ov.mine.map(x => h('tr', {},
     h('td', {}, h('b', { text: x.title }), h('div', { class: 'pt-hint', text: day(x.created_at) + ' · ' + x.n_questions + ' questions · ' + x.duration_min + ' min' })),
     h('td', {}, status(x)), h('td', { class: 'pt-num', text: x.attempt_status === 'submitted' ? num(x.score, 2) + ' / ' + num(x.max_score, 2) : '—' }),

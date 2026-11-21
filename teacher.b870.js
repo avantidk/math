@@ -1866,6 +1866,7 @@ function ensureDpp() {
   })().catch(e => { dppP = null; const m = $('#viewLib'); if (m) { m.textContent = ''; m.append(h('p', { class: 'hint', text: 'The library did not load. Refresh the page.' })); } throw e; }));
 }
 function boot() {
+  if (/[?&]embed=1/.test(window.location.search)) document.documentElement.classList.add('embed');   /* shown inside a dashboard pop-up: only the panel */
   buildShell(); themeInit();
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMax(); }); document.addEventListener('click', onAct); document.addEventListener('change', onAct);
   window.addEventListener('resize', rescale);
@@ -1885,6 +1886,7 @@ async function qbInit() {
     await window.AvantiBoot.loadScript(pre.js || 'qb/qb-all.b870.js');
     await window.__qbStart();
     try { const o = sessionStorage.getItem('avanti-qbopen'); if (o) { sessionStorage.removeItem('avanti-qbopen'); if (o === 'syl') setTab('syl'); else { const b = document.querySelector('[data-qbpanel="' + o + '"]'); if (b) b.click(); } } } catch (e) { /* optional */ }
+    try { if (window.parent !== window) window.parent.postMessage({ qbReady: 1 }, window.location.origin); } catch (e) { /* not in a pop-up */ }
   } catch (e) { qbLoaded = false; host.textContent = 'The question bank did not load. Refresh the page.'; }
 }
 window.AvantiTeacher = {

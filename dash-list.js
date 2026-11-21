@@ -106,7 +106,7 @@ function render(env, o) {
       panel.classList.add('dl-pop-r', 'dl-rpop'); panel.addEventListener('click', e => e.stopPropagation());
       const info = (k, v) => h('div', { class: 'dl-ri' }, h('span', { text: k }), h('b', { text: v }));
       const bm = h('button', { type: 'button', class: 'dl-mi dl-mi-bm', 'data-id': r.id, onclick: () => { api.close(); toggleBm(r.id); } });
-      const warn = h('button', { type: 'button', class: 'dl-mi', html: ICON.warn + '<span>Report an error</span>', onclick: () => { api.close(); if (li.querySelector('.dl-detail').hidden) toggle(li, r); const rb = li.querySelector('.dl-rbox'); if (rb) { rb.hidden = false; rb.scrollIntoView({ block: 'center', behavior: 'smooth' }); } } });
+      const warn = h('button', { type: 'button', class: 'dl-mi dl-warn', html: ICON.warn + '<span>Report an error</span>', onclick: () => { api.close(); if (li.querySelector('.dl-detail').hidden) toggle(li, r); const rb = li.querySelector('.dl-rbox'); if (rb) { rb.hidden = false; rb.scrollIntoView({ block: 'center', behavior: 'smooth' }); } } });
       bmLabel(bm);
       const mk = info('Marking', '…'), mkb = mk.querySelector('b');
       let mkDone = false; api.box.querySelector('.dl-fbtn').addEventListener('click', () => { if (mkDone) return; mkDone = true; env.marking(x).then(t => { mkb.textContent = t || 'Not available'; }); });
@@ -187,13 +187,13 @@ function render(env, o) {
 
   /* controls */
   const tog = h('label', { class: 'dl-switch' }, h('input', { type: 'checkbox', role: 'switch', onchange: e => { F.hide = e.target.checked; apply(); } }), h('span', { class: 'dl-track', 'aria-hidden': 'true' }), h('span', { text: 'Hide attempted' }));
-  const multi = (label, vals, set, nice) => menu(label, (panel, api) => {
+  const multi = (label, vals, set, nice, cnt) => menu(label, (panel, api) => {
     const sync = () => api.setLabel(set.size ? label + ' (' + set.size + ')' : label, set.size);
-    vals.forEach(v => panel.append(h('label', { class: 'dl-opt-i' }, h('input', { type: 'checkbox', onchange: e => { e.target.checked ? set.add(v) : set.delete(v); sync(); apply(); } }), h('span', { text: nice ? nice(v) : String(v) }))));
+    vals.forEach(v => panel.append(h('label', { class: 'dl-opt-i' }, h('input', { type: 'checkbox', onchange: e => { e.target.checked ? set.add(v) : set.delete(v); sync(); apply(); } }), h('span', { class: 'dl-ot2', text: nice ? nice(v) : String(v) }), cnt ? h('em', { class: 'dl-cn', text: String(cnt(v)) }) : null)));
     panel.append(h('button', { type: 'button', class: 'dl-clear', text: 'Clear', onclick: () => { set.clear(); panel.querySelectorAll('input').forEach(i => { i.checked = false; }); sync(); apply(); } }));
   });
   const statusMenu = menu('Attempt status', (panel, api) => {
-    [['', 'All'], ['c', 'Solved correctly'], ['w', 'Got wrong'], ['s', 'Left unanswered'], ['u', 'Not attempted']].forEach(([k, t]) => panel.append(h('label', { class: 'dl-opt-i' }, h('input', { type: 'radio', name: 'dl-st', checked: k === '', onchange: () => { F.status = k; api.setLabel(k ? t : 'Attempt status', k); api.close(); apply(); } }), h('span', { text: t }))));
+    [['', 'All'], ['c', 'Solved correctly'], ['w', 'Got wrong'], ['s', 'Left unanswered'], ['u', 'Not attempted']].forEach(([k, t]) => { const n = k === '' ? pool.length : k === 'u' ? pool.filter(r => !res()[r.id]).length : pool.filter(r => res()[r.id] === k).length; panel.append(h('label', { class: 'dl-opt-i' }, h('input', { type: 'radio', name: 'dl-st', checked: k === '', onchange: () => { F.status = k; api.setLabel(k ? t : 'Attempt status', k); api.close(); apply(); } }), h('span', { class: 'dl-ot2', text: t }), h('em', { class: 'dl-cn', text: String(n) }))); });
   });
   const sortSel = h('select', { class: 'dl-sort', 'aria-label': 'Order', onchange: e => { F.sort = e.target.value; apply(); } }, (o.seqOrder ? [['seq', 'Exercise order'], ['easy', 'Level (Easy to Hard)'], ['hard', 'Level (Hard to Easy)']] : [['new', 'Year-wise (New to Old)'], ['old', 'Year-wise (Old to New)'], ['easy', 'Level (Easy to Hard)'], ['hard', 'Level (Hard to Easy)']]).map(([k, t]) => h('option', { value: k, text: t })));
   const typeChips = types.length > 1 ? h('div', { class: 'dl-types' }, types.map(t => { const n = pool.filter(r => typeOf(r) === t).length, b = h('button', { type: 'button', class: 'dl-chipb', 'aria-pressed': 'false', onclick: () => { F.types.has(t) ? F.types.delete(t) : F.types.add(t); b.setAttribute('aria-pressed', String(F.types.has(t))); apply(); } }, t, h('i', { text: String(n) })); return b; })) : null;
@@ -223,20 +223,20 @@ function render(env, o) {
   const act = (cls, ic, text, fn) => h('button', { type: 'button', class: 'dl-act ' + cls, onclick: fn }, h('b', { text }), h('span', { class: 'dl-act-i', html: ic }));
   const testBtn = act('test', ICON.test, o.testLabel + ' →', async () => { testBtn.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (e) { env.toast(e.message || 'Could not start'); testBtn.disabled = false; } });
 
-  const levelMenu = multi('Difficulty', ['L1', 'L2', 'L3'], F.lv, v => ({ L1: 'Level 1 · Easy', L2: 'Level 2 · Moderate', L3: 'Level 3 · Tough' })[v]);
-  const extraMenus = (o.filters || []).map(f => { const nice = new Map(f.values); return multi(f.label, f.values.map(v => v[0]), F.extra[f.key], v => nice.get(v)); });
+  const levelMenu = multi('Difficulty', ['L1', 'L2', 'L3'], F.lv, v => ({ L1: 'Confidence Booster · Level 1', L2: 'Balanced · Level 2', L3: 'Rank Booster · Level 3' })[v], v => pool.filter(r => r.d === v).length);
+  const extraMenus = (o.filters || []).map(f => { const nice = new Map(f.values); return multi(f.label, f.values.map(v => v[0]), F.extra[f.key], v => nice.get(v), v => pool.filter(r => f.get(r) === v).length); });
   if (o.compact) {
     /* DPP pages: everything in one line on top, then the questions */
-    const typeMenu = types.length > 1 ? multi('Type', types, F.types) : null;
+    const typeMenu = types.length > 0 ? multi('Type', types, F.types, null, v => pool.filter(r => typeOf(r) === v).length) : null;
     const smallTest = h('button', { type: 'button', class: 'btn pri dl-small', text: (o.testLabel || 'Take test') + ' →', onclick: async e => { const btn = e.currentTarget; btn.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (x) { env.toast(x.message || 'Could not start'); } btn.disabled = false; } });
     wrap.append(h('div', { class: 'dl-top' }, h('h2', { text: o.title }), h('div', { class: 'dl-top-r' }, o.startTest ? smallTest : null)),
-      h('div', { class: 'dl-filters dl-oneline' }, tog, extraMenus, years.length ? multi('Years', years, F.years) : null, levelMenu, typeMenu, statusMenu, h('label', { class: 'dl-sortw dl-sort-r' }, h('span', { html: ICON.sort }), sortSel)),
+      h('div', { class: 'dl-filters dl-oneline' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, levelMenu, typeMenu, statusMenu, h('label', { class: 'dl-sortw dl-sort-r' }, h('span', { html: ICON.sort }), sortSel)),
       exportPanel(), h('div', { class: 'dl-bar' }, count), ul, pager);
   } else wrap.append(
     h('div', { class: 'dl-top' }, h('h2', { text: o.title })),
     h('div', { class: 'd-stats dl-stats' }, env.stat(env.IC.all, solved + '/' + pool.length, 'Qs attempted'), env.stat(env.IC.target, right + '/' + pool.length, 'Correct Qs'), env.stat(env.IC.up, solved ? env.pct(right, solved) + '%' : '—', 'Accuracy')),
-    h('div', { class: 'dl-acts2' }, act('prac', ICON.prac, o.practiceLabel + ' →', practice), testBtn),
-    h('div', { class: 'dl-filters' }, tog, extraMenus, years.length ? multi('Years', years, F.years) : null, statusMenu, levelMenu),
+    h('div', { class: 'dl-acts2' }, act('prac', ICON.prac, (o.practiceLabel || 'Practise these') + ' →', practice), testBtn),
+    h('div', { class: 'dl-filters' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, statusMenu, levelMenu, types.length ? multi('Type', types, F.types, null, v => pool.filter(r => typeOf(r) === v).length) : null),
     typeChips, exportPanel(), h('div', { class: 'dl-bar' }, count, h('label', { class: 'dl-sortw' }, h('span', { html: ICON.sort }), sortSel)),
     ul, pager);
   main(o.head || null, wrap);

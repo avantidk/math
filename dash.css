@@ -370,3 +370,16 @@ body.dpop-on { overflow: hidden; }
 .dh-two > *, .dh-box { min-width: 0; } .dh-box { overflow: hidden; } .dh-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 900px) { .dh-two { grid-template-columns: minmax(0, 1fr); } }
 .dh-pl b, .dh-tt b { min-width: 0; }
+/* v991: export box layout, filter counts, red report, paper cards */
+.dl-export { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 18px; }
+.dl-x-l { flex: 1 1 260px; min-width: 0; } .dl-x-n { white-space: nowrap; } .dl-x-l small { display: block; margin-top: 2px; }
+.dl-x-sw { display: flex; gap: 10px; flex-wrap: wrap; } .dl-x-b { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-start; }
+@media (max-width: 640px) { .dl-x-l, .dl-x-sw, .dl-x-b { flex: 1 1 100%; } .dl-x-b .btn { flex: 1 1 130px; justify-content: center; } }
+.dl-opt-i { justify-content: flex-start; } .dl-ot2 { flex: 1; min-width: 0; } .dl-cn { font-style: normal; font: 600 12px var(--font-body); color: var(--muted); background: var(--accent-soft); border-radius: 99px; padding: 2px 9px; margin-left: 10px; }
+.dl-mi.dl-warn, .dl-mi.dl-warn svg { color: #d6293e; } .dl-mi.dl-warn:hover { background: color-mix(in srgb, #d6293e 10%, transparent); }
+.pp-card2 { position: relative; display: flex; align-items: stretch; padding: 0; gap: 0; cursor: default; }
+.pp-card2 .pp-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; text-align: left; border: 0; background: none; color: inherit; font: inherit; padding: 16px 8px 14px 16px; cursor: pointer; }
+.pp-card2 .pp-main b { font-size: 15px; } .pp-card2 .pp-main small { color: var(--muted); }
+.pp-pdf { flex: none; align-self: flex-start; margin: 12px 12px 0 0; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--rule); background: var(--panel); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.pp-pdf:hover { background: var(--accent-soft); border-color: var(--accent); } .pp-pdf img { width: 24px; height: 24px; } .pp-pdf:disabled { opacity: .5; }
+.dpop-load { flex-direction: column; gap: 10px; color: var(--muted); } .dpop-load p { margin: 0; font-size: 13px; }

@@ -1,5 +1,18 @@
 [
   {
+    "v": "991",
+    "date": "21 Nov 2026",
+    "items": [
+      "The four Question Bank overview items now open the real Question Bank panels (Question Counts, Chapter-wise Count, Syllabus Priority, Chapter Weightage) as a pop-up inside the Dashboard, with a cross at the top right.",
+      "My Performance lists only tests you started or submitted; a test you never started is not shown or counted. (Needs the database file.)",
+      "The admin can stay signed in on many devices at once. (Needs the database file.)",
+      "Previous Year Papers: each paper says \"Open Instructions and Start\" and has a PDF button for the question paper.",
+      "The left menu now has Tests after DPPs, with Handouts and Tests lit when you are there; the Tests page uses the same left menu.",
+      "Level names: Confidence Booster (Level 1), Balanced (Level 2), Rank Booster (Level 3).",
+      "Every filter option shows its count, Question type is now also a drop-down, the export box is laid out properly, Report an error is red, and the KCET logo shows the Karnataka emblem."
+    ]
+  },
+  {
     "v": "990",
     "date": "21 Nov 2026",
     "items": [

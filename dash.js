@@ -21,7 +21,7 @@ const EXAMS = [
 ];
 const EX = Object.fromEntries(EXAMS.map(e => [e.slug, e]));
 const EXAM_OF_BANK = {}; EXAMS.forEach(e => e.banks.forEach(b => { EXAM_OF_BANK[b] = e.slug; }));
-const LEVELS = [['L1', 'Level 1', 'Easy', 'beginner'], ['L2', 'Level 2', 'Moderate', 'booster'], ['L3', 'Level 3', 'Tough', 'advanced']];
+const LEVELS = [['L1', 'Confidence Booster', 'Level 1', 'beginner'], ['L2', 'Balanced', 'Level 2', 'booster'], ['L3', 'Rank Booster', 'Level 3', 'advanced']];
 
 /* ---------- icons ---------- */
 const svg = d => '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
@@ -99,7 +99,7 @@ const go = hash => { location.hash = hash; };
 function logo(e) {
   const mono = h('span', { class: 'd-mono', style: '--tone:' + e.tone, text: e.short });
   if (!e.logo) return mono;
-  const img = h('img', { class: 'd-logo', src: e.logo, alt: '', loading: 'lazy', onerror: () => img.replaceWith(mono) });
+  const img = h('img', { class: 'd-logo', src: e.logo + '?v=' + window.AvantiBoot.build, alt: '', loading: 'lazy', onerror: () => img.replaceWith(mono) });
   return img;
 }
 function bar(a, b, cls) { return h('div', { class: 'd-bar ' + (cls || ''), role: 'img', 'aria-label': pct(a, b) + ' percent' }, h('i', { style: 'width:' + Math.min(100, pct(a, b)) + '%' })); }
@@ -131,7 +131,7 @@ function shell() {
     const g = e.target.closest('#guideBtn'), i = e.target.closest('#qbInfoBtn'), it = e.target.closest('#qbPop .tb-item');
     if (g) { try { const t = await realTE(); t.guide(); } catch (x) { toast('The guide did not load. Try again.'); } return; }
     if (i) { const open = pop().hidden; pop().hidden = !open; i.setAttribute('aria-expanded', String(open)); return; }
-    if (it) { shut(); const k = it.dataset.qbpanel || it.dataset.k; const pg = { heroov: ['Mathematics Bank: Question Counts', 'question-counts/'], overview: ['Chapter-wise Count', 'chapter-wise-count/'], syl: ['Syllabus Priority', 'syllabus-priority/'], wchart: ['Chapter Weightage', 'chapter-weightage/'] }[k]; if (pg) popPage(pg[0], pg[1]); return; }
+    if (it) { shut(); const k = it.dataset.qbpanel || it.dataset.k; const pg = { heroov: 'Mathematics Bank: Question Counts', overview: 'Chapter-wise Count', syl: 'Syllabus Priority', wchart: 'Chapter Weightage' }[k]; if (pg) popPage(pg, 'qbank', k); return; }
     shut();
   });
 }
@@ -150,6 +150,7 @@ const homeItems = active => [
   { label: 'PYQs', icon: IC.clock, hash: 'd/pyq', active: active === 'pyq' },
   { label: 'Non-PYQs', icon: IC.list, hash: 'd/np', active: active === 'np', off: false },
   { label: 'DPPs', icon: IC.test, hash: 'd/dpp', active: active === 'dpp' },
+  { label: 'Tests', icon: IC.grid, hash: '/modes', active: active === 'tests' },
   { label: 'Handouts', icon: IC.list, hash: 'd/handouts', active: active === 'ho' },
   { label: 'Bookmarked Qs', icon: IC.mark, hash: 'd/bookmarks', active: active === 'bookmarks' },
   { label: 'Test History', icon: IC.test, hash: 'd/history', active: active === 'history' }
@@ -213,11 +214,13 @@ function viewDppSrc(k, exKey) {
 
 /* ---------- Step 1: source ---------- */
 /* a page of the site shown in a pop-up (cross at the top right), so nobody leaves the dashboard */
-function popPage(title, path) {
+function popPage(title, path, qbPanel) {
   const old = document.getElementById('dPop'); if (old) old.remove();
-  const frame = h('iframe', { class: 'dpop-f', title, src: '/' + path + '?embed=1', loading: 'eager' }), load = h('div', { class: 'dpop-load' }, h('div', { class: 'spin' }));
-  frame.addEventListener('load', () => load.remove());
-  const close = () => { box.remove(); document.removeEventListener('keydown', key); document.body.classList.remove('dpop-on'); };
+  if (qbPanel) { try { sessionStorage.setItem('avanti-qbopen', qbPanel); } catch (x) { /* optional */ } }
+  const frame = h('iframe', { class: 'dpop-f', title, src: '/' + path + '?embed=1', loading: 'eager' }), load = h('div', { class: 'dpop-load' }, h('div', { class: 'spin' }), h('p', { text: 'Loading…' }));
+  const ready = e => { if (e.origin === location.origin && e.data && e.data.qbReady) { load.remove(); window.removeEventListener('message', ready); } };
+  if (qbPanel) window.addEventListener('message', ready); else frame.addEventListener('load', () => load.remove());
+  const close = () => { window.removeEventListener('message', ready); box.remove(); document.removeEventListener('keydown', key); document.body.classList.remove('dpop-on'); };
   const key = e => { if (e.key === 'Escape') close(); };
   const box = h('div', { class: 'dpop', id: 'dPop', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, onclick: e => { if (e.target === box) close(); } },
     h('div', { class: 'dpop-in' }, h('div', { class: 'dpop-h' }, h('h2', { text: title }), h('button', { type: 'button', class: 'dpop-x', 'aria-label': 'Close', html: '&times;', onclick: close })), h('div', { class: 'dpop-b' }, load, frame)));
@@ -300,10 +303,7 @@ function viewPortalPage(hs, r) {
   const tests = r === 'modes' || r === 'personal';
   document.querySelectorAll('.tb-menu .tb').forEach(x => x.setAttribute('aria-pressed', String(tests && x.dataset.k === 'tests')));
   const on = p => hs === p || hs.startsWith(p + '/');
-  if (tests) side({ back: null, title: 'Tests', sub: 'Mock tests and your results', items: [
-    { label: 'All tests', icon: IC.test, hash: '/modes', active: hs === '#/modes' },
-    { label: 'Previous Year Papers', icon: IC.clock, hash: '/modes/pyq', active: on('#/modes/pyq') },
-    { label: 'My Performance', icon: IC.list, hash: '/personal', active: on('#/personal') }] });
+  if (tests) side({ back: null, title: 'Dashboard', sub: 'Choose how you want to practise', items: homeItems('tests') });
   else side({ back: '', title: 'My account', sub: 'Profile, plan and results', items: [
     { label: 'Edit profile', icon: IC.grid, hash: '/profile', active: on('#/profile') },
     { label: 'Membership', icon: IC.mark, hash: '/membership', active: on('#/membership') },
@@ -316,7 +316,7 @@ function viewPortalPage(hs, r) {
 /* ---------- Handouts ---------- */
 let HOLIST = null;
 async function viewHandouts() {
-  side({ back: '', title: 'Handouts', sub: 'Handwritten revision notes', items: homeItems('none') });
+  side({ back: '', title: 'Handouts', sub: 'Handwritten revision notes', items: homeItems('ho') });
   main(loadingBox('Loading the handouts…'));
   if (!HOLIST) { try { const r = await fetch('handouts/index.json'); const j = r.ok ? await r.json() : []; HOLIST = Array.isArray(j) ? j.filter(Boolean) : []; } catch (e) { HOLIST = []; } }
   const perm = A().perm, canPdf = perm.pdf === true || perm.premium || perm.staff || perm.isAdmin, FREE_HO = new Set(['11M1', '12M13']);
@@ -381,7 +381,7 @@ function chapterSide(mode, slug, ch, section, rows) {
     { label: 'Test History', icon: IC.test, hash: base + 'tests', active: section === 'tests' }] });
 }
 /* Opening a difficulty bucket or a topic moves the menu one step up: its own menu with the chapter underneath, and the back arrow returns to the chapter */
-const BUCKETS = [['must', 'Most Relevant PYQ-based Qs', 'star'], ['l1', 'Beginner Qs', 'beginner'], ['l2', 'Rank Booster', 'booster'], ['l3', 'Advanced', 'advanced'], ['must5', 'Must Do Qs of last 5 years', 'fire']];
+const BUCKETS = [['must', 'Most Relevant PYQ-based Qs', 'star'], ['l1', 'Confidence Booster', 'beginner'], ['l2', 'Balanced', 'booster'], ['l3', 'Rank Booster', 'advanced'], ['must5', 'Must Do Qs of last 5 years', 'fire']];
 function bucketSide(mode, slug, ch, active) {
   const c = D.chByCode[ch], e = EX[slug], base = 'd/ch/' + mode + '/' + (slug || '-') + '/' + ch + '/';
   const icon = { star: IC.star, beginner: IC.up, booster: IC.up, advanced: IC.up, fire: IC.fire };
@@ -425,7 +425,7 @@ function viewList(mode, slug, ch, kind, arg) {
     what = 'Bucket'; bucketSide(mode, slug, ch, kind);
     if (kind === 'must') { pool = rows.filter(r => mustSet.has(r.id)); title = 'Most Relevant PYQ-based Qs'; }
     else if (kind === 'must5') { pool = rows.filter(r => mustSet.has(r.id) && last5.has(r.id)); title = 'Must Do Qs of last 5 years'; }
-    else { const L = kind.toUpperCase(); pool = rows.filter(r => r.d === L); title = ({ L1: 'Beginner Qs · Level 1 (Easy)', L2: 'Rank Booster · Level 2 (Moderate)', L3: 'Advanced · Level 3 (Tough)' })[L]; }
+    else { const L = kind.toUpperCase(); pool = rows.filter(r => r.d === L); title = ({ L1: 'Confidence Booster · Level 1 (Easy)', L2: 'Balanced · Level 2 (Moderate)', L3: 'Rank Booster · Level 3 (Tough)' })[L]; }
   }
   const head = h('div', { class: 'd-head' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c ? c.chapter : ch));
   window.DashList.render(listEnv(),

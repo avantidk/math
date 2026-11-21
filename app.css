@@ -572,3 +572,8 @@ body.hasmax{overflow:hidden}
 
 .sq .katex-display{margin:.35em 0}
 .tb-menu a.tb, .tb-menu a.tb:hover { text-decoration: none; }
+/* /qbank?embed=1: shown inside a dashboard pop-up, only the opened panel */
+html.embed .topbar, html.embed .app-foot { display: none !important; }
+html.embed #viewQb .qb > :not(.qb-panel) { display: none !important; }
+html.embed body { background: transparent; } html.embed .shell { padding-top: 0; }
+html.embed .qb-tablewrap { max-height: none !important; }
