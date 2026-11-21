@@ -1965,14 +1965,14 @@ revoke all on public.qb_flags from anon, authenticated;
 
 create or replace function public.qb_flags_list() returns json
 language sql stable security definer set search_path = public as $$
-  select case when public.is_staff() then (select coalesce(json_agg(json_build_object('id', f.qid, 'note', f.note, 'status', f.status,
+  select case when public.is_admin() then (select coalesce(json_agg(json_build_object('id', f.qid, 'note', f.note, 'status', f.status,
            'at', (extract(epoch from f.updated_at) * 1000)::bigint)), '[]'::json) from public.qb_flags f where f.status = 'open')
          else '[]'::json end
 $$;
 create or replace function public.qb_flag_set(p_qid text, p_note text, p_meta jsonb default '{}'::jsonb) returns json
 language plpgsql security definer set search_path = public as $$
 begin
-  if not public.is_staff() then raise exception 'Flags are for Avanti staff'; end if;
+  if not public.is_admin() then raise exception 'The Attention list is for the admin only'; end if;
   if nullif(trim(p_note), '') is null then
     delete from public.qb_flags where qid = p_qid;
   else
@@ -1999,7 +1999,7 @@ begin
   select * into me from public.profiles where id = auth.uid();
   if me.id is null or me.role is null and not me.is_staff then return false; end if;
   if public.admin_of(me) then return true; end if;
-  if n like 'admin/%' then return false; end if;
+  if n like 'admin/%' then return me.is_staff and me.role = 'teacher'; end if;   -- Word / PowerPoint export code: Avanti teachers (the admin is allowed above)
   if n = 'handouts/index.json' then return true; end if;
   if n ~ '^handouts/(11M1|12M13)(_|/)' then return true; end if;   -- the first Class 11 and the first Class 12 handout are free for every signed-in account
   if n like 'handouts/%' then return public.plan_of(me) in ('premium', 'staff'); end if;
@@ -2251,6 +2251,151 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- -------------------------------------------------------------------------------------
+-- 11i. Question cards: comments, own solutions (up to 3 images) and error reports (version 974)
+--   Comments and solutions appear at once (no approval). A report goes only to the admin ("Attention"): nobody else can read it.
+-- -------------------------------------------------------------------------------------
+create table if not exists public.qb_comments (
+  id         uuid primary key default gen_random_uuid(),
+  qid        text not null check (char_length(qid) <= 80),
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  body       text not null check (char_length(body) between 1 and 1000),
+  created_at timestamptz not null default now()
+);
+create index if not exists qb_comments_qid on public.qb_comments (qid, created_at);
+create table if not exists public.qb_solutions (
+  id         uuid primary key default gen_random_uuid(),
+  qid        text not null check (char_length(qid) <= 80),
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  note       text check (note is null or char_length(note) <= 500),
+  images     text[] not null check (array_length(images, 1) between 1 and 3),
+  created_at timestamptz not null default now()
+);
+create index if not exists qb_solutions_qid on public.qb_solutions (qid, created_at);
+create table if not exists public.qb_reports (
+  id          uuid primary key default gen_random_uuid(),
+  qid         text not null check (char_length(qid) <= 80),
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  note        text not null check (char_length(note) between 5 and 1000),
+  status      text not null default 'open' check (status in ('open', 'done')),
+  created_at  timestamptz not null default now(),
+  resolved_at timestamptz
+);
+create index if not exists qb_reports_open on public.qb_reports (status, qid);
+alter table public.qb_comments enable row level security;
+alter table public.qb_solutions enable row level security;
+alter table public.qb_reports enable row level security;
+revoke all on public.qb_comments, public.qb_solutions, public.qb_reports from anon, authenticated;
+
+-- "First name + initial" and the role: all that other people see of an author
+create or replace function public.qb_author(p_uid uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'name', coalesce(nullif(concat_ws(' ', nullif(split_part(coalesce(p.full_name, ''), ' ', 1), ''),
+      case when length(trim(regexp_replace(coalesce(p.full_name, ''), '^\S+\s*', ''))) > 0 then left(trim(regexp_replace(coalesce(p.full_name, ''), '^\S+\s*', '')), 1) || '.' end), ''), 'Member'),
+    'role', case when p.is_staff then 'Avanti teacher' when p.role = 'teacher' then 'Teacher' else 'Student' end)
+  from public.profiles p where p.id = p_uid
+$$;
+
+create or replace function public.my_bookmarks() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(b.qid order by b.created_at desc), '[]'::json) from public.bookmarks b where b.user_id = auth.uid()
+$$;
+
+create or replace function public.qb_comments_for(p_qid text) returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('id', c.id, 'body', c.body, 'at', c.created_at, 'author', public.qb_author(c.user_id), 'mine', c.user_id = auth.uid()) order by c.created_at), '[]'::json)
+  from (select * from public.qb_comments where qid = p_qid and auth.uid() is not null order by created_at desc limit 200) c
+$$;
+create or replace function public.add_qb_comment(p_qid text, p_body text) returns json
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles; r public.qb_comments;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if me.id is null or (me.role is null and not me.is_staff) then raise exception 'Please finish your profile first'; end if;
+  if nullif(trim(p_body), '') is null or char_length(p_body) > 1000 then raise exception 'Write a comment of up to 1000 characters'; end if;
+  if (select count(*) from public.qb_comments where user_id = me.id and created_at > now() - interval '1 hour') >= 20 then raise exception 'Too many comments in an hour. Please wait a little.'; end if;
+  insert into public.qb_comments (qid, user_id, body) values (left(p_qid, 80), me.id, trim(p_body)) returning * into r;
+  return json_build_object('id', r.id, 'body', r.body, 'at', r.created_at, 'author', public.qb_author(me.id), 'mine', true);
+end $$;
+create or replace function public.delete_qb_comment(p_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.qb_comments where id = p_id and (user_id = auth.uid() or public.is_admin());
+end $$;
+
+create or replace function public.qb_solutions_for(p_qid text) returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('id', c.id, 'note', c.note, 'images', c.images, 'at', c.created_at, 'author', public.qb_author(c.user_id), 'mine', c.user_id = auth.uid()) order by c.created_at desc), '[]'::json)
+  from (select * from public.qb_solutions where qid = p_qid and auth.uid() is not null order by created_at desc limit 50) c
+$$;
+create or replace function public.add_qb_solution(p_qid text, p_images text[], p_note text default null) returns json
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles; r public.qb_solutions; img text;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if me.id is null or (me.role is null and not me.is_staff) then raise exception 'Please finish your profile first'; end if;
+  if p_images is null or array_length(p_images, 1) is null or array_length(p_images, 1) > 3 then raise exception 'Add 1 to 3 images'; end if;
+  foreach img in array p_images loop
+    if img not like me.id::text || '/%' or img like '%..%' or char_length(img) > 200 then raise exception 'Invalid image'; end if;
+  end loop;
+  if (select count(*) from public.qb_solutions where user_id = me.id and created_at > now() - interval '1 day') >= 15 then raise exception 'Too many solutions today. Please try again tomorrow.'; end if;
+  insert into public.qb_solutions (qid, user_id, note, images) values (left(p_qid, 80), me.id, nullif(left(trim(coalesce(p_note, '')), 500), ''), p_images) returning * into r;
+  return json_build_object('id', r.id, 'note', r.note, 'images', r.images, 'at', r.created_at, 'author', public.qb_author(me.id), 'mine', true);
+end $$;
+create or replace function public.delete_qb_solution(p_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare r public.qb_solutions;
+begin
+  select * into r from public.qb_solutions where id = p_id and (user_id = auth.uid() or public.is_admin());
+  if r.id is null then return; end if;
+  delete from public.qb_solutions where id = r.id;
+  if to_regclass('storage.objects') is not null then delete from storage.objects where bucket_id = 'user-solutions' and name = any(r.images); end if;
+end $$;
+
+-- a report about a question: any signed-in person; one open report per person per question (a new text replaces the old one)
+create or replace function public.submit_qb_report(p_qid text, p_note text) returns json
+language plpgsql security definer set search_path = public as $$
+declare me public.profiles;
+begin
+  select * into me from public.profiles where id = auth.uid();
+  if me.id is null or (me.role is null and not me.is_staff) then raise exception 'Please finish your profile first'; end if;
+  if char_length(trim(coalesce(p_note, ''))) < 5 or char_length(p_note) > 1000 then raise exception 'Describe the error in 5 to 1000 characters'; end if;
+  if (select count(*) from public.qb_reports where user_id = me.id and created_at > now() - interval '1 day') >= 30 then raise exception 'Too many reports today. Thank you, please try again tomorrow.'; end if;
+  delete from public.qb_reports where user_id = me.id and qid = left(p_qid, 80) and status = 'open';
+  insert into public.qb_reports (qid, user_id, note) values (left(p_qid, 80), me.id, trim(p_note));
+  return json_build_object('ok', true);
+end $$;
+create or replace function public.qb_reports_list() returns json
+language sql stable security definer set search_path = public as $$
+  select case when public.is_admin() then (select coalesce(json_agg(json_build_object('id', r.id, 'qid', r.qid, 'note', r.note, 'at', r.created_at, 'author', public.qb_author(r.user_id)) order by r.created_at), '[]'::json)
+    from public.qb_reports r where r.status = 'open') else '[]'::json end
+$$;
+create or replace function public.qb_report_resolve(p_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'The Attention list is for the admin only'; end if;
+  update public.qb_reports set status = 'done', resolved_at = now() where id = p_id;
+end $$;
+
+-- private storage for the images of own solutions: every signed-in account can look, each person writes only into their own folder
+do $$
+begin
+  if to_regclass('storage.buckets') is not null then
+    insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+      values ('user-solutions', 'user-solutions', false, 3145728, array['image/jpeg', 'image/png', 'image/webp'])
+      on conflict (id) do update set public = false, file_size_limit = 3145728, allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp'];
+    execute 'drop policy if exists usol_read on storage.objects';
+    execute $p$create policy usol_read on storage.objects for select to authenticated using (bucket_id = 'user-solutions')$p$;
+    execute 'drop policy if exists usol_insert on storage.objects';
+    execute $p$create policy usol_insert on storage.objects for insert to authenticated
+             with check (bucket_id = 'user-solutions' and (storage.foldername(name))[1] = auth.uid()::text)$p$;
+    execute 'drop policy if exists usol_delete on storage.objects';
+    execute $p$create policy usol_delete on storage.objects for delete to authenticated
+             using (bucket_id = 'user-solutions' and (storage.foldername(name))[1] = auth.uid()::text)$p$;
+  end if;
+end $$;
+
+-- -------------------------------------------------------------------------------------
 -- 12. Who may call which function
 -- -------------------------------------------------------------------------------------
 revoke execute on all functions in schema public from public, anon, authenticated;
@@ -2262,7 +2407,10 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer),
   public.create_personal_test(text, integer, numeric, numeric, jsonb, text, text), public.personal_overview(), public.my_rank(uuid), public.link_ranking(uuid),
   public.school_people(), public.request_role_change(text), public.my_role_request(), public.admin_role_requests(), public.admin_role_request(uuid, text),
-  public.toggle_bookmark(text), public.dash_summary(), public.dash_tests(),
+  public.toggle_bookmark(text), public.dash_summary(), public.dash_tests(), public.my_bookmarks(),
+  public.qb_comments_for(text), public.add_qb_comment(text, text), public.delete_qb_comment(uuid),
+  public.qb_solutions_for(text), public.add_qb_solution(text, text[], text), public.delete_qb_solution(uuid),
+  public.submit_qb_report(text, text), public.qb_reports_list(), public.qb_report_resolve(uuid),
   public.my_attempts(), public.my_tests(), public.list_schools(), public.is_premium_teacher(), public.price_paise(text),
   public.teacher_add_student(jsonb), public.teacher_add_students(jsonb), public.teacher_update_student(uuid, text, jsonb),
   public.school_students(text), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),

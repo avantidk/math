@@ -1,5 +1,17 @@
 [
   {
+    "v": "974",
+    "date": "21 Nov 2026",
+    "items": [
+      "Every question card now has: Mark as important (bookmark), Comments, Add your own solution, Full explanation, and a caution icon right after it to report an error.",
+      "Comments post at once, with no approval. Anyone signed in can comment on any question.",
+      "Add your own solution: upload up to 3 images (handwritten or typed). Many people can add solutions to the same question. They show under Others' solutions, next to Full explanation and Comments.",
+      "Reporting an error goes only to the admin, in a private Attention list. Students and teachers can no longer see Attention tags or counts.",
+      "Avanti teachers now get Download PDF, Word, PowerPoint, Print and Share for questions and sets.",
+      "Important questions you mark appear on your dashboard under Bookmarked Qs."
+    ]
+  },
+  {
     "v": "973",
     "date": "21 Nov 2026",
     "items": [

@@ -28,7 +28,7 @@ function QBP(k) { var p = window.AvantiAuth && window.AvantiAuth.perm; return !!
       };
       var nm = function (r) { return 'Ch ' + r[0] + ' ' + r[1]; };
       return '<hr style="margin:16px 0 10px;border:0;border-top:1px solid var(--color-border-line,#ccc)"><b style="font-size:15px">BB Ex (practice questions)</b>' +
-        '<div style="margin-top:6px">' + sol + ' of ' + tot + ' BB Ex questions have a solution added. ' + flg + ' carry a flag to check' + (other && other.length ? ' (plus ' + other.length + ' other practice questions below)' : '') + '.</div>' +
+        '<div style="margin-top:6px">' + sol + ' of ' + tot + ' BB Ex questions have a solution added.' + (QBP('attention') ? ' ' + flg + ' carry a flag to check' : '') + (QBP('attention') && other && other.length ? ' (plus ' + other.length + ' other practice questions below)' : '') + '.</div>' +
         blk('Solutions fully added', 'Every question of this book chapter has a solution.', rows.filter(function (r) { return r[3] === r[2]; }), function (r) { return nm(r) + ' \u00b7 ' + r[2] + (r[4] ? ' (' + r[4] + ' flagged)' : ''); }) +
         blk('Partly added', 'Some questions have a solution, some do not yet.', rows.filter(function (r) { return r[3] > 0 && r[3] < r[2]; }), function (r) { return nm(r) + ' \u00b7 ' + r[3] + '/' + r[2]; }) +
         blk('Yet to add', 'No solution added so far (book chapters waiting for their Word file with solutions).', rows.filter(function (r) { return r[3] === 0; }), function (r) { return nm(r) + ' \u00b7 ' + r[2] + ' Qs'; }) +
@@ -81,11 +81,11 @@ function QBP(k) { var p = window.AvantiAuth && window.AvantiAuth.perm; return !!
             var ys = function (o) { return o.ex + ' ' + o.yr; };
             var flagged = L.filter(function (o) { return o.f > 0; });
             bx.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:15px">Solutions status (past papers)</b><button type="button" class="qb-sstat-x" style="font:inherit;border:1px solid var(--color-border-line,#ccc);background:var(--color-bg,#fff);color:inherit;border-radius:6px;padding:2px 10px;cursor:pointer">Close</button></div>' +
-              '<div style="margin-top:6px">' + sol + ' of ' + tot + ' past-paper questions have a solution added. ' + flg + ' carry a flag to check.</div>' +
+              '<div style="margin-top:6px">' + sol + ' of ' + tot + ' past-paper questions have a solution added.' + (QBP('attention') ? ' ' + flg + ' carry a flag to check.' : '') + '</div>' +
               sec('Solutions fully added', 'Every question of this paper year has a solution.', done, function (o) { return ys(o) + ' \u00b7 ' + o.n; }) +
               sec('Partly added', 'Some questions have a solution, some do not yet.', part, function (o) { return ys(o) + ' \u00b7 ' + o.s + '/' + o.n; }) +
               sec('Yet to add', 'No solution added so far (questions in the bank).', none, function (o) { return ys(o) + ' \u00b7 ' + o.n + ' Qs'; }) +
-              sec('Flagged \u2013 yet to check', 'Questions carrying an attention note (shown on the question card).', flagged, function (o) { return ys(o) + ' \u00b7 ' + o.f + ' flagged'; }) +
+              (QBP('attention') ? sec('Flagged \u2013 yet to check', 'Questions carrying an attention note (shown on the question card).', flagged, function (o) { return ys(o) + ' \u00b7 ' + o.f + ' flagged'; }) : '') +
               '';
             bx.querySelector('.qb-sstat-x').addEventListener('click', close);
             Array.prototype.forEach.call(bx.querySelectorAll('.qb-sstat-bb'), function (a) {
@@ -1173,21 +1173,22 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
 
 
   /* ---------- teacher flags: what to correct, saved in this page's shared database ---------- */
-  var FDB = null, FLAGS = {}, FKEY = 'avanti_qb_flags';
+  var FDB = null, FLAGS = {}, FKEY = 'avanti_qb_flags', REPORTS = {};   /* REPORTS: error reports from users, read by the admin only */
   function flagOf(q) { return FLAGS[q.id] ? FLAGS[q.id].note : ''; }
   function isSame(q) { return /^Same as (?:BB|AL)-/i.test(String(q.note || '')); }
   function isFlagged(q) { return !!((q.note && !isSame(q)) || flagOf(q)); }
   function flagCount() { return ROWS.filter(isFlagged).length; }
   /* Attention now covers everything that needs a check: the attention flag and the old Review notes */
-  function needsAttn(q) { return !!q.attention || isFlagged(q); }
+  function needsAttn(q) { return !!q.attention || isFlagged(q) || !!(REPORTS[q.id] && REPORTS[q.id].length); }
   function attnCount() { return ROWS.filter(needsAttn).length; }
   function sameCount() { return ROWS.filter(isSame).length; }
   function oosCount() { return ROWS.filter(function (q) { return q.oos; }).length; }
   /* Staff flags are shared by every Staff account through the database (qb_flags_list / qb_flag_set). */
   function loadFlags() {
     var A = window.AvantiAuth;
-    if (!(A && A.rpc && QBP('staff'))) return;
+    if (!(A && A.rpc && QBP('attention'))) return;   /* the Attention list is for the admin only */
     FDB = A;
+    A.rpc('qb_reports_list').then(function (rows) { REPORTS = {}; (rows || []).forEach(function (r) { (REPORTS[r.qid] = REPORTS[r.qid] || []).push(r); }); Object.keys(CARDS).forEach(function (id) { if (CARDS[id] && CARDS[id].paintRep) CARDS[id].paintRep(); }); apply(); }).catch(function () { /* reports are not shown */ });
     A.rpc('qb_flags_list').then(function (rows) {
       FLAGS = {}; try { localStorage.removeItem(FKEY); } catch (e) { /* old browser-only flags are not used any more */ }
       (rows || []).forEach(function (v) { if (v && v.id && v.note) FLAGS[v.id] = { note: String(v.note), at: v.at || 0 }; });
@@ -1204,6 +1205,121 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       return 'shared';
     });
   }
+
+  /* ---------- bookmarks, comments, own solutions (up to 3 images), error reports ---------- */
+  var BM = new Set(), BMLOADED = false;
+  function loadBookmarks() {
+    var A = window.AvantiAuth; if (BMLOADED || !(A && A.rpc)) return; BMLOADED = true;
+    A.rpc('my_bookmarks').then(function (ids) { BM = new Set((ids || []).map(String)); Object.keys(CARDS).forEach(function (id) { if (CARDS[id] && CARDS[id].paintBm) CARDS[id].paintBm(); }); }).catch(function () { BMLOADED = false; });
+  }
+  var SOC = (function () {
+    var A = function () { return window.AvantiAuth; };
+    var when = function (t) { try { return new Date(t).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } };
+    function who(a, at) { var w = el('div', 'qb-who'); w.appendChild(el('b', null, (a && a.name) || 'Member')); w.appendChild(el('span', 'qb-role', (a && a.role) || '')); w.appendChild(el('span', 'qb-when', when(at))); return w; }
+    function css() {
+      if (document.getElementById('qb-soc')) return; var st = document.createElement('style'); st.id = 'qb-soc';
+      st.textContent = '.qb-sol-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--color-border-line,#d7dbe6);margin-bottom:10px}.qb-sol-tab{font:600 13px inherit;background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px;color:var(--color-fg-muted,#66728b);cursor:pointer}.qb-sol-tab[aria-selected=true]{color:var(--accent,#1f3f95);border-bottom-color:var(--accent,#1f3f95)}'
+        + '.qb-soc-item{padding:10px 0;border-bottom:1px solid var(--color-border-line,#e1e6ef)}.qb-soc-item:last-child{border-bottom:0}.qb-who{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:12.5px}.qb-role{background:var(--accent-soft,#e8eefc);color:var(--accent,#1f3f95);border-radius:99px;padding:1px 8px;font-size:11px;font-weight:700}.qb-when{color:var(--color-fg-muted,#66728b)}.qb-del{margin-left:auto;background:none;border:0;color:var(--color-bad,#b4471d);cursor:pointer;font:600 12px inherit}'
+        + '.qb-soc-text{margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}.qb-soc-imgs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.qb-soc-imgs img{height:120px;max-width:100%;border-radius:8px;border:1px solid var(--color-border-line,#d7dbe6);cursor:zoom-in;object-fit:cover;background:#fff}'
+        + '.qb-soc-form{display:flex;flex-direction:column;gap:8px;margin:6px 0 12px}.qb-soc-form textarea{width:100%;font:inherit;padding:9px 11px;border-radius:10px;border:1px solid var(--color-border-line,#c9cfdd);background:var(--color-bg,#fff);color:inherit;resize:vertical}.qb-soc-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.qb-soc-msg{font-size:12.5px;color:var(--color-fg-muted,#66728b)}.qb-soc-msg.bad{color:var(--color-bad,#b4471d)}'
+        + '.qb-prev{display:flex;gap:8px;flex-wrap:wrap}.qb-prev span{position:relative}.qb-prev img{height:84px;border-radius:8px;border:1px solid var(--color-border-line,#d7dbe6)}.qb-prev button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:#111;color:#fff;cursor:pointer;line-height:1}'
+        + '.qb-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:90;display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}.qb-lightbox img{max-width:100%;max-height:100%;border-radius:8px;background:#fff}'
+        + '.qb-ico.qb-bm.on svg path{fill:currentColor}.qb-ico.qb-bm.on{color:var(--gold-deep,#d9961a)}.qb-ico.qb-warn:hover,.qb-ico.qb-warn.on{color:var(--color-bad,#b4471d)}'
+        + '.qb-rbox{margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--color-border-line,#d7dbe6);display:flex;flex-direction:column;gap:8px}.qb-rep{margin-top:8px;padding:10px;border-radius:10px;background:color-mix(in srgb,var(--color-bad,#b4471d) 9%,transparent);border:1px solid color-mix(in srgb,var(--color-bad,#b4471d) 35%,transparent);font-size:13.5px}.qb-rep p{margin:4px 0}';
+      document.head.appendChild(st);
+    }
+    function lightbox(url) { var o = el('div', 'qb-lightbox'); var im = el('img'); im.src = url; im.alt = 'Solution image'; o.appendChild(im); o.addEventListener('click', function () { o.remove(); }); document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { o.remove(); document.removeEventListener('keydown', esc); } }); document.body.appendChild(o); }
+    function shrink(file) {
+      return new Promise(function (res, rej) {
+        var u = URL.createObjectURL(file), img = new Image();
+        img.onload = function () { var k = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k)); var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); c.toBlob(function (b) { b ? res(b) : rej(new Error('Could not read the image')); }, 'image/jpeg', 0.82); };
+        img.onerror = function () { URL.revokeObjectURL(u); rej(new Error('That file is not an image')); }; img.src = u;
+      });
+    }
+    function signed(paths) {
+      var sb = A().sb; if (!sb || !paths.length) return Promise.resolve({});
+      return sb.storage.from('user-solutions').createSignedUrls(paths, 3600).then(function (r) { var m = {}; ((r && r.data) || []).forEach(function (x) { if (x.signedUrl) m[x.path] = x.signedUrl; }); return m; }).catch(function () { return {}; });
+    }
+    function others(q, pane, count) {
+      css(); pane.textContent = '';
+      var form = el('div', 'qb-soc-form'); form.hidden = true;
+      var open = el('button', 'qb-btn primary qb-addsol-open', 'Add your solution'); open.type = 'button'; open.addEventListener('click', function () { form.hidden = !form.hidden; });
+      var pick = el('input'); pick.type = 'file'; pick.accept = 'image/*'; pick.multiple = true; pick.setAttribute('aria-label', 'Choose up to 3 images');
+      var prev = el('div', 'qb-prev'), note = el('textarea'); note.rows = 2; note.maxLength = 500; note.placeholder = 'Optional note (for example: shorter method)';
+      var send = el('button', 'qb-btn primary', 'Post solution'); send.type = 'button'; var msg = el('span', 'qb-soc-msg', 'Up to 3 images, handwritten or typed.');
+      var files = [];
+      function drawPrev() { prev.textContent = ''; files.forEach(function (f, i) { var w = el('span'), im = el('img'); im.src = URL.createObjectURL(f); im.alt = 'Image ' + (i + 1); var x = el('button', null, '×'); x.type = 'button'; x.setAttribute('aria-label', 'Remove image'); x.addEventListener('click', function () { files.splice(i, 1); drawPrev(); }); w.appendChild(im); w.appendChild(x); prev.appendChild(w); }); }
+      pick.addEventListener('change', function () {
+        var add = Array.prototype.slice.call(pick.files || []); pick.value = '';
+        add.forEach(function (f) { if (files.length < 3) files.push(f); }); if (add.length + files.length > 3 && files.length >= 3) { msg.textContent = 'Only 3 images can be added.'; msg.className = 'qb-soc-msg bad'; } drawPrev();
+      });
+      send.addEventListener('click', function () {
+        if (!files.length) { msg.textContent = 'Choose at least one image.'; msg.className = 'qb-soc-msg bad'; return; }
+        var a = A(), uid = a.session && a.session.user ? a.session.user.id : (a.profile && a.profile.id); if (!uid) { msg.textContent = 'Please sign in again.'; msg.className = 'qb-soc-msg bad'; return; }
+        send.disabled = true; msg.className = 'qb-soc-msg'; msg.textContent = 'Uploading…';
+        Promise.all(files.map(function (f, i) { return shrink(f).then(function (b) { var path = uid + '/' + Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 8) + '.jpg'; return a.sb.storage.from('user-solutions').upload(path, b, { contentType: 'image/jpeg' }).then(function (r) { if (r.error) throw r.error; return path; }); }); }))
+          .then(function (paths) { return a.rpc('add_qb_solution', { p_qid: String(q.id), p_images: paths, p_note: note.value.trim() || null }); })
+          .then(function () { files = []; note.value = ''; drawPrev(); form.hidden = true; msg.textContent = 'Up to 3 images, handwritten or typed.'; send.disabled = false; others(q, pane, count); })
+          .catch(function (e) { send.disabled = false; msg.className = 'qb-soc-msg bad'; msg.textContent = 'Could not post: ' + (e && e.message ? e.message : 'try again') + '.'; });
+      });
+      var row = el('div', 'qb-soc-row'); row.appendChild(send); row.appendChild(msg);
+      form.appendChild(pick); form.appendChild(prev); form.appendChild(note); form.appendChild(row);
+      var list = el('div', 'qb-soc-list'); list.textContent = 'Loading…';
+      pane.appendChild(open); pane.appendChild(form); pane.appendChild(list);
+      A().rpc('qb_solutions_for', { p_qid: String(q.id) }).then(function (rows) {
+        rows = rows || []; count(rows.length); var paths = []; rows.forEach(function (r) { (r.images || []).forEach(function (p) { paths.push(p); }); });
+        return signed(paths).then(function (urls) {
+          list.textContent = ''; if (!rows.length) { list.appendChild(el('p', 'qb-soc-msg', 'No one has added a solution yet. Be the first.')); return; }
+          rows.forEach(function (r) {
+            var it = el('div', 'qb-soc-item'), w = who(r.author, r.at);
+            if (r.mine || QBP('isAdmin')) { var d = el('button', 'qb-del', 'Delete'); d.type = 'button'; d.addEventListener('click', function () { if (!window.confirm('Delete this solution?')) return; A().rpc('delete_qb_solution', { p_id: r.id }).then(function () { others(q, pane, count); }).catch(function () { }); }); w.appendChild(d); }
+            it.appendChild(w); if (r.note) it.appendChild(el('p', 'qb-soc-text', r.note));
+            var imgs = el('div', 'qb-soc-imgs'); (r.images || []).forEach(function (p, i) { var u = urls[p]; if (!u) return; var im = el('img'); im.src = u; im.alt = 'Solution image ' + (i + 1); im.loading = 'lazy'; im.addEventListener('click', function () { lightbox(u); }); imgs.appendChild(im); }); it.appendChild(imgs); list.appendChild(it);
+          });
+        });
+      }).catch(function () { list.textContent = ''; list.appendChild(el('p', 'qb-soc-msg bad', 'Could not load solutions. Check your connection.')); });
+    }
+    function comments(q, pane, count) {
+      css(); pane.textContent = '';
+      var ta = el('textarea'); ta.rows = 2; ta.maxLength = 1000; ta.placeholder = 'Write a comment, a doubt or a shorter method'; ta.setAttribute('aria-label', 'Your comment');
+      var post = el('button', 'qb-btn primary', 'Post comment'); post.type = 'button'; var msg = el('span', 'qb-soc-msg');
+      var form = el('div', 'qb-soc-form'), row = el('div', 'qb-soc-row'); row.appendChild(post); row.appendChild(msg); form.appendChild(ta); form.appendChild(row);
+      var list = el('div', 'qb-soc-list'); list.textContent = 'Loading…'; var n = 0;
+      function draw(r) {
+        var it = el('div', 'qb-soc-item'), w = who(r.author, r.at);
+        if (r.mine || QBP('isAdmin')) { var d = el('button', 'qb-del', 'Delete'); d.type = 'button'; d.addEventListener('click', function () { A().rpc('delete_qb_comment', { p_id: r.id }).then(function () { it.remove(); n--; count(n); }).catch(function () { }); }); w.appendChild(d); }
+        it.appendChild(w); it.appendChild(el('p', 'qb-soc-text', r.body)); return it;
+      }
+      post.addEventListener('click', function () {
+        var t = ta.value.trim(); if (!t) { msg.textContent = 'Write something first.'; msg.className = 'qb-soc-msg bad'; return; }
+        post.disabled = true; msg.className = 'qb-soc-msg'; msg.textContent = 'Posting…';
+        A().rpc('add_qb_comment', { p_qid: String(q.id), p_body: t }).then(function (r) { ta.value = ''; msg.textContent = ''; post.disabled = false; if (!n) list.textContent = ''; n++; count(n); list.insertBefore(draw(r), list.firstChild); })
+          .catch(function (e) { post.disabled = false; msg.className = 'qb-soc-msg bad'; msg.textContent = (e && e.message ? e.message : 'Could not post') + '.'; });
+      });
+      pane.appendChild(form); pane.appendChild(list);
+      A().rpc('qb_comments_for', { p_qid: String(q.id) }).then(function (rows) {
+        rows = (rows || []).slice().reverse(); n = rows.length; count(n); list.textContent = '';
+        if (!rows.length) { list.appendChild(el('p', 'qb-soc-msg', 'No comments yet.')); return; } rows.forEach(function (r) { list.appendChild(draw(r)); });
+      }).catch(function () { list.textContent = ''; list.appendChild(el('p', 'qb-soc-msg bad', 'Could not load comments. Check your connection.')); });
+    }
+    /* the report form under the card (caution icon); returns the box */
+    function reportBox(q, onSent) {
+      css(); var box = el('div', 'qb-rbox'); box.hidden = true;
+      box.appendChild(el('b', null, 'Report an error in this question'));
+      var ta = el('textarea'); ta.rows = 3; ta.maxLength = 1000; ta.placeholder = 'What is wrong? (for example: option C should be 2π/3, the answer key is B, figure missing)'; ta.setAttribute('aria-label', 'Describe the error');
+      var send = el('button', 'qb-btn primary', 'Send report'); send.type = 'button'; var x = el('button', 'qb-lnk', 'Close'); x.type = 'button'; var msg = el('span', 'qb-soc-msg', 'Only the admin sees this.');
+      var row = el('div', 'qb-soc-row'); row.appendChild(send); row.appendChild(x); row.appendChild(msg); box.appendChild(ta); box.appendChild(row);
+      x.addEventListener('click', function () { box.hidden = true; onSent(false); });
+      send.addEventListener('click', function () {
+        if (ta.value.trim().length < 5) { msg.className = 'qb-soc-msg bad'; msg.textContent = 'Describe the error first.'; return; }
+        send.disabled = true; msg.className = 'qb-soc-msg'; msg.textContent = 'Sending…';
+        A().rpc('submit_qb_report', { p_qid: String(q.id), p_note: ta.value.trim() }).then(function () { ta.value = ''; send.disabled = false; msg.textContent = 'Only the admin sees this.'; box.hidden = true; onSent(true); })
+          .catch(function (e) { send.disabled = false; msg.className = 'qb-soc-msg bad'; msg.textContent = (e && e.message ? e.message : 'Could not send') + '.'; });
+      });
+      return box;
+    }
+    return { others: others, comments: comments, reportBox: reportBox, who: who, when: when };
+  })();
 
   /* ---------- question cards ---------- */
   function buildCard(q) {
@@ -1287,28 +1403,59 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     foot.appendChild(ans);
     var bSol = icoBtn('book', 'Full explanation');
     var solBox = el('div', 'qb-sol'); solBox.hidden = true;
-    solBox.appendChild(el('div', 'qb-sol-h', 'Full explanation')); var sb = el('div', 'qb-sol-b');
+    var sb = el('div', 'qb-sol-b');
     if (q.solution) renderRich(sb, q.solution); else { sb.className = 'qb-sol-b qb-sol-none'; sb.textContent = 'Full explanation not added yet.'; }
-    solBox.appendChild(sb);
-    bSol.addEventListener('click', function () {
-      solBox.hidden = !solBox.hidden; setIco(bSol, 'book', solBox.hidden ? 'Full explanation' : 'Hide explanation'); bSol.classList.toggle('on', !solBox.hidden);
-      if (!solBox.hidden && !q.solution && !sb.dataset.saved) {
-        sb.dataset.saved = '1';
-        /* solutions live in their own files (one per chapter), fetched the first time an explanation is opened */
-        if (!(q.id in SOLM)) { sb.className = 'qb-sol-b'; sb.textContent = 'Loading\u2026'; }
-        loadSol([q.id]).then(function (m) {
-          if (m && m[q.id]) { var sv = m[q.id]; q.solution = typeof sv === 'string' ? sv : sv.t; sb.className = 'qb-sol-b'; sb.textContent = ''; renderRich(sb, q.solution, typeof sv === 'string' ? null : sv.f); return; }
-          sb.className = 'qb-sol-b qb-sol-none'; sb.textContent = 'Full explanation not added yet.';
-          if (window.__qbSavedSolution) window.__qbSavedSolution(q.id).then(function (text) { if (text) { sb.className = 'qb-sol-b'; sb.textContent = ''; renderRich(sb, text); } });
-        });
-      }
+    /* the drawer has three tabs: Full explanation, Others' solutions, Comments */
+    var tabsBar = el('div', 'qb-sol-tabs'); tabsBar.setAttribute('role', 'tablist');
+    var panes = { exp: el('div', 'qb-pane'), oth: el('div', 'qb-pane'), com: el('div', 'qb-pane') }, tabBtns = {}, loaded = {}, curTab = '';
+    panes.exp.appendChild(sb); panes.oth.hidden = true; panes.com.hidden = true;
+    [['exp', 'Full explanation'], ['oth', 'Others’ solutions'], ['com', 'Comments']].forEach(function (t) {
+      var b = el('button', 'qb-sol-tab', t[1]); b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.k = t[0]; b.addEventListener('click', function () { showTab(t[0]); }); tabBtns[t[0]] = b; tabsBar.appendChild(b);
     });
+    solBox.appendChild(tabsBar); solBox.appendChild(panes.exp); solBox.appendChild(panes.oth); solBox.appendChild(panes.com);
+    function loadExp() {
+      if (q.solution || sb.dataset.saved) return;
+      sb.dataset.saved = '1';
+      /* solutions live in their own files (one per chapter), fetched the first time an explanation is opened */
+      if (!(q.id in SOLM)) { sb.className = 'qb-sol-b'; sb.textContent = 'Loading…'; }
+      loadSol([q.id]).then(function (m) {
+        if (m && m[q.id]) { var sv = m[q.id]; q.solution = typeof sv === 'string' ? sv : sv.t; sb.className = 'qb-sol-b'; sb.textContent = ''; renderRich(sb, q.solution, typeof sv === 'string' ? null : sv.f); return; }
+        sb.className = 'qb-sol-b qb-sol-none'; sb.textContent = 'Full explanation not added yet.';
+        if (window.__qbSavedSolution) window.__qbSavedSolution(q.id).then(function (text) { if (text) { sb.className = 'qb-sol-b'; sb.textContent = ''; renderRich(sb, text); } });
+      });
+    }
+    function paintDrawer() {
+      Object.keys(panes).forEach(function (k) { panes[k].hidden = solBox.hidden || k !== curTab; tabBtns[k].setAttribute('aria-selected', String(!solBox.hidden && k === curTab)); });
+      bSol.classList.toggle('on', !solBox.hidden && curTab === 'exp'); bCom.classList.toggle('on', !solBox.hidden && curTab === 'com'); bOwn.classList.toggle('on', !solBox.hidden && curTab === 'oth');
+      setIco(bSol, 'book', !solBox.hidden && curTab === 'exp' ? 'Hide explanation' : 'Full explanation');
+    }
+    function showTab(k) {
+      curTab = k; solBox.hidden = false; paintDrawer();
+      if (k === 'exp') loadExp();
+      if (k === 'oth' && !loaded.oth) { loaded.oth = true; SOC.others(q, panes.oth, function (n) { tabBtns.oth.textContent = 'Others’ solutions' + (n ? ' (' + n + ')' : ''); }); }
+      if (k === 'com' && !loaded.com) { loaded.com = true; SOC.comments(q, panes.com, function (n) { tabBtns.com.textContent = 'Comments' + (n ? ' (' + n + ')' : ''); }); }
+    }
+    function toggleTab(k) { if (!solBox.hidden && curTab === k) { solBox.hidden = true; paintDrawer(); } else showTab(k); }
+    var bBm = icoBtn('bm', 'Mark as important'); bBm.classList.add('qb-bm');
+    var bCom = icoBtn('chat', 'Comments'), bOwn = icoBtn('addsol', 'Add your own solution');
+    bSol.addEventListener('click', function () { toggleTab('exp'); });
+    bCom.addEventListener('click', function () { toggleTab('com'); });
+    bOwn.addEventListener('click', function () { toggleTab('oth'); if (!solBox.hidden) { var f = panes.oth.querySelector('.qb-addsol-open'); if (f) f.click(); } });
+    function paintBm() { var on = BM.has(q.id); bBm.classList.toggle('on', on); bBm.setAttribute('aria-pressed', String(on)); setIco(bBm, 'bm', on ? 'Important (tap to remove)' : 'Mark as important'); }
+    card.paintBm = paintBm; paintBm();
+    bBm.addEventListener('click', function () {
+      var A = window.AvantiAuth; if (!(A && A.rpc)) return; bBm.disabled = true;
+      A.rpc('toggle_bookmark', { p_qid: String(q.id) }).then(function (on) { if (on) BM.add(q.id); else BM.delete(q.id); paintBm(); flash(bBm, on ? 'Saved to Important' : 'Removed from Important'); })
+        .catch(function (e) { flash(bBm, 'Could not save: ' + (e && e.message ? e.message : 'try again')); }).then(function () { bBm.disabled = false; });
+    });
+    /* the caution icon sits right after the Solution icon: any signed-in person can report an error; only the admin sees the reports */
+    var bWarn = icoBtn('warn', 'Report an error in this question'); bWarn.classList.add('qb-warn');
     /* no footer link: the footer only holds the revealed answer */
     var bFlag = icoBtn('flag', 'Flag'); bFlag.title = 'Write what to correct in this question';
     var bMenu = icoBtn('menu', 'More'); bMenu.setAttribute('aria-haspopup', 'true'); bMenu.setAttribute('aria-expanded', 'false');
     if (!document.getElementById('qb-solfix')) { var sst = document.createElement('style'); sst.id = 'qb-solfix'; sst.textContent = '.qb-sol-b .mx.mxd{display:block;max-width:100%;padding:2px 0}'; document.head.appendChild(sst); } /* display equations in an explanation sit on their own line, like in the question */
     if (!document.getElementById('qb-ownerfix')) { var ost = document.createElement('style'); ost.id = 'qb-ownerfix'; ost.textContent = '.qb-ico.idg{color:var(--color-ok);background:color-mix(in srgb,var(--color-ok) 12%,var(--color-bg))}.qb-ico.idg,.qb-ico.idg *{color:var(--color-ok)!important}.qb-ico.idg:hover{background:color-mix(in srgb,var(--color-ok) 20%,var(--color-bg))}:root:not(.qb-is-owner) .qb-owneronly,:root:not(.qb-is-owner) .qb-flagf,:root:not(.qb-is-owner) .qb-note.mine,:root:not(.qb-is-owner) .qb-tag.rev.mine,:root:not(.qb-is-owner) .qb-fbox{display:none!important}'; document.head.appendChild(ost);
-      document.documentElement.classList.toggle('qb-is-owner', QBP('staff')); } /* Flag and Review are for Staff only */
+      document.documentElement.classList.toggle('qb-is-owner', QBP('attention')); } /* Flag and Review are for Staff only */
     if (!document.getElementById('qb-popfix')) { var pst = document.createElement('style'); pst.id = 'qb-popfix'; pst.textContent = '.qb-q.pop-open{z-index:40}'; document.head.appendChild(pst); } /* the open menu must sit above the next cards */
     var pop = el('div', 'qb-pop'); pop.hidden = true;
     [bTop, bTyp, bId, bFlag].forEach(function (b) { if (b) pop.appendChild(b); });
@@ -1319,11 +1466,26 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     function onDoc(e) { if (!pop.contains(e.target) && e.target !== bMenu && !bMenu.contains(e.target)) popClose(); }
     bMenu.addEventListener('click', function () { if (pop.hidden) { pop.hidden = false; var pc = popCard(); if (pc) pc.classList.add('pop-open'); bMenu.setAttribute('aria-expanded', 'true'); bMenu.classList.add('on'); document.addEventListener('click', onDoc, true); } else popClose(); });
     bFlag.addEventListener('click', popClose);
-    var acts = el('span', 'qb-acts'); acts.appendChild(bAns); acts.appendChild(bSol);
+    var acts = el('span', 'qb-acts'); acts.appendChild(bAns); acts.appendChild(bBm); acts.appendChild(bCom); acts.appendChild(bOwn); acts.appendChild(bSol); acts.appendChild(bWarn);
     var mwrap = el('span', 'qb-menu'); mwrap.appendChild(bMenu); mwrap.appendChild(pop); acts.appendChild(mwrap);
     var rgt = el('span', 'qb-right'); var dTag = meta.querySelector('.qb-tag.diff'); rgt.appendChild(acts); meta.appendChild(rgt);
     main.appendChild(foot);
     if (solBox) main.appendChild(solBox);
+    var rbox = SOC.reportBox(q, function (sent) { bWarn.classList.toggle('on', !rbox.hidden); if (sent) flash(bWarn, 'Thanks. The admin will check this.'); });
+    bWarn.addEventListener('click', function () { rbox.hidden = !rbox.hidden; bWarn.classList.toggle('on', !rbox.hidden); if (!rbox.hidden) { var rt = rbox.querySelector('textarea'); if (rt) rt.focus(); } });
+    main.appendChild(rbox);
+    /* admin only: the reports people sent for this question, with a button to mark each as done */
+    var rep = el('div', 'qb-rep'); rep.hidden = true; main.appendChild(rep);
+    var rtag = el('span', 'qb-tag attn', 'Attention'); rtag.hidden = true;
+    card.paintRep = function () {
+      var list = QBP('attention') ? (REPORTS[q.id] || []) : []; rep.textContent = ''; rep.hidden = !list.length; rtag.hidden = !list.length;
+      list.forEach(function (r) {
+        var row = el('div'); row.appendChild(SOC.who(r.author, r.at)); row.appendChild(el('p', null, r.note));
+        var done = el('button', 'qb-btn', 'Mark as done'); done.type = 'button';
+        done.addEventListener('click', function () { done.disabled = true; window.AvantiAuth.rpc('qb_report_resolve', { p_id: r.id }).then(function () { REPORTS[q.id] = (REPORTS[q.id] || []).filter(function (x) { return x.id !== r.id; }); card.paintRep(); apply(); }).catch(function () { done.disabled = false; }); });
+        row.appendChild(done); rep.appendChild(row);
+      });
+    };
     var fbox = el('div', 'qb-fbox'); fbox.hidden = true;
     var ta = el('textarea', 'qb-ftext'); ta.rows = 3; ta.placeholder = 'What is wrong, and what should be done? (for example: option C should be 2π/3; answer key is B; figure missing)'; ta.setAttribute('aria-label', 'Flag note for this question');
     var frow = el('div', 'qb-frow2'); var bSave = el('button', 'qb-btn primary', 'Save flag'); bSave.type = 'button'; var bDel = el('button', 'qb-btn', 'Remove flag'); bDel.type = 'button'; var bX = el('button', 'qb-lnk', 'Close'); bX.type = 'button'; var fmsg = el('span', 'qb-fmsg');
@@ -1332,8 +1494,9 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     var mine = el('div', 'qb-note mine'); mine.hidden = true; main.insertBefore(mine, body);
     var tag = el('span', 'qb-tag rev mine', 'Review'); tag.hidden = true; meta.insertBefore(tag, dTag || rgt);
     function paint() { var t = flagOf(q); mine.textContent = t; mine.hidden = !t; tag.hidden = !t; setIco(bFlag, 'flag', t ? 'Edit flag' : 'Flag'); bFlag.classList.toggle('flagged', !!t); bDel.hidden = !t; if (document.activeElement !== ta) ta.value = t; }
+    meta.insertBefore(rtag, dTag || rgt);
     card.appendChild(main);
-    card.paintFlag = paint; paint();
+    card.paintFlag = paint; paint(); card.paintRep();
     bFlag.addEventListener('click', function () { fbox.hidden = !fbox.hidden; if (!fbox.hidden) { ta.value = flagOf(q); ta.focus(); } });
     bX.addEventListener('click', function () { fbox.hidden = true; });
     function commit(text, done) {
@@ -1355,7 +1518,11 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     tag: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/>',
     list: '<path d="M9 6h12M9 12h12M9 18h12"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
     menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
-    book: '<path d="M2 5.5C4.5 4 8 4 12 6c4-2 7.5-2 10-.5V19c-2.5-1.5-6-1.5-10 .5-4-2-7.5-2-10-.5z"/><path d="M12 6v13.5"/>'
+    book: '<path d="M2 5.5C4.5 4 8 4 12 6c4-2 7.5-2 10-.5V19c-2.5-1.5-6-1.5-10 .5-4-2-7.5-2-10-.5z"/><path d="M12 6v13.5"/>',
+    bm: '<path d="M6 3.5h12v17l-6-4.2-6 4.2z"/>',
+    chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
+    addsol: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/><path d="M14 20h6"/>',
+    warn: '<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5"/><path d="M12 17.3h.01"/>'
   };
   function setIco(btn, name, label) { btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + QICO[name] + '</svg>'; if (btn.classList.contains('row')) { var sp = document.createElement('span'); sp.textContent = label; btn.appendChild(sp); } btn.title = label; btn.setAttribute('aria-label', label); }
   function icoBtn(name, label, row) { var b = el('button', row ? 'qb-ico row' : 'qb-ico'); b.type = 'button'; setIco(b, name, label); return b; }
@@ -2205,7 +2372,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
         if (po.title && window.AvantiTeacher && window.AvantiTeacher.toast) setTimeout(function () { window.AvantiTeacher.toast(po.title + ' · ' + S.sel.size + ' questions'); }, 600); } } catch (x) { /* a bad note is ignored */ } }
       apply();
       if (!PARTIAL) setTimeout(startFigures, 0);
-      if (!loadFlags.done) { loadFlags.done = true; loadFlags(); }
+      if (!loadFlags.done) { loadFlags.done = true; loadFlags(); loadBookmarks(); }
     }
     if (byc.status === 'ok') drawOverview(byc.data);
     wireWeight(); drawWeight();

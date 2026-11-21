@@ -24,13 +24,13 @@ const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { 
    the accounts allowed to have them), so changing these values in the browser unlocks nothing real. */
 function permsFor(p) {
   const plan = p.plan === 'staff' ? 'staff' : p.plan === 'premium' ? 'premium' : 'free';
-  const staff = plan === 'staff', paid = staff || plan === 'premium', admin = !!p.is_admin;
+  const staff = plan === 'staff', paid = staff || plan === 'premium', admin = !!p.is_admin, avTeacher = staff && p.role === 'teacher';
   return Object.freeze({
     plan, staff, premium: paid, role: p.role || null,
     pdfPyq: true,                                          // every account: PDF download of PYQs only
     pdf: paid, print: paid,                                // Premium (and Avanti teachers): PDF download and print
-    share: admin, copy: admin, docx: admin, pptx: admin,   // sharing, copying and editable Word / PowerPoint: the admin only
-    attention: staff,                                      // Attention flags: Staff only
+    share: admin || avTeacher, copy: admin, docx: admin || avTeacher, pptx: admin || avTeacher,   // sharing and editable Word / PowerPoint: the admin and Avanti teachers; copying: the admin only
+    attention: admin,                                      // the Attention list (error reports): the admin only
     createTests: !!p.can_create_tests,                     // every teacher and Staff (decided by the database)
     worksheets: !!p.can_manage_students,                   // Premium teachers and Staff
     manageStudents: !!p.can_manage_students,               // Premium teachers and Staff: student list, bulk upload, edit

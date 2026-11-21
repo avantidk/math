@@ -9,7 +9,7 @@ html.plan-free .qb-exp, html.plan-free .qb-tglrow, html.plan-free .qb-fname { di
 html.plan-premium [data-act="lexp"][data-k="docx"], html.plan-premium [data-act="lexp"][data-k="pptx"],
 html.plan-premium [data-f="docx"], html.plan-premium [data-f="pptx"], html.plan-premium [data-mexp="docx"], html.plan-premium [data-mexp="pptx"],
 html.plan-premium .qb-docx, html.plan-premium .qb-ppt { display: none !important; }
-html:not(.plan-staff) .qb-attnf, html:not(.plan-staff) .qb-tag.attn, html:not(.plan-staff) .qb-attn { display: none !important; }
+html:not(.is-admin) .qb-attnf, html:not(.is-admin) .qb-tag.attn, html:not(.is-admin) .qb-attn, html:not(.is-admin) .qb-rep { display: none !important; }
 html.plan-free .main :not(input):not(textarea):not(select) { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 @media print { html.plan-free body { display: none !important; } }
 
