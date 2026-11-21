@@ -176,7 +176,7 @@ const rupees = p => '₹' + Math.round((p || 0) / 100);
 /* Avatar colour: Free student green, Free teacher blue, Premium (and Staff) golden with a green ring for students and a red ring for teachers. */
 function avatarClass(p, perm) { return 'pf-btn ' + (perm.plan === 'free' ? (p.role === 'teacher' ? 'av-free-t' : 'av-free-s') : 'av-gold ' + (p.role === 'teacher' ? 'av-ring-t' : 'av-ring-s')); }
 /* the number shown after each menu item, from menu_counts() */
-const COUNT_KEY = { '#/tests': 'available', '#/reports': 'reports', '#/my-tests': 'tests', '#/students': 'students', '#/worksheets': 'worksheets', '#/approvals': 'approvals' };
+const COUNT_KEY = { '#/personal': 'personal', '#/tests': 'available', '#/reports': 'reports', '#/my-tests': 'tests', '#/students': 'students', '#/worksheets': 'worksheets', '#/approvals': 'approvals' };
 function renderMenu() {
   const slot = $('#tbProfile'); const p = A.profile; if (!slot || !p) return;
   slot.textContent = '';
@@ -189,7 +189,7 @@ function renderMenu() {
     items.push(['#/reports', 'My Reports']);
   }
   if (teacher || perm.staff) {
-    if (perm.createTests) items.push(['#/my-tests', 'My Tests and Results']);
+    if (perm.createTests) items.push(['#/my-tests', 'School Tests & Results']);
     if (perm.manageStudents) items.push(['#/students', 'My Students']);
     if (perm.worksheets) items.push(['#/worksheets', 'Saved worksheets']);
   }

@@ -1,5 +1,17 @@
 [
   {
+    "v": "981",
+    "date": "21 Nov 2026",
+    "items": [
+      "A test never starts by itself now: choosing a paper or a test opens its instructions, with the number of questions, time, maximum marks and the marking scheme by question type. The timer starts only when you press Start.",
+      "Previous Year Papers now hold every question of the paper (for example KCET 60 of 60, NDA 120 of 120). Matching questions are marked like single-correct ones. A question with no usable answer key, and written answers of the old IIT-JEE papers, are shown but not marked, and their answer appears in the review.",
+      "JEE Advanced and IIT-JEE papers show how marks differ by question type (single correct, one or more correct with partial marks, numerical).",
+      "All tests are for your own practice: the 'Who is it for?' choice is gone.",
+      "New Tests page with the five tests: Previous Year Papers, Chapter Wise Mock, Must Solve / Repeated Questions, Create Your Practice Test and Full Length Mock.",
+      "Menu: 'My Tests and Results' is now 'School Tests & Results' (teachers). 'Practice Tests & Results' shows its own count, and the two counts are separate."
+    ]
+  },
+  {
     "v": "980",
     "date": "21 Nov 2026",
     "items": [

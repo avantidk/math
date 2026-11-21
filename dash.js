@@ -284,7 +284,6 @@ async function launchTestFrom(rows, c, mode, e, count, label) {
   const qs = chosen.map(r => { const x = D.raw.get(r.id), f = figs[r.id]; return { id: r.id, type: x.type, q: x.question, o: x.options || [], a: String(x.answer), ch: x.chapter_code, chn: c.chapter, tp: x.topic || '', f: f && f.svg ? { svg: f.svg } : null, s: r.P ? 'P' : 'N' }; });
   const r = await A().sb.rpc('create_personal_test', { p_title: c.chapter + (mode === 'pyq' && e ? ' · ' + e.name : '') + ' · ' + label, p_duration_min: n * 3, p_marks_correct: 4, p_marks_wrong: 1, p_questions: qs, p_paper_key: 'chapter-' + c.chapter_code, p_audience: 'self', p_exam: 'JEE Main' });
   if (r.error) throw new Error(r.error.message);
-  try { sessionStorage.setItem('avanti-auto', r.data.code); } catch (x) { /* storage blocked */ }
   location.href = 'qbank#/t/' + r.data.code;
 }
 function testLauncher(rows, c, mode, e) {

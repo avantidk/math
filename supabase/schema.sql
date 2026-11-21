@@ -999,7 +999,12 @@ language sql stable security definer set search_path = public as $$
            'attempt_id', a.id, 'attempt_status', a.status, 'school', t.school,
            'target_classes', t.target_classes, 'target_streams', t.target_streams,
            'for_me', public.test_block_reason(t, me) is null, 'blocked', public.test_block_reason(t, me), 'audience', t.audience,
-           'school_pending', public.approved_school(me) is null and not public.admin_of(me))
+           'school_pending', public.approved_school(me) is null and not public.admin_of(me),
+           'max_marks', (select coalesce(sum(coalesce((e -> 'm' ->> 'c')::numeric, t.marks_correct)), 0) from jsonb_array_elements(t.questions) e),
+           'sections', (select coalesce(json_agg(json_build_object('type', k.type, 'n', k.n, 'c', k.c, 'w', k.w, 'p', k.p) order by k.first), '[]'::json) from (
+               select e ->> 'type' as type, count(*) as n, coalesce((e -> 'm' ->> 'c')::numeric, t.marks_correct) as c, (e -> 'm' ->> 'w')::numeric as w,
+                      coalesce((e -> 'm' ->> 'p')::boolean, false) as p, min(o) as first
+                 from jsonb_array_elements(t.questions) with ordinality z(e, o) group by 1, 3, 4, 5) k))
     from public.tests t
     join public.profiles me on me.id = auth.uid()
     left join public.profiles o on o.id = t.owner_id
@@ -1037,8 +1042,8 @@ begin
                 when 'number' then r::text
                 else null end;
     v_marks := 0;
-    if v_resp is null then
-      v_status := 'skipped';
+    if v_resp is null or v_key = '' or coalesce((q ->> 'nk')::boolean, false) or v_type = 'WRITTEN' then
+      v_status := 'skipped';   -- not answered, or no answer key available (c = 0 for these): never marked right or wrong
     elsif v_type = 'Numerical' then
       m := regexp_match(v_key, '^(-?\d+(?:\.\d+)?)\s*TO\s*(-?\d+(?:\.\d+)?)$');
       if m is not null then lo := least(m[1]::numeric, m[2]::numeric); hi := greatest(m[1]::numeric, m[2]::numeric);
@@ -1973,7 +1978,8 @@ begin
   select * into me from public.profiles where id = auth.uid();
   if me.id is null then return '{}'::json; end if;
   return json_build_object(
-    'tests', (select count(*) from public.tests t where t.owner_id = me.id or public.admin_of(me)),
+    'tests', (select count(*) from public.tests t where (t.audience = 'school' and t.owner_id = me.id) or (public.admin_of(me) and t.audience <> 'self')),   -- School Tests & Results
+    'personal', (select count(*) from public.tests t where t.owner_id = me.id and t.audience = 'self'),   -- Practice Tests & Results
     'worksheets', (select count(*) from public.worksheets w where w.owner_id = me.id),
     'students', case when public.admin_of(me) then (select count(*) from public.student_allowlist) + (select count(*) from public.profiles x where x.role = 'student' and x.avanti_id is null)
                      when me.role = 'teacher' and public.approved_school(me) is not null then
@@ -2155,7 +2161,7 @@ begin
     select * into sc from public.marking_schemes where exam = p_exam and (p_year is null or effective_year = p_year) order by effective_year desc limit 1;
     if sc.exam is null then raise exception 'Unknown exam'; end if;
     select coalesce(jsonb_agg(case when x.mm is null then x.e else x.e || jsonb_build_object('m', jsonb_build_object('c', (x.mm ->> 'c')::numeric, 'w', (x.mm ->> 'w')::numeric, 'p', coalesce((x.mm ->> 'p')::boolean, false))) end order by x.o), '[]'::jsonb)
-      into qs from (select e, o, coalesce(sc.rules -> 'sections' -> (e ->> 'sec'), sc.rules -> 'types' -> (e ->> 'type')) as mm from jsonb_array_elements(p_questions) with ordinality z(e, o)) x;
+      into qs from (select e, o, case when e ? 'nk' and (e ->> 'nk')::boolean then '{"c": 0, "w": 0}'::jsonb else coalesce(sc.rules -> 'sections' -> (e ->> 'sec'), sc.rules -> 'types' -> (case when e ->> 'type' = 'Matching' then 'MCQ' else e ->> 'type' end)) end as mm from jsonb_array_elements(p_questions) with ordinality z(e, o)) x;
     dur := coalesce(p_duration_min, sc.duration_min);
     mc := coalesce((sc.rules -> 'types' -> 'MCQ' ->> 'c')::numeric, mc, 4); mw := coalesce((sc.rules -> 'types' -> 'MCQ' ->> 'w')::numeric, mw, 0);
   end if;

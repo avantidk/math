@@ -730,7 +730,7 @@ function paperInfo(x) {
   const label = (/\b(19|20)\d{2}\b/.test(p) ? p : (EXN[x.e] || x.e) + ' ' + (x.y || '') + ' · ' + p).trim();
   return { key: paperKey(x), e: x.e, label, t, sh };
 }
-const gradable = q => { if (!q || !q.a) return false; if (q.t === 'Numerical') return /^-?\d+(\.\d+)?$/.test(q.a.trim()) || /^-?\d+(\.\d+)?\s*to\s*-?\d+(\.\d+)?$/i.test(q.a.trim()); return (q.t === 'MCQ' || q.t === 'MSQ') && (q.o || []).length > 0 && /^[A-D](,[A-D])*$/.test(q.a); };
+const gradable = q => { if (!q || !q.a) return false; if (q.t === 'Numerical') return /^-?\d+(\.\d+)?$/.test(q.a.trim()) || /^-?\d+(\.\d+)?\s*to\s*-?\d+(\.\d+)?$/i.test(q.a.trim()); return (q.t === 'MCQ' || q.t === 'MSQ' || q.t === 'Matching') && (q.o || []).length > 0 && /^[A-D](,[A-D])*$/.test(q.a); };
 let CHN = new Map();
 function snap(q) { const ch = CHN.get(q.cc); return { id: q.i, type: q.t, q: q.q, o: q.o || [], a: q.a, ch: q.cc, chn: ch ? ch.n : q.cc, tp: q.tp || '', f: q.f && q.f.svg ? { svg: q.f.svg } : null, d: q.d, src: q.s === 'P' ? (q.e === 'Main' ? 'JEE Main' : q.e === 'Adv' ? 'JEE Advanced' : q.e) + (q.y ? ' ' + q.y : '') : 'Practice' }; }
 async function pageCreate(arg, r) {
@@ -949,9 +949,9 @@ async function pageCreate(arg, r) {
 /* ---------- My Tests ---------- */
 async function pageMyTests() {
   if (!can('createTests')) return nope('My Tests is for teachers', 'Sign in as a teacher to create tests.');
-  show(head('My Tests and Results', ''), loading());
+  show(head('School Tests & Results', ''), loading());
   const list = await rpc('my_tests');
-  const top = head('My Tests and Results', list.length ? list.length + ' test' + (list.length === 1 ? '' : 's') : '', link('#/create', '+ Create Test', 'btn pri'));
+  const top = head('School Tests & Results', list.length ? list.length + ' test' + (list.length === 1 ? '' : 's') : '', link('#/create', '+ Create Test', 'btn pri'));
   if (!list.length) { show(top, card(empty('No tests yet', 'Create your first test from the Question Bank, DPPs or PYQs.', link('#/create', 'Create Test', 'btn pri')))); return; }
   const toggle = async t => { const { error } = await sb().from('tests').update({ is_active: !t.is_active }).eq('id', t.id); if (error) toast('Could not change: ' + error.message); else { toast(t.is_active ? 'Test deactivated: students cannot start it.' : 'Test activated.'); pageMyTests(); } };
   const del = async t => {
@@ -1010,14 +1010,23 @@ async function schemes() {
 }
 const schemeExam = e => ({ 'IIT-JEE': 'JEE Advanced', 'AIEEE': 'JEE Main' }[e] || e);
 const mcqRule = sc => (sc.rules && sc.rules.types && sc.rules.types.MCQ) || { c: 4, w: 1 };
-const markText = sc => { const r = mcqRule(sc); return '+' + num(r.c, 2) + (r.w ? ' / −' + num(r.w, 2) : ''); };
+const markText = sc => {
+  const t = (sc.rules && sc.rules.types) || {}, ks = Object.keys(t), sig = k => (t[k].c || 0) + '/' + (t[k].w || 0) + '/' + (t[k].p ? 1 : 0);
+  if (ks.length > 1 && new Set(ks.map(sig)).size > 1) return 'marks differ by question type';
+  const r = mcqRule(sc); return '+' + num(r.c, 2) + (r.w ? ' / −' + num(r.w, 2) : '');
+};
 /* a question as it is stored inside a test (the answer key stays on the server; students never get ids or keys) */
-const tq = q => { const x = snap(q); return { id: x.id, type: x.type, q: x.q, o: x.o, a: x.a, ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' }; };
+const tq = q => {
+  const x = snap(q), ok = gradable(q), written = q.t === 'Subjective';
+  const o = { id: x.id, type: written ? 'WRITTEN' : x.type, q: x.q, o: x.o, a: x.a || '', ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' };
+  if (!ok) o.nk = true;   /* no answer key we can mark (or a written answer): shown in the test, not marked, answer shown in the review */
+  return o;
+};
 const shuffled = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const AUD_NAME = { self: 'Only me', teachers_link: 'Link for Premium teachers', all_teachers: 'All teachers', all_students: 'All students' };
 function papersOf(B, exam) {
   const pm = new Map();
-  B.qs.forEach(x => { if (x.s === 'P' && x.p && examOfQ(x) === exam && gradable(x)) { const k = paperKey(x); if (!pm.has(k)) pm.set(k, Object.assign(paperInfo(x), { exam, qs: [] })); pm.get(k).qs.push(x); } });
+  B.qs.forEach(x => { if (x.s === 'P' && x.p && examOfQ(x) === exam) { const k = paperKey(x); if (!pm.has(k)) pm.set(k, Object.assign(paperInfo(x), { exam, qs: [] })); pm.get(k).qs.push(x); } });
   return [...pm.values()].sort((a, b) => b.t - a.t || a.sh - b.sh || a.label.localeCompare(b.label));
 }
 async function showMyRank(testId) {
@@ -1038,25 +1047,20 @@ async function showLinkRanking(testId, title) {
   } catch (e) { toast(e.message); }
 }
 async function pagePersonal(arg) {
-  const onlyPicker = arg === 'pyq';   /* #/modes/pyq: the paper picker alone (Previous Year Actual Exam) */
-  show(head(onlyPicker ? 'Previous Year Actual Exam' : 'Practice Tests & Results', onlyPicker ? 'Full past papers with the real time and marking.' : 'Your tests and results stay in your own account.'), loading('Loading the question papers…'));
+  const onlyPicker = arg === 'pyq';   /* #/modes/pyq: the paper picker alone (Previous Year Papers) */
+  show(head(onlyPicker ? 'Previous Year Papers' : 'Practice Tests & Results', onlyPicker ? 'Every question of the real paper, with the real time and marking.' : 'Your tests and results stay in your own account.'), loading('Loading the question papers…'));
   const [ov, B] = await Promise.all([rpc('personal_overview'), fresh(TE().bank())]);
   CHN = B.chapters;
-  const perm = AU().perm, isAdm = !!perm.isAdmin, premT = !isAdm && (perm.staff || (P().role === 'teacher' && perm.plan === 'premium'));
-  const audOpts = isAdm ? [['self', 'Only me'], ['all_teachers', 'All teachers (this exam is for teachers only)'], ['all_students', 'All students']]
-    : premT ? [['self', 'Only me'], ['teachers_link', 'Share a link with Premium teachers']] : null;
-  let aud = 'self', exam = PAPER_EXAMS.find(e => papersOf(B, e).length) || PAPER_EXAMS[0];
-  const paperBox = h('div', { class: 'pp-papers' }), examBar = h('div', { class: 'pp-exams', role: 'group', 'aria-label': 'Exam' }), audBar = audOpts ? h('div', { class: 'pp-exams', role: 'group', 'aria-label': 'Who is it for' }) : null;
+  let exam = PAPER_EXAMS.find(e => papersOf(B, e).length) || PAPER_EXAMS[0];
+  const paperBox = h('div', { class: 'pp-papers' }), examBar = h('div', { class: 'pp-exams', role: 'group', 'aria-label': 'Exam' });
   const SC = await schemes();
   const startPaper = async (paper, btn) => {
     const ex = schemeExam(paper.exam), sc = SC[ex] || SC['JEE Main'], rule = mcqRule(sc);
     const qs = paper.qs.map(tq);
     btn.disabled = true;
     try {
-      const r = await rpc('create_personal_test', { p_title: paper.label, p_duration_min: null, p_marks_correct: rule.c, p_marks_wrong: rule.w, p_questions: qs, p_paper_key: paper.key, p_audience: aud, p_exam: ex });
-      if (aud === 'self') { try { sessionStorage.setItem('avanti-auto', r.code); } catch (e) { /* no storage */ } location.hash = '#/t/' + r.code; return; }
-      if (aud === 'teachers_link') copy(testLink(r.code), 'Link copied. Send it to Premium teachers.'); else toast('Done. The test is live for ' + (aud === 'all_teachers' ? 'all teachers.' : 'all students.'));
-      pagePersonal();
+      const r = await rpc('create_personal_test', { p_title: paper.label, p_duration_min: null, p_marks_correct: rule.c, p_marks_wrong: rule.w, p_questions: qs, p_paper_key: paper.key, p_audience: 'self', p_exam: ex });
+      location.hash = '#/t/' + r.code;   /* the test opens on its instructions: it starts only when you press Start */
     } catch (e) { toast(e.message); btn.disabled = false; }
   };
   const drawPapers = () => {
@@ -1064,17 +1068,16 @@ async function pagePersonal(arg) {
     PAPER_EXAMS.forEach(e => { const n = papersOf(B, e).length; if (n) examBar.append(h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(e === exam), text: e + ' (' + n + ')', onclick: () => { exam = e; drawPapers(); } })); });
     paperBox.textContent = '';
     const sc = SC[schemeExam(exam)] || SC['JEE Main'];
-    papersOf(B, exam).forEach(pp => paperBox.append(h('button', { type: 'button', class: 'pp-card', onclick: e => startPaper(pp, e.currentTarget) },
-      h('b', { text: pp.label }), h('small', { text: pp.qs.length + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }), h('span', { class: 'pp-go', text: 'Start ›' }))));
-    if (audBar) { audBar.textContent = ''; audOpts.forEach(([k, t]) => audBar.append(h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(k === aud), text: t, onclick: () => { aud = k; drawPapers(); } }))); }
+    papersOf(B, exam).forEach(pp => { const nm = pp.qs.filter(q => !gradable(q)).length;
+      paperBox.append(h('button', { type: 'button', class: 'pp-card', onclick: e => startPaper(pp, e.currentTarget) },
+        h('b', { text: pp.label }), h('small', { text: pp.qs.length + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }), nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null, h('span', { class: 'pp-go', text: 'Open instructions ›' }))); });
   };
   const status = x => !x.attempt_id ? badge('Not started', 'mute') : x.attempt_status === 'submitted' ? badge('Submitted', 'ok') : badge('In progress', 'mid');
   const mineRows = ov.mine.map(x => h('tr', {},
     h('td', {}, h('b', { text: x.title }), h('div', { class: 'pt-hint', text: day(x.created_at) + ' · ' + x.n_questions + ' questions · ' + x.duration_min + ' min' })),
-    h('td', {}, badge(AUD_NAME[x.audience] || x.audience, x.audience === 'self' ? 'mute' : 'mid'), x.audience !== 'self' ? h('div', { class: 'pt-hint', text: x.takers + ' taken' }) : null),
     h('td', {}, status(x)), h('td', { class: 'pt-num', text: x.attempt_status === 'submitted' ? num(x.score, 2) + ' / ' + num(x.max_score, 2) : '—' }),
     h('td', {}, h('div', { class: 'pt-actions pt-nowrap' },
-      x.attempt_status === 'submitted' ? [link('#/report/' + x.attempt_id, 'Report', 'btn'), h('button', { type: 'button', class: 'btn', text: 'Export', onclick: () => exportResult(x.attempt_id, x.title) })] : ['self', 'teachers_link'].includes(x.audience) ? h('button', { type: 'button', class: 'btn pri', text: x.attempt_id ? 'Resume' : 'Start', onclick: () => { try { sessionStorage.setItem('avanti-auto', x.code); } catch (e) { /* no storage */ } location.hash = '#/t/' + x.code; } }) : null,
+      x.attempt_status === 'submitted' ? [link('#/report/' + x.attempt_id, 'Report', 'btn'), h('button', { type: 'button', class: 'btn', text: 'Export', onclick: () => exportResult(x.attempt_id, x.title) })] : ['self', 'teachers_link'].includes(x.audience) ? h('button', { type: 'button', class: 'btn pri', text: x.attempt_id ? 'Resume' : 'Open', onclick: () => { location.hash = '#/t/' + x.code; } }) : null,
       x.audience === 'teachers_link' ? h('button', { type: 'button', class: 'btn', text: 'Copy link', onclick: () => copy(testLink(x.code), 'Link copied') }) : null,
       x.audience === 'teachers_link' ? h('button', { type: 'button', class: 'btn', text: 'Ranking', onclick: () => showLinkRanking(x.id, x.title) }) : null,
       x.audience === 'all_teachers' || x.audience === 'all_students' ? link('#/results/' + x.id, 'Results', 'btn') : null))));
@@ -1085,14 +1088,13 @@ async function pagePersonal(arg) {
       x.attempt_status === 'submitted' && ['teachers_link', 'all_teachers'].includes(x.audience) ? h('button', { type: 'button', class: 'btn', text: 'My rank', onclick: () => showMyRank(x.test_id) }) : null))));
   const table = (rows, cols) => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, cols.map(x => h('th', { text: x })))), h('tbody', {}, rows)));
   drawPapers();
-  const startCard = card(h('h2', { text: 'Start a test' }), h('p', { class: 'pt-hint', text: 'Choose the exam, then the paper. The test starts at once with the real time and marking of that paper.' }),
-    audBar ? h('div', { class: 'pt-fld' }, h('span', { text: 'Who is it for?' }), audBar) : null, examBar, paperBox);
-  if (onlyPicker) { show(head('Previous Year Actual Exam', 'Full past papers with the real time and marking.', link('#/modes', '‹ Tests', 'btn')), startCard); return; }
+  const startCard = card(h('h2', { text: 'Choose a paper' }), h('p', { class: 'pt-hint', text: 'Pick the exam, then the paper. You see the instructions and the marking scheme first; the timer starts only when you press Start.' }), examBar, paperBox);
+  if (onlyPicker) { show(modeBanner('PYP', 'Previous Year Papers', 'Every question of the real paper, with the real time and marking.'), startCard); return; }
   show(head('Practice Tests & Results', 'Your tests and results stay in your own account.', link('#/modes', 'Start a new test', 'btn pri')),
     ov.offered.length ? card(h('h2', { text: 'Tests for you' }), h('p', { class: 'pt-hint', text: 'Made by अंक-IT for ' + (P().role === 'student' ? 'students' : 'teachers') + '. Teachers see their own rank only.' }),
-      h('div', { class: 'pp-papers' }, ov.offered.map(x => h('button', { type: 'button', class: 'pp-card', onclick: () => { try { sessionStorage.setItem('avanti-auto', x.code); } catch (e) { /* no storage */ } location.hash = '#/t/' + x.code; } },
-        h('b', { text: x.title }), h('small', { text: x.n_questions + ' questions · ' + x.duration_min + ' min' }), h('span', { class: 'pp-go', text: 'Start ›' }))))) : null,
-    card(h('h2', { text: 'My tests and results' }), ov.mine.length ? table(mineRows, ['Test', 'For', 'Status', 'Score', '']) : empty('No tests yet', 'Open Tests to start your first one.', link('#/modes', 'Tests', 'btn pri'))),
+      h('div', { class: 'pp-papers' }, ov.offered.map(x => h('button', { type: 'button', class: 'pp-card', onclick: () => { location.hash = '#/t/' + x.code; } },
+        h('b', { text: x.title }), h('small', { text: x.n_questions + ' questions · ' + x.duration_min + ' min' }), h('span', { class: 'pp-go', text: 'Open instructions ›' }))))) : null,
+    card(h('h2', { text: 'My tests and results' }), ov.mine.length ? table(mineRows, ['Test', 'Status', 'Score', '']) : empty('No tests yet', 'Open Tests to start your first one.', link('#/modes', 'Tests', 'btn pri'))),
     ov.taken.length ? card(h('h2', { text: 'Tests I took by link' }), table(takenRows, ['Test', 'Status', 'Score', ''])) : null);
 }
 /* ---------- Tests: five ways to start a test (v975) ----------
@@ -1104,8 +1106,7 @@ async function launchTest(o) {
   const SC = await schemes(), sc = SC[o.exam] || SC['JEE Main'], rule = mcqRule(sc);
   const r = await rpc('create_personal_test', { p_title: o.title, p_duration_min: o.mins == null ? null : o.mins, p_marks_correct: rule.c, p_marks_wrong: rule.w,
     p_questions: o.qs.map(tq), p_paper_key: o.key || null, p_audience: 'self', p_exam: o.exam });
-  try { sessionStorage.setItem('avanti-auto', r.code); } catch (e) { /* no storage */ }
-  location.hash = '#/t/' + r.code;
+  location.hash = '#/t/' + r.code;   /* the instructions come first; the test starts when you press Start */
 }
 /* pick n questions, chapters mixed evenly when asked */
 function pickN(pool, n, even, used) {
@@ -1128,12 +1129,19 @@ function compose(poolP, poolN, mix, ratioP, even) {
   });
   return out;
 }
+const TXI = {
+  pyq: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
+  chapter: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H20v14H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H20M9 9h6M9 13h4"/></svg>',
+  sure: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3.6 2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.3 2.8 1-5.9-4.2-4.1 5.9-.8z"/></svg>',
+  custom: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1.5 14h5M9.5 8h5M17.5 16h5"/></svg>',
+  full: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4.5l3 1.8M9.5 2.5h5"/></svg>' };
 const MODES = [
-  { k: 'custom', t: 'Create Your Personal Test', d: 'Choose chapters, source, difficulty and how many questions.', mark: 'YOU' },
-  { k: 'pyq', t: 'Previous Year Actual Exam', d: 'Full shift-wise past papers with the real time and marking.', mark: 'PYQ' },
-  { k: 'chapter', t: 'Chapterwise Mock Test', d: 'Pick a chapter and get a mixed test of PYQs and practice questions.', mark: 'CH', np: true },
-  { k: 'sure', t: 'Repeated & Sure-Shot Questions', d: 'Only the questions that came again and again, plus the sure-shot ones.', mark: 'TOP' },
-  { k: 'full', t: 'Full-Length Mock', d: 'Mixed chapters, PYQs and practice questions, with the official duration and marking.', mark: 'MOCK', np: true }];
+  { k: 'pyq', t: 'Previous Year Papers', d: 'Sit a real paper, shift by shift: every question, the real time and the real marking.', tags: ['JEE · KCET · NDA · IAT', 'Real marking'], tone: 'blue' },
+  { k: 'chapter', t: 'Chapter Wise Mock', d: 'Pick one chapter and get a mixed test of previous year and practice questions.', tags: ['25 questions', 'PYQs + practice'], tone: 'green', np: true },
+  { k: 'sure', t: 'Must Solve / Repeated Questions', d: 'Only the questions that came again and again in JEE, plus the sure-shot ones.', tags: ['High yield', 'All chapters or one'], tone: 'gold' },
+  { k: 'custom', t: 'Create Your Practice Test', d: 'You decide the chapters, the source, the difficulty, the number of questions and the time.', tags: ['Your own mix', 'Any chapter'], tone: 'violet' },
+  { k: 'full', t: 'Full Length Mock', d: 'A whole exam: chapters mixed, with the official duration, question count and marking.', tags: ['Official timing', 'All chapters'], tone: 'rose', np: true }];
+const modeBanner = (kick, title, sub, ...actions) => h('section', { class: 'tx-banner' }, h('div', { class: 'tx-b-in' }, h('span', { class: 'tx-kick', text: kick }), h('h1', { text: title }), sub ? h('p', { text: sub }) : null), h('div', { class: 'tx-b-act' }, link('#/modes', '‹ All tests', 'btn tx-ghost'), actions));
 async function pageModes(arg) {
   if (arg === 'pyq') return pagePersonal('pyq');
   if (arg === 'custom') return modeCustom();
@@ -1141,16 +1149,21 @@ async function pageModes(arg) {
   if (arg === 'sure') return modeSure();
   if (arg === 'full') return modeFull();
   const free = isFree();
-  show(head('Tests', 'Choose how you want to be tested. The test starts at once; your result is saved in Practice Tests & Results.', link('#/personal', 'Practice Tests & Results', 'btn')),
-    h('div', { class: 'md-grid' }, MODES.map(m => { const off = free && m.np;
-      return h('a', { class: 'md-card' + (off ? ' is-off' : ''), href: off ? '#/membership' : '#/modes/' + m.k, 'aria-label': m.t + (off ? ' (Premium)' : '') },
-        h('span', { class: 'md-mark', text: m.mark }), h('b', { text: m.t }), h('small', { text: m.d }),
-        off ? h('span', { class: 'md-lock', text: '🔒 Premium' }) : h('span', { class: 'pp-go', text: 'Open ›' })); })));
+  let n = null; try { const c = await rpc('menu_counts'); n = c && c.personal; } catch (e) { n = null; }
+  const how = [['Choose a test', 'Pick one of the five test types below.'], ['Read the instructions', 'Time, questions and the marking scheme are shown first.'], ['Press Start', 'The timer begins only when you press Start.'], ['Review', 'Score report, topic analysis, answers and explanations.']];
+  show(h('section', { class: 'tx-hero' }, h('div', { class: 'tx-hero-in' }, h('span', { class: 'tx-kick', text: 'TESTS' }), h('h1', { text: 'Test yourself like the real exam' }),
+      h('p', { text: 'Real papers, mock tests and your own practice sets. Every result stays in your own account, and nobody else sees it.' }),
+      h('div', { class: 'tx-hero-act' }, link('#/personal', 'Practice Tests & Results' + (n != null ? ' (' + n + ')' : ''), 'btn pri'))),
+      h('ul', { class: 'tx-how', 'aria-label': 'How a test works' }, how.map(([t, d], i) => h('li', {}, h('b', { text: String(i + 1) }), h('span', {}, h('strong', { text: t }), h('small', { text: d })))))),
+    h('div', { class: 'tx-grid' }, MODES.map((m, i) => { const off = free && m.np;
+      return h('a', { class: 'tx-card tx-' + m.tone + (i < 3 ? ' tx-top' : ' tx-low') + (off ? ' is-off' : ''), href: off ? '#/membership' : '#/modes/' + m.k, 'aria-label': m.t + (off ? ' (Premium)' : '') },
+        h('span', { class: 'tx-ic', html: TXI[m.k] }), off ? h('span', { class: 'tx-lock', text: '🔒 Premium' }) : null, h('h2', { text: m.t }), h('p', { text: m.d }),
+        h('ul', { class: 'tx-tags' }, m.tags.map(t => h('li', { text: t }))), h('span', { class: 'tx-go', text: off ? 'Unlock with Premium ›' : 'Open ›' })); })));
 }
-const modeHead = (t, sub) => head(t, sub, link('#/modes', '‹ Tests', 'btn'));
+const modeHead = (t, sub) => modeBanner('TESTS', t, sub);
 const chip = (text, on, fn, dis) => h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(!!on), text, disabled: !!dis, onclick: fn });
 async function modeCustom() {
-  show(modeHead('Create Your Personal Test', 'Choose what to practise.'), loading('Loading the question bank…'));
+  show(modeHead('Create Your Practice Test', 'Choose what to practise.'), loading('Loading the question bank…'));
   const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
   const free = isFree(), S = { chs: new Set(), src: new Set(['P']), lv: new Set(['L1', 'L2', 'L3']), n: 20, mins: 60, auto: true };
   const all = B.qs.filter(gradable), chapters = [...CHN.values()].filter(c => all.some(q => q.cc === c.c));
@@ -1160,7 +1173,7 @@ async function modeCustom() {
   const mins = h('input', { type: 'number', class: 'pt-in', min: 5, max: 300, value: 60, 'aria-label': 'Time in minutes', oninput: e => { S.auto = false; S.mins = Math.max(5, Math.min(300, +e.target.value || 0)); } });
   const go = h('button', { type: 'button', class: 'btn pri pt-big', text: 'Start test', onclick: async () => {
     go.disabled = true;
-    try { const P2 = pool(), qs = shuffled(P2).slice(0, S.n); await launchTest({ title: 'Personal test · ' + (S.chs.size === 1 ? (CHN.get([...S.chs][0]) || {}).n : S.chs.size ? S.chs.size + ' chapters' : 'all chapters'), qs, exam: 'JEE Main', mins: S.mins, key: 'custom' }); }
+    try { const P2 = pool(), qs = shuffled(P2).slice(0, S.n); await launchTest({ title: 'Practice test · ' + (S.chs.size === 1 ? (CHN.get([...S.chs][0]) || {}).n : S.chs.size ? S.chs.size + ' chapters' : 'all chapters'), qs, exam: 'JEE Main', mins: S.mins, key: 'custom' }); }
     catch (e) { toast(e.message); go.disabled = false; } } });
   function draw() {
     chBox.textContent = ''; chapters.forEach(c => chBox.append(chip(c.c + ' ' + c.n, S.chs.has(c.c), () => { S.chs.has(c.c) ? S.chs.delete(c.c) : S.chs.add(c.c); draw(); })));
@@ -1171,52 +1184,52 @@ async function modeCustom() {
     go.disabled = n < 3;
   }
   draw();
-  show(modeHead('Create Your Personal Test', 'Choose chapters, source, difficulty and the number of questions.'),
+  show(modeHead('Create Your Practice Test', 'Choose chapters, source, difficulty and the number of questions.'),
     card(h('h2', { text: 'Chapters' }), h('p', { class: 'pt-hint', text: 'Leave all unselected for every chapter.' }), chBox),
     card(h('h2', { text: 'Source' }), srcBox, h('h2', { text: 'Difficulty' }), lvBox),
     card(h('div', { class: 'pt-fld' }, h('span', { text: 'Number of questions' }), nSel), h('div', { class: 'pt-fld' }, h('span', { text: 'Time (minutes)' }), mins), info, go));
 }
 async function modeChapter() {
   if (isFree()) { location.hash = '#/membership'; return; }
-  show(modeHead('Chapterwise Mock Test', 'Choose a chapter.'), loading('Loading the question bank…'));
+  show(modeHead('Chapter Wise Mock', 'Choose a chapter.'), loading('Loading the question bank…'));
   const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
   const all = B.qs.filter(gradable), sc = SC['JEE Main'];
   const cards = [...CHN.values()].map(c => { const p = all.filter(q => q.cc === c.c); return { c, n: p.length, np: p.filter(q => q.s === 'N').length, py: p.filter(q => q.s === 'P').length }; }).filter(x => x.n >= 10);
-  show(modeHead('Chapterwise Mock Test', 'Pick a chapter. You get ' + sc.n_questions + ' questions: PYQs and practice questions mixed. ' + sc.duration_min + ' minutes, ' + markText(sc) + '.'),
+  show(modeHead('Chapter Wise Mock', 'Pick a chapter. You get ' + sc.n_questions + ' questions: PYQs and practice questions mixed. ' + sc.duration_min + ' minutes, ' + markText(sc) + '.'),
     h('div', { class: 'pp-papers' }, cards.map(x => h('button', { type: 'button', class: 'pp-card', onclick: async e => {
       const b = e.currentTarget; b.disabled = true;
       try {
         const p = all.filter(q => q.cc === x.c.c), qs = compose(p.filter(q => q.s === 'P'), p.filter(q => q.s === 'N'), sc.rules.mix, 0.5, false), n = qs.length;
-        await launchTest({ title: x.c.n + ' · chapterwise mock', qs, exam: 'JEE Main', mins: Math.max(10, Math.round(sc.duration_min * n / sc.n_questions)), key: 'chapter-' + x.c.c });
+        await launchTest({ title: x.c.n + ' · chapter wise mock', qs, exam: 'JEE Main', mins: Math.max(10, Math.round(sc.duration_min * n / sc.n_questions)), key: 'chapter-' + x.c.c });
       } catch (err) { toast(err.message); b.disabled = false; } } },
       h('b', { text: x.c.c + ' ' + x.c.n }), h('small', { text: x.py + ' PYQs · ' + x.np + ' practice questions' }), h('span', { class: 'pp-go', text: 'Start ›' })))));
 }
 async function modeSure() {
-  show(modeHead('Repeated & Sure-Shot Questions', 'Only the questions that came again and again, and the ones sure to come.'), loading('Loading…'));
+  show(modeHead('Must Solve / Repeated Questions', 'Only the questions that came again and again, and the ones sure to come.'), loading('Loading…'));
   const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
   let must = []; try { must = await window.AvantiContent.get('must.json'); } catch (e) { must = []; }
   const sc = SC['JEE Main'], byCh = new Map();
   (must || []).forEach(m => { const qs = (m.i || []).map(it => B.byId.get(it.r)).filter(q => q && gradable(q)); if (qs.length) byCh.set(m.c, qs); });
-  if (!byCh.size) { show(modeHead('Repeated & Sure-Shot Questions', ''), card(empty('Not available yet', 'The repeated-question list could not be loaded.'))); return; }
+  if (!byCh.size) { show(modeHead('Must Solve / Repeated Questions', ''), card(empty('Not available yet', 'The repeated-question list could not be loaded.'))); return; }
   let cur = '';   /* '' = all chapters */
   const chips = h('div', { class: 'pp-exams' }), info = h('p', { class: 'pt-hint', role: 'status' });
   const pool = () => (cur ? byCh.get(cur) || [] : [...byCh.values()].flat());
   const go = h('button', { type: 'button', class: 'btn pri pt-big', text: 'Start test', onclick: async () => {
     go.disabled = true;
     try { const p = pool(), n = Math.min(sc.n_questions, p.length), qs = compose(p, [], { MCQ: Math.min(20, p.filter(q => q.t === 'MCQ').length), Numerical: Math.min(5, p.filter(q => q.t === 'Numerical').length) }, 1, !cur);
-      const more = pickN(p, n - qs.length, !cur, new Set(qs.map(q => q.i))); await launchTest({ title: 'Repeated & sure-shot · ' + (cur ? (CHN.get(cur) || {}).n : 'all chapters'), qs: qs.concat(more), exam: 'JEE Main', mins: Math.max(10, Math.round(sc.duration_min * n / sc.n_questions)), key: 'sure-' + (cur || 'all') }); }
+      const more = pickN(p, n - qs.length, !cur, new Set(qs.map(q => q.i))); await launchTest({ title: 'Must Solve / Repeated · ' + (cur ? (CHN.get(cur) || {}).n : 'all chapters'), qs: qs.concat(more), exam: 'JEE Main', mins: Math.max(10, Math.round(sc.duration_min * n / sc.n_questions)), key: 'sure-' + (cur || 'all') }); }
     catch (e) { toast(e.message); go.disabled = false; } } });
   function draw() {
     chips.textContent = ''; chips.append(chip('All chapters', cur === '', () => { cur = ''; draw(); }));
     [...byCh.keys()].forEach(c => chips.append(chip(c + ' ' + ((CHN.get(c) || {}).n || ''), cur === c, () => { cur = c; draw(); })));
     const n = pool().length; info.textContent = n + ' repeated and sure-shot questions here. The test has up to ' + sc.n_questions + ' of them (' + sc.duration_min + ' min, ' + markText(sc) + ').'; go.disabled = n < 3;
   }
-  draw(); show(modeHead('Repeated & Sure-Shot Questions', 'Choose a chapter, or all of them.'), card(chips, info, go));
+  draw(); show(modeHead('Must Solve / Repeated Questions', 'Choose a chapter, or all of them.'), card(chips, info, go));
 }
 const FULL_EXAMS = [['JEE Main', 'Main'], ['JEE Advanced', 'Adv'], ['KCET', 'KCET'], ['NDA', 'NDA'], ['IAT', 'IAT'], ['CUET', null]];
 async function modeFull() {
   if (isFree()) { location.hash = '#/membership'; return; }
-  show(modeHead('Full-Length Mock', 'Official duration and marking.'), loading('Loading the question bank…'));
+  show(modeHead('Full Length Mock', 'Official duration and marking.'), loading('Loading the question bank…'));
   const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
   const all = B.qs.filter(gradable);
   const cards = FULL_EXAMS.map(([ex, code]) => { const sc = SC[ex]; if (!sc) return null;
@@ -1226,12 +1239,12 @@ async function modeFull() {
         const pyq = all.filter(q => q.s === 'P' && (code ? q.e === code : q.cc.startsWith('12'))), np = all.filter(q => q.s === 'N' && (code ? true : q.cc.startsWith('12')));
         const mix = Object.assign({}, sc.rules.mix), qs = compose(pyq, np, mix, 0.6, true);
         if (qs.length < 5) throw new Error('Not enough questions for this mock yet.');
-        await launchTest({ title: ex + ' full-length mock', qs, exam: ex, mins: null, key: 'full-' + ex });
+        await launchTest({ title: ex + ' full length mock', qs, exam: ex, mins: null, key: 'full-' + ex });
       } catch (err) { toast(err.message); b.disabled = false; } } },
       h('b', { text: ex }), h('small', { text: (sc.n_questions || '') + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }),
       sc.rules.notes && ex === 'JEE Advanced' ? h('small', { class: 'pt-hint', text: '14 questions today: Section 4 needs paragraph questions.' }) : null, h('span', { class: 'pp-go', text: 'Start ›' })); }).filter(Boolean);
   cards.push(h('div', { class: 'pp-card is-off', 'aria-disabled': 'true' }, h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: 'Code 041 · 3 hours · coming soon' })));
-  show(modeHead('Full-Length Mock', 'Mixed chapters. PYQs and practice questions together, with the official duration and marking of the exam.'), h('div', { class: 'pp-papers' }, cards));
+  show(modeHead('Full Length Mock', 'Mixed chapters. PYQs and practice questions together, with the official duration and marking of the exam.'), h('div', { class: 'pp-papers' }, cards));
 }
 /* Export the questions of a finished test as a PDF: only questions, with the answer key, or with the key and full explanations */
 async function exportResult(attemptId, title) {
@@ -1410,17 +1423,29 @@ async function pageTake(code) {
     try { const d = await rpc('start_attempt', { p_code: code }); if (d.status === 'submitted') { location.replace('#/report/' + d.attempt_id); return; } try { await document.documentElement.requestFullscreen(); } catch (e) { /* not supported */ } runExam(d); }
     catch (e) { startBtn.disabled = false; startBtn.textContent = 'Start test'; toast(e.message); }
   } });
-  let auto = false; try { auto = sessionStorage.getItem('avanti-auto') === code; if (auto) sessionStorage.removeItem('avanti-auto'); } catch (e) { /* no storage */ }
   show(h('div', { class: 'pt-start' }, card(h('p', { class: 'pt-sub', text: info.audience === 'self' ? 'Your personal test' : 'Test by ' + info.teacher }), h('h1', { text: info.title }),
-    h('div', { class: 'pt-stats' }, stat('Questions', info.n_questions), stat('Time', info.duration_min + ' min'), stat('Correct', '+' + num(info.marks_correct, 2)), stat('Wrong (MCQ)', '−' + num(info.marks_wrong, 2))),
+    h('div', { class: 'pt-stats' }, stat('Questions', info.n_questions), stat('Time', info.duration_min + ' min'), stat('Maximum marks', num(info.max_marks != null ? info.max_marks : info.marks_correct * info.n_questions, 2))),
+    schemeTable(info),
     h('h2', { text: 'Instructions' }),
     h('ul', { class: 'pt-feats' }, ['The timer runs only while this page is open. If the power or internet goes, the timer pauses by itself. Open the test again within 30 hours to carry on; after 30 hours it is submitted with your saved answers.', 'Your answers are saved automatically every few seconds. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Do not switch tabs or apps. Every switch is recorded and your teacher can see it.', 'The test submits by itself when the time is up.'].map(x => h('li', { text: x }))),
     h('p', { class: 'pt-hint', text: 'Signed in as ' + (P().full_name || P().email || P().avanti_id) + (P().school ? ' · ' + P().school : '') }),
     startBtn)));
-  if (auto && info.is_active) startBtn.click();   /* started from Practice Tests: begin at once, nothing more to ask */
 }
 
 let EX = null;
+const TYPE_NAME = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct', Numerical: 'Numerical value', Matching: 'Matching (single correct)', SUBJ: 'Written question: pick the final answer', WRITTEN: 'Written question (not auto-marked)' };
+/* the marking scheme by question type, shown before the test starts */
+function schemeTable(info) {
+  const secs = info.sections || []; if (!secs.length) return h('p', { class: 'pt-hint', text: 'Correct +' + num(info.marks_correct, 2) + ' · wrong −' + num(info.marks_wrong, 2) });
+  const row = x => { const unmarked = +x.c === 0;
+    return h('tr', {}, h('th', { scope: 'row', text: TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
+      h('td', { class: 'pt-num', text: unmarked ? 'not marked' : '+' + num(x.c, 2) + (x.p ? ' (partial marks possible)' : '') }),
+      h('td', { class: 'pt-num', text: unmarked ? '—' : x.w != null ? (+x.w ? '−' + num(x.w, 2) : '0') : (x.type === 'MCQ' || x.type === 'Matching') ? (+info.marks_wrong ? '−' + num(info.marks_wrong, 2) : '0') : '0' })); };
+  const unm = secs.filter(x => +x.c === 0).reduce((a, x) => a + x.n, 0);
+  return h('div', { class: 'pt-scheme' }, h('h2', { text: 'Marking scheme' }),
+    h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Question type', 'Questions', 'Correct', 'Wrong'].map(t => h('th', { text: t })))), h('tbody', {}, secs.map(row)))),
+    unm ? h('p', { class: 'pt-hint', text: unm + ' question' + (unm === 1 ? ' is' : 's are') + ' not auto-marked: there is no answer key to mark them against, or they need a written answer. They are in the test for practice; the answer is shown in the review.' }) : null);
+}
 function exitExam() {
   if (!EX) return;
   clearInterval(EX.tick); clearInterval(EX.auto);
@@ -1472,6 +1497,8 @@ function runExam(d) {
     if (q.type === 'Numerical') {
       input = h('div', { class: 'ex-num' }, h('label', { for: 'exNum', text: 'Your answer (a number)' }),
         h('input', { id: 'exNum', type: 'text', inputmode: 'decimal', autocomplete: 'off', class: 'pt-in', value: a.r || '', maxlength: 20, oninput: e => { const v = e.target.value.replace(/[^0-9.\-]/g, ''); if (v !== e.target.value) e.target.value = v; a.r = v; X.dirty = true; drawPal(); } }));
+    } else if (q.type === 'WRITTEN') {
+      input = h('p', { class: 'pt-note', text: 'Solve this on paper. It is not auto-marked: compare with the answer and solution in the review after you submit.' });
     } else if (q.type === 'SUBJ') {
       /* board-paper written question (Sections B to E): solve on paper, then open the 8 final answers and pick the matching one */
       const open = !!a.ex;
@@ -1492,8 +1519,8 @@ function runExam(d) {
           } }), h('b', { text: L }), h('span', { html: qText(t) }));
       }));
     }
-    main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge((q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
-      h('span', { class: 'pt-hint', text: '+' + num(q.mc != null ? q.mc : d.marks_correct, 2) + (() => { const w = q.mw != null ? +q.mw : (q.type === 'MCQ' ? +d.marks_wrong : 0); return w ? ' / −' + num(w, 2) : ''; })() + (q.mp ? ' · partial marks' : '') }),
+    main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge((q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'WRITTEN' ? 'Written question' : q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
+      h('span', { class: 'pt-hint', text: (q.mc != null && +q.mc === 0) ? 'Not auto-marked' : '+' + num(q.mc != null ? q.mc : d.marks_correct, 2) + (() => { const w = q.mw != null ? +q.mw : (q.type === 'MCQ' ? +d.marks_wrong : 0); return w ? ' / −' + num(w, 2) : ''; })() + (q.mp ? ' · partial marks' : '') }),
       X.qtEl = h('span', { class: 'ex-qtime', title: 'Time spent on this question', 'aria-label': 'Time on this question' })),
       h('div', { class: 'ex-q', html: qText(q.q) }), figure(q.f) || '', input,
       h('div', { class: 'ex-nav' },
