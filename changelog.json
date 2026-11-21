@@ -1,5 +1,17 @@
 [
   {
+    "v": "986",
+    "date": "21 Nov 2026",
+    "items": [
+      "Dashboard question lists: only 20 questions per page, with page numbers at the bottom.",
+      "The bookmark icon at the top right of each question is now a three-line menu with the subtopic, type and level of the question, Bookmark, and Report an error. The Important and Show answer buttons and the question code are gone.",
+      "Tap an option to check your answer: green with a tick if right, red with a cross if wrong (the right option is then shown in green). Numerical questions have a box to type the answer and a Check button.",
+      "An open question now has a coloured header with a clear Collapse button.",
+      "Fixed the word \"null\" showing under some questions, and tidied the filters into a neat grid on phones.",
+      "A new export box in the Dashboard lists: Answer key and Explanation switches, Export (PDF, Word, PowerPoint, Print, Share), Save as worksheet and Create test. Exactly the questions in the list after your filters are exported."
+    ]
+  },
+  {
     "v": "985",
     "date": "21 Nov 2026",
     "items": [

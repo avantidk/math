@@ -10,6 +10,7 @@ const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 const svg = d => '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
 const ICON = { bm: svg('<path d="M6 3.5h12v17l-6-4.2-6 4.2z"/>'), warn: svg('<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5"/><path d="M12 17.3h.01"/>'), more: svg('<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>'),
   caret: svg('<path d="m6 9 6 6 6-6"/>'), prev: svg('<path d="m15 18-6-6 6-6"/>'), next: svg('<path d="m9 18 6-6-6-6"/>'), prac: svg('<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1.2 1.2L7 4.8M3.5 12l1.2 1.2L7 10.8M3.5 18l1.2 1.2L7 16.8"/>'),
+  menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>'), chk: svg('<path d="m5 12.5 4.5 4.5L19 7.5"/>'), x: svg('<path d="M6 6l12 12M18 6 6 18"/>'), up: svg('<path d="m6 15 6-6 6 6"/>'), down: svg('<path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/>'),
   test: svg('<rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>'), sort: svg('<path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/>') };
 
 /* ---------- maths in text: \( inline \) and \[ display \], line breaks kept ---------- */
@@ -50,8 +51,9 @@ function render(env, o) {
   (o.filters || []).forEach(f => { F.extra[f.key] = new Set(); });
   const typeOf = r => (D.raw.get(r.id) || {}).type || 'MCQ';
   const years = [...new Set(pool.map(r => r.y).filter(Boolean))].sort((a, b) => b - a), types = [...new Set(pool.map(typeOf))];
-  let list = [], shown = 0, openId = '';
-  const wrap = h('div', { class: 'dl' }), ul = h('ul', { class: 'dl-list' }), more = h('div', { class: 'dl-more' }), count = h('span', { class: 'dl-count', role: 'status' });
+  let list = [], page = 0, openId = '';
+  const wrap = h('div', { class: 'dl' }), ul = h('ul', { class: 'dl-list' }), pager = h('nav', { class: 'dl-pager', 'aria-label': 'Pages' }), count = h('span', { class: 'dl-count', role: 'status' });
+  let expCount = null;
   const solved = pool.filter(r => res()[r.id]).length, right = pool.filter(r => res()[r.id] === 'c').length;
 
   /* what is shown: filters, then the order */
@@ -61,33 +63,57 @@ function render(env, o) {
     const key = r => (r.y || 0) * 1e3;
     const chOrd = c => ((env.D.chByCode[c] || {}).order || 999), qn = r => +((env.D.raw.get(r.id) || {}).qno) || 0;
     list.sort((a, b) => F.sort === 'seq' ? chOrd(a.ch) - chOrd(b.ch) || String(a.bk).localeCompare(String(b.bk)) || (a.shn || 0) - (b.shn || 0) || qn(a) - qn(b) || (a.id < b.id ? -1 : 1) : F.sort === 'new' ? (b.y || 0) - (a.y || 0) || (a.id < b.id ? 1 : -1) : F.sort === 'old' ? (a.y || 0) - (b.y || 0) || (a.id < b.id ? -1 : 1) : F.sort === 'easy' ? String(a.d).localeCompare(String(b.d)) || (b.y || 0) - (a.y || 0) : String(b.d).localeCompare(String(a.d)) || (b.y || 0) - (a.y || 0));
-    shown = Math.min(PAGE, list.length); openId = ''; ul.textContent = '';
-    for (let i = 0; i < shown; i++) ul.append(row(list[i], i));
+    page = 0; draw();
+  };
+  const pages = () => Math.max(1, Math.ceil(list.length / PAGE));
+  const draw = () => {
+    openId = ''; ul.textContent = '';
+    const from = page * PAGE, to = Math.min(list.length, from + PAGE);
+    for (let i = from; i < to; i++) ul.append(row(list[i], i));
     paint();
   };
+  const goPage = (n, scroll) => { page = Math.max(0, Math.min(pages() - 1, n)); draw(); if (scroll !== false) { const t = wrap.querySelector('.dl-bar') || wrap; t.scrollIntoView({ block: 'start', behavior: 'smooth' }); } };
   const filtered = () => F.hide || F.years.size || F.lv.size || F.types.size || F.status || (o.filters || []).some(f => F.extra[f.key].size);
   const paint = () => {
-    count.textContent = 'Showing ' + (filtered() ? '' : 'all ') + 'Qs (' + Math.min(shown, list.length) + '/' + list.length + (filtered() ? ' of ' + pool.length : '') + ')';
-    more.textContent = '';
+    const from = page * PAGE, to = Math.min(list.length, from + PAGE);
+    count.textContent = list.length ? 'Showing ' + (from + 1) + '–' + to + ' of ' + list.length + (filtered() ? ' (filtered from ' + pool.length + ')' : '') : 'No questions';
+    pager.textContent = ''; if (expCount) expCount.textContent = String(list.length);
     if (!list.length) { ul.textContent = ''; ul.append(h('li', { class: 'dl-empty' }, h('b', { text: 'No questions match' }), h('span', { text: filtered() ? 'Change or clear the filters above.' : (o.emptyText || 'Nothing here yet.') }))); return; }
-    if (shown < list.length) { const b = h('button', { type: 'button', class: 'btn', text: 'Show ' + Math.min(PAGE, list.length - shown) + ' more (' + (list.length - shown) + ' left)', onclick: loadMore }); more.append(b); watch(b); }
+    const n = pages(); if (n < 2) return;
+    const btn = (t, p, cur, dis, label) => h('button', { type: 'button', class: 'dl-pg' + (cur ? ' on' : ''), disabled: !!dis, 'aria-label': label || 'Page ' + t, 'aria-current': cur ? 'page' : null, html: typeof t === 'string' && t[0] === '<' ? t : null, text: typeof t === 'string' && t[0] === '<' ? null : String(t), onclick: () => goPage(p) });
+    const set = new Set([0, n - 1, page - 1, page, page + 1]); if (page < 2) { set.add(1); set.add(2); } if (page > n - 3) { set.add(n - 2); set.add(n - 3); }
+    const nums = [...set].filter(x => x >= 0 && x < n).sort((a, b) => a - b); let prev = -1; const items = [];
+    nums.forEach(x => { if (prev >= 0 && x - prev > 1) items.push(h('span', { class: 'dl-gap', text: '…' })); items.push(btn(x + 1, x, x === page)); prev = x; });
+    pager.append(btn(ICON.prev, page - 1, false, page === 0, 'Previous page'), h('span', { class: 'dl-pgs' }, items), btn(ICON.next, page + 1, false, page >= n - 1, 'Next page'));
   };
-  const loadMore = () => { const to = Math.min(shown + PAGE, list.length); for (let i = shown; i < to; i++) ul.append(row(list[i], i)); shown = to; paint(); };
-  let io = null;
-  const watch = b => { if (!('IntersectionObserver' in window)) return; if (io) io.disconnect(); io = new IntersectionObserver(es => { if (es.some(x => x.isIntersecting)) { io.disconnect(); loadMore(); } }, { rootMargin: '300px' }); io.observe(b); };
 
   /* one compact row */
   function row(r, i) {
     const x = D.raw.get(r.id) || {}, st = res()[r.id];
-    const bm = h('button', { type: 'button', class: 'dl-bm', 'aria-label': 'Mark as important', 'aria-pressed': String(D.sum.bookmarks.includes(r.id)), html: ICON.bm, onclick: e => { e.stopPropagation(); toggleBm(r.id, bm); } });
     const li = h('li', { class: 'dl-row', 'data-id': r.id });
     const mark = h('span', { class: 'dl-st ' + (st || ''), title: st === 'c' ? 'You got this right in a test' : st === 'w' ? 'You got this wrong in a test' : st === 's' ? 'Left unanswered in a test' : 'Not attempted', text: st === 'c' ? '✓' : st === 'w' ? '✕' : st === 's' ? '–' : '' });
     const head = h('button', { type: 'button', class: 'dl-main', 'aria-expanded': 'false', onclick: () => toggle(li, r) },
       h('span', { class: 'dl-n' }, h('b', { text: String(i + 1) }), mark),
-      h('span', { class: 'dl-qt' }, h('span', { class: 'dl-q', html: rich(x.question) }), h('span', { class: 'dl-meta', text: srcLine(x) })));
-    li.append(head, h('span', { class: 'dl-sd' }, h('span', { class: 'dl-lv ' + r.d, text: r.d || '' }), bm), h('div', { class: 'dl-detail', hidden: true }));
+      h('span', { class: 'dl-qt' }, h('span', { class: 'dl-q', html: rich(x.question) }), h('span', { class: 'dl-meta', text: srcLine(x) }),
+        h('span', { class: 'dl-fold' }, h('span', { class: 'dl-fold-o', html: ICON.caret }), h('span', { class: 'dl-fold-c' }, h('i', { html: ICON.up }), 'Collapse'))));
+    li.append(head, h('span', { class: 'dl-sd' }, h('span', { class: 'dl-lv ' + r.d, text: r.d || '' }), rowMenu(r, x, li)), h('div', { class: 'dl-detail', hidden: true }));
     return li;
   }
+  const LVN = { L1: 'Level 1 · Easy', L2: 'Level 2 · Moderate', L3: 'Level 3 · Tough' };
+  /* the three-line menu of a question: subtopic, type, level, bookmark and report an error */
+  function rowMenu(r, x, li) {
+    const box = menu('', (panel, api) => {
+      const b = api.box.querySelector('.dl-fbtn'); b.className = 'dl-fbtn dl-ico dl-rowmenu'; b.innerHTML = ICON.menu; b.setAttribute('aria-label', 'Question options'); b.addEventListener('click', e => e.stopPropagation());
+      panel.classList.add('dl-pop-r', 'dl-rpop'); panel.addEventListener('click', e => e.stopPropagation());
+      const info = (k, v) => h('div', { class: 'dl-ri' }, h('span', { text: k }), h('b', { text: v }));
+      const bm = h('button', { type: 'button', class: 'dl-mi dl-mi-bm', 'data-id': r.id, onclick: () => { api.close(); toggleBm(r.id); } });
+      const warn = h('button', { type: 'button', class: 'dl-mi', html: ICON.warn + '<span>Report an error</span>', onclick: () => { api.close(); if (li.querySelector('.dl-detail').hidden) toggle(li, r); const rb = li.querySelector('.dl-rbox'); if (rb) { rb.hidden = false; rb.scrollIntoView({ block: 'center', behavior: 'smooth' }); } } });
+      bmLabel(bm);
+      panel.append(info('Subtopic', x.topic || r.tp || '—'), info('Type', x.type || 'MCQ'), info('Level', LVN[r.d] || r.d || '—'), h('div', { class: 'dl-sep' }), bm, warn);
+    });
+    return box;
+  }
+  const bmLabel = b => { const on = D.sum.bookmarks.includes(b.dataset.id); b.innerHTML = ICON.bm + '<span>' + (on ? 'Remove bookmark' : 'Bookmark question') + '</span>'; b.classList.toggle('on', on); };
   const toggle = (li, r) => {
     const det = li.querySelector('.dl-detail'), btn = li.querySelector('.dl-main'), was = !det.hidden;
     ul.querySelectorAll('.dl-row.open').forEach(o => { o.classList.remove('open'); o.querySelector('.dl-detail').hidden = true; o.querySelector('.dl-main').setAttribute('aria-expanded', 'false'); });
@@ -96,25 +122,47 @@ function render(env, o) {
     if (!det.dataset.built) { det.dataset.built = '1'; det.append(detail(r)); }
     setTimeout(() => li.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 30);
   };
-  const toggleBm = (id, btn) => {
-    btn.disabled = true;
+  const toggleBm = id => {
     A().sb.rpc('toggle_bookmark', { p_qid: id }).then(r => {
       if (r.error) throw new Error(r.error.message); const on = !!r.data;
       D.sum.bookmarks = on ? [id].concat(D.sum.bookmarks.filter(i => i !== id)) : D.sum.bookmarks.filter(i => i !== id);
-      document.querySelectorAll('.dl-row[data-id="' + id + '"] .dl-bm, .dl-d-bm[data-id="' + id + '"]').forEach(b => b.setAttribute('aria-pressed', String(on)));
-    }).catch(e => env.toast(e.message || 'Could not save')).then(() => { btn.disabled = false; });
+      document.querySelectorAll('.dl-mi-bm[data-id="' + id + '"]').forEach(bmLabel); env.toast(on ? 'Bookmarked' : 'Bookmark removed');
+    }).catch(e => env.toast(e.message || 'Could not save'));
   };
 
   /* the opened question: full text, options, answer, solution, others' solutions, comments, report */
   function detail(r) {
-    const x = D.raw.get(r.id) || {}, box = h('div', { class: 'dl-d' });
-    const opts = (x.options || []).slice(0, 8), keys = String(x.answer || '').toUpperCase().split(/[^A-H]+/).filter(Boolean), isKey = /^[A-H](\s*,\s*[A-H])*$/i.test(String(x.answer || '').trim());
-    const ans = h('div', { class: 'dl-ans', hidden: true }, h('b', { text: 'Answer: ' }), h('span', { html: rich(String(x.answer == null || x.answer === '' ? 'not available' : x.answer)) }));
+    const x = D.raw.get(r.id) || {}, box = h('div', { class: 'dl-d' }), type = x.type || 'MCQ';
+    const opts = (x.options || []).slice(0, 8), raw = String(x.answer == null ? '' : x.answer).trim(), isKey = /^[A-H](\s*,\s*[A-H])*$/i.test(raw), keys = isKey ? raw.toUpperCase().split(/[^A-H]+/).filter(Boolean) : [];
     const fig = h('div', { class: 'dl-fig' }); figures(env).then(f => { const v = f[r.id]; if (v && v.svg) fig.innerHTML = v.svg; });
-    const optEls = opts.map((t, k) => h('li', { class: 'dl-opt' }, h('b', { text: LETTERS[k] }), h('span', { html: rich(t) })));
-    const reveal = h('button', { type: 'button', class: 'btn', text: 'Show answer', 'aria-expanded': 'false', onclick: () => { const on = ans.hidden; ans.hidden = !on; reveal.textContent = on ? 'Hide answer' : 'Show answer'; reveal.setAttribute('aria-expanded', String(on)); optEls.forEach((li, k) => li.classList.toggle('ok', on && isKey && keys.includes(LETTERS[k]))); } });
-    const bm = h('button', { type: 'button', class: 'btn dl-d-bm', 'data-id': r.id, 'aria-pressed': String(D.sum.bookmarks.includes(r.id)), html: ICON.bm + '<span>Important</span>', onclick: () => toggleBm(r.id, bm) });
-    const rep = reportBox(env, r.id), warn = h('button', { type: 'button', class: 'btn', html: ICON.warn + '<span>Report an error</span>', onclick: () => { rep.hidden = !rep.hidden; } });
+    const multi = keys.length > 1, tried = new Set();
+    let locked = false;
+    const optEls = opts.map((t, k) => {
+      const L = LETTERS[k], el = h('button', { type: 'button', class: 'dl-opt', 'aria-label': 'Option ' + L }, h('b', { text: L }), h('span', { class: 'dl-ot', html: rich(t) }), h('span', { class: 'dl-mk', 'aria-hidden': 'true' }));
+      el.addEventListener('click', () => {
+        if (!keys.length) { env.toast('The answer for this question is not available yet.'); return; }
+        if (locked || tried.has(L)) return; tried.add(L);
+        const good = keys.includes(L); el.classList.add(good ? 'ok' : 'bad'); el.lastChild.innerHTML = good ? ICON.chk : ICON.x;
+        el.setAttribute('aria-label', 'Option ' + L + (good ? ', correct' : ', wrong'));
+        if (!multi) { locked = true; if (!good) optEls.forEach((o, j) => { if (keys.includes(LETTERS[j])) { o.classList.add('ok', 'show'); o.lastChild.innerHTML = ICON.chk; } }); }
+        else if ([...tried].filter(z => keys.includes(z)).length === keys.length) locked = true;
+      });
+      return el;
+    });
+    /* numerical: type the value and check it */
+    let numBox = null;
+    if (!opts.length) {
+      const inp = h('input', { type: 'text', inputmode: 'decimal', class: 'dl-numin', placeholder: 'Type your answer', 'aria-label': 'Your answer', autocomplete: 'off' }), res = h('div', { class: 'dl-numres', role: 'status' });
+      const check = () => {
+        const v = inp.value.trim(); if (!v) { inp.focus(); return; } if (!raw) { env.toast('The answer for this question is not available yet.'); return; }
+        const range = /^(-?\d+(?:\.\d+)?)\s*to\s*(-?\d+(?:\.\d+)?)$/i.exec(raw), n = parseFloat(v.replace(/[^0-9eE+\-.]/g, '')); let good = false;
+        if (range) good = n >= Math.min(+range[1], +range[2]) - 1e-9 && n <= Math.max(+range[1], +range[2]) + 1e-9; else if (/^-?\d+(\.\d+)?$/.test(raw)) good = Math.abs(n - parseFloat(raw)) < 1e-6 || Math.abs(n - parseFloat(raw)) <= Math.abs(parseFloat(raw)) * 1e-9; else good = v.replace(/\s/g, '').toLowerCase() === raw.replace(/\s/g, '').toLowerCase();
+        res.className = 'dl-numres ' + (good ? 'ok' : 'bad'); res.innerHTML = (good ? ICON.chk + '<b>Correct</b>' : ICON.x + '<b>Wrong</b> · correct answer: ') + (good ? '' : rich(raw));
+      };
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+      numBox = h('div', { class: 'dl-num' }, h('div', { class: 'dl-numrow' }, inp, h('button', { type: 'button', class: 'btn pri', text: 'Check', onclick: check })), res);
+    }
+    const rep = reportBox(env, r.id);
     const idx = list.findIndex(z => z.id === r.id);
     const nav = h('span', { class: 'dl-nav' }, h('button', { type: 'button', class: 'btn', 'aria-label': 'Previous question', html: ICON.prev, disabled: idx <= 0, onclick: () => step(idx - 1) }), h('button', { type: 'button', class: 'btn', 'aria-label': 'Next question', html: ICON.next, disabled: idx >= list.length - 1, onclick: () => step(idx + 1) }));
     const panes = { sol: h('div', { class: 'dl-pane' }), oth: h('div', { class: 'dl-pane', hidden: true }), com: h('div', { class: 'dl-pane', hidden: true }) }, loaded = {}, tabs = h('div', { class: 'dl-tabs', role: 'tablist' });
@@ -126,13 +174,15 @@ function render(env, o) {
       if (was || loaded[k]) return; loaded[k] = true;
       if (k === 'sol') solution(env, r.id, panes.sol); else if (k === 'oth') others(env, r.id, panes.oth, n => { tabBtns.oth.textContent = 'Others’ solutions' + (n ? ' (' + n + ')' : ''); }); else comments(env, r.id, panes.com, n => { tabBtns.com.textContent = 'Comments' + (n ? ' (' + n + ')' : ''); });
     };
-    box.append(h('div', { class: 'dl-chips' }, h('span', { class: 'dl-code', text: r.id }), h('span', { class: 'dl-chip', text: x.type || 'MCQ' }), r.tp ? h('span', { class: 'dl-chip', text: r.tp }) : null),
-      h('div', { class: 'dl-fullq', html: rich(x.question) }), fig, optEls.length ? h('ol', { class: 'dl-opts' }, optEls) : null, ans,
-      h('div', { class: 'dl-acts' }, reveal, bm, warn, nav), rep, tabs, body);
-    env.mathReady().then(() => { box.querySelector('.dl-fullq').innerHTML = rich(x.question); optEls.forEach((li, k) => { li.lastChild.innerHTML = rich(opts[k]); }); });
+    const q = h('div', { class: 'dl-fullq', html: rich(x.question) });
+    const kids = [h('div', { class: 'dl-chips' }, h('span', { class: 'dl-chip', text: type }), r.tp ? h('span', { class: 'dl-chip', text: r.tp }) : null), q, fig,
+      optEls.length ? h('div', { class: 'dl-opts' }, optEls) : null, numBox, optEls.length ? h('p', { class: 'dl-tip', text: multi ? 'More than one option can be correct. Tap the options you think are right.' : 'Tap an option to check your answer.' }) : null,
+      h('div', { class: 'dl-acts' }, nav), rep, tabs, body].filter(Boolean);
+    box.append(...kids);
+    env.mathReady().then(() => { q.innerHTML = rich(x.question); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); });
     return box;
   }
-  const step = i => { if (i < 0 || i >= list.length) return; while (i >= shown) loadMore(); const li = ul.querySelector('.dl-row[data-id="' + list[i].id + '"]'); if (li) toggle(li, list[i]); };
+  const step = i => { if (i < 0 || i >= list.length) return; const pg = Math.floor(i / PAGE); if (pg !== page) { page = pg; draw(); } const li = ul.querySelector('.dl-row[data-id="' + list[i].id + '"]'); if (li) toggle(li, list[i]); };
 
   /* controls */
   const tog = h('label', { class: 'dl-switch' }, h('input', { type: 'checkbox', role: 'switch', onchange: e => { F.hide = e.target.checked; apply(); } }), h('span', { class: 'dl-track', 'aria-hidden': 'true' }), h('span', { text: 'Hide attempted' }));
@@ -146,13 +196,28 @@ function render(env, o) {
   });
   const sortSel = h('select', { class: 'dl-sort', 'aria-label': 'Order', onchange: e => { F.sort = e.target.value; apply(); } }, (o.seqOrder ? [['seq', 'Exercise order'], ['easy', 'Level (Easy to Hard)'], ['hard', 'Level (Hard to Easy)']] : [['new', 'Year-wise (New to Old)'], ['old', 'Year-wise (Old to New)'], ['easy', 'Level (Easy to Hard)'], ['hard', 'Level (Hard to Easy)']]).map(([k, t]) => h('option', { value: k, text: t })));
   const typeChips = types.length > 1 ? h('div', { class: 'dl-types' }, types.map(t => { const n = pool.filter(r => typeOf(r) === t).length, b = h('button', { type: 'button', class: 'dl-chipb', 'aria-pressed': 'false', onclick: () => { F.types.has(t) ? F.types.delete(t) : F.types.add(t); b.setAttribute('aria-pressed', String(F.types.has(t))); apply(); } }, t, h('i', { text: String(n) })); return b; })) : null;
-  const exportMenu = menu('', (panel, api) => {
-    api.box.querySelector('.dl-fbtn').className = 'dl-fbtn dl-ico'; api.box.querySelector('.dl-fbtn').innerHTML = ICON.more; api.box.querySelector('.dl-fbtn').setAttribute('aria-label', 'More options');
-    panel.classList.add('dl-pop-r');
-    panel.append(h('button', { type: 'button', class: 'dl-mi', text: 'Export, print or share these questions', onclick: () => { api.close(); env.openQB(list.map(r => r.id), o.title); } }),
-      h('small', { class: 'dl-mnote', text: 'Opens the Question Bank with exactly these ' + list.length + ' questions selected.' }));
-    (o.menuExtra || []).forEach(x => panel.append(h('button', { type: 'button', class: 'dl-mi', text: x.text, onclick: () => { api.close(); x.onclick(); } }), x.note ? h('small', { class: 'dl-mnote', text: x.note }) : null));
-  });
+  /* the export box: exactly the questions of the current list (after the filters) are exported */
+  const exportPanel = () => {
+    const P = window.AvantiPortal, T = () => window.AvantiTeacher, can = k => !!(A().perm && A().perm[k]), S = { key: false, exp: false };
+    const ids = () => list.map(r => r.id), need = () => { if (!list.length) { env.toast('There are no questions to export.'); return false; } return true; };
+    expCount = h('b', { text: String(list.length) });
+    const sw = (label, key) => h('label', { class: 'dl-switch dl-xsw' }, h('input', { type: 'checkbox', role: 'switch', onchange: e => { S[key] = e.target.checked; } }), h('span', { class: 'dl-track', 'aria-hidden': 'true' }), h('span', { text: label }));
+    const run = kind => () => { if (!need()) return; env.toast('Preparing the download…'); T().exportIds(ids(), o.title, kind, 'Questions', '', '', { key: S.key, exp: S.exp }).catch(e => env.toast('Could not make the file: ' + ((e && e.message) || 'try again'))); };
+    const pdfBlob = async () => { if (!need()) return null; env.toast('Preparing the PDF…'); try { return await T().pdfIds(ids(), o.title, 'Questions', '', ''); } catch (e) { env.toast('Could not make the PDF: ' + ((e && e.message) || 'try again')); return null; } };
+    const exp = h('button', { type: 'button', class: 'btn pri dl-xbtn', 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: ICON.down + '<span>Export</span><i aria-hidden="true">▾</i>', onclick: e => P.dropMenu(e.currentTarget, [
+      { icon: P.icons.pdf, text: 'Download PDF', sub: 'Print-ready, with the Avanti header', onclick: run('pdf') },
+      can('docx') ? { icon: P.icons.docx, text: 'Download Word', sub: 'Editable document', onclick: run('docx') } : null,
+      can('pptx') ? { icon: P.icons.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: run('pptx') } : null,
+      '-',
+      { icon: P.icons.pdf, text: 'Print', sub: 'Opens the PDF to print', onclick: async () => { const r = await pdfBlob(); if (r) { const u = URL.createObjectURL(r.blob), w = window.open(u, '_blank'); if (w) w.addEventListener('load', () => { try { w.print(); } catch (x) { /* user prints from the viewer */ } }); setTimeout(() => URL.revokeObjectURL(u), 180000); } } },
+      can('share') ? { icon: P.icons.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { const r = await pdfBlob(); if (r) P.shareReady(r.blob, r.file, o.title); } } : null]) });
+    return h('section', { class: 'dl-export', 'aria-label': 'Export these questions' },
+      h('div', { class: 'dl-x-l' }, h('div', { class: 'dl-x-n' }, expCount, h('span', { text: ' questions selected' })), h('small', { text: 'Exactly the questions of this list (after your filters) are exported.' })),
+      h('div', { class: 'dl-x-sw' }, sw('Answer key', 'key'), sw('Explanation', 'exp')),
+      h('div', { class: 'dl-x-b' }, exp,
+        can('worksheets') ? h('button', { type: 'button', class: 'btn', text: 'Save as worksheet', onclick: () => { if (need()) P.saveWorksheet(ids(), o.title); } }) : null,
+        can('createTests') ? h('button', { type: 'button', class: 'btn', text: 'Create test', onclick: () => { if (need()) P.createTestFrom(ids(), o.title); } }) : null));
+  };
   const practice = () => { const r = list.find(z => !res()[z.id]) || list[0]; if (r) step(list.indexOf(r)); };
   const act = (cls, ic, text, fn) => h('button', { type: 'button', class: 'dl-act ' + cls, onclick: fn }, h('b', { text }), h('span', { class: 'dl-act-i', html: ic }));
   const testBtn = act('test', ICON.test, o.testLabel + ' →', async () => { testBtn.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (e) { env.toast(e.message || 'Could not start'); testBtn.disabled = false; } });
@@ -163,16 +228,16 @@ function render(env, o) {
     /* DPP pages: everything in one line on top, then the questions */
     const typeMenu = types.length > 1 ? multi('Type', types, F.types) : null;
     const smallTest = h('button', { type: 'button', class: 'btn pri dl-small', text: (o.testLabel || 'Take test') + ' →', onclick: async e => { const btn = e.currentTarget; btn.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (x) { env.toast(x.message || 'Could not start'); } btn.disabled = false; } });
-    wrap.append(h('div', { class: 'dl-top' }, h('h2', { text: o.title }), h('div', { class: 'dl-top-r' }, o.startTest ? smallTest : null, exportMenu)),
+    wrap.append(h('div', { class: 'dl-top' }, h('h2', { text: o.title }), h('div', { class: 'dl-top-r' }, o.startTest ? smallTest : null)),
       h('div', { class: 'dl-filters dl-oneline' }, tog, extraMenus, years.length ? multi('Years', years, F.years) : null, levelMenu, typeMenu, statusMenu, h('label', { class: 'dl-sortw dl-sort-r' }, h('span', { html: ICON.sort }), sortSel)),
-      h('div', { class: 'dl-bar' }, count), ul, more);
+      exportPanel(), h('div', { class: 'dl-bar' }, count), ul, pager);
   } else wrap.append(
-    h('div', { class: 'dl-top' }, h('h2', { text: o.title }), exportMenu),
+    h('div', { class: 'dl-top' }, h('h2', { text: o.title })),
     h('div', { class: 'd-stats dl-stats' }, env.stat(env.IC.all, solved + '/' + pool.length, 'Qs attempted'), env.stat(env.IC.target, right + '/' + pool.length, 'Correct Qs'), env.stat(env.IC.up, solved ? env.pct(right, solved) + '%' : '—', 'Accuracy')),
     h('div', { class: 'dl-acts2' }, act('prac', ICON.prac, o.practiceLabel + ' →', practice), testBtn),
     h('div', { class: 'dl-filters' }, tog, extraMenus, years.length ? multi('Years', years, F.years) : null, statusMenu, levelMenu),
-    typeChips, h('div', { class: 'dl-bar' }, count, h('label', { class: 'dl-sortw' }, h('span', { html: ICON.sort }), sortSel)),
-    ul, more);
+    typeChips, exportPanel(), h('div', { class: 'dl-bar' }, count, h('label', { class: 'dl-sortw' }, h('span', { html: ICON.sort }), sortSel)),
+    ul, pager);
   main(o.head || null, wrap);
   env.mathReady().then(() => { apply(); }); apply();
 }

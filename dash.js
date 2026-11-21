@@ -319,7 +319,7 @@ function chapterSide(mode, slug, ch, section, rows) {
     { label: 'Overview', icon: IC.grid, hash: base + 'overview', active: section === 'overview' },
     { label: mode === 'pyq' ? 'All PYQs' : 'All Questions', icon: IC.all, hash: base + 'all', active: section === 'all' },
     { label: 'Topic-wise Qs', icon: IC.list, hash: base + 'topics', active: section === 'topics' },
-    { label: 'Bookmarked/Important Qs', icon: IC.mark, hash: base + 'bookmarked', active: section === 'bookmarked' },
+    { label: 'Bookmarked Qs', icon: IC.mark, hash: base + 'bookmarked', active: section === 'bookmarked' },
     { label: 'Test History', icon: IC.test, hash: base + 'tests', active: section === 'tests' }] });
 }
 /* Opening a difficulty bucket or a topic moves the menu one step up: its own menu with the chapter underneath, and the back arrow returns to the chapter */
