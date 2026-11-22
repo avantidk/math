@@ -541,6 +541,8 @@ function viewChapter(mode, slug, ch, section, extra) {
   const metric = (cls, ic, n, l) => h('div', { class: 'ov-m ' + cls }, h('span', { class: 'ov-m-i', html: ic }), h('div', {}, h('b', { text: n }), h('small', { text: l })));
   const progress = h('section', { class: 'ov-card ov-prog' }, h('div', { class: 'ov-card-h' }, h('h3', { text: 'Your progress' }), h('small', { text: 'from tests you have submitted' })),
     h('div', { class: 'ov-prog-b' }, ring, h('div', { class: 'ov-metrics' }, metric('', IC.all, solved + ' / ' + total, 'Attempted'), metric('ok', IC.target, String(right), 'Correct'), metric('bad', IC.test, String(wrong), 'Wrong'), metric('acc', IC.up, solved ? acc + '%' : '—', 'Accuracy'))),
+    (() => { const other = D.rows.filter(r => (mode === 'pyq' ? !r.P : r.P) && r.ch === ch), od = solvedOf(other), nm = mode === 'pyq' ? 'Non-PYQs' : 'PYQs', off = mode === 'pyq' && locked();
+      return h('div', { class: 'ov-other' }, h('div', { class: 'ov-other-l' }, h('span', { text: nm + ' of this chapter attempted' }), h('b', { text: off ? 'Premium' : num(od) + ' / ' + num(other.length) })), bar(off ? 0 : od, other.length || 1)); })(),
     h('p', { class: 'ov-note', text: solved ? 'You have answered ' + solved + ' of ' + total + ' questions here.' : 'Answer questions here, or take a chapter test, and your numbers appear.' }));
   /* ways to practise */
   const way = (o) => tile(Object.assign({ cls: 'ov-way' }, o));

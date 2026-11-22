@@ -16,7 +16,8 @@ const ICON = { bm: svg('<path d="M6 3.5h12v17l-6-4.2-6 4.2z"/>'), warn: svg('<pa
 /* ---------- maths in text: \( inline \) and \[ display \], line breaks kept ---------- */
 const plainTxt = x => esc(x).replace(/\n/g, '<br>');
 function richBase(t) {
-  const K = window.katex, s = String(t == null ? '' : t), re = /\\\((.+?)\\\)|\\\[([\s\S]+?)\\\]/g; let out = '', last = 0, m;
+  /* a display formula stands on its own line: no extra empty line before or after it */
+  const K = window.katex, s = String(t == null ? '' : t).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1'), re = /\\\((.+?)\\\)|\\\[([\s\S]+?)\\\]/g; let out = '', last = 0, m;
   while ((m = re.exec(s))) {
     out += plainTxt(s.slice(last, m.index));
     const tex = m[1] != null ? m[1] : m[2];

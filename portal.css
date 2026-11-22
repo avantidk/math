@@ -1168,3 +1168,5 @@ html body .tb-menu a.tb.tb-dash { text-decoration: none; display: inline-flex; a
 .pt-opts.c1 { grid-template-columns: minmax(0, 1fr); }
 .ex-opts.c1 { display: flex; flex-direction: column; }
 @media (max-width: 760px) { .pt-opts.c4, .ex-opts.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pt-opts.c2, .ex-opts.c2 { grid-template-columns: minmax(0, 1fr); } }
+
+.mt .katex-display { margin: 4px 0; text-align: left; }

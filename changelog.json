@@ -1,5 +1,13 @@
 [
   {
+    "v": "1031",
+    "date": "22 Nov 2026",
+    "items": [
+      "Chapter overview, Your progress: also shows the Non-PYQs of the chapter you have attempted (and PYQs when you are on a practice-question chapter).",
+      "Equations on their own line no longer get extra empty lines before and after them in the question lists and the match tables."
+    ]
+  },
+  {
     "v": "1030",
     "date": "22 Nov 2026",
     "items": [

@@ -622,3 +622,10 @@ body.dpop-on { overflow: hidden; }
 /* v1027: filter pop-ups keep their natural width (labels like "Confidence Booster · Level 1" stay on one line) */
 .dl-pop { width: max-content; max-width: min(340px, calc(100vw - 32px)); }
 .dl-pop .dl-ot2 { white-space: nowrap; }
+
+.ov-other { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.ov-other-l { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; color: var(--muted); } .ov-other-l b { color: var(--ink); }
+
+/* formulas on their own line: tight spacing (lists and match tables) */
+.dl-q .katex-display, .dl-fullq .katex-display, .dl-mt .katex-display { margin: 4px 0; padding: 0; }
+.dl-mt td { padding: 8px 10px; } .dl-mt td .katex-display { text-align: left; }
