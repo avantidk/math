@@ -1001,10 +1001,10 @@ language sql stable security definer set search_path = public as $$
            'for_me', public.test_block_reason(t, me) is null, 'blocked', public.test_block_reason(t, me), 'audience', t.audience,
            'school_pending', public.approved_school(me) is null and not public.admin_of(me),
            'max_marks', (select coalesce(sum(coalesce((e -> 'm' ->> 'c')::numeric, t.marks_correct)), 0) from jsonb_array_elements(t.questions) e),
-           'sections', (select coalesce(json_agg(json_build_object('sec', k.sec, 'type', k.type, 'n', k.n, 'c', k.c, 'w', k.w, 'p', k.p) order by k.first), '[]'::json) from (
+           'sections', (select coalesce(json_agg(json_build_object('sec', k.sec, 'type', k.type, 'sj', k.sj, 'n', k.n, 'c', k.c, 'w', k.w, 'p', k.p) order by k.first), '[]'::json) from (
                select e ->> 'sec' as sec, e ->> 'type' as type, count(*) as n, coalesce((e -> 'm' ->> 'c')::numeric, t.marks_correct) as c, (e -> 'm' ->> 'w')::numeric as w,
-                      coalesce((e -> 'm' ->> 'p')::boolean, false) as p, min(o) as first
-                 from jsonb_array_elements(t.questions) with ordinality z(e, o) group by 1, 2, 4, 5, 6) k))
+                      coalesce((e -> 'm' ->> 'p')::boolean, false) as p, e ->> 'sj' as sj, min(o) as first
+                 from jsonb_array_elements(t.questions) with ordinality z(e, o) group by 1, 2, 4, 5, 6, 7) k))
     from public.tests t
     join public.profiles me on me.id = auth.uid()
     left join public.profiles o on o.id = t.owner_id
@@ -1132,7 +1132,7 @@ begin
     'started_at', a.started_at, 'server_now', now(), 'remaining_sec', greatest(t.duration_min * 60 - a.elapsed_sec, 0),
     'answers', a.answers, 'tab_switches', a.tab_switches,
     'questions', (select json_agg(json_build_object('id', 'p' || o, 'type', e->>'type', 'q', e->'q', 'o', e->'o', 'f', e->'f', 'tp', e->>'tp',
-                                                    's', e->>'s', 'sec', e->>'sec', 'mc', e->'m'->'c', 'mw', e->'m'->'w', 'mp', e->'m'->'p')
+                                                    's', e->>'s', 'sec', e->>'sec', 'sj', e->>'sj', 'mc', e->'m'->'c', 'mw', e->'m'->'w', 'mp', e->'m'->'p')
                                   order by o) from jsonb_array_elements(t.questions) with ordinality as x(e, o)));
 end $$;
 
@@ -1226,7 +1226,7 @@ begin
     'stats', case when v_full then (select json_build_object('average', round(avg(score), 2), 'top', max(score)) from public.attempts where test_id = t.id and status = 'submitted') end,
     'school_stats', (select json_build_object('average', round(avg(score), 2), 'top', max(score)) from public.attempts
                       where test_id = t.id and status = 'submitted' and lower(coalesce(school, '')) = lower(coalesce(a.school, ''))),
-    'items', (select json_agg(json_build_object('pos', it.pos, 'qid', it.qid, 'max', coalesce((q.e->'m'->>'c')::numeric, t.marks_correct), 'sec', q.e->>'sec', 'type', it.qtype, 'response', it.response,
+    'items', (select json_agg(json_build_object('pos', it.pos, 'qid', it.qid, 'max', coalesce((q.e->'m'->>'c')::numeric, t.marks_correct), 'sec', q.e->>'sec', 'sj', q.e->>'sj', 'type', it.qtype, 'response', it.response,
                  'correct_answer', case when v_keys then it.correct_answer end, 'status', it.status, 'marks', it.marks, 'time_sec', it.time_sec,
                  'chapter', it.chapter, 'topic', it.topic, 'q', q.e->'q', 'o', q.e->'o', 'f', q.e->'f') order by it.pos)
                 from public.attempt_items it

@@ -1451,7 +1451,7 @@ async function markingSheet(attemptId, title) {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text('Marking scheme', M, y); y += 6; doc.setFontSize(10);
     const cols = [M, 90, 112, 150]; ['Question type', 'Questions', 'Correct', 'Wrong'].forEach((h2, i) => doc.text(h2, cols[i], y)); y += 2; doc.line(M, y, W - M, y); y += 5; doc.setFont('helvetica', 'normal');
     secs.forEach(x => { room(7); const un = +x.c === 0;
-      doc.text(lat(TYPE_NAME[x.type] || x.type).slice(0, 44), cols[0], y); doc.text(String(x.n), cols[1], y);
+      doc.text(lat(x.sj ? 'Subjective (pick the final answer)' : TYPE_NAME[x.type] || x.type).slice(0, 44), cols[0], y); doc.text(String(x.n), cols[1], y);
       doc.text(un ? 'not marked' : '+' + num(x.c, 2) + (x.p ? ' (partial marks)' : ''), cols[2], y);
       doc.text(un ? '-' : (x.w != null ? (+x.w ? '-' + num(x.w, 2) : '0') : (x.type === 'MCQ' || x.type === 'Matching') && +t.marks_wrong ? '-' + num(t.marks_wrong, 2) : '0'), cols[3], y); y += 6; });
     y += 4;
@@ -1600,7 +1600,7 @@ async function pageReport(id) {
   /* the whole report is shown at once; the correct answers open when the time of the paper is over (so they cannot be passed on to others who are still writing) */
   const keysAt = R.answers_at ? new Date(R.answers_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
   const st = { correct: ['Correct', 'ok'], partial: ['Partly correct', 'mid'], wrong: ['Wrong', 'bad'], skipped: ['Not answered', 'mute'] };
-  const review = h('div', { class: 'pt-plist' }, items.map(it => qCard({ type: it.type, q: it.q, o: it.o, f: it.f, tp: it.topic }, it.pos - 1, {
+  const review = h('div', { class: 'pt-plist' }, items.map(it => qCard({ type: it.sj ? 'Subjective' : it.type, q: it.q, o: it.o, f: it.f, tp: it.topic }, it.pos - 1, {
     status: it.status, response: it.response, answer: it.correct_answer, code: it.qid,   /* question codes are shown only here, after the test */
     right: h('span', { class: 'pt-qmeta' }, it.status ? badge(st[it.status][0], st[it.status][1]) : badge(it.response ? 'Answered' : 'Not answered', 'mute'), h('span', { class: 'pt-hint', text: (it.marks == null ? '' : (it.marks > 0 ? '+' : '') + num(it.marks, 2) + ' marks · ') + mmss(it.time_sec) })),
     extra: h('p', { class: 'pt-yours' }, 'Your answer: ', h('b', { text: it.response || '—' }), ' · Correct answer: ', h('b', { text: keysAt ? 'shown at ' + keysAt : (it.correct_answer || '—') })) })));
@@ -1661,7 +1661,7 @@ const SEC_NAME = { 1: 'Section 1 · Single correct (MCQ)', 2: 'Section 2 · One 
 function schemeTable(info) {
   const secs = info.sections || []; if (!secs.length) return h('p', { class: 'pt-hint', text: 'Correct +' + num(info.marks_correct, 2) + ' · wrong −' + num(info.marks_wrong, 2) });
   const row = x => { const unmarked = +x.c === 0;
-    return h('tr', {}, h('th', { scope: 'row', text: x.sec === '4' ? (x.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 paragraph questions with 2 parts each') : x.sec && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
+    return h('tr', {}, h('th', { scope: 'row', text: x.sj ? (/^[1-4]$/.test(String(x.sec || '')) ? 'Section ' + x.sec + ' · ' : '') + 'Subjective (pick the final answer)' : x.sec === '4' ? (x.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 paragraph questions with 2 parts each') : x.sec && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
       h('td', { class: 'pt-num', text: unmarked ? 'not marked' : '+' + num(x.c, 2) + (x.p ? ' (partial marks possible)' : '') }),
       h('td', { class: 'pt-num', text: unmarked ? '—' : x.w != null ? (+x.w ? '−' + num(x.w, 2) : '0') : (x.type === 'MCQ' || x.type === 'Matching') ? (+info.marks_wrong ? '−' + num(info.marks_wrong, 2) : '0') : '0' })); };
   const unm = secs.filter(x => +x.c === 0).reduce((a, x) => a + x.n, 0);
