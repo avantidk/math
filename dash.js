@@ -565,12 +565,11 @@ function yearBlocks(rows, yrs, mode) {
   const lv = y => ['L1', 'L2', 'L3'].map(L => rows.filter(r => r.y === y && r.d === L).length);
   const table = h('div', { class: 'd-tw' }, h('table', { class: 'd-t' }, h('thead', {}, h('tr', {}, ['Year', 'Questions', 'Level 1', 'Level 2', 'Level 3'].map(x => h('th', { text: x })))),
     h('tbody', {}, tbl.slice().reverse().map(y => h('tr', {}, h('td', {}, h('b', { text: String(y) })), h('td', { text: String(yrs[y]) }), lv(y).map(n => h('td', { text: String(n) })))))));
-  /* a summary under the graph fills the column next to the (taller) table */
-  const tot = tbl.reduce((a, y) => a + yrs[y], 0), lvt = [0, 1, 2].map(i => tbl.reduce((a, y) => a + lv(y)[i], 0)), peak = tbl.reduce((b, y) => (yrs[y] > yrs[b] ? y : b), tbl[0] || years[0]);
-  const stat2 = (k, v, sub) => h('div', { class: 'd-st' }, h('small', { text: k }), h('b', { text: v }), sub ? h('span', { text: sub }) : null);
-  const sumCard = tbl.length ? h('section', { class: 'd-card d-sum' }, h('div', { class: 'd-card-h' }, h('h3', { text: 'Since 2013' }), h('small', { text: tbl.length + ' years' })),
-    h('div', { class: 'd-sts' }, stat2('Questions', num(tot)), stat2('Per year', (tot / tbl.length).toFixed(1), 'on average'), stat2('Busiest year', String(peak), yrs[peak] + ' questions'), stat2('Last 5 years', num(shown.reduce((a, y) => a + yrs[y], 0)), 'questions')),
-    h('div', { class: 'd-lvs', role: 'img', 'aria-label': 'Share of Level 1, 2 and 3 questions since 2013' }, ['Level 1', 'Level 2', 'Level 3'].map((n, i) => h('div', { class: 'd-lv d-lv' + (i + 1), style: 'flex:' + Math.max(lvt[i], 0.01) }, h('b', { text: String(lvt[i]) }), h('small', { text: n }))))) : null;
+  /* the 5 subtopics with the most questions in the last 5 years: fills the column next to the (taller) table */
+  const cnt = new Map(); rows.filter(r => shown.includes(r.y) && r.tp).forEach(r => { const k = r.tc || r.tp; if (!cnt.has(k)) cnt.set(k, { name: r.tp, n: 0 }); cnt.get(k).n++; });
+  const top5 = [...cnt.values()].sort((x, y) => y.n - x.n || x.name.localeCompare(y.name)).slice(0, 5), topMax = top5.length ? top5[0].n : 1;
+  const sumCard = top5.length ? h('section', { class: 'd-card d-sum' }, h('div', { class: 'd-card-h' }, h('h3', { text: '5 Most Important Subtopics (Last 5 years)' })),
+    h('ol', { class: 'd-top5' }, top5.map((t, i) => h('li', {}, h('span', { class: 'd-rk', text: String(i + 1) }), h('div', { class: 'd-tn' }, h('b', { text: t.name }), h('i', { style: 'width:' + Math.max(8, Math.round(100 * t.n / topMax)) + '%', 'aria-hidden': 'true' })), h('span', { class: 'd-tc', text: t.n + (t.n === 1 ? ' question' : ' questions') }))))) : null;
   return [h('h3', { class: 'd-sec', text: 'Year-wise distribution' }), h('div', { class: 'd-two d-two-top d-yr' }, h('div', { class: 'd-yrl' }, h('section', { class: 'd-card' }, h('div', { class: 'd-card-h' }, h('h3', { text: 'Graph' }), h('small', { text: 'questions per year (last 5 years)' })), chart), sumCard),
     h('section', { class: 'd-card' }, h('div', { class: 'd-card-h' }, h('h3', { text: 'Table' }), h('small', { text: '2013 onwards' })), table))];
 }

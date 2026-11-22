@@ -604,3 +604,11 @@ body.dpop-on { overflow: hidden; }
   .dl-tabrow .dl-nav { gap: 4px; }
   .dl-tabrow .dl-nav .btn { min-width: 0; width: 34px; height: 34px; padding: 0; justify-content: center; }
 }
+
+.d-top5 { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: space-between; }
+.d-top5 li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: center; background: var(--bg, #f3f6fc); border-radius: 12px; padding: 10px 12px; }
+.d-rk { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; font: 700 14px var(--font-body); }
+.d-tn { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.d-tn b { font-size: 14px; line-height: 1.3; color: var(--ink, #13203f); overflow-wrap: anywhere; }
+.d-tn i { display: block; height: 6px; border-radius: 99px; background: linear-gradient(90deg, var(--accent), #5b8cff); }
+.d-tc { font: 600 12.5px var(--font-body); color: var(--mute, #56637f); white-space: nowrap; }
