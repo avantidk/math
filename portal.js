@@ -1068,9 +1068,10 @@ const markText = sc => {
   const r = mcqRule(sc); return '+' + num(r.c, 2) + (r.w ? ' / −' + num(r.w, 2) : '');
 };
 /* a question as it is stored inside a test (the answer key stays on the server; students never get ids or keys) */
-/* JEE Advanced 2026 sections (used for every paper): 1 single correct, 2 one or more correct, 3 numerical, 4 paragraph questions (Paper 2) or matching (Paper 1).
-   A paragraph question starts with "Para:" (stem, then on the last line what is asked). */
-const isPara = q => !!q && (q.t === 'Comprehension' || (q.t === 'Numerical' && (q.pa != null ? !!q.pa : /^\s*Para:/i.test(q.q || ''))));   /* pa: from the index */
+/* JEE Advanced 2026 sections (used for every paper): 1 single correct, 2 one or more correct, 3 numerical, 4 Para questions (Paper 2) or matching (Paper 1).
+   A Para question starts with "Para:" (stem, then on the last line what is asked). */
+const isParaText = t => /^\s*Para:/i.test(t || '');
+const isPara = q => !!q && (q.t === 'Comprehension' || (q.pa != null ? !!q.pa : isParaText(q.q)));   /* every question that starts with "Para:" is a Para question, whatever its answer type (pa: from the index) */
 const advSec = q => isPara(q) ? '4' : q.t === 'Matching' ? '4' : q.t === 'Subjective' ? (/,/.test(q.a || '') ? '2' : '1') : ({ MCQ: '1', MSQ: '2', Numerical: '3' }[q.t] || '');
 const typeKey = q => isPara(q) ? 'Comprehension' : q.t;
 const ADV_MIX = { 1: { MCQ: 4, MSQ: 4, Numerical: 4, Matching: 4 }, 2: { MCQ: 4, MSQ: 5, Numerical: 5, Comprehension: 4 } };
@@ -1216,7 +1217,7 @@ function ndaOrder(list) {
   const out = []; shuffled([...g.values()]).forEach(l => { const r = Math.ceil(l.length / 5); let i = 0; for (let j = 0; j < r; j++) { const k = Math.ceil((l.length - i) / (r - j)); out.push(...l.slice(i, i + k)); i += k; } });
   return out;
 }
-/* JEE Advanced Section 4: paragraph questions. Questions of one paragraph (same text before the last line) stay together, two paragraphs of two questions each when possible. */
+/* JEE Advanced Section 4: Para questions. Questions of one Para (same text before the last line) stay together, two Paras of two questions each when possible. */
 function pickParas(pool, n, used) {
   const g = new Map(); pool.filter(q => !used.has(q.i)).forEach(q => { const t = String(q.q || ''), k = q.pg || t.slice(0, Math.max(0, t.lastIndexOf('\n'))) || t; if (!g.has(k)) g.set(k, []); g.get(k).push(q); });   /* pg: the paragraph group from the index */
   const out = []; shuffled([...g.values()].filter(l => l.length >= 2)).concat(shuffled([...g.values()].filter(l => l.length < 2))).forEach(l => { if (out.length < n) out.push(...shuffled(l).slice(0, Math.min(2, n - out.length))); });
@@ -1335,7 +1336,7 @@ async function modeCustom() {
   const years = all.filter(q => q.y).map(q => q.y), yMin = Math.min(...years), yMax = Math.max(...years);
   const count = (f) => all.filter(f).length;
   const exams = Object.keys(EXN).filter(k => count(q => exOf(q) === k)), books = [...new Set(all.map(bookOf).filter(Boolean))].sort();
-  const TYPE_NICE = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct (MSQ)', Numerical: 'Numerical value', Matching: 'Match the following', Comprehension: 'Comprehension (passage based)' };
+  const TYPE_NICE = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct (MSQ)', Numerical: 'Numerical value', Matching: 'Match the following', Comprehension: 'Para (passage based)' };
   const types = Object.keys(TYPE_NICE).filter(t => count(q => q.t === t)).concat([...new Set(all.map(q => q.t))].filter(t => !TYPE_NICE[t] && t !== 'Subjective'));
   const S = { src: 'P', ex: new Set(['Main']), bk: new Set(), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), tough: 2, ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 25, mins: 75, auto: true, per: 3, scheme: 'JEE Main', advp: 0, title: '' };
   const schemeNames = Object.keys(SC).filter(k => SC[k] && SC[k].rules);
@@ -1467,7 +1468,7 @@ async function modeFull() {
         } catch (err) { toast(err.message); b.disabled = false; } } },
         h('b', { text: label }), h('small', { text: (nq || '') + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }),
         h('small', { class: 'pt-hint', text: off ? 'Too few questions for this choice' : have + ' matching questions' }),
-        sc.rules.notes && ex === 'JEE Advanced' && !advReady && !(sc.rules.mix && sc.rules.mix.Comprehension) ? h('small', { class: 'pt-hint', text: '14 questions today: Section 4 needs paragraph questions.' }) : null, h('span', { class: 'pp-go', text: off ? '' : 'Start ›' }))); });
+        sc.rules.notes && ex === 'JEE Advanced' && !advReady && !(sc.rules.mix && sc.rules.mix.Comprehension) ? h('small', { class: 'pt-hint', text: '14 questions today: Section 4 needs Para questions.' }) : null, h('span', { class: 'pp-go', text: off ? '' : 'Start ›' }))); });
     cards.forEach(c => grid.append(c));
   }
   /* CBSE Class 12 (Code 041): 38 questions, 80 marks, 3 hours. Section A is MCQ; sections B to E are written-answer questions that the bank holds as 4 options (or several correct options), made from the uploaded solutions. */
@@ -1652,7 +1653,7 @@ async function pageReport(id) {
   const keysAt = R.answers_at ? new Date(R.answers_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
   if (keysAt) items.forEach(it => { it.correct_answer = null; });   /* never shown (or kept) before the full exam time is over, whatever the server sends */
   const st = { correct: ['Correct', 'ok'], partial: ['Partly correct', 'mid'], wrong: ['Wrong', 'bad'], skipped: ['Not answered', 'mute'] };
-  const review = h('div', { class: 'pt-plist' }, items.map(it => qCard({ type: it.sj ? 'Subjective' : it.type, q: it.q, o: it.o, f: it.f, tp: it.topic }, it.pos - 1, {
+  const review = h('div', { class: 'pt-plist' }, items.map(it => qCard({ type: it.sj ? 'Subjective' : isParaText(it.q) ? 'Para' : it.type, q: it.q, o: it.o, f: it.f, tp: it.topic }, it.pos - 1, {
     status: it.status, response: it.response, answer: it.correct_answer, code: keysAt ? null : it.qid,   /* question codes are shown only here, after the test, once the answers are open (a code would lead to the answer in the bank) */
     right: h('span', { class: 'pt-qmeta' }, it.status ? badge(st[it.status][0], st[it.status][1]) : badge(it.response ? 'Answered' : 'Not answered', 'mute'), h('span', { class: 'pt-hint', text: (it.marks == null ? '' : (it.marks > 0 ? '+' : '') + num(it.marks, 2) + ' marks · ') + mmss(it.time_sec) })),
     extra: h('p', { class: 'pt-yours' }, 'Your answer: ', h('b', { text: it.response || '—' }), ' · Correct answer: ', h('b', { text: keysAt ? 'opens at ' + keysAt : (it.correct_answer || '—') })) })));
@@ -1714,12 +1715,12 @@ async function pageTake(code) {
 let EX = null;
 const TYPE_NAME = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct', Numerical: 'Numerical value', Matching: 'Matching (single correct)', SUBJ: 'Written question: pick the final answer', WRITTEN: 'Written question (not auto-marked)' };
 /* the marking scheme by question type, shown before the test starts */
-const secName = q => /^[1-4]$/.test(String(q.sec || '')) ? (q.sec === '4' ? (q.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 paragraph questions with 2 parts each') : SEC_NAME[q.sec]) : 'Section ' + q.sec;
-const SEC_NAME = { 1: 'Section 1 · Single correct (MCQ)', 2: 'Section 2 · One or more correct (MSQ)', 3: 'Section 3 · Numerical value', 4: 'Section 4 · 2 paragraph questions with 2 parts each', A: 'Section A · MCQ and Assertion-Reason', B: 'Section B · Very Short Answer (VSA)', C: 'Section C · Short Answer (SA)', D: 'Section D · Long Answer (LA)', E: 'Section E · Case Study / Source-Based' };
+const secName = q => /^[1-4]$/.test(String(q.sec || '')) ? (q.sec === '4' ? (q.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 Para questions with 2 parts each') : SEC_NAME[q.sec]) : 'Section ' + q.sec;
+const SEC_NAME = { 1: 'Section 1 · Single correct (MCQ)', 2: 'Section 2 · One or more correct (MSQ)', 3: 'Section 3 · Numerical value', 4: 'Section 4 · 2 Para questions with 2 parts each', A: 'Section A · MCQ and Assertion-Reason', B: 'Section B · Very Short Answer (VSA)', C: 'Section C · Short Answer (SA)', D: 'Section D · Long Answer (LA)', E: 'Section E · Case Study / Source-Based' };
 function schemeTable(info) {
   const secs = info.sections || []; if (!secs.length) return h('p', { class: 'pt-hint', text: 'Correct +' + num(info.marks_correct, 2) + ' · wrong −' + num(info.marks_wrong, 2) });
   const row = x => { const unmarked = +x.c === 0;
-    return h('tr', {}, h('th', { scope: 'row', text: x.sj ? (/^[1-4]$/.test(String(x.sec || '')) ? 'Section ' + x.sec + ' · ' : '') + 'Subjective (pick the final answer)' : x.sec === '4' ? (x.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 paragraph questions with 2 parts each') : x.sec && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
+    return h('tr', {}, h('th', { scope: 'row', text: x.sj ? (/^[1-4]$/.test(String(x.sec || '')) ? 'Section ' + x.sec + ' · ' : '') + 'Subjective (pick the final answer)' : x.sec === '4' ? (x.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 Para questions with 2 parts each') : x.sec && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
       h('td', { class: 'pt-num', text: unmarked ? 'not marked' : '+' + num(x.c, 2) + (x.p ? ' (partial marks possible)' : '') }),
       h('td', { class: 'pt-num', text: unmarked ? '—' : x.w != null ? (+x.w ? '−' + num(x.w, 2) : '0') : (x.type === 'MCQ' || x.type === 'Matching') ? (+info.marks_wrong ? '−' + num(info.marks_wrong, 2) : '0') : '0' })); };
   const unm = secs.filter(x => +x.c === 0).reduce((a, x) => a + x.n, 0);
@@ -1813,7 +1814,7 @@ function runExam(d) {
           } }), h('b', { text: L }), h('span', { html: qText(t) }));
       }));
     }
-    main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge(q.sj ? 'Subjective' : /^[1-4]$/.test(String(q.sec || '')) ? secName(q) : (q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'WRITTEN' ? 'Written question' : q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
+    main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge(q.sj ? 'Subjective' : isParaText(q.q) ? 'Para' : /^[1-4]$/.test(String(q.sec || '')) ? secName(q) : (q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'WRITTEN' ? 'Written question' : q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
       h('span', { class: 'pt-hint', text: (q.mc != null && +q.mc === 0) ? 'Not auto-marked' : '+' + num(q.mc != null ? q.mc : d.marks_correct, 2) + (() => { const w = q.mw != null ? +q.mw : (q.type === 'MCQ' ? +d.marks_wrong : 0); return w ? ' / −' + num(w, 2) : ''; })() + (q.mp ? ' · partial marks' : '') }),
       X.qtEl = h('span', { class: 'ex-qtime', title: 'Time spent on this question', 'aria-label': 'Time on this question' })),
       h('div', { class: 'ex-q', html: qText(q.q) }), figure(q.f) || '', input,

@@ -34,7 +34,11 @@ function rich(t) {
   return m ? richBase(m.pre) + window.AvantiMatch.table(m, richBase, ['dl-mtw', 'dl-mt', 'dl-mtk']) : richBase(t);
 }
 const srcLine = x => {
-  if (x.source && x.source !== 'PYQ') return (x.paper ? String(x.paper).replace(/\s*·\s*(Exercise-\d+|O-\d+|DY-\d+)\s*$/, '') : (x.book || x.publisher || 'Practice')) + (x.qno ? ' · Q' + x.qno : '');   /* the exercise is in the page title, not in every row */
+  if (x.source && x.source !== 'PYQ') {   /* practice questions: Ln.Ex.O1.Q16.Chapter name (book, exercise, question number, chapter of the book) */
+    const book = String(x.book || x.publisher || 'Practice'), id = String(x.id || ''), m = /-O(\d+)-/.exec(id) || /-DY(\d+)-/.exec(id) || /^BB-\d+-(\d+)-/.exec(id);
+    const ex = m ? (book === 'Ln Ex' ? 'O' : book === 'Ln DY' ? 'DY' : 'E') + (+m[1]) : '', chap = String(x.paper || '').split(' · ')[1] || x.chapter || '';
+    return [book.replace(/\s+/g, '.'), ex, x.qno ? 'Q' + x.qno : '', chap].filter(Boolean).join('.');
+  }
   const name = EXAM_NAME[x.exam] || x.exam || '', p = String(x.paper || '').replace(String(x.year || ''), '').replace(/\s*\(([^)]*)\)/g, ' · $1').replace(/\s+/g, ' ').replace(/^[\s,.\-–·]+|[\s,.\-–·]+$/g, '');
   return name + (x.year ? ' ' + x.year : '') + (p ? ' (' + p + ')' : '');
 };
@@ -58,11 +62,11 @@ function render(env, o) {
   const { D, A, main } = env, pool = o.rows, res = () => D.sum.results;
   const F = { hide: false, years: new Set(), status: '', lv: new Set(), types: new Set(), sort: o.seqOrder ? 'seq' : 'new', extra: {} };
   (o.filters || []).forEach(f => { F.extra[f.key] = new Set(); });
-  const TYPE_ORD = ['MCQ', 'MSQ', 'Numerical', 'Matching', 'Paragraph', 'Subjective'];
-  const typeOf = r => { const t = r.ty || 'MCQ'; return t === 'Comprehension' || (t === 'Numerical' && r.pa) ? 'Paragraph' : t; };   /* from the index (pa: a "Para:" question) */
+  const TYPE_ORD = ['MCQ', 'MSQ', 'Numerical', 'Matching', 'Para', 'Subjective'];
+  const typeOf = r => { const t = r.ty || 'MCQ'; return t === 'Comprehension' || r.pa ? 'Para' : t; };   /* from the index (pa: a "Para:" question) */
   const years = [...new Set(pool.map(r => r.y).filter(Boolean))].sort((a, b) => b - a), types = [...new Set(pool.map(typeOf))].sort((a, b) => { const ia = TYPE_ORD.indexOf(a), ib = TYPE_ORD.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
   let list = [], page = 0, openId = '';
-  const wrap = h('div', { class: 'dl' }), ul = h('ul', { class: 'dl-list' }), pager = h('nav', { class: 'dl-pager', 'aria-label': 'Pages' }), count = h('span', { class: 'dl-count', role: 'status' });
+  const wrap = h('div', { class: 'dl' }), ul = h('ul', { class: 'dl-list' }), pager = h('nav', { class: 'dl-pager', 'aria-label': 'Pages' }), pagerTop = h('nav', { class: 'dl-pager dl-pager-top', 'aria-label': 'Pages (top)' }), count = h('span', { class: 'dl-count', role: 'status' });
   let expCount = null;
   const att = st => st === 'c' || st === 'w', solved = pool.filter(r => att(res()[r.id])).length, right = pool.filter(r => res()[r.id] === 'c').length;
 
@@ -95,14 +99,18 @@ function render(env, o) {
   const paint = () => {
     const from = page * PAGE, to = Math.min(list.length, from + PAGE);
     count.textContent = list.length ? 'Showing ' + (from + 1) + '–' + to + ' of ' + list.length + (filtered() ? ' (filtered from ' + pool.length + ')' : '') : 'No questions';
-    pager.textContent = ''; if (expCount) expCount.textContent = String(list.length);
+    pager.textContent = ''; pagerTop.textContent = ''; if (expCount) expCount.textContent = String(list.length);
     if (!list.length) { drawTok++; ul.textContent = ''; ul.append(h('li', { class: 'dl-empty' }, h('b', { text: 'No questions match' }), h('span', { text: filtered() ? 'Change or clear the filters above.' : (o.emptyText || 'Nothing here yet.') }))); return; }
     const n = pages(); if (n < 2) return;
+    const build = () => {
     const btn = (t, p, cur, dis, label) => h('button', { type: 'button', class: 'dl-pg' + (cur ? ' on' : ''), disabled: !!dis, 'aria-label': label || 'Page ' + t, 'aria-current': cur ? 'page' : null, html: typeof t === 'string' && t[0] === '<' ? t : null, text: typeof t === 'string' && t[0] === '<' ? null : String(t), onclick: () => goPage(p) });
     const set = new Set([0, n - 1, page - 1, page, page + 1]); if (page < 2) { set.add(1); set.add(2); } if (page > n - 3) { set.add(n - 2); set.add(n - 3); }
     const nums = [...set].filter(x => x >= 0 && x < n).sort((a, b) => a - b); let prev = -1; const items = [];
     nums.forEach(x => { if (prev >= 0 && x - prev > 1) items.push(h('span', { class: 'dl-gap', text: '…' })); items.push(btn(x + 1, x, x === page)); prev = x; });
-    pager.append(btn(ICON.prev, page - 1, false, page === 0, 'Previous page'), h('span', { class: 'dl-pgs' }, items), btn(ICON.next, page + 1, false, page >= n - 1, 'Next page'));
+    return [btn(ICON.prev, page - 1, false, page === 0, 'Previous page'), h('span', { class: 'dl-pgs' }, items), btn(ICON.next, page + 1, false, page >= n - 1, 'Next page')];
+
+    };
+    pager.append(...build()); pagerTop.append(...build());
   };
 
   /* one compact row */
@@ -264,14 +272,14 @@ function render(env, o) {
     wrap.append(h('div', { class: 'dl-top' }, h('div', { class: 'dl-ttl' }, h('h2', { text: o.title }), o.sub ? h('small', { text: o.sub }) : ''), h('div', { class: 'dl-top-r' }, o.startTest ? smallTest : null)),
       exportPanel(),
       h('div', { class: 'dl-filters dl-oneline' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, levelMenu, typeMenu, statusMenu, h('label', { class: 'dl-sortw dl-sort-r' }, h('span', { html: ICON.sort }), sortSel)),
-      h('div', { class: 'dl-bar' }, count), ul, pager);
+      h('div', { class: 'dl-bar' }, count, pagerTop), ul, pager);
   } else wrap.append(
     h('section', { class: 'lh' },
       h('div', { class: 'lh-t' }, h('div', { class: 'lh-ttl' }, h('h2', { text: o.title }), o.sub ? h('p', { text: o.sub }) : ''), o.startTest ? h('button', { type: 'button', class: 'btn lh-go', onclick: async e => { const b = e.currentTarget; b.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (x) { env.toast(x.message || 'Could not start'); } b.disabled = false; } }, h('span', { html: env.IC.bolt }), (o.testLabel || 'Take test')) : ''),
       h('div', { class: 'lh-st' }, [[String(pool.length), 'questions'], [solved + ' / ' + pool.length, 'attempted'], [String(right), 'correct'], [solved ? env.pct(right, solved) + '%' : '—', 'accuracy']].map(([n, l]) => h('div', { class: 'lh-s', 'data-k': l }, h('b', { text: n }), h('span', { text: l }))))),
     exportPanel(),
     h('div', { class: 'dl-filters' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, statusMenu, levelMenu, types.length ? multi('Type', types, F.types, null, v => pool.filter(r => typeOf(r) === v).length) : null),
-    h('div', { class: 'dl-bar' }, count, h('label', { class: 'dl-sortw' }, h('span', { html: ICON.sort }), sortSel)),
+    h('div', { class: 'dl-bar' }, count, pagerTop, h('label', { class: 'dl-sortw' }, h('span', { html: ICON.sort }), sortSel)),
     ul, pager);
   if (o.head) o.head.querySelectorAll('.d-crumb').forEach(c => c.classList.add('d-crumb-sr'));   /* kept in the page, not shown */
   main(o.head || null, wrap);

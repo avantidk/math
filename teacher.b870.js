@@ -1748,7 +1748,7 @@ const GUIDE_HTML = () => `
 <li><b>Path:</b> PYQs &rarr; choose an exam &rarr; choose a chapter. The chapter page has an <b>Overview</b> (your progress, difficulty split, year-wise graph for the last 5 years, table from 2013 and the 5 most important subtopics), <b>All PYQs</b>, <b>Topic-wise Qs</b>, <b>Must Do</b> (high-yield repeated questions), <b>Bookmarked</b> and Test History.</li>
 <li><b>Levels:</b> Confidence Booster (Level 1, easy), Balanced (Level 2) and Rank Booster (Level 3, tough).</li>
 <li><b>Each question row:</b> tap it to open. Tap an option to check it; for numerical questions type the answer and press Check. Open <b>Full explanation</b>, <b>Others' solutions</b> and <b>Comments</b> under the question. The three-lines menu on the right bookmarks the question or reports a mistake. The arrows go to the previous or next question.</li>
-<li><b>Filters:</b> years, attempt status, difficulty and type, in the order MCQ, MSQ, Numerical, Matching, Paragraph, Subjective. "Hide attempted" hides what you already did. Sort by year. Match the following questions show List-I and List-II as a table.</li>
+<li><b>Filters:</b> years, attempt status, difficulty and type, in the order MCQ, MSQ, Numerical, Matching, Para, Subjective. "Hide attempted" hides what you already did. Sort by year. Match the following questions show List-I and List-II as a table.</li>
 <li><b>Subjective questions</b> of the old IIT-JEE papers have 4 options with the final answer and say (Subjective) in the question.</li>
 <li><b>Export:</b> the panel on top downloads exactly the questions in your list (after filters) as a PDF, with an answer key and explanations if you switch them on. PYQ PDFs are free for every account.</li>
 </ul>
@@ -1765,7 +1765,7 @@ const GUIDE_HTML = () => `
 <li><b>Previous Year Papers:</b> sit a real paper, shift by shift (JEE Main, JEE Advanced, KCET, NDA, IAT), with the real time and real marking.</li>
 <li><b>Chapter Wise Mock:</b> pick a chapter for a mixed test.</li>
 <li><b>Must Solve / Repeated Questions:</b> only the high-yield repeated questions.</li>
-<li><b>Full Length Mock:</b> a whole exam with its official duration, question count and marking, chapters mixed. <b>JEE Advanced</b> has Paper 1 (Sections 1 to 4: MCQ, MSQ, Numerical, Matching) and Paper 2 (MCQ, MSQ, Numerical and Section 4 with 2 paragraph questions of 2 parts each), 65 minutes each. <b>NDA</b> questions come chapter by chapter (4 to 5 of a chapter in a row). Sections stay in order and questions are shuffled only inside a section.</li>
+<li><b>Full Length Mock:</b> a whole exam with its official duration, question count and marking, chapters mixed. <b>JEE Advanced</b> has Paper 1 (Sections 1 to 4: MCQ, MSQ, Numerical, Matching) and Paper 2 (MCQ, MSQ, Numerical and Section 4 with 2 Para questions of 2 parts each), 65 minutes each. <b>NDA</b> questions come chapter by chapter (4 to 5 of a chapter in a row). Sections stay in order and questions are shuffled only inside a section.</li>
 <li><b>Create Your Practice Test:</b> choose the source (PYQ, Non-PYQ or Mix), exam, years, chapters, difficulty slider, question types, number of questions and your own time in minutes, and the marking scheme (also JEE Advanced Paper 1 or 2).</li>
 <li><b>Source and difficulty:</b> at the top of the mocks, PYQ / Non-PYQ / Mix and a difficulty slider from Easy to Tough. Free accounts can use PYQ only.</li>
 </ul>
@@ -1773,7 +1773,7 @@ const GUIDE_HTML = () => `
 <ul>
 <li><b>Timer:</b> it counts only while the test page is open and online. If your internet or power goes it pauses by itself, and when you open the test again it carries on from where it stopped. Answers are saved while you write.</li>
 <li><b>Screen:</b> question palette (answered, not answered, not visited, marked for review), Save &amp; next, Mark for review &amp; next, Clear response. Sections are shown on each question and above the palette. Answers are saved while you write; the test submits itself when the time ends.</li>
-<li><b>Question types:</b> single correct, one or more correct, numerical (type the value), matching and paragraph questions. A question tagged Subjective gives 4 options for the final answer.</li>
+<li><b>Question types:</b> single correct, one or more correct, numerical (type the value), matching and Para questions. A question tagged Subjective gives 4 options for the final answer.</li>
 <li><b>Warnings:</b> switching to another tab or app, or leaving full screen, gives a warning. At 3 warnings the test is submitted automatically.</li>
 </ul>
 <h3 id="gd-rep">Reports and answers</h3>

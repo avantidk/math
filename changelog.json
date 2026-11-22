@@ -1,5 +1,15 @@
 [
   {
+    "v": "1043",
+    "date": "22 Nov 2026",
+    "items": [
+      "Questions that start with Para: are tagged Para everywhere (type filter, test screen and review), whatever their answer type, and the word is Para, not Paragraph.",
+      "Practice questions now show their place in the book under the question, like Ln.Ex.O1.Q16.Integration.",
+      "The page buttons (1 … 6 7 8) now also appear at the top of every question list, next to the count.",
+      "Integration (Indefinite 12M19, Definite 12M20) and Statistics (11M12) checked against the solved files: 13 paragraph questions got their Para text back, Statistics Q9 got its List, and Definite Integration is its own sheet next to Area Under the Curve."
+    ]
+  },
+  {
     "v": "1042",
     "date": "22 Nov 2026",
     "items": [

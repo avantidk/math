@@ -637,3 +637,8 @@ body.dpop-on { overflow: hidden; }
 .gd-body .gd-t th { background: var(--accent-soft); font-weight: 700; position: sticky; top: 0; }
 .gd-body .gd-t td:nth-child(2), .gd-body .gd-t td:nth-child(3), .gd-body .gd-t th:nth-child(2), .gd-body .gd-t th:nth-child(3) { white-space: nowrap; text-align: center; }
 .gd-body .gd-t tr:last-child td { border-bottom: 0; }
+
+/* page buttons also between the count and the sort, at the top of the list */
+.dl-bar .dl-pager-top { padding: 0; gap: 4px; margin: 0 auto; }
+.dl-bar .dl-pager-top .dl-pg { min-width: 34px; height: 34px; }
+@media (max-width: 700px) { .dl-bar .dl-pager-top { margin: 0; justify-content: flex-start; } }
