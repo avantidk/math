@@ -1005,7 +1005,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   }
   function startFigures() {
     if (figStarted) return; figStarted = true;
-    var load = window.__getFigs ? window.__getFigs() : fetch('qb/data/figures.json').then(function (r) { if (!r.ok) throw new Error('figures'); return r.json(); });
+    var C = window.AvantiContent, load = window.__getFigs ? window.__getFigs() : C && C.figures ? C.figures() : fetch('qb/data/figures.json').then(function (r) { if (!r.ok) throw new Error('figures'); return r.json(); });
     figReady = load.then(attachFigures).catch(function () { figStarted = false; });
   }
   function VR() { return PARTIAL ? PARTIAL.rows : ROWS; } /* overview numbers (counts, chapter-wise, weightage) never depend on any filter */
@@ -1244,22 +1244,28 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       css(); pane.textContent = '';
       var form = el('div', 'qb-soc-form'); form.hidden = true;
       var open = el('button', 'qb-btn primary qb-addsol-open', 'Add your solution'); open.type = 'button'; open.addEventListener('click', function () { form.hidden = !form.hidden; });
-      var pick = el('input'); pick.type = 'file'; pick.accept = 'image/*'; pick.multiple = true; pick.setAttribute('aria-label', 'Choose up to 3 images');
+      /* each person may add at most 2 images per question in all (the server checks the same) */
+      var MAX_IMG = 2, used = 0;
+      function left() { return Math.max(0, MAX_IMG - used); }
+      function hint() { return left() ? 'Up to ' + left() + ' image' + (left() === 1 ? '' : 's') + ', handwritten or typed (2 per question in all).' : 'You have already added 2 images for this question, the most allowed. Delete one of your solutions to add another.'; }
+      var pick = el('input'); pick.type = 'file'; pick.accept = 'image/*'; pick.multiple = true; pick.setAttribute('aria-label', 'Choose up to 2 images');
       var prev = el('div', 'qb-prev'), note = el('textarea'); note.rows = 2; note.maxLength = 500; note.placeholder = 'Optional note (for example: shorter method)';
-      var send = el('button', 'qb-btn primary', 'Post solution'); send.type = 'button'; var msg = el('span', 'qb-soc-msg', 'Up to 3 images, handwritten or typed.');
+      var send = el('button', 'qb-btn primary', 'Post solution'); send.type = 'button'; var msg = el('span', 'qb-soc-msg', hint());
       var files = [];
       function drawPrev() { prev.textContent = ''; files.forEach(function (f, i) { var w = el('span'), im = el('img'); im.src = URL.createObjectURL(f); im.alt = 'Image ' + (i + 1); var x = el('button', null, '×'); x.type = 'button'; x.setAttribute('aria-label', 'Remove image'); x.addEventListener('click', function () { files.splice(i, 1); drawPrev(); }); w.appendChild(im); w.appendChild(x); prev.appendChild(w); }); }
       pick.addEventListener('change', function () {
         var add = Array.prototype.slice.call(pick.files || []); pick.value = '';
-        add.forEach(function (f) { if (files.length < 3) files.push(f); }); if (add.length + files.length > 3 && files.length >= 3) { msg.textContent = 'Only 3 images can be added.'; msg.className = 'qb-soc-msg bad'; } drawPrev();
+        var over = false; add.forEach(function (f) { if (files.length < left()) files.push(f); else over = true; }); if (over) { msg.textContent = 'Only ' + left() + ' image' + (left() === 1 ? '' : 's') + ' can be added for this question (2 in all).'; msg.className = 'qb-soc-msg bad'; } drawPrev();
       });
       send.addEventListener('click', function () {
+        if (!left()) { msg.textContent = hint(); msg.className = 'qb-soc-msg bad'; return; }
         if (!files.length) { msg.textContent = 'Choose at least one image.'; msg.className = 'qb-soc-msg bad'; return; }
+        if (files.length > left()) files = files.slice(0, left());
         var a = A(), uid = a.session && a.session.user ? a.session.user.id : (a.profile && a.profile.id); if (!uid) { msg.textContent = 'Please sign in again.'; msg.className = 'qb-soc-msg bad'; return; }
         send.disabled = true; msg.className = 'qb-soc-msg'; msg.textContent = 'Uploading…';
         Promise.all(files.map(function (f, i) { return shrink(f).then(function (b) { var path = uid + '/' + Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 8) + '.jpg'; return a.sb.storage.from('user-solutions').upload(path, b, { contentType: 'image/jpeg' }).then(function (r) { if (r.error) throw r.error; return path; }); }); }))
           .then(function (paths) { return a.rpc('add_qb_solution', { p_qid: String(q.id), p_images: paths, p_note: note.value.trim() || null }); })
-          .then(function () { files = []; note.value = ''; drawPrev(); form.hidden = true; msg.textContent = 'Up to 3 images, handwritten or typed.'; send.disabled = false; others(q, pane, count); })
+          .then(function () { files = []; note.value = ''; drawPrev(); form.hidden = true; send.disabled = false; others(q, pane, count); })
           .catch(function (e) { send.disabled = false; msg.className = 'qb-soc-msg bad'; msg.textContent = 'Could not post: ' + (e && e.message ? e.message : 'try again') + '.'; });
       });
       var row = el('div', 'qb-soc-row'); row.appendChild(send); row.appendChild(msg);
@@ -1267,7 +1273,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
       var list = el('div', 'qb-soc-list'); list.textContent = 'Loading…';
       pane.appendChild(open); pane.appendChild(form); pane.appendChild(list);
       A().rpc('qb_solutions_for', { p_qid: String(q.id) }).then(function (rows) {
-        rows = rows || []; count(rows.length); var paths = []; rows.forEach(function (r) { (r.images || []).forEach(function (p) { paths.push(p); }); });
+        rows = rows || []; count(rows.length); used = 0; rows.forEach(function (r) { if (r.mine) used += (r.images || []).length; }); msg.textContent = hint(); pick.disabled = !left(); var paths = []; rows.forEach(function (r) { (r.images || []).forEach(function (p) { paths.push(p); }); });
         return signed(paths).then(function (urls) {
           list.textContent = ''; if (!rows.length) { list.appendChild(el('p', 'qb-soc-msg', 'No one has added a solution yet. Be the first.')); return; }
           rows.forEach(function (r) {

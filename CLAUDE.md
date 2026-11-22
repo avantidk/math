@@ -21,7 +21,7 @@ tests and results. It replaced an older Claude artifact.
   `robots.txt` are GENERATED from `syllabus.json` by `python3 .github/scripts/build_seo.py` (exam counts come from `.github/scripts/exam-stats.json`, made by `exam_stats.py` from the private bank: numbers only); the exam guides, the CUET-UG guide, the cutoff compendium (safe scores, marks vs percentile vs rank) and the Important Exams roadmap come from `.github/scripts/exam-guides.json`, made by `guides_from_pdf.py` from the owner's PDFs; exam dates and countdowns are the `DATES` / `NEXT_DATE` tables in `build_seo.py`: edit that script (and `site.css`), never the generated
   files, then run it (with `SEO_VER=<build>`) and commit the result. Public pages must contain no questions, answers, solutions or handouts.
   Public pages have a strict Content-Security-Policy: every script must come from this site (`vendor/` holds the libraries), never a CDN.
-- `auth.js`: sign-in, plan permissions (read from the database via `my_profile`), profile menu, one device at a time (claim_session / session_ok). `manifest.json`, `sw.js`, `pwa.js`, `pwa.css`, `offline.html`: install as an app (PWA).
+- `auth.js`: sign-in, plan permissions (read from the database via `my_profile`), profile menu, devices: one computer + one phone + one tablet per account at the same time (claim_session(kind) / session_ok; a replaced login can never claim again). `manifest.json`, `sw.js`, `pwa.js`, `pwa.css`, `offline.html`: install as an app (PWA).
 - `portal.js`, `portal.css`: profile, membership, tests, results, students, approvals, help.
 - `teacher.b870.js`, `qb/qb-all.b870.js`, `qb/qb.b525.html`: Question Bank, DPPs, PYPs, Handouts (with plan checks). The top bar and footer of /qbank and /dashboard both come from `chrome.js`: Dashboard, DPPs, PYPs, Tests, Handouts, and the Question Bank under the profile menu.
 - The private content (questions, answers, solutions, handouts, Word/PowerPoint code) is NOT in this public
@@ -29,8 +29,16 @@ tests and results. It replaced an older Claude artifact.
   BACKUP of the old repository: never push to it, run its workflows, read from it or use it for anything unless the owner
   explicitly asks. Content changes are uploaded straight to the bucket (Supabase → Storage), never committed here.
   `boot.js` fetches it with the user's token; the database (function `content_allowed`) decides who may read each file.
-  Never move these files back into the website folder.
-- `supabase/schema.sql`: the whole database; safe to run again. It also creates the private storage bucket `user-solutions` (images of own solutions, max 3 per submission) and its policies. `supabase/functions/`: Edge Functions.
+  Never move these files back into the website folder. Practice (non-PYQ) data is Premium-only on the server: `qb/data/nonpyq.json`,
+  `qb/data/figures-np.json` and `sol-np/<chapter>.json` (PYQ solutions are in `sol/<chapter>.json`, PYQ figures in `qb/data/figures.json`).
+  `/qbank` (and `qb/data/first.json`) are for the admin only; everyone else is sent to `/dashboard`.
+  The whole files `qb/data/pyq.json` and `qb/data/nonpyq.json` are ADMIN-ONLY. Everyone else loads only what is on screen from split files:
+  `index/questions.json` (ids + metadata, no text), `pyq/<chapter>.json`, `np/<chapter>.json` (Premium) and `papers/<paper>.json`.
+  After ANY change to pyq.json or nonpyq.json, re-run `python3 .github/scripts/split_content.py --upload` (from a session that can
+  reach the bucket with the service key) or non-admin accounts keep seeing the old questions.
+- Tests: the clock runs from the start and never pauses; 3 violations (leaving the test screen / full screen) submit automatically;
+  correct answers open at start + full duration; the question bank is closed while an attempt is running.
+- `supabase/schema.sql`: the whole database; safe to run again. It also creates the private storage bucket `user-solutions` (images of own solutions, max 2 per question per student, 20 uploads a day) and its policies. `supabase/functions/`: Edge Functions.
 - `.github/scripts/guard.sh`: run it before every merge (`bash .github/scripts/guard.sh`). The deploy workflow refuses to
   publish when it fails.
 - On every release: bump `BUILD` and `RELEASED` in `boot.js` and the `?v=` numbers in `qbank.html`, `dashboard.html` and `login.js` (and run `build_seo.py` with `SEO_VER`), and add an entry at the top of

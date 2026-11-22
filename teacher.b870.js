@@ -817,7 +817,22 @@ async function addExplPages(wrap, pages) {
   finally { hst.remove(); }
   rescale();
 }
+/* On the dashboard the bank is the light index (window.__BANK: no question text): the text of the picked chapters is fetched
+   before a sheet is laid out, exported or saved (only those chapters, never the whole bank). In /qbank the bank is complete. */
+const fillT = (qs, o) => { const todo = (qs || []).filter(q => q && q.q == null); return todo.length && window.AvantiContent && window.AvantiContent.fill ? window.AvantiContent.fill(todo, o).then(() => qs) : Promise.resolve(qs); };
+const libFill = () => { if (!BANK || !LS.chs.length) return null; const todo = dppPool(true).map(q => BYID.get(q.i)).filter(q => q && q.q == null); return todo.length ? fillT(todo) : null; };   /* dppPool gives copies: the bank's own objects are filled */
+function libThen(fn) {
+  const p = libFill(); if (!p) { fn(); return; }
+  Object.keys(BK).forEach(k => { delete BK[k]; });   /* sheets laid out before the text came are made again */
+  p.then(() => fn(), () => toast('Could not load the questions. Check your connection and try again.'));
+}
 function showLibPrev() {
+  const p = libFill(); if (!p) { showLibPrev0(); return; }
+  const wrap = $('#libPrev'), tok = LS.tok = (LS.tok || 0) + 1; wrap.textContent = ''; wrap.append(h('div', { class: 'qbload' }, h('div', { class: 'spin' }), h('p', { text: 'Loading the questions\u2026' })));
+  Object.keys(BK).forEach(k => { delete BK[k]; });
+  p.then(() => { if (LS.tok === tok) showLibPrev0(); }, () => { if (LS.tok !== tok) return; wrap.textContent = ''; wrap.append(h('div', { class: 'empty', text: 'Could not load the questions. Check your connection and try again.' })); });
+}
+function showLibPrev0() {
   const pages = currentPages(), wrap = $('#libPrev'), msg = $('#libMsg'); wrap.textContent = '';
   if (!pages.length) { wrap.append(h('div', { class: 'empty', text: 'No questions here yet.' })); msg.textContent = ''; return; }
   LS.shown = true; LS.page = 0;
@@ -970,6 +985,8 @@ const QBJ = {};
 function qbJson(n) {
   if (!QBJ[n]) {
     const pre = window.__qbPre && window.__qbPre.data && window.__qbPre.data[n];
+    const pm = window.AvantiAuth && window.AvantiAuth.perm, paid = !!(pm && (pm.premium || pm.staff || pm.isAdmin));
+    if (n === 'nonpyq' && !paid) return (QBJ[n] = Promise.resolve([]));   /* practice questions are Premium: a Free account never asks for them */
     const direct = () => fetch('qb/data/' + n + '.json').then(r => { if (!r.ok) throw new Error(n); return r.json(); });
     QBJ[n] = (pre ? Promise.resolve(pre).catch(direct) : direct()).catch(e => { delete QBJ[n]; throw e; });
   }
@@ -988,8 +1005,9 @@ function qbCompact(r, withKcet) {
 }
 /* pictures are in qb/data/figures.json (not inside pyq.json / nonpyq.json); loaded once, shared with the Question Bank */
 let figP = null;
-window.__getFigs = function () {
-  if (!figP) figP = fetch('qb/data/figures.json').then(r => { if (!r.ok) throw new Error('figures'); return r.json(); }).catch(e => { figP = null; throw e; });
+window.__getFigs = function () {   /* PYQ figures, plus practice figures (figures-np.json) for Premium: boot.js merges them */
+  const C = window.AvantiContent;
+  if (!figP) figP = (C && C.figures ? C.figures() : fetch('qb/data/figures.json').then(r => { if (!r.ok) throw new Error('figures'); return r.json(); })).catch(e => { figP = null; throw e; });
   return figP;
 };
 let bankP = null;
@@ -1384,7 +1402,7 @@ function onAct(e) {
   const gate = { lexp: k, pdfdl: t.dataset.f || 'pdf', xprint: 'print', xshare: 'share', pdfshare: 'share' }[a];
   if (gate && !(gate === 'pdf' && a === 'lexp' && PERM().pdfPyq) && !need(gate)) return;
   switch (a) {
-    case 'lexp': exportLib(k); break;
+    case 'lexp': libThen(() => exportLib(k)); break;
     case 'theme': themeToggle(); break;
     case 'guide': guideOpen(); break;
     case 'guideclose': guideClose(); break;
@@ -1404,9 +1422,9 @@ function onAct(e) {
     case 'liblv': { const n = LS.lv.includes(k) ? LS.lv.filter(x => x !== k) : LS.lv.concat(k); if (!n.length) { toast('Keep at least one level'); break; } LS.lv = ['L1', 'L2', 'L3'].filter(x => n.includes(x)); renderLib(); break; }
     case 'mall': case 'mnone': { const boxe = $('#' + k); boxe.querySelectorAll('.ml input').forEach(x => { x.checked = a === 'mall'; }); boxe.querySelector('.ml input') ? boxe.querySelector('.ml input').dispatchEvent(new Event('change')) : 0; break; }
     case 'libshow': showLibPrev(); break;
-    case 'wssave': case 'wstest': { const w = window.AvantiPortal && wsSource(t.dataset.src); if (w) { if (a === 'wssave') window.AvantiPortal.saveWorksheet(w.ids, w.title); else window.AvantiPortal.createTestFrom(w.ids, w.title); } break; }
-    case 'xprint': { const g = pdfSource(t); if (g) printFrom(g.get); break; }
-    case 'xshare': { const g = pdfSource(t); if (g) shareFrom(t, g.title, g.get); break; }
+    case 'wssave': case 'wstest': libThen(() => { const w = window.AvantiPortal && wsSource(t.dataset.src); if (w) { if (a === 'wssave') window.AvantiPortal.saveWorksheet(w.ids, w.title); else window.AvantiPortal.createTestFrom(w.ids, w.title); } }); break;
+    case 'xprint': libThen(() => { const g = pdfSource(t); if (g) printFrom(g.get); }); break;
+    case 'xshare': libThen(() => { const g = pdfSource(t); if (g) shareFrom(t, g.title, g.get); }); break;
     case 'libshuffle': { LS.seed = 1 + Math.floor(Math.random() * 2147483000); showLibPrev(); toast('New set of questions'); break; }
     case 'libswap': { const r = dppCur(); if (dppSwap(r, k)) showLibPrev(); else toast('No other question can replace this one'); break; }
     case 'libpage': LS.page = +k; showLibPrev(); break;
@@ -1701,7 +1719,7 @@ const GUIDE_HTML = () => `
 <h3 id="gd-start">Getting started</h3>
 <ul>
 <li><b>Sign in</b> with Google, or with your Student ID if you are an Avanti student. Your choice of Student or Teacher is saved the first time you sign in.</li>
-<li><b>One device at a time.</b> If you sign in on another device, the first one is signed out. Teachers' schools are approved by अंक-IT before students and tests become visible.</li>
+<li><b>One computer, one phone and one tablet at a time.</b> Your account can be open on one of each at the same time. If you sign in on another device of the same kind (for example a second phone), the older one is signed out. Teachers' schools are approved by अंक-IT before students and tests become visible.</li>
 <li><b>Top bar:</b> Dashboard, PYQs, DPPs, Tests and Handouts. The round icon on the right is your profile menu (profile, membership, My Performance, tests, students, help and logout). The home icon opens the public home page, the question mark opens this guide, and the moon/sun switches light and dark.</li>
 <li><b>Exam countdown:</b> the days left for JEE Main and JEE Advanced are on your dashboard and at the top of the home page.</li>
 </ul>
@@ -1709,13 +1727,13 @@ const GUIDE_HTML = () => `
 <p>Free is open to every account that signs in. Premium is a one-year plan (₹299 for students, ₹599 for teachers, no auto-renewal). Avanti students and teachers get Premium without paying. A payment is not refunded once made, so try Free first.</p>
 <div class="gd-tw"><table class="gd-t"><thead><tr><th>What you get</th><th>Free</th><th>Premium / Avanti</th></tr></thead><tbody>
 <tr><td>All PYQs (JEE Main, JEE Advanced, KCET, NDA, IAT) with answers and solutions</td><td>Yes</td><td>Yes</td></tr>
-<tr><td>Past papers, chapter-wise and full-length mocks from PYQs, your own tests</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Every kind of test: past papers, chapter-wise and full-length mocks, must-solve tests, your own tests (from PYQs)</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>Report with topic analysis and rank in your school</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>PDF download of PYQs</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>First Class 11 and Class 12 handouts to view</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>Non-PYQ practice questions (books and sheets)</td><td>Locked</td><td>Yes</td></tr>
 <tr><td>DPPs and the Own DPP Maker</td><td>Locked</td><td>Yes</td></tr>
-<tr><td>Mocks and own tests with Non-PYQ or Mix source</td><td>Locked</td><td>Yes</td></tr>
+<tr><td>Choosing Non-PYQ or Mix questions in a test (Free: PYQ only)</td><td>Locked</td><td>Yes</td></tr>
 <tr><td>All handouts (view and PDF)</td><td>Locked</td><td>Yes</td></tr>
 <tr><td>PDF download and printing of DPPs, papers and handouts</td><td>PYQs only</td><td>Yes</td></tr>
 <tr><td>Rank among all students, average and top score</td><td>School only</td><td>Yes</td></tr>
@@ -1753,15 +1771,15 @@ const GUIDE_HTML = () => `
 </ul>
 <h3 id="gd-take">Taking a test</h3>
 <ul>
-<li><b>Timer:</b> it runs only while the test page is open. If your internet or power goes, it pauses by itself and carries on when you come back. Time spent away is not counted.</li>
+<li><b>Timer:</b> it starts when you press Start and runs on the clock until the time of the test is over, also while the page is closed or your internet is off. Your saved answers stay in your account: open the test again to carry on.</li>
 <li><b>Screen:</b> question palette (answered, not answered, not visited, marked for review), Save &amp; next, Mark for review &amp; next, Clear response. Sections are shown on each question and above the palette. Answers are saved while you write; the test submits itself when the time ends.</li>
 <li><b>Question types:</b> single correct, one or more correct, numerical (type the value), matching and paragraph questions. A question tagged Subjective gives 4 options for the final answer.</li>
-<li>Avoid switching tabs; the number of switches is recorded.</li>
+<li><b>Warnings:</b> switching to another tab or app, or leaving full screen, gives a warning. At 3 warnings the test is submitted automatically.</li>
 </ul>
 <h3 id="gd-rep">Reports and answers</h3>
 <ul>
 <li>After you submit you see your score, accuracy, time, rank in your school (Premium: rank among all students, average and top), topic-wise analysis and a question-wise review with right or wrong, marks and time.</li>
-<li><b>Correct answers open when the time of the paper is over</b> (for a 3-hour paper, 3 hours after you started), also if you submitted early, so that nobody can pass the answers on while others are still writing. The answer-key PDFs open at the same time; the question paper PDF is available at once.</li>
+<li><b>Correct answers open when the full exam time is over</b> (for a 3-hour paper, 3 hours after you started), also if you submitted early, so that nobody can pass the answers on while others are still writing. The answer-key PDFs open at the same time; the question paper PDF is available at once.</li>
 <li><b>My Performance</b> (profile menu) lists all your tests, results and reports. The dashboard also shows your overall progress.</li>
 <li>Teachers see the results of their tests, each student's report, and can export results to CSV.</li>
 </ul>
@@ -1946,9 +1964,10 @@ window.AvantiTeacher = {
   /* the question bank (same data as the Question Bank, DPPs and PYQs tabs), for the test maker */
   bank: () => ensureDpp().then(() => ({ qs: BANK.all, byId: BYID, chapters: CHMAP })),
   /* saved worksheets: the same PDF / Word / PowerPoint export and share menu as DPPs (plan checks inside) */
-  exportIds: async (ids, title, kind, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } if (opts) pages = pages.map(p => Object.assign({}, p, { key: !!opts.key, exp: !!opts.exp })); doExport(kind, { pages, file: title }); },
-  pdfIds: async (ids, title, label, info, subLine) => { await ensureDpp(); await KATEX_P; const pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
-  shareIds: async (btn, ids, title) => { await ensureDpp(); await KATEX_P; const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
+  fill: (qs, o) => fillT(qs, o),   /* the text of these questions (dashboard: fetched by chapter or paper; /qbank: already there) */
+  exportIds: async (ids, title, kind, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } if (opts) pages = pages.map(p => Object.assign({}, p, { key: !!opts.key, exp: !!opts.exp })); doExport(kind, { pages, file: title }); },
+  pdfIds: async (ids, title, label, info, subLine) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); const pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
+  shareIds: async (btn, ids, title) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
   math: node => math(node),
   viewHandout: (x, url) => viewHandout(x, url),
   mountMaker: host => mountMaker(host)

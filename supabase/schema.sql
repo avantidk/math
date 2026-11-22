@@ -211,24 +211,22 @@ $$;
 create or replace function public.in_test() returns boolean
 language plpgsql stable security definer set search_path = public as $$
 begin
-  -- writing a test right now: its page sent a heartbeat in the last 10 minutes and the time is not up (a paused test does not lock the question bank)
+  -- writing a test right now: any unfinished attempt whose time (counted from its start, the clock never pauses) is not over
   return exists (select 1 from public.attempts a join public.tests t on t.id = a.test_id
                   where a.user_id = auth.uid() and a.status = 'in_progress'
-                    and a.last_beat > now() - interval '10 minutes'
-                    and a.elapsed_sec <= t.duration_min * 60 + 120);
+                    and now() <= a.started_at + make_interval(mins => t.duration_min) + interval '2 minutes');
 end $$;
 
--- Submits tests that were paused and never resumed (30 hours without a heartbeat) and tests whose time ran out while away.
--- p_user = one person (called when they open a test or their results); null = everyone (the scheduled job, every 30 minutes).
+-- Submits tests whose time is over (the clock runs from the start and never pauses), with the answers saved so far.
+-- p_user = one person (called when they open a test or their results); null = everyone (the scheduled job, every 5 minutes).
 create or replace function public.sweep_attempts(p_user uuid default null) returns integer
 language plpgsql security definer set search_path = public as $$
 declare a record; n integer := 0;
 begin
-  for a in select x.id, x.last_beat, x.elapsed_sec, t.duration_min from public.attempts x join public.tests t on t.id = x.test_id
+  for a in select x.id, x.started_at, t.duration_min from public.attempts x join public.tests t on t.id = x.test_id
             where x.status = 'in_progress' and (p_user is null or x.user_id = p_user)
-              and ((x.last_beat is not null and x.last_beat < now() - interval '30 hours')
-                or (x.elapsed_sec > t.duration_min * 60 + 120 and (x.last_beat is null or x.last_beat < now() - interval '3 minutes'))) loop
-    update public.attempts set submitted_at = coalesce(submitted_at, last_beat, now()) where id = a.id;
+              and now() > x.started_at + make_interval(mins => t.duration_min) + interval '2 minutes' loop
+    update public.attempts set submitted_at = coalesce(submitted_at, least(now(), a.started_at + make_interval(mins => a.duration_min))) where id = a.id;
     perform public.grade_attempt(a.id); n := n + 1;
   end loop;
   return n;
@@ -238,7 +236,7 @@ begin
   begin create extension if not exists pg_cron; exception when others then null; end;
   if to_regnamespace('cron') is not null then
     begin perform cron.unschedule('avanti-auto-submit'); exception when others then null; end;
-    begin perform cron.schedule('avanti-auto-submit', '*/30 * * * *', 'select public.sweep_attempts()'); exception when others then null; end;
+    begin perform cron.schedule('avanti-auto-submit', '*/5 * * * *', 'select public.sweep_attempts()'); exception when others then null; end;
   end if;
 end $$;
 
@@ -607,6 +605,9 @@ begin
     raise exception 'This account bought the student plan, so it can only be a student account';
   end if;
   update public.profiles set role = p_role, updated_at = now() where id = auth.uid() and role is null;
+  -- "Not Working" is for teachers only: a student account never keeps it (the student chooses a school again)
+  update public.profiles set school = null, school_approved = false, school_approved_at = null, updated_at = now()
+   where id = auth.uid() and role = 'student' and public.is_not_working(school);
   return public.my_profile();
 end $$;
 
@@ -623,6 +624,7 @@ declare me public.profiles; v_av boolean; v_admin boolean;
 begin
   if auth.uid() is null then raise exception 'Please sign in again'; end if;
   select * into me from public.profiles where id = auth.uid();
+  if me.role is null and not me.is_staff then raise exception 'Choose Teacher or Student first'; end if;
   v_av := me.role = 'student';   -- students: a detail, once filled, stays
   v_admin := public.admin_of(me);
   update public.profiles set
@@ -894,8 +896,8 @@ alter table public.payments                 enable row level security;
 alter table public.worksheets               enable row level security;
 alter table public.tests                    enable row level security;
 alter table public.attempts                 enable row level security;
--- Active-time clock (version 975): the countdown counts only the seconds the test page was really open (it sends a heartbeat every
--- 30 seconds). If the power or internet goes, the clock pauses; the attempt is submitted automatically after 30 hours without a return.
+-- Test clock: it runs from the start and never pauses (elapsed_sec = seconds since the start). 3 violations (leaving the test
+-- screen or full screen) submit the attempt automatically. last_beat is only the time of the last save.
 alter table public.attempts add column if not exists elapsed_sec integer not null default 0;
 alter table public.attempts add column if not exists last_beat timestamptz;
 update public.attempts a set last_beat = now(), elapsed_sec = least(extract(epoch from (now() - a.started_at))::integer, 86400) where a.status = 'in_progress' and a.last_beat is null;
@@ -1057,6 +1059,9 @@ begin
       m := regexp_match(v_key, '^(-?\d+(?:\.\d+)?)\s*TO\s*(-?\d+(?:\.\d+)?)$');
       if m is not null then lo := least(m[1]::numeric, m[2]::numeric); hi := greatest(m[1]::numeric, m[2]::numeric);
       elsif v_key ~ '^-?\d+(\.\d+)?$' then lo := v_key::numeric; hi := lo;
+      elsif v_key ~ '^-?\d+(\.\d+)?(\s*OR\s*-?\d+(\.\d+)?)+$' and v_resp ~ '^-?\d+(\.\d+)?$' then
+        -- several accepted values, e.g. "3 OR 9": right when the answer equals any of them
+        lo := (select x::numeric from regexp_split_to_table(v_key, '\s*OR\s*') x order by abs(x::numeric - v_resp::numeric) limit 1); hi := lo;
       else lo := null; end if;
       if v_resp ~ '^-?\d+(\.\d+)?$' and lo is not null then
         v := v_resp::numeric;
@@ -1091,13 +1096,13 @@ begin
   where id = a.id;
 end $$;
 
--- The active-time clock. Seconds since the last heartbeat count only when the gap is short (the page was open); a longer gap is a pause.
+-- The clock: seconds since the start (it never pauses).
 create or replace function public.attempt_beat(p_id uuid) returns public.attempts
 language plpgsql security definer set search_path = public as $$
 declare a public.attempts;
 begin
   update public.attempts set
-    elapsed_sec = elapsed_sec + case when last_beat is not null and now() - last_beat <= interval '90 seconds' then extract(epoch from (now() - last_beat))::integer else 0 end,
+    elapsed_sec = least(greatest(extract(epoch from (now() - started_at))::integer, 0), 2000000000),
     last_beat = now()
    where id = p_id and status = 'in_progress' returning * into a;
   if a.id is null then select * into a from public.attempts where id = p_id; end if;
@@ -1111,7 +1116,7 @@ language plpgsql security definer set search_path = public as $$
 declare t public.tests; me public.profiles; a public.attempts;
 begin
   if auth.uid() is null then raise exception 'Please sign in to take this test'; end if;
-  perform public.sweep_attempts(auth.uid());   -- a test left unfinished for 30 hours is submitted with the saved answers
+  perform public.sweep_attempts(auth.uid());   -- a test whose time is over is submitted with the saved answers
   select * into t from public.tests where code = lower(trim(p_code));
   if t.id is null then raise exception 'This test link is not valid. Ask your teacher for the link again.'; end if;
   if t.owner_id = auth.uid() and t.audience not in ('self', 'teachers_link') then raise exception 'This is your own test. Open it from My Tests to preview it.'; end if;
@@ -1127,8 +1132,8 @@ begin
   end if;
   if a.status = 'in_progress' then
     a := public.attempt_beat(a.id);
-    if a.elapsed_sec > t.duration_min * 60 + 120 then
-      perform public.grade_attempt(a.id);   -- the time ran out: submit what was saved
+    if a.elapsed_sec > t.duration_min * 60 + 120 or a.tab_switches >= 3 then
+      perform public.grade_attempt(a.id);   -- the time ran out, or 3 violations: submit what was saved
       select * into a from public.attempts where id = a.id;
     end if;
   end if;
@@ -1159,9 +1164,14 @@ begin
     return json_build_object('status', 'time_up');
   end if;
   if jsonb_typeof(p_answers) <> 'object' or length(p_answers::text) > 200000 then raise exception 'Answers are not valid'; end if;
-  update public.attempts set answers = p_answers, tab_switches = greatest(tab_switches, coalesce(p_tab_switches, 0)), saved_at = now()
-   where id = a.id;
-  return json_build_object('status', 'saved', 'server_now', now(), 'remaining_sec', greatest(t.duration_min * 60 - a.elapsed_sec, 0));
+  update public.attempts set answers = p_answers, tab_switches = greatest(tab_switches, least(coalesce(p_tab_switches, 0), 100)), saved_at = now()
+   where id = a.id returning * into a;
+  if a.tab_switches >= 3 then   -- 3 violations: the test is submitted automatically
+    update public.attempts set submitted_at = coalesce(submitted_at, now()) where id = a.id;
+    perform public.grade_attempt(a.id);
+    return json_build_object('status', 'submitted', 'reason', 'violations', 'attempt_id', a.id);
+  end if;
+  return json_build_object('status', 'saved', 'server_now', now(), 'remaining_sec', greatest(t.duration_min * 60 - a.elapsed_sec, 0), 'violations', a.tab_switches);
 end $$;
 
 create or replace function public.submit_attempt(p_attempt uuid, p_answers jsonb, p_tab_switches integer) returns json
@@ -1178,9 +1188,9 @@ begin
      and a.elapsed_sec <= t.duration_min * 60 + 120 then
     update public.attempts set answers = p_answers, saved_at = now() where id = a.id;
   end if;
-  update public.attempts set tab_switches = greatest(tab_switches, coalesce(p_tab_switches, 0)) where id = a.id;
+  update public.attempts set tab_switches = greatest(tab_switches, least(coalesce(p_tab_switches, 0), 100)) where id = a.id returning * into a;
   perform public.grade_attempt(a.id);
-  return json_build_object('attempt_id', a.id, 'status', 'submitted');
+  return json_build_object('attempt_id', a.id, 'status', 'submitted', 'reason', case when a.tab_switches >= 3 then 'violations' end);
 end $$;
 
 -- -------------------------------------------------------------------------------------
@@ -1211,7 +1221,7 @@ begin
     v_mine := a.user_id = me.id;
   -- the correct answers open when the time of the paper is over (the duration of the paper, counted from the student's start, plus any time the clock was paused),
   -- also when the student submitted early; the rest of the report (score, ranks, right or wrong, marks, topic analysis) is shown at once
-  v_keys := not v_mine or now() >= a.started_at + make_interval(mins => coalesce(t.duration_min, 180)) + make_interval(secs => greatest(0, extract(epoch from (coalesce(a.submitted_at, now()) - a.started_at)) - coalesce(a.time_taken_sec, 0)));
+  v_keys := not v_mine or now() >= a.started_at + make_interval(mins => coalesce(t.duration_min, 180));
   -- Free students see their school only; Premium students, teachers and Staff also see the comparison with all students
   v_full := a.user_id <> me.id or public.plan_of(me) in ('premium', 'staff');
   if a.status <> 'submitted' then raise exception 'This test has not been submitted yet'; end if;
@@ -1229,7 +1239,7 @@ begin
     'test', json_build_object('title', t.title, 'code', t.code, 'duration_min', t.duration_min, 'n_questions', t.n_questions,
                  'marks_correct', t.marks_correct, 'marks_wrong', t.marks_wrong),
     'full', v_full,
-    'answers_at', case when not v_keys then a.started_at + make_interval(mins => coalesce(t.duration_min, 180)) + make_interval(secs => greatest(0, extract(epoch from (coalesce(a.submitted_at, now()) - a.started_at)) - coalesce(a.time_taken_sec, 0))) end,
+    'answers_at', case when not v_keys then a.started_at + make_interval(mins => coalesce(t.duration_min, 180)) end,
     'rank', (select json_build_object('overall', case when v_full then r.r_all end, 'overall_of', case when v_full then r.n_all end,
                     'school', r.r_school, 'school_of', r.n_school) from ranked r where r.id = a.id),
     'stats', case when v_full then (select json_build_object('average', round(avg(score), 2), 'top', max(score)) from public.attempts where test_id = t.id and status = 'submitted') end,
@@ -2076,6 +2086,11 @@ end $$;
 -- 11g. Paid content in Supabase Storage (private bucket "content"). Nothing is public; every file is checked here:
 --   qb/..., sol/..., must.json, bank-meta.json  questions, answers, solutions: any signed-in account with a role,
 --                                               but NOT while that person is writing a test
+--   qb/data/pyq.json, qb/data/nonpyq.json       the WHOLE bank in one file each: the admin only
+--   index/..., pyq/..., papers/...              the bank split by .github/scripts/split_content.py (re-run it after pyq.json or
+--                                               nonpyq.json change): the light index (no text), one chapter, one past paper:
+--                                               any signed-in account with a role, not during a test
+--   np/...                                      practice questions of one chapter: Premium (and Staff), not during a test
 --   handouts/index.json                         the list of handouts (titles only): any signed-in account
 --   handouts/...                                handout PDFs: Premium (and Avanti / Staff) only
 --   admin/...                                   Word / PowerPoint export code: the admin only
@@ -2094,7 +2109,13 @@ begin
   if n = 'handouts/index.json' then return true; end if;
   if n ~ '^handouts/(11M1|12M13)(_|/)' then return true; end if;   -- the first Class 11 and the first Class 12 handout are free for every signed-in account
   if n like 'handouts/%' then return public.plan_of(me) in ('premium', 'staff'); end if;
-  if n = 'qb/data/nonpyq.json' then return public.plan_of(me) in ('premium', 'staff') and not public.in_test(); end if;   -- practice questions (books, sheets): Premium and Avanti
+  if n = 'qb/data/first.json' then return false; end if;   -- the Question Bank's own start file: the admin only (allowed above)
+  if n in ('qb/data/pyq.json', 'qb/data/nonpyq.json') then return false; end if;   -- the whole bank in one request: the admin only (allowed above); everybody else reads the split files
+  if n like 'np/%' then return public.plan_of(me) in ('premium', 'staff') and not public.in_test(); end if;   -- practice questions of one chapter
+  if n like 'index/%' or n like 'pyq/%' or n like 'papers/%' then return not public.in_test(); end if;   -- the light index, one chapter of PYQs, one past paper
+  if n in ('qb/data/nonpyq.json', 'qb/data/figures-np.json') or n like 'sol-np/%' then   -- practice questions, their figures and solutions
+    return public.plan_of(me) in ('premium', 'staff') and not public.in_test();
+  end if;
   if n like 'qb/%' or n like 'sol/%' or n in ('must.json', 'bank-meta.json') then return not public.in_test(); end if;
   return false;
 end $$;
@@ -2356,6 +2377,8 @@ create table if not exists public.bookmarks (
   primary key (user_id, qid)
 );
 alter table public.bookmarks enable row level security;
+revoke all on public.bookmarks from anon, authenticated;
+grant select on public.bookmarks to authenticated;
 drop policy if exists bookmarks_own on public.bookmarks;
 create policy bookmarks_own on public.bookmarks for select to authenticated using (user_id = auth.uid());
 
@@ -2508,7 +2531,11 @@ declare me public.profiles; r public.qb_solutions; img text;
 begin
   select * into me from public.profiles where id = auth.uid();
   if me.id is null or (me.role is null and not me.is_staff) then raise exception 'Please finish your profile first'; end if;
-  if p_images is null or array_length(p_images, 1) is null or array_length(p_images, 1) > 3 then raise exception 'Add 1 to 3 images'; end if;
+  if p_images is null or array_length(p_images, 1) is null or array_length(p_images, 1) > 2 then raise exception 'Add 1 or 2 images'; end if;
+  if (select coalesce(sum(cardinality(s2.images)), 0) from public.qb_solutions s2 where s2.user_id = me.id and s2.qid = left(p_qid, 80))
+     + array_length(p_images, 1) > 2 then
+    raise exception 'You can add at most 2 images for one question. Delete an earlier solution to add new images.';
+  end if;
   foreach img in array p_images loop
     if img not like me.id::text || '/%' or img like '%..%' or char_length(img) > 200 then raise exception 'Invalid image'; end if;
   end loop;
@@ -2551,6 +2578,13 @@ begin
   update public.qb_reports set status = 'done', resolved_at = now() where id = p_id;
 end $$;
 
+-- how many images this person uploaded in the last 24 hours (the upload rule below allows 20 a day)
+create or replace function public.usol_uploads_today() returns integer
+language sql stable security definer set search_path = public, storage as $$
+  select count(*)::integer from storage.objects o
+   where o.bucket_id = 'user-solutions' and (storage.foldername(o.name))[1] = auth.uid()::text and o.created_at > now() - interval '1 day'
+$$;
+
 -- private storage for the images of own solutions: every signed-in account can look, each person writes only into their own folder
 do $$
 begin
@@ -2562,7 +2596,7 @@ begin
     execute $p$create policy usol_read on storage.objects for select to authenticated using (bucket_id = 'user-solutions')$p$;
     execute 'drop policy if exists usol_insert on storage.objects';
     execute $p$create policy usol_insert on storage.objects for insert to authenticated
-             with check (bucket_id = 'user-solutions' and (storage.foldername(name))[1] = auth.uid()::text)$p$;
+             with check (bucket_id = 'user-solutions' and (storage.foldername(name))[1] = auth.uid()::text and public.usol_uploads_today() < 20)$p$;
     execute 'drop policy if exists usol_delete on storage.objects';
     execute $p$create policy usol_delete on storage.objects for delete to authenticated
              using (bucket_id = 'user-solutions' and (storage.foldername(name))[1] = auth.uid()::text)$p$;
@@ -2651,10 +2685,10 @@ begin
 end $$;
 
 -- -------------------------------------------------------------------------------------
--- 11k. One device at a time (version 977)
---   The newest sign-in is the active one. Every login has its own session id inside the access token (claim session_id); claim_session
---   records it when a browser signs in, session_ok() says whether this token is still the active one, and content_allowed() refuses
---   every private file to a device that has been replaced. The replaced device also shows a message and signs out.
+-- 11k. Devices (version 1038): an account may be signed in on ONE computer, ONE phone and ONE tablet at the same time.
+--   Every login has its own session id inside the access token (claim session_id). claim_session(device) records it for that kind of
+--   device; the login it replaces is remembered in revoked_sessions and can never claim again (that browser must sign in anew).
+--   session_ok() says whether this token is still an active login, and content_allowed() refuses every private file otherwise.
 -- -------------------------------------------------------------------------------------
 create table if not exists public.active_sessions (
   user_id    uuid primary key references public.profiles(id) on delete cascade,
@@ -2662,8 +2696,29 @@ create table if not exists public.active_sessions (
   device     text,
   claimed_at timestamptz not null default now()
 );
+-- one row per account and kind of device (the old table had one row per account)
+alter table public.active_sessions add column if not exists kind text not null default 'pc';
+do $$
+begin
+  if exists (select 1 from pg_constraint where conname = 'active_sessions_pkey' and conrelid = 'public.active_sessions'::regclass
+               and array_length(conkey, 1) = 1) then
+    alter table public.active_sessions drop constraint active_sessions_pkey;
+    alter table public.active_sessions add primary key (user_id, kind);
+  end if;
+end $$;
+alter table public.active_sessions drop constraint if exists active_sessions_kind_check;
+alter table public.active_sessions add constraint active_sessions_kind_check check (kind in ('pc', 'mobile', 'tab'));
 alter table public.active_sessions enable row level security;
 revoke all on public.active_sessions from anon, authenticated;
+
+create table if not exists public.revoked_sessions (
+  session_id uuid primary key,
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  revoked_at timestamptz not null default now()
+);
+create index if not exists revoked_sessions_at on public.revoked_sessions (revoked_at);
+alter table public.revoked_sessions enable row level security;
+revoke all on public.revoked_sessions from anon, authenticated;
 
 create or replace function public.jwt_session() returns uuid
 language plpgsql stable as $$
@@ -2675,20 +2730,57 @@ end $$;
 
 create or replace function public.claim_session(p_device text default null) returns json
 language plpgsql security definer set search_path = public as $$
-declare sid uuid := public.jwt_session();
+declare sid uuid := public.jwt_session(); k text := lower(coalesce(p_device, '')); old uuid;
 begin
   if auth.uid() is null then raise exception 'Please sign in'; end if;
   if sid is null or public.is_admin() then return json_build_object('ok', true, 'tracked', false); end if;   -- the admin may be signed in on many devices
-  insert into public.active_sessions (user_id, session_id, device) values (auth.uid(), sid, left(p_device, 200))
-  on conflict (user_id) do update set session_id = excluded.session_id, device = excluded.device, claimed_at = now();
-  return json_build_object('ok', true, 'tracked', true);
+  if k not in ('pc', 'mobile', 'tab') then k := case when k ~ '(ipad|tablet)' then 'tab' when k ~ '(mobi|iphone|android)' then 'mobile' else 'pc' end; end if;
+  if exists (select 1 from public.revoked_sessions where session_id = sid) then
+    return json_build_object('ok', false, 'reason', 'signed_out');   -- a newer login on the same kind of device replaced this one
+  end if;
+  perform pg_advisory_xact_lock(hashtext('devices:' || auth.uid()::text));
+  delete from public.active_sessions where user_id = auth.uid() and session_id = sid and kind <> k;   -- the same login moved to another kind
+  select session_id into old from public.active_sessions where user_id = auth.uid() and kind = k;
+  if old is not null and old <> sid then
+    insert into public.revoked_sessions (session_id, user_id) values (old, auth.uid()) on conflict do nothing;
+  end if;
+  insert into public.active_sessions (user_id, kind, session_id, device) values (auth.uid(), k, sid, k)
+  on conflict (user_id, kind) do update set session_id = excluded.session_id, device = excluded.device, claimed_at = now();
+  delete from public.revoked_sessions where revoked_at < now() - interval '60 days';
+  return json_build_object('ok', true, 'tracked', true, 'kind', k);
 end $$;
 
 create or replace function public.session_ok() returns boolean
 language sql stable security definer set search_path = public as $$
   select case when public.jwt_session() is null or auth.uid() is null or public.is_admin() then true
-              else coalesce((select a.session_id = public.jwt_session() from public.active_sessions a where a.user_id = auth.uid()), true) end
+              when exists (select 1 from public.revoked_sessions r where r.session_id = public.jwt_session()) then false
+              when not exists (select 1 from public.active_sessions a where a.user_id = auth.uid()) then true
+              else exists (select 1 from public.active_sessions a where a.user_id = auth.uid() and a.session_id = public.jwt_session()) end
 $$;
+
+-- -------------------------------------------------------------------------------------
+-- 11l. Admin: Avanti IDs blocked from Student ID sign-in (too many wrong dates of birth), and unblocking them
+-- -------------------------------------------------------------------------------------
+create or replace function public.admin_locked_avanti() returns json
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Only Avanti admins can see this'; end if;
+  return (select coalesce(json_agg(json_build_object('avanti_id', x.avanti_id, 'full_name', a.full_name, 'school', a.school,
+            'fails_15m', x.f15, 'fails_24h', x.f24, 'last_try', x.last_at) order by x.last_at desc), '[]'::json)
+     from (select l.avanti_id, count(*) filter (where l.at > now() - interval '15 minutes') as f15, count(*) as f24, max(l.at) as last_at
+             from public.login_attempts l where not l.ok and l.avanti_id is not null and l.at > now() - interval '24 hours' group by l.avanti_id) x
+     left join public.student_allowlist a on a.avanti_id = x.avanti_id
+    where x.f15 >= 5 or x.f24 >= 10);
+end $$;
+
+create or replace function public.admin_unlock_avanti(p_id text) returns json
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Only Avanti admins can unblock IDs'; end if;
+  delete from public.login_attempts where avanti_id = public.norm_avanti_id(p_id) and not ok;
+  update public.student_allowlist set failed_attempts = 0, locked_until = null where avanti_id = public.norm_avanti_id(p_id);
+  return json_build_object('ok', true);
+end $$;
 
 -- -------------------------------------------------------------------------------------
 -- 12. Who may call which function
@@ -2708,7 +2800,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.submit_qb_report(text, text), public.qb_reports_list(), public.qb_report_resolve(uuid),
   public.my_attempts(), public.my_tests(), public.list_schools(), public.is_premium_teacher(), public.price_paise(text),
   public.teacher_add_student(jsonb), public.teacher_add_students(jsonb), public.teacher_update_student(uuid, text, jsonb),
-  public.record_practice(text, boolean), public.claim_session(text), public.session_ok(), public.school_students(text), public.admin_all_students(), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),
+  public.record_practice(text, boolean), public.claim_session(text), public.session_ok(), public.admin_locked_avanti(), public.admin_unlock_avanti(text), public.usol_uploads_today(), public.school_students(text), public.admin_all_students(), public.student_attempts(uuid), public.is_admin(), public.admin_teachers(),
   public.request_school_change(text), public.admin_school_requests(), public.admin_school_request(uuid, text, text, text),
   public.admin_set_teacher_school(uuid, text, text, text), public.admin_update_teacher(uuid, text, text), public.admin_pending_students(),
   public.admin_schools(), public.admin_rename_school(text, text), public.admin_delete_school(text),

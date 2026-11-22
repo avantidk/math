@@ -1,13 +1,37 @@
 [
   {
+    "v": "1040",
+    "date": "22 Nov 2026",
+    "items": [
+      "Bookmarked Qs now opens the same list screen as every other question list (filters, export, worksheet, test). The 'Practise these in the Question Bank' button and the other Question Bank links are gone; only the admin has Question Bank, in the profile menu.",
+      "The paper download menu (Tests > Previous Year Papers) now also offers Download Word and Download PowerPoint to accounts that may have them (admin and Avanti teachers).",
+      "New sign-ups are asked 'From where did you get to know about us?' (Discord/Reddit, Friend/Teacher, Google/Bing, Other with a box to type). The admin sees the answer in the students list and the teachers list.",
+      "Ln Ex exercises are named O-1 to O-4, as in the book. The exercise name is in the page title only and is no longer repeated (wrongly, as Exercise-5) on every question.",
+      "{{figure}} no longer shows in the text; the figure is drawn where it belongs. Every Subjective question now says (Subjective)."
+    ]
+  },
+  {
+    "v": "1039",
+    "date": "22 Nov 2026",
+    "items": [
+      "The dashboard now downloads only what is on the screen: a light list of question numbers and topics (no question text) at the start, then only the chapter, page or paper you open. The whole question bank downloads only for the admin; nobody else can get it in one file.",
+      "Tests that span chapters (full-length mock, Create Your Practice Test, Must Solve, bookmarks) fetch only the chapters of the questions they use. The teacher test maker asks you to pick chapters first, then loads just those.",
+      "Question fixes: three past-paper MCQs that had no correct option now have one (KCET 2018 Q105, NDA 2023 Q81 and Q117); 38 practice questions moved to their right chapters."
+    ]
+  },
+  {
     "v": "1038",
     "date": "22 Nov 2026",
     "items": [
-      "Bookmarked Qs now opens the same list screen as every other question list (filters, export, worksheet, test). The 'Practise these in the Question Bank' button and every other link to the Question Bank are gone; only the admin has Question Bank, in the profile menu.",
-      "The paper download menu (Tests > Previous Year Papers) now also offers Download Word and Download PowerPoint to accounts that may have them (admin and Avanti teachers).",
-      "New sign-ups are asked 'From where did you get to know about us?' (Discord/Reddit, Friend/Teacher, Google/Bing, Other with a box to type). The admin sees the answer in the students list and the teachers list.",
-      "Ln Ex exercises are named O-1 to O-4, as in the book. The exercise name is in the page title only and no longer repeated (wrongly, as Exercise-5) on every question.",
-      "{{figure}} no longer shows in the text; the figure is drawn where it belongs. Every Subjective question now says (Subjective)."
+      "Security audit fixes. Tests: the timer runs from the start and never pauses (no more 30-hour pause). Leaving the test screen or full screen is a warning; at 3 warnings the test is submitted automatically. The question bank stays closed while a test is running, and anything the browser had saved is cleared when a test starts.",
+      "Correct answers open only when the full exam time is over, counted from your start: finish a 3-hour test in 2 h 30 min and the answers open 30 minutes later. Score, ranks and right/wrong are shown at once.",
+      "Devices: one account can be signed in on one computer, one phone and one tablet at the same time. A new sign-in on the same kind of device signs the old one out for good (it has to sign in again).",
+      "Practice (non-PYQ) solutions and figures are now separate files that only Premium accounts can open. The Question Bank page (/qbank) is for the admin only; everyone else goes to the dashboard. Word and PowerPoint stay limited as before.",
+      "Admin: Approvals has a new Blocked Avanti IDs card to unblock an Avanti ID after too many wrong dates of birth.",
+      "Own solutions: at most 2 images per question per student. Free teachers see a Premium page for My Students instead of a blank screen. Tests are no longer locked: only the question type (Non-PYQ / Mix) is Premium; Free accounts use PYQs. Chapter tests are named after their chapter.",
+      "The four chart panels (Question Counts, Chapter-wise Count, Syllabus Priority, Chapter Weightage) work for everyone again. Numerical answers can list several accepted values (\"3 or 9\"); MSQs with 5 options are graded.",
+      "Question bank data: every past paper is numbered 1..N, chapter names match the chapter list, 55 untagged practice questions got topics, first screen counts fixed, a few answers and links corrected.",
+      "Search: titles and descriptions are no longer cut off, old addresses redirect properly, thin pages are hidden from search, cleaner sitemap and robots.txt; public pages cannot be shown inside other websites."
     ]
   },
   {

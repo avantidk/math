@@ -39,7 +39,8 @@ const srcLine = x => {
   return name + (x.year ? ' ' + x.year : '') + (p ? ' (' + p + ')' : '');
 };
 let FIGS = null;
-const figures = env => (FIGS || (FIGS = env.content.get('qb/data/figures.json').catch(() => ({}))));
+/* PYQ figures for everyone, practice figures too for Premium (boot.js merges the two files and skips one that is refused) */
+const figures = env => (FIGS || (FIGS = (env.content.figures ? env.content.figures() : env.content.get('qb/data/figures.json')).catch(() => { FIGS = null; return {}; })));
 
 /* ---------- small pop-up menus for the filters ---------- */
 let openMenu = null;
@@ -58,7 +59,7 @@ function render(env, o) {
   const F = { hide: false, years: new Set(), status: '', lv: new Set(), types: new Set(), sort: o.seqOrder ? 'seq' : 'new', extra: {} };
   (o.filters || []).forEach(f => { F.extra[f.key] = new Set(); });
   const TYPE_ORD = ['MCQ', 'MSQ', 'Numerical', 'Matching', 'Paragraph', 'Subjective'];
-  const typeOf = r => { const x = D.raw.get(r.id) || {}, t = x.type || 'MCQ'; return t === 'Comprehension' || (t === 'Numerical' && /^\s*Para:/i.test(x.question || '')) ? 'Paragraph' : t; };
+  const typeOf = r => { const t = r.ty || 'MCQ'; return t === 'Comprehension' || (t === 'Numerical' && r.pa) ? 'Paragraph' : t; };   /* from the index (pa: a "Para:" question) */
   const years = [...new Set(pool.map(r => r.y).filter(Boolean))].sort((a, b) => b - a), types = [...new Set(pool.map(typeOf))].sort((a, b) => { const ia = TYPE_ORD.indexOf(a), ib = TYPE_ORD.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
   let list = [], page = 0, openId = '';
   const wrap = h('div', { class: 'dl' }), ul = h('ul', { class: 'dl-list' }), pager = h('nav', { class: 'dl-pager', 'aria-label': 'Pages' }), count = h('span', { class: 'dl-count', role: 'status' });
@@ -70,16 +71,21 @@ function render(env, o) {
     list = pool.filter(r => (!F.hide || !att(res()[r.id])) && (!F.years.size || F.years.has(r.y)) && (!F.lv.size || F.lv.has(r.d)) && (!F.types.size || F.types.has(typeOf(r)))
       && (!F.status || (F.status === 'u' ? !res()[r.id] : res()[r.id] === F.status)) && (o.filters || []).every(f => !F.extra[f.key].size || F.extra[f.key].has(f.get(r))));
     const key = r => (r.y || 0) * 1e3;
-    const chOrd = c => ((env.D.chByCode[c] || {}).order || 999), qn = r => +((env.D.raw.get(r.id) || {}).qno) || 0;
+    const chOrd = c => ((env.D.chByCode[c] || {}).order || 999), qn = r => r.qn || 0;
     list.sort((a, b) => F.sort === 'seq' ? chOrd(a.ch) - chOrd(b.ch) || String(a.bk).localeCompare(String(b.bk)) || (a.shn || 0) - (b.shn || 0) || qn(a) - qn(b) || (a.id < b.id ? -1 : 1) : F.sort === 'new' ? (b.y || 0) - (a.y || 0) || (a.id < b.id ? 1 : -1) : F.sort === 'old' ? (a.y || 0) - (b.y || 0) || (a.id < b.id ? -1 : 1) : F.sort === 'easy' ? String(a.d).localeCompare(String(b.d)) || (b.y || 0) - (a.y || 0) : String(b.d).localeCompare(String(a.d)) || (b.y || 0) - (a.y || 0));
     page = 0; draw();
   };
   const pages = () => Math.max(1, Math.ceil(list.length / PAGE));
+  /* only the questions of this page are drawn, so only their chapter files are fetched (a spinner meanwhile) */
+  let drawTok = 0;
   const draw = () => {
     openId = ''; ul.textContent = '';
-    const from = page * PAGE, to = Math.min(list.length, from + PAGE);
-    for (let i = from; i < to; i++) ul.append(row(list[i], i));
-    paint();
+    const from = page * PAGE, to = Math.min(list.length, from + PAGE), vis = list.slice(from, to), tok = ++drawTok;
+    const fill = () => { ul.textContent = ''; for (let i = from; i < to; i++) ul.append(row(list[i], i)); paint(); };
+    if (vis.every(r => D.raw.has(r.id))) { fill(); return Promise.resolve(); }
+    ul.append(h('li', { class: 'dl-empty dl-loading' }, h('div', { class: 'spin' }), h('span', { text: 'Loading the questions…' }))); paint();
+    return env.need(vis).then(() => { if (tok === drawTok) fill(); }, () => { if (tok !== drawTok) return; ul.textContent = '';
+      ul.append(h('li', { class: 'dl-empty' }, h('b', { text: 'Could not load the questions' }), h('button', { type: 'button', class: 'btn', text: 'Try again', onclick: () => draw() }))); });
   };
   const goPage = (n, scroll) => { page = Math.max(0, Math.min(pages() - 1, n)); draw(); if (scroll !== false) { const t = wrap.querySelector('.dl-bar') || wrap; t.scrollIntoView({ block: 'start', behavior: 'smooth' }); } };
   const filtered = () => F.hide || F.years.size || F.lv.size || F.types.size || F.status || (o.filters || []).some(f => F.extra[f.key].size);
@@ -87,7 +93,7 @@ function render(env, o) {
     const from = page * PAGE, to = Math.min(list.length, from + PAGE);
     count.textContent = list.length ? 'Showing ' + (from + 1) + '–' + to + ' of ' + list.length + (filtered() ? ' (filtered from ' + pool.length + ')' : '') : 'No questions';
     pager.textContent = ''; if (expCount) expCount.textContent = String(list.length);
-    if (!list.length) { ul.textContent = ''; ul.append(h('li', { class: 'dl-empty' }, h('b', { text: 'No questions match' }), h('span', { text: filtered() ? 'Change or clear the filters above.' : (o.emptyText || 'Nothing here yet.') }))); return; }
+    if (!list.length) { drawTok++; ul.textContent = ''; ul.append(h('li', { class: 'dl-empty' }, h('b', { text: 'No questions match' }), h('span', { text: filtered() ? 'Change or clear the filters above.' : (o.emptyText || 'Nothing here yet.') }))); return; }
     const n = pages(); if (n < 2) return;
     const btn = (t, p, cur, dis, label) => h('button', { type: 'button', class: 'dl-pg' + (cur ? ' on' : ''), disabled: !!dis, 'aria-label': label || 'Page ' + t, 'aria-current': cur ? 'page' : null, html: typeof t === 'string' && t[0] === '<' ? t : null, text: typeof t === 'string' && t[0] === '<' ? null : String(t), onclick: () => goPage(p) });
     const set = new Set([0, n - 1, page - 1, page, page + 1]); if (page < 2) { set.add(1); set.add(2); } if (page > n - 3) { set.add(n - 2); set.add(n - 3); }
@@ -175,8 +181,10 @@ function render(env, o) {
       const inp = h('input', { type: 'text', inputmode: 'decimal', class: 'dl-numin', placeholder: 'Type your answer', 'aria-label': 'Your answer', autocomplete: 'off' }), res = h('div', { class: 'dl-numres', role: 'status' });
       const check = () => {
         const v = inp.value.trim(); if (!v) { inp.focus(); return; } if (!raw) { env.toast('The answer for this question is not available yet.'); return; }
-        const range = /^(-?\d+(?:\.\d+)?)\s*to\s*(-?\d+(?:\.\d+)?)$/i.exec(raw), n = parseFloat(v.replace(/[^0-9eE+\-.]/g, '')); let good = false;
-        if (range) good = n >= Math.min(+range[1], +range[2]) - 1e-9 && n <= Math.max(+range[1], +range[2]) + 1e-9; else if (/^-?\d+(\.\d+)?$/.test(raw)) good = Math.abs(n - parseFloat(raw)) < 1e-6 || Math.abs(n - parseFloat(raw)) <= Math.abs(parseFloat(raw)) * 1e-9; else good = v.replace(/\s/g, '').toLowerCase() === raw.replace(/\s/g, '').toLowerCase();
+        /* the key is a number, a range "a to b", or several accepted numbers "a or b" */
+        const range = /^(-?\d+(?:\.\d+)?)\s*to\s*(-?\d+(?:\.\d+)?)$/i.exec(raw), n = parseFloat(v.replace(/[^0-9eE+\-.]/g, '')), alts = raw.split(/\s+or\s+/i).map(x => x.trim()); let good = false;
+        const same = k => Math.abs(n - parseFloat(k)) < 1e-6 || Math.abs(n - parseFloat(k)) <= Math.abs(parseFloat(k)) * 1e-9;
+        if (range) good = n >= Math.min(+range[1], +range[2]) - 1e-9 && n <= Math.max(+range[1], +range[2]) + 1e-9; else if (alts.every(k => /^-?\d+(\.\d+)?$/.test(k))) good = !isNaN(n) && alts.some(same); else good = v.replace(/\s/g, '').toLowerCase() === raw.replace(/\s/g, '').toLowerCase();
         record(r.id, good); res.className = 'dl-numres ' + (good ? 'ok' : 'bad'); res.innerHTML = (good ? ICON.chk + '<b>Correct</b>' : ICON.x + '<b>Wrong</b> · correct answer: ') + (good ? '' : rich(raw));
       };
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
@@ -205,7 +213,7 @@ function render(env, o) {
     env.mathReady().then(() => { q.innerHTML = rich(qHead); if (qAfter) qAfter.innerHTML = rich(qTail); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); });
     return box;
   }
-  const step = i => { if (i < 0 || i >= list.length) return; const pg = Math.floor(i / PAGE); if (pg !== page) { page = pg; draw(); } const li = ul.querySelector('.dl-row[data-id="' + list[i].id + '"]'); if (li) toggle(li, list[i]); };
+  const step = async i => { if (i < 0 || i >= list.length) return; const pg = Math.floor(i / PAGE); if (pg !== page) { page = pg; await draw(); } const li = ul.querySelector('.dl-row[data-id="' + list[i].id + '"]'); if (li) toggle(li, list[i]); };
 
   /* controls */
   const tog = h('label', { class: 'dl-switch' }, h('input', { type: 'checkbox', role: 'switch', onchange: e => { F.hide = e.target.checked; apply(); } }), h('span', { class: 'dl-track', 'aria-hidden': 'true' }), h('span', { text: 'Hide attempted' }));
@@ -276,7 +284,8 @@ function solution(env, id, pane) {
     const t = typeof sv === 'string' ? sv : sv.t; pane.append(h('div', { class: 'dl-sol', html: rich(t) }));
   }).catch(() => { pane.textContent = ''; pane.append(h('p', { class: 'dl-soft bad', text: 'Could not load the explanation. Check your connection.' })); });
 }
-/* ---------- other people's solutions (up to 3 images each) ---------- */
+/* ---------- other people's solutions (each person: at most 2 images per question in all) ---------- */
+const MAX_IMG = 2;
 function shrink(file) {
   return new Promise((res, rej) => {
     const u = URL.createObjectURL(file), img = new Image();
@@ -288,12 +297,16 @@ const when = t => { try { return new Date(t).toLocaleDateString('en-IN', { day: 
 const who = (a, at) => h('div', { class: 'dl-who' }, h('b', { text: (a && a.name) || 'Member' }), h('span', { class: 'dl-role', text: (a && a.role) || '' }), h('span', { class: 'dl-when', text: when(at) }));
 function others(env, id, pane, count) {
   const A = env.A; pane.textContent = '';
-  const form = h('div', { class: 'dl-form', hidden: true }), msg = h('span', { class: 'dl-soft', text: 'Up to 3 images, handwritten or typed.' });
-  const pick = h('input', { type: 'file', accept: 'image/*', multiple: true, 'aria-label': 'Choose up to 3 images' }), prev = h('div', { class: 'dl-prev' }), note = h('textarea', { rows: 2, maxlength: 500, placeholder: 'Optional note (for example: shorter method)' });
+  let used = 0;   /* images this person has already posted for this question */
+  const left = () => Math.max(0, MAX_IMG - used), hint = () => (left() ? 'Up to ' + left() + ' image' + (left() === 1 ? '' : 's') + ', handwritten or typed (2 per question in all).' : 'You have already added 2 images for this question, the most allowed. Delete one of your solutions to add another.');
+  const form = h('div', { class: 'dl-form', hidden: true }), msg = h('span', { class: 'dl-soft', text: hint() });
+  const pick = h('input', { type: 'file', accept: 'image/*', multiple: true, 'aria-label': 'Choose up to 2 images' }), prev = h('div', { class: 'dl-prev' }), note = h('textarea', { rows: 2, maxlength: 500, placeholder: 'Optional note (for example: shorter method)' });
   let files = []; const drawPrev = () => { prev.textContent = ''; files.forEach((f, i) => prev.append(h('span', {}, h('img', { src: URL.createObjectURL(f), alt: 'Image ' + (i + 1) }), h('button', { type: 'button', 'aria-label': 'Remove image', text: '×', onclick: () => { files.splice(i, 1); drawPrev(); } })))); };
-  pick.addEventListener('change', () => { Array.from(pick.files || []).forEach(f => { if (files.length < 3) files.push(f); }); pick.value = ''; drawPrev(); });
+  pick.addEventListener('change', () => { const add = Array.from(pick.files || []); let over = false; add.forEach(f => { if (files.length < left()) files.push(f); else over = true; }); pick.value = ''; msg.textContent = over ? 'Only ' + left() + ' image' + (left() === 1 ? '' : 's') + ' can be added for this question (2 in all).' : hint(); drawPrev(); });
   const send = h('button', { type: 'button', class: 'btn pri', text: 'Post solution', onclick: async () => {
+    if (!left()) { msg.textContent = hint(); return; }
     if (!files.length) { msg.textContent = 'Choose at least one image.'; return; }
+    if (files.length > left()) files = files.slice(0, left());
     const s = A().session, uid = s && s.user ? s.user.id : (A().profile || {}).id; if (!uid) { msg.textContent = 'Please sign in again.'; return; }
     send.disabled = true; msg.textContent = 'Uploading…';
     try {
@@ -307,6 +320,7 @@ function others(env, id, pane, count) {
   pane.append(h('button', { type: 'button', class: 'btn pri', text: 'Add your solution', onclick: () => { form.hidden = !form.hidden; } }), form, list);
   A().sb.rpc('qb_solutions_for', { p_qid: id }).then(async r => {
     if (r.error) throw new Error(r.error.message); const rows = r.data || []; count(rows.length);
+    used = rows.filter(x => x.mine).reduce((a, x) => a + (x.images || []).length, 0); msg.textContent = hint(); pick.disabled = !left();
     const paths = rows.flatMap(x => x.images || []); let urls = {};
     if (paths.length) { const s = await A().sb.storage.from('user-solutions').createSignedUrls(paths, 3600); ((s && s.data) || []).forEach(z => { if (z.signedUrl) urls[z.path] = z.signedUrl; }); }
     list.textContent = ''; if (!rows.length) { list.append(h('p', { class: 'dl-soft', text: 'No one has added a solution yet. Be the first.' })); return; }

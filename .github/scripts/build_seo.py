@@ -67,6 +67,8 @@ CHECK = svg('<path d="M20 6 9 17l-5-5"/>', 20)
 # ---------- exams (counts come from .github/scripts/exam-stats.json, made by exam_stats.py; only numbers, no questions) ----------
 STATS = json.load(open('.github/scripts/exam-stats.json', encoding='utf-8'))
 GUIDES = json.load(open('.github/scripts/exam-guides.json', encoding='utf-8')) if os.path.exists('.github/scripts/exam-guides.json') else {}   # text of the exam guides (guides_from_pdf.py)
+# The size of the bank in words ("16,700+"): the real total, rounded down to a hundred, so the pages never overstate it.
+BANK_N = f"{(STATS['_all']['pyq_questions'] + STATS['_all']['nonpyq_questions']) // 100 * 100:,}+"
 CH_NAME = {c['code']: c['name'] for c in CH}
 CH_NAME.update({code: n for code, n in OOS})
 CH_SLUG = {c['code']: slug(c) for c in CH}
@@ -150,15 +152,14 @@ def exam_meta(e):
 def head(title, desc, canon, depth, jsonld=None, og_title=None, index=False):
     up = '../' * depth
     ld = ''.join(f'<script type="application/ld+json">{json.dumps(j, ensure_ascii=False, separators=(",", ":"))}</script>\n' for j in (jsonld or []))
+    canon_tag = f'<link rel="canonical" href="{E(canon)}">\n' if canon else ''
     return f'''<meta name="description" content="{E(desc)}">
-<link rel="canonical" href="{E(canon)}">
-<meta name="robots" content="index, follow, max-image-preview:large">
+{canon_tag}<meta name="robots" content="index, follow, max-image-preview:large">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="अंक-IT Mathematics Dashboard">
 <meta property="og:title" content="{E(og_title or title)}">
 <meta property="og:description" content="{E(desc)}">
-<meta property="og:url" content="{E(canon)}">
-<meta property="og:image" content="{SITE}/img/og-share.png">
+{f'<meta property="og:url" content="{E(canon)}">' + chr(10) if canon else ''}<meta property="og:image" content="{SITE}/img/og-share.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -167,27 +168,42 @@ def head(title, desc, canon, depth, jsonld=None, og_title=None, index=False):
 <meta name="twitter:image" content="{SITE}/img/og-share.png">
 {ld}'''
 
-def fit_title(t, n=64):
-    suffix = ' | अंक-IT'
-    if len(t) <= n: return t
-    if t.endswith(suffix): t = t[:-len(suffix)]
-    if len(t) + len(suffix) <= n: return t + suffix
-    return t if len(t) <= n else t[:n - 1].rsplit(' ', 1)[0] + '…'
+BRAND = ' | अंक-IT'   # the one brand suffix every page title ends with
+TITLE_MAX, DESC_MIN, DESC_MAX = 60, 120, 155
+LANG = 'en-IN'      # <html lang> and JSON-LD inLanguage use the same value
+ERRORS = []         # titles or descriptions that break the rules; the build fails at the end and lists them all
 
-def fit_desc(d, n=158):
-    if len(d) <= n: return d
-    return d[:n - 1].rsplit(' ', 1)[0].rstrip(',;:. ') + '…'
+def pick_title(*cands):
+    """The first candidate (brand added) that fits in TITLE_MAX characters. Titles are never cut: add a shorter candidate instead."""
+    for t in cands:
+        t = t if t.endswith(BRAND) else t + BRAND
+        if len(t) <= TITLE_MAX: return t
+    ERRORS.append(f'no title fits {TITLE_MAX} characters: {cands!r}'); return t
+
+def compose(*parts, hi=DESC_MAX):
+    """A description made of whole sentences: the first part, then each later part that still fits. Nothing is cut mid-phrase."""
+    out = parts[0]
+    for p in parts[1:]:
+        if p and len(out) + 1 + len(p) <= hi: out += ' ' + p
+    return out
+
+# Shorter chapter names, used only where the full name would make a title or description too long.
+CH_SHORT = {'11M1': 'Fundamentals of Maths', '11M2': 'Sets, Relations & Functions', '11M6': 'Sequences & Series', '11M7': 'Permutations & Combinations',
+            '12M14': 'Inverse Trig Functions', '12M15': 'Matrices & Determinants', '12M17': 'Continuity & Differentiability',
+            '12M20': 'Definite Integration & Area', '12M23': '3D Geometry', '12M25': 'Linear Programming'}
 
 def page(title, desc, canon, body, depth, jsonld=None, og_title=None, up=None, noindex=False, raw=False):
     up = '../' * depth if up is None else up
-    title = fit_title(title); desc = fit_desc(desc)
+    if len(title) > TITLE_MAX or not title.endswith(BRAND): ERRORS.append(f'title must end with "{BRAND}" and fit {TITLE_MAX} characters: {title!r}')
+    if '…' in title + desc or len(desc) > DESC_MAX: ERRORS.append(f'description longer than {DESC_MAX} characters or cut short ({len(desc)}): {desc!r}')
+    if len(desc) < DESC_MIN: print(f'build_seo: note, short description ({len(desc)}): {canon}')
     body = re.sub(r'<div class="pg-table', '<div tabindex="0" role="group" aria-label="Table (scrolls sideways on small screens)" class="pg-table', body) if isinstance(body, str) else body
     return f'''<!doctype html>
-<html lang="en"{' data-page="index"' if raw else ''}>
+<html lang="{LANG}"{' data-page="index"' if raw else ''}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src https://usehxhvzhdbcmnmqaxoo.supabase.co; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="{CSP}">
 <title>{E(title)}</title>
 {head(title, desc, canon, depth, jsonld, og_title).replace('index, follow, max-image-preview:large', 'noindex, follow') if noindex else head(title, desc, canon, depth, jsonld, og_title)}<meta name="theme-color" content="#0c1a3d">
 <link rel="icon" type="image/png" sizes="32x32" href="{up}img/icon/icon-32.png?v={VER}">
@@ -313,7 +329,7 @@ def footer(depth, up=None, share=False):
     ex = ''.join(f'<li><a href="{up}exams/{e[2]}/">{E(e[1])}</a></li>' for e in EXAMS[:4])
     return f"""<footer class="sf"><div class="swrap">
 <div class="sf-grid">
-<div><img src="{up}img/ankit-logo-dark-sm.png?v={VER}" alt="अंक-IT Mathematics Dashboard logo" width="139" height="52"><p>Math practice for Class 11 and 12 and for JEE, KCET, NDA and IAT: a 16,000+ question bank with full solutions, past papers from 2000, DPPs, handwritten handouts and NTA-style online tests.</p>{SHARE_FOOT if share else ''}</div>
+<div><img src="{up}img/ankit-logo-dark-sm.png?v={VER}" alt="अंक-IT Mathematics Dashboard logo" width="139" height="52"><p>Math practice for Class 11 and 12 and for JEE, KCET, NDA and IAT: a {BANK_N} question bank with full solutions, past papers from 2000, DPPs, handwritten handouts and NTA-style online tests.</p>{SHARE_FOOT if share else ''}</div>
 <div><p class="sf-h">Explore</p><ul><li><a href="{up}maths/">Math chapters</a></li><li><a href="{up}syllabus-priority/">Syllabus priority</a></li><li><a href="{up}exams/">All exams</a></li><li><a href="{up}resources/questions-analysis/">Questions analysis</a></li><li><a href="{up}resources/paper-wise-analysis/">Paper wise analysis</a></li><li><a href="{up}resources/important-exams/">Important exams after Class 12</a></li><li><a href="{a("#features")}">Feature overview</a></li><li><a href="{a("#plans")}">Plans and pricing</a></li><li><a href="{a("#faq")}">Common questions</a></li></ul></div>
 <div><p class="sf-h">Company</p><ul><li><a href="{up}about/">About us</a></li><li><a href="{up}contact/">Contact us</a></li><li><a href="{up}privacy/">Privacy policy</a></li><li><a href="{up}terms/">Terms of use</a></li><li><a href="{up}refund-policy/">Refund policy</a></li></ul></div>
 </div>
@@ -326,11 +342,11 @@ def aside(depth, current=None, up=None):
     ex = ''.join(f'<li><a href="{up}exams/{e[2]}/"{cur if e[2] == current else ""}>{exlogo(e, up, 34)}<span><b>{E(e[1])}</b><small>{STATS[e[0]]["questions"]:,} questions</small></span></a></li>' for e in EXAMS) + f'<li><a href="{up}exams/cuet/"{cur if current == "cuet" else ""}>{exlogo(CUET, up, 34)}<span><b>CUET-UG</b><small>Guide and safe scores</small></span></a></li>'
     pop = sorted(CH, key=lambda c: -c['m'])[:8]
     chs = ''.join(f'<li><a href="{up}maths/{slug(c)}/"><span>{E(short(c))}</span><small>{c["m"]} Main</small></a></li>' for c in pop)
-    return (f'<aside class="pg-side" aria-label="Sidebar"><div class="side-box side-share"><h2>Share this page</h2><div class="share" data-share></div></div><div class="side-cta"><h2>Practise free</h2><p>Question bank, DPPs, past papers and tests, with full solutions.</p>'
+    return (f'<aside class="pg-side" aria-label="Sidebar"><div class="side-box side-share"><p class="side-title">Share this page</p><div class="share" data-share></div></div><div class="side-cta"><p class="side-title">Practise free</p><p>Question bank, DPPs, past papers and tests, with full solutions.</p>'
             f'<a class="sb sb-gold when-out" data-login href="{up}?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold when-in" href="{up}dashboard">Open your dashboard</a></div>'
-            f'<div class="side-box"><h2>Exams</h2><ul class="side-list">{ex}</ul></div>'
-            f'<div class="side-box"><h2>Popular chapters</h2><ul class="side-list side-ch">{chs}</ul><a class="side-more" href="{up}maths/">All chapters &rarr;</a></div>'
-            f'<div class="side-box side-help"><h2>Need help?</h2><p>Questions about signing in, plans or a question in the bank?</p><a href="{up}contact/">Contact us &rarr;</a></div></aside>')
+            f'<div class="side-box"><p class="side-title">Exams</p><ul class="side-list">{ex}</ul></div>'
+            f'<div class="side-box"><p class="side-title">Popular chapters</p><ul class="side-list side-ch">{chs}</ul><a class="side-more" href="{up}maths/">All chapters &rarr;</a></div>'
+            f'<div class="side-box side-help"><p class="side-title">Need help?</p><p>Questions about signing in, plans or a question in the bank?</p><a href="{up}contact/">Contact us &rarr;</a></div></aside>')
 
 def grid(main_html, depth, current=None, cls_='', up=None):
     return f'<div class="swrap pg-grid"><main id="main" class="pg-main {cls_}">{main_html}</main>{aside(depth, current, up)}</div>'
@@ -370,10 +386,10 @@ def cta(depth, text, cur=None, exam=None):
 def chapter_page(i, c):
     n = int(c['no']); prev = CH[i - 1] if i > 0 else None; nxt = CH[i + 1] if i < len(CH) - 1 else None
     name = short(c); cl = cls(c)
-    title = f'{name}: Math Chapter Guide, PYQs & Practice | अंक-IT'
-    if len(title) > 70: title = f'{name}: Math PYQs & Practice | अंक-IT'
-    desc = (f'{name} (Class {cl} math): {len(c["subs"])} subtopics, previous-year questions from every exam with levels, {c["m"]} JEE Main and {c["a"]} JEE Advanced questions '
-            f'tagged {Y0}–{Y1}, and free practice on अंक-IT.')
+    sh = CH_SHORT.get(c['code'], name)
+    title = pick_title(f'{name}: Math Chapter Guide, PYQs & Practice', f'{name}: Math PYQs & Practice', f'{sh}: Math PYQs & Practice', f'{name}: PYQs & Practice', f'{sh}: PYQs & Practice')
+    lead = lambda n_: f'{n_} (Class {cl} math): {len(c["subs"])} subtopics, with {c["m"]} JEE Main and {c["a"]} JEE Advanced previous-year questions tagged {Y0}–{Y1}.'
+    desc = compose(lead(name) if len(lead(name)) <= 125 else lead(sh), 'Levels for every exam.', 'Practise free on अंक-IT.')
     tl = STATS['_all']['topic_levels']
     rows = ''.join(
         f'<tr><td>{E(s["name"])}</td><td class="num">{s["m"]}</td><td class="num">{s["a"]}</td>'
@@ -416,7 +432,7 @@ def chapter_page(i, c):
             {'@type': 'ListItem', 'position': 2, 'name': 'Math', 'item': SITE + '/maths/'},
             {'@type': 'ListItem', 'position': 3, 'name': name, 'item': url(c)}]},
           {'@context': 'https://schema.org', '@type': 'WebPage', 'name': f'Math: {name}', 'description': desc, 'url': url(c),
-           'inLanguage': 'en-IN', 'isPartOf': {'@type': 'WebSite', 'name': 'अंक-IT Mathematics Dashboard', 'url': SITE + '/'}}]
+           'inLanguage': LANG, 'isPartOf': {'@type': 'WebSite', 'name': 'अंक-IT Mathematics Dashboard', 'url': SITE + '/'}}]
     return page(title, desc, url(c), body, 2, ld)
 
 def chapter_list(prefix, with_stats=False):
@@ -431,9 +447,9 @@ def chapter_list(prefix, with_stats=False):
     return out
 
 def hub_page():
-    title = 'Math Chapters: Class 11 & 12 Syllabus, PYQs & Practice | अंक-IT'
-    desc = (f'All {len(CH)} math chapters and {D["tot_sub"]} subtopics for Class 11 and 12, with previous-year question counts for JEE Main and '
-            f'JEE Advanced ({Y0}–{Y1}). Practise free on अंक-IT.')
+    title = pick_title('Math Chapters: Class 11 & 12 Syllabus and PYQs')
+    desc = compose(f'All {len(CH)} math chapters and {D["tot_sub"]} subtopics for Class 11 and 12, with JEE Main and JEE Advanced previous-year question counts ({Y0}–{Y1}).',
+                   'Practise free on अंक-IT.')
     crumbs = '<a href="../">Home</a> &rsaquo; <span aria-current="page">Math</span>'
     main = f"""<p class="pg-lead">{len(CH)} chapters in the syllabus · {D["tot_sub"]} subtopics · plus {len(OOS)} out-of-syllabus chapters</p>
 <p>The math syllabus split into chapters and subtopics. Open a chapter to see its subtopics, how often each one was asked in JEE Main and JEE Advanced, and the year-wise trend, then sign in to practise the questions with full solutions.</p>
@@ -599,9 +615,11 @@ def exam_page(e):
     countdown, overview, paper pattern, important dates, step-by-step timeline, safe scores, numbers, fees, seats, colleges."""
     key, name, sl, tag, about = e
     g = GUIDES.get(sl); s = STATS.get(key)
-    title = f'{name}: Everything You Should Know | अंक-IT'
+    title = pick_title(f'{name}: Everything You Should Know')
     intro = (g['intro'].split('. ', 1)[1] if '. ' in g['intro'] else g['intro']) if g else tag
-    desc = f'{name}: exam date and countdown, pattern, fees, safe scores and cutoffs, seats and colleges, all in one place.' + (f' {intro}' if g else '')
+    first = intro.split('. ')[0].rstrip('.') + '.'
+    desc = compose(f'{name}: exam date and countdown, pattern, fees, safe scores and cutoffs, seats and colleges, all in one place.', first if g else '', tag,
+                   f'Conducted by {SHORT[key][0]}.' if key in SHORT else '', f'{s["questions"]:,} past math questions analysed.' if s else '')
     has_dates = sl not in ('aieee', 'iit-jee')
     drop = set(GUIDE_DROP.get(sl, []))
     def gsec(sec):
@@ -665,8 +683,9 @@ def analysis_page(e):
     """/resources/questions-analysis/<exam>/ : how many questions of the exam, by chapter and by year, with levels."""
     key, name, sl, tag, about = e
     s = STATS[key]
-    title = f'{name}: Math PYQs, DPPs Analysis {s["first"]}–{s["last"]} | अंक-IT'
-    desc = f'{name} math analysis: {s["questions"]:,} previous-year questions from {s["first"]} to {s["last"]}, with chapter-wise and year-wise counts and levels (L1, L2, L3). Practise free on अंक-IT.'
+    title = pick_title(f'{name}: Math PYQs, DPPs Analysis {s["first"]}–{s["last"]}', f'{name} Math PYQ Analysis {s["first"]}–{s["last"]}')
+    desc = compose(f'{name} math analysis: {s["questions"]:,} previous-year questions from {s["first"]} to {s["last"]}, with chapter-wise and year-wise counts and levels (L1, L2, L3).',
+                   'Practise free on अंक-IT.')
     ins = sum(n for c, n in s['by_chapter'].items() if c in CH_SLUG); outs = s['questions'] - ins
     split = f' ({ins:,} in the {len(CH)} syllabus chapters and {outs:,} in out-of-syllabus chapters)' if outs else f' (all in the {len(CH)} syllabus chapters)'
     glance = (f'<tr><th scope="row">Math questions in this bank</th><td>{s["questions"]:,}{split}</td></tr><tr><th scope="row">Years covered</th><td>{s["first"]}–{s["last"]}</td></tr>'
@@ -715,21 +734,23 @@ def paper_wise_page(e):
     def label(v):   # relative to all JEE Main papers in the bank: bottom fifth easy ... top fifth very tough
         r = sum(1 for x in sc if x < v) / len(sc)
         return ('Easy', 'e') if r < .2 else ('Moderately easy', 'me') if r < .4 else ('Moderate', 'm') if r < .6 else ('Tough', 't') if r < .8 else ('Very tough', 'vt')
-    title = f'{name}: Paper Wise Analysis, Levels and Toughness of Every Paper | अंक-IT'
-    desc = f'{name} math, paper by paper: how many L1, L2 and L3 questions each of the {len(papers)} papers had, its overall toughness, and the chapters it leaned on. Year-wise averages from {papers[-1]["year"]} to {papers[0]["year"]}.'
+    title = pick_title(f'{name} Paper Wise Analysis: Levels & Toughness', f'{name} Paper Wise Analysis & Toughness', f'{name} Paper Wise Analysis')
+    desc = compose(f'{name} math, paper by paper: the L1, L2 and L3 questions in each of the {len(papers)} papers from {papers[-1]["year"]} to {papers[0]["year"]}, and how tough each one was.',
+                   'Year-wise averages too.', 'Free on अंक-IT.')
     tot = sum(p['n'] for p in papers); t1 = sum(p['L1'] for p in papers); t2 = sum(p['L2'] for p in papers); t3 = sum(p['L3'] for p in papers)
     avg = sum(tough_score(p) for p in papers) / len(papers)
     hardest = max(papers, key=tough_score); easiest = min(papers, key=tough_score)
     def bar(p):
         n = max(1, p['n']); w = lambda k: round(100 * p[k] / n)
-        return f'<span class="lvbar" role="img" aria-label="L1 {p["L1"]}, L2 {p["L2"]}, L3 {p["L3"]}"><i class="l1 w{w("L1")}"></i><i class="l2 w{w("L2")}"></i><i class="l3 w{w("L3")}"></i></span>'
+        return f'<span class="lvbar" aria-hidden="true"><i class="l1 w{w("L1")}"></i><i class="l2 w{w("L2")}"></i><i class="l3 w{w("L3")}"></i></span>'   # the L1/L2/L3 columns carry the same numbers
     def tough_cell(p):
         v = tough_score(p); lb, k = label(v)
-        return f'<td data-t="{v:.2f}"><span class="tg tg-{k}">{lb}</span> <small class="tg-v">{v:.2f}/3</small></td>'
+        return f'<td><span class="tg tg-{k}">{lb}</span> <small class="tg-v">{v:.2f}/3</small></td>'
     def top_ch(p): return ', '.join(f'{E(CH_NAME.get(c, c))} ({n})' for c, n in p['top'])
     def row(p):
         short = p['paper'] or f'{p["year"]} paper'
-        return (f'<tr><td><b>{E(short)}</b></td><td class="num">{p["n"]}</td><td class="num">{p["L1"]}</td><td class="num">{p["L2"]}</td><td class="num">{p["L3"]}</td><td class="bar-c">{bar(p)}</td>{tough_cell(p)}<td class="tc">{top_ch(p)}</td></tr>')
+        # compact rows (this page lists every paper): number alignment and column widths come from .pw-t in site.css, not per-cell classes
+        return (f'<tr><td><b>{E(short)}</b></td><td>{p["n"]}</td><td>{p["L1"]}</td><td>{p["L2"]}</td><td>{p["L3"]}</td><td>{bar(p)}</td>{tough_cell(p)}<td>{top_ch(p)}</td></tr>')
     head = '<thead><tr><th scope="col">Paper</th><th scope="col" class="num">Qs</th><th scope="col" class="num lh l1">L1</th><th scope="col" class="num lh l2">L2</th><th scope="col" class="num lh l3">L3</th><th scope="col">Mix</th><th scope="col">Toughness</th><th scope="col">Most-asked chapters</th></tr></thead>'
     by_year = {}
     for p in papers: by_year.setdefault(p['year'], []).append(p)
@@ -770,8 +791,8 @@ def paper_wise_page(e):
 
 
 def paper_wise_hub():
-    title = 'Paper Wise Analysis: Levels and Toughness of Every JEE, KCET, NDA and IAT Paper | अंक-IT'
-    desc = 'Paper by paper math analysis for JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA and IAT: L1, L2 and L3 questions in every paper and its overall toughness.'
+    title = pick_title('Paper Wise Analysis of JEE, KCET, NDA & IAT Papers')
+    desc = 'Paper by paper math analysis for JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA and IAT: the L1, L2 and L3 questions in every paper and its toughness.'
     rows = ''; cards = ''
     for e in ALL_EXAMS:
         if e[0] not in STATS: continue
@@ -793,8 +814,9 @@ def paper_wise_hub():
 
 def analysis_hub():
     total = sum(STATS[e[0]]['questions'] for e in EXAMS)
-    title = 'Questions Analysis: Math PYQs and DPPs Analysis for JEE, KCET, NDA, IAT | अंक-IT'
-    desc = f'Math previous-year question analysis for JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA and IAT: {total:,} questions with chapter-wise and year-wise counts, levels, syllabus priority and weightage.'
+    title = pick_title('Questions Analysis: JEE, KCET, NDA, IAT Math PYQs')
+    desc = compose(f'Math previous-year question analysis for JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA and IAT: {total:,} questions, counted by chapter, year and level.',
+                   'Free on अंक-IT.')
     rows = ''.join(f'<tr><td class="exn">{exlogo(e, "../../", 38)}<a href="{e[2]}/">{E(e[1])}</a></td><td class="num">{STATS[e[0]]["questions"]:,}</td><td>{STATS[e[0]]["first"]}–{STATS[e[0]]["last"]}</td><td class="num">{STATS[e[0]]["papers"]}</td></tr>' for e in EXAMS)
     cards = ''.join(f'<li><a href="{e[2]}/">{E(e[1])}: Math PYQs, DPPs Analysis</a><span>{E(exam_meta(e))}</span></li>' for e in EXAMS)
     more = ('<ul class="pg-chlist exam-list"><li><a href="../../syllabus-priority/">Syllabus priority</a><span>Which chapters are asked the most in JEE Main and JEE Advanced.</span></li>'
@@ -827,8 +849,8 @@ def doc_sections(g):
 
 def important_page():
     g = IMPORTANT; toc, secs = doc_sections(g)
-    title = 'Important Mathematics Exams After Class 12: Complete Roadmap | अंक-IT'
-    desc = 'Every major mathematics-based entrance exam after Class 12: pure maths and research, engineering, state exams, management, architecture, defence, with a quick exam calendar and checklist.'
+    title = pick_title('Maths Exams After Class 12: Complete Roadmap')
+    desc = 'Every major maths-based entrance exam after Class 12: research, engineering, state exams, management, architecture and defence, with a calendar.'
     crumbs = '<a href="../../">Home</a> &rsaquo; <span>Resources</span> &rsaquo; <span aria-current="page">Important exams after Class 12</span>'
     main = f"""<p class="gd-kick">{E(g["kicker"].title())}</p>
 <p class="pg-lead">{E(g["intro"])}</p>
@@ -841,12 +863,19 @@ def important_page():
             {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'}, {'@type': 'ListItem', 'position': 2, 'name': 'Important exams after Class 12', 'item': SITE + '/resources/important-exams/'}]}]
     return page(title, desc, SITE + '/resources/important-exams/', body, 2, ld)
 
+THIN = 10   # an exam-chapter page with fewer questions than this is kept for visitors but not offered to search engines
+def thin(d): return d['questions'] < THIN
+
 def exam_chapter_page(e, code):
     key, name, sl, tag, about = e
     d = STATS[key]['chapters'][code]; ch = CH_NAME[code]; cs = ANY_SLUG[code]
     ys = sorted(int(y) for y in d['by_year'])
-    title = f'{name} {ch}: Previous Year Questions | अंक-IT'
-    desc = f'{name} {ch}: {d["questions"]} previous-year math questions from {ys[0]} to {ys[-1]}, with topic-wise counts, levels (L1/L2/L3) and a year-wise strip. Practise free on अंक-IT.'
+    sh = CH_SHORT.get(code, ch); nq = d['questions']
+    title = pick_title(*[t for n_ in (ch, sh) for t in (f'{name} {n_} PYQ Count & Topic Analysis',)] + [f'{name} {n_}: PYQ Count & Topics' for n_ in (ch, sh)] + [f'{name} {n_} PYQ Analysis' for n_ in (ch, sh)] + [f'{name} {sh} PYQs'])
+    yrs = f'in {ys[0]}' if ys[0] == ys[-1] else f'from {ys[0]} to {ys[-1]}'
+    desc = compose(f'{name} {ch}: {nq} previous-year math question{"s" if nq != 1 else ""} {yrs}, counted by topic, by year and by level (L1, L2, L3).' if len(ch) < 30 else
+                   f'{name} {sh}: {nq} previous-year math question{"s" if nq != 1 else ""} {yrs}, counted by topic, by year and by level (L1, L2, L3).',
+                   'See which topics are asked most.', 'Practise free on अंक-IT.')
     total = STATS[key]['questions']; share = round(100 * d['questions'] / total, 1)
     rank = 1 + sum(1 for k, v in STATS[key]['by_chapter'].items() if v > d['questions'])
     lvd = d['by_level']
@@ -877,7 +906,7 @@ def exam_chapter_page(e, code):
     ld = [{'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
             {'@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': SITE + '/'}, {'@type': 'ListItem', 'position': 2, 'name': 'Questions Analysis', 'item': f'{SITE}/{ANA}/'},
             {'@type': 'ListItem', 'position': 3, 'name': name, 'item': f'{SITE}/{ANA}/{sl}/'}, {'@type': 'ListItem', 'position': 4, 'name': ch, 'item': url_}]}]
-    return page(title, desc, url_, body, 4, ld)
+    return page(title, desc, url_, body, 4, ld, noindex=thin(d))
 
 def priority_page():
     TM = D.get('tm') or sum(c['m'] for c in CH); TA = D.get('ta') or sum(c['a'] for c in CH)
@@ -894,8 +923,8 @@ def priority_page():
                  f'<td class="num">{c["a"]}</td><td class="num">{round(100 * c["a"] / TA, 1)}%</td><td class="num">#{ra[c["code"]]}</td><td><span class="fc fc-{f[1]}">{f[0]}</span></td><td class="sp">{trend_svg(c, TM, TA)}</td></tr>')
     subs = sorted(((s, c) for c in CH for s in c['subs']), key=lambda t: -(t[0]['m'] + t[0]['a']))[:20]
     srows = ''.join(f'<tr><td>{E(s["name"])}<br><small><a href="../maths/{slug(c)}/">{E(short(c))}</a></small></td><td class="num">{s["m"]}</td><td><span class="lv lv-{LEVEL[s["mt"]].lower()}">{LEVEL[s["mt"]]}</span></td><td class="num">{s["a"]}</td><td><span class="lv lv-{LEVEL[s["at"]].lower()}">{LEVEL[s["at"]]}</span></td></tr>' for s, c in subs)
-    title = 'Syllabus Priority: Which Math Chapters Are Asked Most in JEE | अंक-IT'
-    desc = f'Chapter-wise priority for math in JEE: how many JEE Main and JEE Advanced questions each chapter has had from {Y0} to {Y1}, its share, rank and yearly trend.'
+    title = pick_title('Syllabus Priority: Most Asked JEE Math Chapters')
+    desc = f'Chapter-wise priority for JEE math: how many JEE Main and JEE Advanced questions each chapter has had from {Y0} to {Y1}, with its share, rank and trend.'
     crumbs = '<a href="../">Home</a> &rsaquo; <span aria-current="page">Syllabus priority</span>'
     main = f"""<p class="pg-lead">{len(CH)} chapters · {TM:,} JEE Main and {TA} JEE Advanced questions, {Y0}–{Y1}</p>
 <p class="pg-fine">These counts are for the {len(CH)} chapters in the current syllabus. The <a href="../resources/questions-analysis/jee-main/">JEE Main analysis page</a> also counts the questions of the {len(OOS)} out-of-syllabus chapters ({STATS["JEE Main"]["questions"]:,} in total).</p>
@@ -908,22 +937,41 @@ def priority_page():
 <div class="pg-table"><table><thead><tr><th scope="col">Subtopic</th><th scope="col" class="num">Main Qs</th><th scope="col">Main</th><th scope="col" class="num">Adv. Qs</th><th scope="col">Adv.</th></tr></thead><tbody>{srows}</tbody></table></div>
 {cta(1, "See the priority of every subtopic, then practise those questions with full solutions. Starting is free.", cur='syllabus-priority/')}"""
     body = band(crumbs, "Syllabus priority") + '\n' + grid(main, 1)
-    ld = [{'@context': 'https://schema.org', '@type': 'WebPage', 'name': 'Syllabus priority', 'url': f'{SITE}/syllabus-priority/', 'description': desc, 'inLanguage': 'en-IN',
+    ld = [{'@context': 'https://schema.org', '@type': 'WebPage', 'name': 'Syllabus priority', 'url': f'{SITE}/syllabus-priority/', 'description': desc, 'inLanguage': LANG,
            'isPartOf': {'@type': 'WebSite', 'name': 'अंक-IT Mathematics Dashboard', 'url': SITE + '/'}}]
     return page(title, desc, f'{SITE}/syllabus-priority/', body, 1, ld)
 
-def redirect_page(to, depth):
-    """Old /jee-maths/ address. A plain 200 page (no refresh redirect, so Search Console has nothing to report as 'Page with redirect');
-    its canonical points to the real page, which is the only one listed in the sitemap."""
-    u = '../' * depth + to
-    return (f'<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{SITE_NAME} chapter page</title>'
-            f'<link rel="canonical" href="{SITE}/{to}"></head>'
-            f'<body><p>This chapter page is now at <a href="{u}">{SITE}/{to}</a>.</p></body></html>\n')
+CSP = "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src https://usehxhvzhdbcmnmqaxoo.supabase.co; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'none'"
+
+def redirect_page(to, depth, name, alt=None):
+    """An old address (for example /jee-maths/..., /exams/<exam>/<chapter>/, /exams/<exam>/about/). It sends the visitor on at once,
+    its canonical is the new page, and it is noindex and left out of the sitemap, so only the new page is indexed."""
+    up = '../' * depth; target = f'{SITE}/{to}'
+    title = pick_title(f'Moved: {name}', *([f'Moved: {alt}'] if alt else []), f'Moved: {name.split(":")[0]}')
+    return f'''<!doctype html>
+<html lang="{LANG}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="{CSP}">
+<meta http-equiv="refresh" content="0;url={E(target)}">
+<title>{E(title)}</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="{E(target)}">
+<link rel="icon" type="image/png" sizes="32x32" href="{up}img/icon/icon-32.png?v={VER}">
+<link rel="stylesheet" href="{up}site.css?v={VER}">
+</head>
+<body class="pg">
+<main id="main" class="pg-moved"><h1>This page has moved</h1><p>This page has moved to <a href="{up}{to}">{E(name)}</a>.</p><p class="pg-fine">If you are not taken there automatically, use the link above.</p></main>
+</body>
+</html>
+'''
 
 def exams_hub():
     total = sum(STATS[e[0]]['questions'] for e in EXAMS)
-    title = 'Exams: JEE Main, JEE Advanced, KCET, NDA, IAT, CUET Math | अंक-IT'
-    desc = f'Compare JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA, IAT and CUET-UG: who conducts each exam, what it is for, the mode, and {total:,} previous-year math questions in the bank.'
+    title = pick_title('Exams: JEE Main, JEE Advanced, KCET, NDA, IAT, CUET', 'Exams: JEE Main, Advanced, KCET, NDA, IAT, CUET Math')
+    desc = compose('Compare JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA, IAT and CUET-UG: who conducts each exam, what it is for and the mode.',
+                   f'{total:,} past math questions.', 'Free on अंक-IT.')
     rows = ''.join(f'<tr><td class="exn">{exlogo(e, "../", 38)}<a href="{e[2]}/">{E(e[1])}</a></td><td>{E(SHORT[e[0]][0])}</td><td>{E(SHORT[e[0]][1])}</td><td>{E(SHORT[e[0]][2])}</td>'
                    f'<td class="num">{STATS[e[0]]["questions"]:,}</td><td>{STATS[e[0]]["first"]}–{STATS[e[0]]["last"]}</td></tr>' for e in EXAMS)
     rows += f'<tr><td class="exn">{exlogo(CUET, "../", 38)}<a href="cuet/">{E(CUET[1])}</a></td><td>{E(SHORT["CUET"][0])}</td><td>{E(SHORT["CUET"][1])}</td><td>{E(SHORT["CUET"][2])}</td><td class="num">Soon</td><td>&ndash;</td></tr>'
@@ -951,7 +999,7 @@ def info_page(slug_, title, h1, desc, inner, ptype='WebPage'):
     crumbs = f'<a href="../">Home</a> &rsaquo; <span aria-current="page">{E(h1)}</span>'
     body = band(crumbs, E(h1)) + '\n' + grid(inner + cta(1, '', cur=slug_ + '/'), 1, cls_='pg-text')
     canon = f'{SITE}/{slug_}/'
-    ld = [{'@context': 'https://schema.org', '@type': ptype, 'name': h1, 'url': canon, 'description': desc, 'inLanguage': 'en-IN',
+    ld = [{'@context': 'https://schema.org', '@type': ptype, 'name': h1, 'url': canon, 'description': desc, 'inLanguage': LANG,
            'isPartOf': {'@type': 'WebSite', 'name': 'अंक-IT Mathematics Dashboard', 'url': SITE + '/'}}]
     return page(title, desc, canon, body, 1, ld)
 
@@ -962,7 +1010,7 @@ def about_page():
     nprac = A['nonpyq_questions']
     I = lambda d, w=26: svg(d, w)
     offer = [
-     ('i-green', '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>', 'Question bank', 'More than 16,000 questions, filtered by chapter, topic, level, exam and year, each with its answer and a full solution.'),
+     ('i-green', '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>', 'Question bank', f'More than {BANK_N[:-1]} questions, filtered by chapter, topic, level, exam and year, each with its answer and a full solution.'),
      ('i-purple', '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>', 'Past papers, 2000 to 2026', 'JEE Main, JEE Advanced, KCET, NDA, IAT and the older IIT-JEE and AIEEE, shift by shift and chapter by chapter.'),
      ('i-rose', '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>', 'DPPs and handouts', 'Ready-to-print practice sheets and handwritten revision notes for every chapter.'),
      ('i-gold', '<path d="M12 3 3 8l9 5 9-5z"/><path d="M5 11v5c0 1.5 3 3 7 3s7-1.5 7-3v-5"/>', 'Handwritten handouts', 'Neat revision notes for every chapter of Class 11 and Class 12.'),
@@ -982,7 +1030,7 @@ def about_page():
             ('Free to start', 'You can begin without paying. Premium adds extras such as PDFs, handouts and all-India ranks.')]
     vals_html = ''.join(f'<div class="ab-val"><h3>{E(t)}</h3><p>{E(x)}</p></div>' for t, x in vals)
     inner = f"""<p class="ab-lead">अंक-IT Mathematics Dashboard exists to make serious JEE-level math practice <b>free to start</b> and easy to follow, for every student and for the teachers who coach them.</p>
-<ul class="pg-stats ab-stats"><li><b>16,000+</b><span>questions in the bank</span></li><li><b>{nprac:,}</b><span>Non-PYQ practice questions</span></li><li><b>{len(CH)} + {len(OOS)}</b><span>chapters in the syllabus, plus out-of-syllabus</span></li><li><b>{len(EXAMS)}</b><span>exams, with papers from 2000 to 2026</span></li></ul>
+<ul class="pg-stats ab-stats"><li><b>{BANK_N}</b><span>questions in the bank</span></li><li><b>{nprac:,}</b><span>Non-PYQ practice questions</span></li><li><b>{len(CH)} + {len(OOS)}</b><span>chapters in the syllabus, plus out-of-syllabus</span></li><li><b>{len(EXAMS)}</b><span>exams, with papers from 2000 to 2026</span></li></ul>
 <h2>What you get</h2>
 <div class="ab-grid">{offer_html}</div>
 <h2>How it works</h2>
@@ -994,7 +1042,7 @@ def about_page():
 <h2>The person behind it</h2>
 <div class="ab-person"><span class="ab-av" aria-hidden="true">AK</span><div><h3>Ankit Kamboj</h3><p>Ankit is a math teacher and the creator of अंक-IT. He builds and maintains the dashboard so that students can practise the questions that matter for each chapter, and teachers can set tests and see results without extra tools.</p><p><a class="sb sb-pri" href="../contact/">Get in touch</a></p></div></div>
 """
-    return info_page('about', 'About Us | अंक-IT Mathematics Dashboard', 'About us', 'About अंक-IT Mathematics Dashboard: a free-to-start JEE math question bank with past papers, DPPs, handouts and online tests, built by Ankit Kamboj.', inner, 'AboutPage')
+    return info_page('about', 'About Us: Free-to-Start JEE Math Practice | अंक-IT', 'About us', 'About अंक-IT Mathematics Dashboard: a free-to-start JEE math question bank with past papers, DPPs, handouts and online tests, built by Ankit Kamboj.', inner, 'AboutPage')
 
 def contact_page():
     from urllib.parse import quote
@@ -1023,7 +1071,7 @@ def contact_page():
 <div class="ct-two"><div><h2>Before you write</h2><p>A few details help us answer you faster:</p><ul class="ticks">{check_html}</ul></div>
 <div><h2>Quick answers</h2><div class="faq faq-s">{faq_html}</div></div></div>
 <p class="pg-fine">You can also open <b>Help &amp; Support</b> in the Login window. Read how we handle your information in the <a href="../privacy/">privacy policy</a>.</p>"""
-    return info_page('contact', 'Contact Us | अंक-IT Mathematics Dashboard', 'Contact us', 'Contact अंक-IT Mathematics Dashboard for help with sign-in, Premium and payments, a mistake in a question, teacher and school help, or your personal data.', inner, 'ContactPage')
+    return info_page('contact', 'Contact Us: Help With Sign-in, Plans & Questions | अंक-IT', 'Contact us', 'Contact अंक-IT Mathematics Dashboard for help with sign-in, Premium and payments, a mistake in a question, teacher and school help, or your personal data.', inner, 'ContactPage')
 
 def not_found_page():
     I = '/'
@@ -1032,7 +1080,7 @@ def not_found_page():
     items = ''.join(f'<li><a href="{h}">{E(t)}</a><span>{E(d)}</span></li>' for t, d, h in cards)
     main = f"""<p class="pg-lead">The page you opened does not exist, or it has moved.</p><p>Try one of these instead:</p><ul class="pg-chlist exam-list">{items}</ul>"""
     body = band('<a href="/">Home</a> &rsaquo; <span aria-current="page">Page not found</span>', 'Page not found') + '\n' + grid(main, 0, up=I)
-    return page('Page not found | अंक-IT', 'This page does not exist. Go to the home page, the exams, or the math chapters on अंक-IT.', SITE + '/404.html', body, 0, up=I, noindex=True)
+    return page('Page not found | अंक-IT', 'This page does not exist or has moved. Try the home page, the exams, the math chapters or the syllabus priority on अंक-IT instead.', None, body, 0, up=I, noindex=True)
 
 def privacy_page():
     inner = f'''<p class="pg-lead">Last updated: {UPDATED}</p>
@@ -1069,7 +1117,7 @@ def privacy_page():
 <p>You can ask us to correct or delete your account and data, or ask what we hold about you, by writing to {MAIL} from the email or Student ID you use. We will respond as soon as we reasonably can.</p>
 <h2>Changes</h2>
 <p>If we change this policy we will update the date above. Questions? See the <a href="../contact/">contact page</a>.</p>'''
-    return info_page('privacy', 'Privacy Policy | अंक-IT Mathematics Dashboard', 'Privacy policy', 'How अंक-IT Mathematics Dashboard collects, uses and protects your information, including sign-in, test results and payments.', inner)
+    return info_page('privacy', 'Privacy Policy | अंक-IT', 'Privacy policy', 'How अंक-IT Mathematics Dashboard collects, uses and protects your information, including sign-in, test results and payments.', inner)
 
 def terms_page():
     inner = f'''<p class="pg-lead">Last updated: {UPDATED}</p>
@@ -1097,7 +1145,7 @@ def terms_page():
 <p>These terms are governed by the laws of India.</p>
 <h2>Changes and contact</h2>
 <p>We may update these terms and will change the date above when we do. Questions? Write to {MAIL} or see the <a href="../contact/">contact page</a>. Our <a href="../privacy/">privacy policy</a> explains how we handle your information.</p>'''
-    return info_page('terms', 'Terms of Use | अंक-IT Mathematics Dashboard', 'Terms of use', 'Terms of use for अंक-IT Mathematics Dashboard: accounts, Free and Premium plans, payments, content and acceptable use.', inner)
+    return info_page('terms', 'Terms of Use | अंक-IT', 'Terms of use', 'Terms of use for अंक-IT Mathematics Dashboard: your account, the Free and Premium plans, payments, tests and results, content and acceptable use.', inner)
 
 def refund_page():
     inner = f'''<p class="pg-lead">Last updated: {UPDATED}</p>
@@ -1114,7 +1162,7 @@ def refund_page():
 <p>This is not a refund: it is fixing a mistake in the payment. If money left your account but your Premium did not start, write to us with the date, the amount and the payment reference you got from your bank or UPI app, and we will check it and set it right. Payments that fail are returned to your account by your bank or payment provider on their own schedule.</p>
 <h2>Contact</h2>
 <p>Questions about a payment? Write to {MAIL} or use the <a href="../contact/">contact page</a>. See also our <a href="../terms/">terms of use</a> and <a href="../privacy/">privacy policy</a>.</p>'''
-    return info_page('refund-policy', 'Refund Policy | अंक-IT Mathematics Dashboard', 'Refund Policy', 'Refund policy of अंक-IT Mathematics Dashboard: once a Premium payment is made it is not refunded.', inner)
+    return info_page('refund-policy', 'Refund Policy | अंक-IT', 'Refund Policy', 'Refund policy of अंक-IT Mathematics Dashboard: once a Premium payment goes through it is not refunded, so try the free plan first. Help if a payment fails.', inner)
 
 FAQ = [
  ('Is the Mathematics Dashboard free?', 'Yes, you can start free. Sign in with Google to practise every previous year question with its answer and solution, sit past papers and mock tests, and see your reports. Premium adds the practice (Non-PYQ) questions, DPPs and the Own DPP Maker, all handouts, PDF downloads and printing, and your rank among all students.'),
@@ -1148,7 +1196,7 @@ def home_block():
     feats = [
      ('i-blue', svg('<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 9h4M7 12h7"/>'), 'NTA-style online tests', 'A full-screen test with timer, question palette, mark for review and auto-submit. Past papers, chapter-wise and full-length mocks, or a test of your own. The timer pauses if your internet or power goes.'),
      ('i-gold', svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), 'Instant reports and ranks', 'Score, accuracy, rank in your school and among all students, topic-wise analysis and time per question. Correct answers open when the paper time is over.'),
-     ('i-green', svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'), '16,000+ question bank', 'Filter by chapter, topic, level, exam and year. Every question comes with its answer and a full solution.'),
+     ('i-green', svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'), f'{BANK_N} question bank', 'Filter by chapter, topic, level, exam and year. Every question comes with its answer and a full solution.'),
      ('i-purple', svg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>'), 'Past papers 2000–2026', 'JEE Main, JEE Advanced and more, paper by paper and chapter by chapter, with answer keys.'),
      ('i-rose', svg('<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>'), 'DPPs and handouts', 'Daily practice sheets and handwritten revision notes for every chapter.'),
      ('i-teal', svg('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>'), 'Built for teachers', 'Make a test in minutes, share one link with your class and see every student\'s result.')]
@@ -1158,7 +1206,7 @@ def home_block():
         return (f'<div class="frame"><div class="frame-bar"><i></i><i></i><i></i><span>unkganit.com</span></div>'
                 f'<img src="img/shots/{src}.webp" width="1366" height="800" alt="{E(alt)}" {load} decoding="async"></div>')
     hero_shot = (f'<div class="hero-shot">{frame("dashboard-home", "The अंक-IT dashboard: exam countdowns, practice cards for PYQs, DPPs and tests, and your progress", True)}'
-                 f'<div class="mock-float"><span class="ic">{svg("<circle cx=\'11\' cy=\'11\' r=\'7\'/><path d=\'M21 21l-4.3-4.3\'/>", 22)}</span><div><small>Dashboard</small><b>16,000+ questions</b><em>with full solutions</em></div></div></div>')
+                 f'<div class="mock-float"><span class="ic">{svg("<circle cx=\'11\' cy=\'11\' r=\'7\'/><path d=\'M21 21l-4.3-4.3\'/>", 22)}</span><div><small>Dashboard</small><b>{BANK_N} questions</b><em>with full solutions</em></div></div></div>')
     pts = ''.join(f'<li>{CHECK}{t}</li>' for t in ['Free to start', 'Questions with full solutions', 'Made for JEE Main and Advanced', 'Works on phone and laptop'])
     # ----- real dashboard screens in a swipeable carousel (script adds the arrows, tabs and dots; without it the slides still swipe/scroll) -----
     shots = [('dashboard-home', 'Dashboard', 'Everything you practise, in one place', 'Your home screen: PYQs, practice questions, DPPs, tests and handouts, the countdown to JEE Main and JEE Advanced, and your own progress.', 'The अंक-IT dashboard home with the exam countdowns, practice cards and a progress panel'),
@@ -1223,7 +1271,7 @@ def home_block():
 {hero_shot}
 </div></section>
 <section class="stats" aria-label="At a glance"><div class="swrap stats-in">
-<div class="stat"><b>16,000+</b><span>Questions in the bank</span></div><div class="stat"><b>{STATS["_all"]["nonpyq_questions"]:,}</b><span>Non-PYQ practice questions</span></div>
+<div class="stat"><b>{BANK_N}</b><span>Questions in the bank</span></div><div class="stat"><b>{STATS["_all"]["nonpyq_questions"]:,}</b><span>Non-PYQ practice questions</span></div>
 <div class="stat"><b>{len(CH)}</b><span>Chapters, {D["tot_sub"]} subtopics</span></div><div class="stat"><b>2000–2026</b><span>Past papers</span></div></div></section>
 <section class="sec" id="dashboard"><div class="swrap"><div class="sec-head"><span class="kick">Inside the dashboard</span><h2>See what you get after you log in</h2><p>Real screens from the dashboard: question bank, DPP builder, past papers, handouts and the online test window.</p></div>{showcase}</div></section>
 <section class="sec sec-alt" id="features"><div class="swrap"><div class="sec-head"><span class="kick">Everything in one place</span><h2>Everything you need to practise math</h2><p>Practise, test yourself and track your progress without juggling PDFs, apps and notebooks.</p></div>
@@ -1241,7 +1289,7 @@ def home_block():
 <div class="report" aria-hidden="true"><p class="report-h">Class result · Mock Test 3</p><small>Top scorers · example</small>{rep}</div></div></section>
 <section class="sec" id="plans"><div class="swrap"><div class="sec-head"><span class="kick">Plans</span><h2>Start free. Upgrade when you are ready.</h2><p>Premium is a one-year membership. Avanti students and teachers get it free.</p></div>{plans}</div></section>
 <section class="sec sec-alt" id="faq"><div class="swrap"><div class="sec-head"><span class="kick">FAQ</span><h2>Frequently asked questions</h2></div><div class="faq">{faq_html}</div></div></section>
-<section class="cta"><h2>Ready to practise smarter?</h2><p>Create your free account and start with any chapter today.</p><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold sb-lg when-in" href="qbank">Continue to the dashboard</a></section>
+<section class="cta"><h2>Ready to practise smarter?</h2><p>Create your free account and start with any chapter today.</p><a class="sb sb-gold sb-lg when-out" data-login href="?login=1" rel="nofollow">Login or register</a><a class="sb sb-gold sb-lg when-in" href="dashboard">Continue to the dashboard</a></section>
 </main>
 {footer(0, share=True)}"""
 
@@ -1308,7 +1356,7 @@ def chapter_wise_page():
              f'<div class="pg-table cw"><table class="wide"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>'
              '<p class="pg-fine">Total is previous-year plus practice questions. Out of syllabus counts the previous-year questions that the paper lists as no longer in the current syllabus (they are also counted in the exam columns).</p>')
     return stat_shell('chapter-wise-count', 'Chapter-wise Count of Math Questions | अंक-IT', 'Chapter-wise Count',
-        'Chapter-wise count of math questions in the अंक-IT bank: JEE Main, JEE Advanced, KCET, IAT, NDA previous-year questions and practice questions from BB Ex and Allen, for every chapter.',
+        'Chapter-wise count of math questions in the अंक-IT bank: JEE Main, JEE Advanced, KCET, IAT and NDA PYQs and practice questions, for every chapter.',
         'How many questions each math chapter has, split by exam and by practice source.', inner, 'Chapter-wise count')
 
 def weightage_page():
@@ -1342,13 +1390,13 @@ def weightage_page():
              '<div class="wc-leg"><span class="k hi">Most asked (top third)</span><span class="k mid">Often asked</span><span class="k lo">Asked less</span></div>'
              f'<script src="../weightage.js?v={VER}" defer></script>')
     return stat_shell('chapter-weightage', 'Chapter Weightage: Most Asked Math Chapters | अंक-IT', 'Chapter Weightage',
-        'Chapter weightage in JEE math: how many JEE Main and JEE Advanced previous-year questions came from each chapter, since 2013, last 10 years or last 5 years.',
+        'Chapter weightage in JEE math: how many JEE Main and JEE Advanced previous-year questions came from each chapter since 2013, in the last 10 or 5 years.',
         'Which math chapters matter most: how many previous-year questions came from each chapter. Choose the exam and the period.', inner, 'Chapter weightage')
 
 
 def sitemap():
-    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8'), (SITE + '/question-counts/', '0.6'), (SITE + '/chapter-wise-count/', '0.6'), (SITE + '/chapter-weightage/', '0.7')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9'), (SITE + f'/{ANA}/', '0.8'), (SITE + '/resources/important-exams/', '0.8'), (SITE + '/resources/paper-wise-analysis/', '0.8')] + [(f'{SITE}/resources/paper-wise-analysis/{e[2]}/', '0.7') for e in EXAMS] + [ (SITE + '/exams/cuet/', '0.8')] + [(exam_url(e), '0.9') for e in EXAMS] + [(f'{SITE}/{ANA}/{e[2]}/', '0.8') for e in EXAMS] + [(f'{SITE}/{ANA}/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c in STATS[e[0]]['chapters']] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms', 'refund-policy')]
-    body = ''.join(f'<url><loc>{u}</loc><lastmod>{TODAY}</lastmod><priority>{p}</priority></url>\n' for u, p in urls)
+    urls = [(SITE + '/', '1.0'), (SITE + '/maths/', '0.9'), (SITE + '/syllabus-priority/', '0.8'), (SITE + '/question-counts/', '0.6'), (SITE + '/chapter-wise-count/', '0.6'), (SITE + '/chapter-weightage/', '0.7')] + [(url(c), '0.8') for c in CH] + [(SITE + '/exams/', '0.9'), (SITE + f'/{ANA}/', '0.8'), (SITE + '/resources/important-exams/', '0.8'), (SITE + '/resources/paper-wise-analysis/', '0.8')] + [(f'{SITE}/resources/paper-wise-analysis/{e[2]}/', '0.7') for e in EXAMS] + [ (SITE + '/exams/cuet/', '0.8')] + [(exam_url(e), '0.9') for e in EXAMS] + [(f'{SITE}/{ANA}/{e[2]}/', '0.8') for e in EXAMS] + [(f'{SITE}/{ANA}/{e[2]}/{ANY_SLUG[c]}/', '0.6') for e in EXAMS for c, d in STATS[e[0]]['chapters'].items() if not thin(d)] + [(f'{SITE}/{p}/', '0.3') for p in ('about', 'contact', 'privacy', 'terms', 'refund-policy')]
+    body = ''.join(f'<url><loc>{u}</loc><priority>{p}</priority></url>\n' for u, p in urls)   # no lastmod: a build date on every URL tells search engines nothing
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}</urlset>\n'
 
 def write(path, text):
@@ -1358,8 +1406,8 @@ def write(path, text):
 def main():
     for i, c in enumerate(CH):
         write(f'maths/{slug(c)}/index.html', chapter_page(i, c))
-        write(f'jee-maths/{slug(c)}/index.html', redirect_page(f'maths/{slug(c)}/', 2))   # the old address keeps working
-    write('maths/index.html', hub_page()); write('jee-maths/index.html', redirect_page('maths/', 1))
+        write(f'jee-maths/{slug(c)}/index.html', redirect_page(f'maths/{slug(c)}/', 2, f'Math: {short(c)}'))   # the old address keeps working
+    write('maths/index.html', hub_page()); write('jee-maths/index.html', redirect_page('maths/', 1, 'All Math Chapters'))
     write('syllabus-priority/index.html', priority_page())
     write('question-counts/index.html', question_counts_page()); write('chapter-wise-count/index.html', chapter_wise_page()); write('chapter-weightage/index.html', weightage_page())
     write('404.html', not_found_page())
@@ -1367,21 +1415,22 @@ def main():
     write('resources/important-exams/index.html', important_page()); write('resources/paper-wise-analysis/index.html', paper_wise_hub());
     for e in EXAMS: write(f'resources/paper-wise-analysis/{e[2]}/index.html', paper_wise_page(e))
     write(f'{ANA}/index.html', analysis_hub())
-    write('exams/important-exams/index.html', redirect_page('resources/important-exams/', 2)); write('exams/safe-scores/index.html', redirect_page('exams/', 2))   # old addresses keep working
-    write('exams/cuet/index.html', exam_page(CUET)); write('exams/cuet/about/index.html', redirect_page('exams/cuet/', 3))
+    write('exams/important-exams/index.html', redirect_page('resources/important-exams/', 2, 'Important Exams After Class 12')); write('exams/safe-scores/index.html', redirect_page('exams/', 2, 'Exams We Cover'))   # old addresses keep working
+    write('exams/cuet/index.html', exam_page(CUET)); write('exams/cuet/about/index.html', redirect_page('exams/cuet/', 3, 'CUET-UG: Everything You Should Know'))
     for e in EXAMS:
         write(f'exams/{e[2]}/index.html', exam_page(e)); write(f'{ANA}/{e[2]}/index.html', analysis_page(e))
-        if e[2] in GUIDES: write(f'exams/{e[2]}/about/index.html', redirect_page(f'exams/{e[2]}/', 3))
+        if e[2] in GUIDES: write(f'exams/{e[2]}/about/index.html', redirect_page(f'exams/{e[2]}/', 3, f'{e[1]}: Everything You Should Know'))
         for code in STATS[e[0]]['chapters']:
             write(f'{ANA}/{e[2]}/{ANY_SLUG[code]}/index.html', exam_chapter_page(e, code))
-            write(f'exams/{e[2]}/{ANY_SLUG[code]}/index.html', redirect_page(f'{ANA}/{e[2]}/{ANY_SLUG[code]}/', 3))
+            write(f'exams/{e[2]}/{ANY_SLUG[code]}/index.html', redirect_page(f'{ANA}/{e[2]}/{ANY_SLUG[code]}/', 3, f'{e[1]} {CH_NAME[code]} PYQ Analysis', f'{e[1]} {CH_SHORT.get(code, CH_NAME[code])}'))
     for slug_, fn in (('about', about_page), ('contact', contact_page), ('privacy', privacy_page), ('terms', terms_page), ('refund-policy', refund_page)): write(f'{slug_}/index.html', fn())
     write('sitemap.xml', sitemap())
-    write('robots.txt', f'User-agent: *\nAllow: /\nDisallow: /qb/\nDisallow: /qbank\nDisallow: /dashboard\n\nSitemap: {SITE}/sitemap.xml\n')
+    write('robots.txt', f'User-agent: *\nAllow: /\nDisallow: /qb/\nDisallow: /qbank\n\nSitemap: {SITE}/sitemap.xml\n')
     write('index.html', page('Math Question Bank, PYQs, DPPs | अंक-IT', 'Free math practice for Class 11 and 12: question bank with solutions, PYQs, DPPs, handouts and online tests for JEE, KCET, NDA and IAT.', SITE + '/', home_block(), 0,
-        jsonld=[{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/", "name": "अंक-IT Mathematics Dashboard", "inLanguage": "en-IN"},
+        jsonld=[{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/", "name": "अंक-IT Mathematics Dashboard", "inLanguage": LANG},
         {"@type": "FAQPage", "@id": SITE + "/#faq", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": ans}} for q, ans in FAQ]},
         {"@type": "EducationalOrganization", "@id": SITE + "/#org", "name": "अंक-IT Mathematics", "url": SITE + "/", "logo": SITE + "/img/icon/icon-180.png", "description": "Math question bank, previous-year papers, DPPs, handouts and online tests for Class 11 and 12."}]}], raw=True))
+    if ERRORS: raise SystemExit('build_seo: fix these titles / descriptions (they are never cut automatically):\n  ' + '\n  '.join(dict.fromkeys(ERRORS)))
     print('built', len(CH), 'chapter pages +', len(EXAMS), 'exam pages + hubs + about/contact/privacy/terms + sitemap + robots + home page')
 
 if __name__ == '__main__':

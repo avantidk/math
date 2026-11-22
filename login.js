@@ -71,7 +71,9 @@
     var seg = h('div', { class: 'lm-seg', role: 'radiogroup', 'aria-label': 'I am a' });
     var avBox = h('section', { class: 'lm-av' });
     var hint = h('p', { class: 'lm-hint', role: 'status' });
+    var NEED_ROLE = 'Please choose Teacher or Student first. This choice is saved once and cannot be changed later.';
     function paint() {
+      if (role && !err.hidden && err.textContent === NEED_ROLE) { err.hidden = true; err.textContent = ''; }   /* the role is chosen now: the old warning goes */
       Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) { b.setAttribute('aria-checked', String(b.getAttribute('data-r') === role)); });
       avBox.hidden = role !== 'student';
       hint.textContent = role ? '' : 'Choose Teacher or Student to continue.';
@@ -83,7 +85,7 @@
     });
     var gBtn = null;
     gBtn = h('button', { type: 'button', class: 'lm-google', html: GOOGLE_G + '<span>Continue with Google</span>', onclick: async function () {
-      if (!role) { err.textContent = 'Please choose Teacher or Student first. This choice is saved once and cannot be changed later.'; err.hidden = false; return; }
+      if (!role) { err.textContent = NEED_ROLE; err.hidden = false; return; }
       err.hidden = true; gBtn.disabled = true; gBtn.lastChild.textContent = 'Opening Google…';
       try {
         store.set(ROLE_KEY, role); rememberNext();
@@ -130,7 +132,7 @@
       } }));
     var dialog = h('div', { class: 'lm-dialog' },
       h('button', { type: 'button', class: 'lm-x', 'aria-label': 'Close', text: '×', onclick: close }),
-      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=1038', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
+      h('img', { class: 'lm-logo', src: base + 'img/ankit-logo-light.png?v=1040', alt: 'अंक-IT Mathematics', width: 220, height: 81 }),
       h('h2', { id: 'lmTitle', text: 'Log in or register' }),
       h('p', { class: 'lm-sub', text: 'New here? Continue with Google and your account is created for you.' }),
       h('div', { class: 'lm-free', role: 'note' }, h('b', { text: 'Free when you sign up' }), h('span', { text: 'Practise chapter-wise JEE, KCET, NDA and IAT PYQs, attempt Previous Year Papers, bookmark key problems and track your accuracy. No payment needed.' })),

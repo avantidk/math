@@ -85,29 +85,45 @@ async function rpc(name, args) {
 }
 A.rpc = rpc;
 
-/* ---------- one device at a time ----------
-   Each sign-in has its own session id (inside the access token). When this browser signs in it claims the account (claim_session); the
-   database then refuses private files to any other device and session_ok() answers false there. A replaced device shows a message and signs out. */
+/* ---------- one computer, one phone and one tablet at a time ----------
+   Each sign-in has its own session id (inside the access token). When this browser signs in it claims the account for its kind of device
+   (claim_session with 'pc', 'mobile' or 'tab'). A newer sign-in on the same kind of device replaces this one: the database then refuses private
+   files here, session_ok() answers false and this browser shows a message and signs out. */
 const SID_KEY = 'avanti-sid';
 let kickedShown = false, sessionTimer = null;
+/* 'tab' for tablets (iPad, iPadOS that reports a Mac with a touch screen, Android without "Mobile"), 'mobile' for phones, otherwise 'pc' */
+function deviceKind() {
+  const ua = navigator.userAgent || '';
+  if (/iPad|Tablet|PlayBook|Silk|Kindle/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua)) || (/Macintosh/i.test(ua) && (navigator.maxTouchPoints || 0) > 1)) return 'tab';
+  if (/Mobi|Android|iPhone|iPod/i.test(ua)) return 'mobile';
+  return 'pc';
+}
+const DEVICE = deviceKind(), DEVICE_NAME = { pc: 'computer', mobile: 'phone', tab: 'tablet' }[DEVICE];
+A.device = DEVICE;
 function jwtSid() {
   try { const t = A.session && A.session.access_token; if (!t) return null; return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).session_id || null; } catch (e) { return null; }
 }
 function kicked() {
   if (kickedShown) return; kickedShown = true; clearInterval(sessionTimer);
   document.querySelectorAll('.ex').forEach(e => e.remove()); document.body.classList.remove('ex-on');   /* a test in progress is already saved on the server */
-  const out = async () => { store.set(SID_KEY, null); store.set('avanti-md-menu', null); try { await sb.auth.signOut({ scope: 'local' }); } catch (e) { /* leaving anyway */ } location.replace(ROOT + '?login=1'); };
+  store.set(SID_KEY, null); store.set('avanti-md-menu', null);
+  const cleared = window.AvantiContent ? window.AvantiContent.clearCaches().catch(() => {}) : Promise.resolve();   /* nothing private stays in this browser */
+  const out = async () => { await cleared; try { await sb.auth.signOut({ scope: 'local' }); } catch (e) { /* leaving anyway */ } location.replace(ROOT + '?login=1'); };
   const box = h('div', { role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'kickT', style: 'position:fixed;inset:0;z-index:99999;background:rgba(8,14,32,.78);display:flex;align-items:center;justify-content:center;padding:16px' },
     h('div', { style: 'background:#fff;color:#0e1a33;max-width:430px;width:100%;border-radius:18px;padding:26px;font:15px/1.5 system-ui,sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.4)' },
-      h('h2', { id: 'kickT', style: 'margin:0 0 8px;font-size:21px', text: 'Signed out on this device' }),
-      h('p', { style: 'margin:0 0 16px', text: 'Your account was opened on another device. Only one device can be signed in at a time, so this one was signed out. A test you were writing is saved: sign in again to carry on.' }),
+      h('h2', { id: 'kickT', style: 'margin:0 0 8px;font-size:21px', text: 'Signed out on this ' + DEVICE_NAME }),
+      h('p', { style: 'margin:0 0 16px', text: 'You signed in on another ' + DEVICE_NAME + ', so this one was signed out. Your account can be open on one computer, one phone and one tablet at the same time. A test you were writing is saved: sign in again to carry on.' }),
       h('button', { type: 'button', style: 'font:600 15px system-ui;padding:11px 18px;border:0;border-radius:11px;background:#1f3f95;color:#fff;cursor:pointer', text: 'Sign in again here', onclick: out })));
   document.body.append(box);
 }
 async function checkSession() { if (kickedShown) return; try { if (!(await rpc('session_ok'))) kicked(); } catch (e) { /* offline, or the database step is not done yet */ } }
 async function ensureSession() {
   const sid = jwtSid(); if (!sid) return true;
-  if (store.get(SID_KEY) !== sid) { try { await rpc('claim_session', { p_device: (navigator.userAgent || '').slice(0, 160) }); store.set(SID_KEY, sid); } catch (e) { /* the database step is not done yet: carry on */ } }
+  if (store.get(SID_KEY) !== sid) {
+    let r = null, done = false; try { r = await rpc('claim_session', { p_device: DEVICE }); done = true; } catch (e) { /* offline, or the database step is not done yet: carry on */ }
+    if (r && r.ok === false) { kicked(); return false; }   /* a newer sign-in on the same kind of device has replaced this one */
+    if (done) store.set(SID_KEY, sid);
+  }
   else { try { if (!(await rpc('session_ok'))) { kicked(); return false; } } catch (e) { /* offline: carry on */ } }
   if (!sessionTimer) { sessionTimer = setInterval(checkSession, 60000); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkSession(); }); }
   return true;
@@ -192,7 +208,7 @@ function renderMenu() {
   }
   if (teacher || perm.staff) {
     if (perm.createTests) items.push(['#/my-tests', 'School Tests & Results']);
-    if (perm.manageStudents) items.push(['#/students', 'My Students']);
+    if (perm.manageStudents || teacher) items.push(['#/students', 'My Students']);   /* Free teachers: the page explains the Premium teacher plan */
     if (perm.worksheets) items.push(['#/worksheets', 'Saved worksheets']);
   }
   if (perm.plan !== 'free' && !perm.isAdmin && p.school_approved) items.push(['#/school', 'My School']);
@@ -249,6 +265,8 @@ async function start() {
     if (!p || !p.role) { rolePage(); return; }
   }
   PROFILE = p; PERM = permsFor(p); applyGuards(PERM);
+  /* the Question Bank (/qbank) is the admin's: everyone else goes to the dashboard before any question file is asked for */
+  if (!PERM.isAdmin && /\/qbank(\.html)?\/?$/.test(location.pathname)) { location.replace('dashboard' + location.hash); return; }
   if (!(await ensureSession())) return;
   /* right after sign-in: every required detail must be filled before the dashboard opens */
   if (window.AvantiPortal && window.AvantiPortal.profileMissing(p).length) {

@@ -5,7 +5,8 @@
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () { /* not installable here */ }); });
   }
-  if (standalone) return;
+  var framed = false; try { framed = window.top !== window.self; } catch (e) { framed = true; }
+  if (standalone || framed) return;   /* no install bar inside the dashboard's pop-ups */
   var KEY = 'avanti-pwa-dismissed', WAIT = 14 * 864e5;
   function dismissed() { try { var t = +localStorage.getItem(KEY); return t && Date.now() - t < WAIT; } catch (e) { return false; } }
   function remember() { try { localStorage.setItem(KEY, String(Date.now())); } catch (e) { /* optional */ } }
