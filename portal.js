@@ -2354,9 +2354,7 @@ async function pageHelp() {
     ['My school, class or name is wrong.', 'Students: ask your teacher to correct it. Teachers: email us and we will change the school.'],
     ['A question, answer or figure is wrong.', 'Email the question ID (shown in the question menu) and what should be corrected.'],
     ['When do I see the correct answers of a test?', 'Your score, ranks and analysis show as soon as you submit. The correct answers open when the full exam time is over (3 hours after you started a 3-hour paper), even if you submitted early.'],
-    ['My internet or power went during a test.', 'The timer keeps running from the moment you started. Open the test again as soon as you can and carry on; your saved answers are kept.'],
-    ['Why was my test submitted by itself?', 'Switching to another tab or app, or leaving full screen, gives a warning. At 3 warnings the test is submitted automatically. It is also submitted when the time is over.'],
-    ['Can I use my account on more than one device?', 'Yes: on one computer, one phone and one tablet at the same time. Signing in on a second device of the same kind signs the older one out.']];
+    ['My internet or power went during a test.', 'The timer keeps running, so open the test again as soon as you can. Your answers are saved when you are back online, and the test is submitted when the time ends.']];
   show(head('Help & Support', 'Found a problem or have a question? Write to us and we will get back to you.'),
     h('div', { class: 'pt-grid2 pt-helpgrid' },
       h('div', { class: 'pt-hstack' },

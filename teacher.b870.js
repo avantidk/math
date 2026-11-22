@@ -1771,7 +1771,7 @@ const GUIDE_HTML = () => `
 </ul>
 <h3 id="gd-take">Taking a test</h3>
 <ul>
-<li><b>Timer:</b> it starts when you press Start and runs on the clock until the time of the test is over, also while the page is closed or your internet is off. Your saved answers stay in your account: open the test again to carry on.</li>
+<li><b>Timer:</b> it follows the exam clock from the moment you start and keeps running even if your internet or power goes. Answers are saved while you write and again when you are back online; the test submits itself when the time ends.</li>
 <li><b>Screen:</b> question palette (answered, not answered, not visited, marked for review), Save &amp; next, Mark for review &amp; next, Clear response. Sections are shown on each question and above the palette. Answers are saved while you write; the test submits itself when the time ends.</li>
 <li><b>Question types:</b> single correct, one or more correct, numerical (type the value), matching and paragraph questions. A question tagged Subjective gives 4 options for the final answer.</li>
 <li><b>Warnings:</b> switching to another tab or app, or leaving full screen, gives a warning. At 3 warnings the test is submitted automatically.</li>
