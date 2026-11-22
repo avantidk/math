@@ -1,5 +1,12 @@
 [
   {
+    "v": "1012",
+    "date": "22 Nov 2026",
+    "items": [
+      "Accessibility: small gold headings and Level 1/2 table headings are darker so they are easier to read, and wide tables can now be scrolled with the keyboard."
+    ]
+  },
+  {
     "v": "1011",
     "date": "22 Nov 2026",
     "items": [

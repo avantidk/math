@@ -396,10 +396,10 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .heat th[scope=row]{text-align:left;white-space:nowrap;padding:3px 10px 3px 8px;color:var(--navy);font-weight:600;font-size:13.5px}
 .heat th[scope=row] .exlogo{width:28px;height:28px;display:inline-block;vertical-align:middle;margin-right:8px;border-radius:7px}
 .heat td{min-width:22px;border-radius:6px;font-variant-numeric:tabular-nums}
-.heat td.h0{background:#f3f6fc;color:#b3bdd6}.heat td.h1{background:#e3ebfc;color:#1c3f9e}.heat td.h2{background:#bfd0f8;color:#14327f}.heat td.h3{background:#6f93ee;color:#fff}.heat td.h4{background:#2450c8;color:#fff;font-weight:700}
+.heat td.h0{background:#f3f6fc;color:#6b7694}.heat td.h1{background:#e3ebfc;color:#1c3f9e}.heat td.h2{background:#bfd0f8;color:#14327f}.heat td.h3{background:#3f68d8;color:#fff}.heat td.h4{background:#2450c8;color:#fff;font-weight:700}
 .heat td.tot,.heat th.tot{background:none;text-align:right;padding-left:10px;padding-right:8px;font-weight:700;color:var(--navy)}
 /* ---------- question levels ---------- */
-.lh{font-weight:700}.lh.l1{color:#0f8a5a}.lh.l2{color:#b87a00}.lh.l3{color:#c1352f}
+.lh{font-weight:700}.lh.l1{color:#0b7a4e}.lh.l2{color:#8a5a00}.lh.l3{color:#c1352f}
 .lc{color:var(--ink)}
 /* ---------- dot graph (same look as the dashboard's Syllabus Priority) ---------- */
 .spark{display:block}
@@ -538,7 +538,7 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .know{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:18px 0 6px;padding:18px 22px;border-radius:16px;background:linear-gradient(120deg,#0b5d57,#0f8a7e);color:#fff;box-shadow:0 10px 26px rgba(11,93,87,.22)}
 .know div{display:flex;flex-direction:column;gap:4px;min-width:220px;flex:1}.know b{font:600 19px/1.3 var(--head);color:#fff}.know span{color:#d4f3ee;font-size:15px}
 .know-btn{display:inline-flex;align-items:center;gap:9px;min-height:46px;padding:10px 20px;border-radius:999px;background:#fff;color:#0b5d57!important;font:700 15px/1.2 var(--body);text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .15s}.know-btn:hover{transform:translateY(-2px)}
-.gd-kick{margin:0 0 8px;font:700 12px/1.4 var(--body);letter-spacing:.09em;text-transform:uppercase;color:var(--gold-d)}
+.gd-kick{margin:0 0 8px;font:700 12px/1.4 var(--body);letter-spacing:.09em;text-transform:uppercase;color:#8a5a00}
 .gd-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0}
 .gd-tiles div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;border-top:3px solid var(--gold)}
 .gd-tiles b{display:block;font:600 24px/1.2 var(--head);color:var(--navy)}.gd-tiles span{font-size:13.5px;color:var(--mute)}
@@ -551,7 +551,7 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .gd-sec{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 22px 8px;margin:0 0 22px;scroll-margin-top:84px;box-shadow:0 1px 2px rgba(12,26,61,.04)}
 .gd-sec h2{display:flex;align-items:center;gap:14px;margin:0 0 14px!important;padding:0;border:0}
 .gd-ico{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#fff3d0,#ffe29a);color:#7a5500}
-.gd-t{display:flex;flex-direction:column;font:600 clamp(19px,2.6vw,25px)/1.25 var(--head);color:var(--navy)}.gd-t small{font:700 11.5px/1.4 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--gold-d)}
+.gd-t{display:flex;flex-direction:column;font:600 clamp(19px,2.6vw,25px)/1.25 var(--head);color:var(--navy)}.gd-t small{font:700 11.5px/1.4 var(--body);letter-spacing:.08em;text-transform:uppercase;color:#8a5a00}
 .gd-sec p{margin:0 0 14px}
 .gd-sub{margin:0 0 20px}.gd-sub h3{margin:6px 0 10px!important;padding-left:12px;border-left:4px solid var(--gold);font:600 18px/1.35 var(--head)!important}
 .gd-tbl{margin:0 0 16px}.gd-tbl table{min-width:480px;font-size:14.5px}
@@ -716,3 +716,5 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .sh-panel-w { min-width: 640px; } .pn-in.pn-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; align-items: start; } .pn-col { min-width: 0; }
 @media (max-width: 900px) { .sh-panel-w { min-width: 0; } .pn-in.pn-2 { display: block; } }
 .pn-col { display: flex; flex-direction: column; gap: 2px; }
+
+.pg-table:focus-visible{outline:2px solid var(--blue);outline-offset:2px}

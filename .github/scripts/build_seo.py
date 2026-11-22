@@ -181,6 +181,7 @@ def fit_desc(d, n=158):
 def page(title, desc, canon, body, depth, jsonld=None, og_title=None, up=None, noindex=False, raw=False):
     up = '../' * depth if up is None else up
     title = fit_title(title); desc = fit_desc(desc)
+    body = re.sub(r'<div class="pg-table', '<div tabindex="0" role="group" aria-label="Table (scrolls sideways on small screens)" class="pg-table', body) if isinstance(body, str) else body
     return f'''<!doctype html>
 <html lang="en"{' data-page="index"' if raw else ''}>
 <head>
@@ -1155,7 +1156,7 @@ def home_block():
         return f + f'<noscript><img src="img/shots/{s[0]}.webp" width="1366" height="800" alt="{E(s[4])}"></noscript>'
     slides = ''.join(f'<div class="car-slide" id="car-s{i}" role="tabpanel" aria-roledescription="slide" aria-label="{i + 1} of {len(shots)}: {E(s[1])}" data-title="{E(s[1])}">{slide_img(s, i)}<div class="car-cap"><p class="hd">{E(s[2])}</p><p>{E(s[3])}</p></div></div>' for i, s in enumerate(shots))
     showcase = ('<div class="car" data-car><div class="car-tabs" hidden></div><div class="car-view">'
-                f'<div class="car-track" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Screens from the dashboard">{slides}</div>'
+                f'<div class="car-track" tabindex="0" role="group" aria-roledescription="carousel" aria-label="Screens from the dashboard">{slides}</div>'
                 '<button type="button" class="car-btn car-prev" aria-label="Previous screen" hidden>&lsaquo;</button><button type="button" class="car-btn car-next" aria-label="Next screen" hidden>&rsaquo;</button></div>'
                 '<div class="car-dots" hidden></div></div>')
     # ----- chapters as cards -----
