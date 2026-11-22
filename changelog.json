@@ -1,5 +1,15 @@
 [
   {
+    "v": "1027",
+    "date": "22 Nov 2026",
+    "items": [
+      "Match the following now becomes a table for every layout in the question bank (List-I/II, Column I/II, labels P-S, A-D, a-d, i-iv), in the lists and in tests. In the closed list rows it stays a short text preview; the table shows when you open the question.",
+      "The three-lines menu of each question stays at the top right of the question.",
+      "Question type filter order: MCQ, MSQ, Numerical, Matching, Paragraph, Subjective. The Difficulty filter pop-up keeps its labels on one line.",
+      "JEE Advanced previous year Subjective questions (105, years 2000 to 2005) now have 4 options with the final answer, so you can answer and check them. They keep the Subjective tag, and in tests they are marked like MCQs."
+    ]
+  },
+  {
     "v": "1026",
     "date": "22 Nov 2026",
     "items": [

@@ -71,15 +71,8 @@ const qBase = t => esc(t).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])
 const optCls = arr => { const w = x => String(x == null ? '' : x).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length, m = Math.max(0, ...(arr || []).map(w)); return (arr || []).length === 4 ? (m <= 14 ? 'c4' : m <= 48 ? 'c2' : 'c1') : 'c1'; };
 /* Match the following: List-I and List-II are shown side by side as a table (P to 1, Q to 2, ...) */
 function matchTable(t) {
-  const m = /^([\s\S]*?)\n\s*List[\s-]*(?:I|1)\s*:?\s*\n([\s\S]*?)\n\s*List[\s-]*(?:II|2)\s*:?\s*\n([\s\S]*)$/.exec(String(t || ''));
-  if (!m) return null;
-  const items = (body, re) => { const out = []; String(body).split('\n').forEach(l => { const k = re.exec(l); if (k) out.push([k[1], k[2]]); else if (out.length && l.trim()) out[out.length - 1][1] += '\n' + l; }); return out; };
-  const a = items(m[2], /^\s*\(([P-T])\)\s*(.*)$/), b = items(m[3], /^\s*\(([1-9])\)\s*(.*)$/);
-  if (a.length < 2 || b.length < 2) return null;
-  const cell = x => x ? '<b class="mt-k">(' + esc(x[0]) + ')</b> <span>' + qBase(x[1]) + '</span>' : '';
-  let rows = ''; for (let i = 0; i < Math.max(a.length, b.length); i++) rows += '<tr><td>' + cell(a[i]) + '</td><td>' + cell(b[i]) + '</td></tr>';
-  const wl = arr => Math.max(8, ...arr.map(x => String(x[1]).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length)), la = wl(a), lb = wl(b), wa = Math.max(34, Math.min(80, Math.round(100 * la / (la + lb))));
-  return qBase(m[1]) + '<div class="mt-wrap"><table class="mt"><colgroup><col style="width:' + wa + '%"><col style="width:' + (100 - wa) + '%"></colgroup><thead><tr><th scope="col">List-I</th><th scope="col">List-II</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  const m = window.AvantiMatch && window.AvantiMatch.parse(t);
+  return m ? qBase(m.pre) + window.AvantiMatch.table(m, qBase, ['mt-wrap', 'mt', 'mt-k']) : null;
 }
 const qText = t => matchTable(t) || qBase(t);
 function figure(f) {
@@ -746,7 +739,7 @@ function paperInfo(x) {
   const label = (/\b(19|20)\d{2}\b/.test(p) ? p : (EXN[x.e] || x.e) + ' ' + (x.y || '') + ' · ' + p).trim();
   return { key: paperKey(x), e: x.e, label, t, sh };
 }
-const gradable = q => { if (!q || !q.a) return false; if (q.t === 'Numerical') return /^-?\d+(\.\d+)?$/.test(q.a.trim()) || /^-?\d+(\.\d+)?\s*to\s*-?\d+(\.\d+)?$/i.test(q.a.trim()); return (q.t === 'MCQ' || q.t === 'MSQ' || q.t === 'Matching' || q.t === 'Comprehension') && (q.o || []).length > 0 && /^[A-D](,[A-D])*$/.test(q.a); };
+const gradable = q => { if (!q || !q.a) return false; if (q.t === 'Numerical') return /^-?\d+(\.\d+)?$/.test(q.a.trim()) || /^-?\d+(\.\d+)?\s*to\s*-?\d+(\.\d+)?$/i.test(q.a.trim()); return (q.t === 'MCQ' || q.t === 'MSQ' || q.t === 'Matching' || q.t === 'Comprehension' || q.t === 'Subjective') && (q.o || []).length > 0 && /^[A-D](,[A-D])*$/.test(q.a); };
 let CHN = new Map();
 function snap(q) { const ch = CHN.get(q.cc); return { id: q.i, type: q.t, q: q.q, o: q.o || [], a: q.a, ch: q.cc, chn: ch ? ch.n : q.cc, tp: q.tp || '', f: q.f && q.f.svg ? { svg: q.f.svg } : null, d: q.d, src: q.s === 'P' ? (q.e === 'Main' ? 'JEE Main' : q.e === 'Adv' ? 'JEE Advanced' : q.e) + (q.y ? ' ' + q.y : '') : 'Practice' }; }
 async function pageCreate(arg, r) {
@@ -1036,14 +1029,15 @@ const markText = sc => {
 /* JEE Advanced 2026 sections (used for every paper): 1 single correct, 2 one or more correct, 3 numerical, 4 paragraph questions (Paper 2) or matching (Paper 1).
    A paragraph question starts with "Para:" (stem, then on the last line what is asked). */
 const isPara = q => !!q && (q.t === 'Comprehension' || (q.t === 'Numerical' && /^\s*Para:/i.test(q.q || '')));
-const advSec = q => isPara(q) ? '4' : q.t === 'Matching' ? '4' : ({ MCQ: '1', MSQ: '2', Numerical: '3' }[q.t] || '');
+const advSec = q => isPara(q) ? '4' : q.t === 'Matching' ? '4' : q.t === 'Subjective' ? (/,/.test(q.a || '') ? '2' : '1') : ({ MCQ: '1', MSQ: '2', Numerical: '3' }[q.t] || '');
 const typeKey = q => isPara(q) ? 'Comprehension' : q.t;
 const ADV_MIX = { 1: { MCQ: 4, MSQ: 4, Numerical: 4, Matching: 4 }, 2: { MCQ: 4, MSQ: 5, Numerical: 5, Comprehension: 4 } };
 const tq = (q, exam) => {
-  const x = snap(q), ok = gradable(q), written = q.t === 'Subjective';
-  const o = { id: x.id, type: written ? 'WRITTEN' : x.type === 'Comprehension' ? (/,/.test(x.a || '') ? 'MSQ' : 'MCQ') : x.type, q: x.q, o: x.o, a: x.a || '', ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' };
+  const x = snap(q), ok = gradable(q), written = q.t === 'Subjective' && !ok;   /* a written question with 4 options (final answer) is marked like an MCQ but keeps its Subjective tag */
+  const o = { id: x.id, type: written ? 'WRITTEN' : x.type === 'Subjective' ? (/,/.test(x.a || '') ? 'MSQ' : 'MCQ') : x.type === 'Comprehension' ? (/,/.test(x.a || '') ? 'MSQ' : 'MCQ') : x.type, q: x.q, o: x.o, a: x.a || '', ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' };
   if (q.e === 'CBSE' && /^[A-E]$/i.test(String(q.sec || ''))) o.sec = String(q.sec).toUpperCase();   /* CBSE Class 12: the section decides the marks (B to E are shown as 4 options) */
   if (exam === 'JEE Advanced' && advSec(q)) o.sec = advSec(q);
+  if (q.t === 'Subjective' && ok) o.sj = 1;
   if (!ok) o.nk = true;   /* no answer key we can mark (or a written answer): shown in the test, not marked, answer shown in the review */
   return o;
 };
@@ -1747,7 +1741,7 @@ function runExam(d) {
           } }), h('b', { text: L }), h('span', { html: qText(t) }));
       }));
     }
-    main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge(/^[1-4]$/.test(String(q.sec || '')) ? secName(q) : (q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'WRITTEN' ? 'Written question' : q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
+    main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge(q.sj ? 'Subjective' : /^[1-4]$/.test(String(q.sec || '')) ? secName(q) : (q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'WRITTEN' ? 'Written question' : q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
       h('span', { class: 'pt-hint', text: (q.mc != null && +q.mc === 0) ? 'Not auto-marked' : '+' + num(q.mc != null ? q.mc : d.marks_correct, 2) + (() => { const w = q.mw != null ? +q.mw : (q.type === 'MCQ' ? +d.marks_wrong : 0); return w ? ' / −' + num(w, 2) : ''; })() + (q.mp ? ' · partial marks' : '') }),
       X.qtEl = h('span', { class: 'ex-qtime', title: 'Time spent on this question', 'aria-label': 'Time on this question' })),
       h('div', { class: 'ex-q', html: qText(q.q) }), figure(q.f) || '', input,

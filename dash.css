@@ -617,3 +617,8 @@ body.dpop-on { overflow: hidden; }
 .dl-opts.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .dl-opts.c1 { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 760px) { .dl-opts.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dl-opts.c2 { grid-template-columns: minmax(0, 1fr); } }
+/* v1027: the row menu (three lines) stays at the top right of its question, also when the question is open */
+.dl-sd, .dl-row.open .dl-sd { align-items: flex-start; padding-top: 14px; }
+/* v1027: filter pop-ups keep their natural width (labels like "Confidence Booster · Level 1" stay on one line) */
+.dl-pop { width: max-content; max-width: min(340px, calc(100vw - 32px)); }
+.dl-pop .dl-ot2 { white-space: nowrap; }

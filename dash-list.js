@@ -29,15 +29,8 @@ function richBase(t) {
 const optCls = arr => { const w = x => String(x == null ? '' : x).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length, m = Math.max(0, ...(arr || []).map(w)); return (arr || []).length === 4 ? (m <= 14 ? 'c4' : m <= 48 ? 'c2' : 'c1') : 'c1'; };
 /* Match the following: List-I and List-II side by side in a table (P with 1, Q with 2, ...) */
 function rich(t) {
-  const m = /^([\s\S]*?)\n\s*List[\s-]*(?:I|1)\s*:?\s*\n([\s\S]*?)\n\s*List[\s-]*(?:II|2)\s*:?\s*\n([\s\S]*)$/.exec(String(t == null ? '' : t));
-  if (!m) return richBase(t);
-  const items = (body, re) => { const out = []; String(body).split('\n').forEach(l => { const k = re.exec(l); if (k) out.push([k[1], k[2]]); else if (out.length && l.trim()) out[out.length - 1][1] += '\n' + l; }); return out; };
-  const a = items(m[2], /^\s*\(([P-T])\)\s*(.*)$/), b = items(m[3], /^\s*\(([1-9])\)\s*(.*)$/);
-  if (a.length < 2 || b.length < 2) return richBase(t);
-  const cell = x => x ? '<b class="dl-mtk">(' + esc(x[0]) + ')</b> <span>' + richBase(x[1]) + '</span>' : '';
-  let rows = ''; for (let i = 0; i < Math.max(a.length, b.length); i++) rows += '<tr><td>' + cell(a[i]) + '</td><td>' + cell(b[i]) + '</td></tr>';
-  const wl = arr => Math.max(8, ...arr.map(x => String(x[1]).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length)), la = wl(a), lb = wl(b), wa = Math.max(34, Math.min(80, Math.round(100 * la / (la + lb))));
-  return richBase(m[1]) + '<div class="dl-mtw"><table class="dl-mt"><colgroup><col style="width:' + wa + '%"><col style="width:' + (100 - wa) + '%"></colgroup><thead><tr><th scope="col">List-I</th><th scope="col">List-II</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  const m = window.AvantiMatch && window.AvantiMatch.parse(t);
+  return m ? richBase(m.pre) + window.AvantiMatch.table(m, richBase, ['dl-mtw', 'dl-mt', 'dl-mtk']) : richBase(t);
 }
 const srcLine = x => {
   if (x.source && x.source !== 'PYQ') return (x.paper ? String(x.paper) : (x.book || x.publisher || 'Practice')) + (x.qno ? ' · Q' + x.qno : '');
@@ -63,8 +56,9 @@ function render(env, o) {
   const { D, A, main } = env, pool = o.rows, res = () => D.sum.results;
   const F = { hide: false, years: new Set(), status: '', lv: new Set(), types: new Set(), sort: o.seqOrder ? 'seq' : 'new', extra: {} };
   (o.filters || []).forEach(f => { F.extra[f.key] = new Set(); });
-  const typeOf = r => (D.raw.get(r.id) || {}).type || 'MCQ';
-  const years = [...new Set(pool.map(r => r.y).filter(Boolean))].sort((a, b) => b - a), types = [...new Set(pool.map(typeOf))];
+  const TYPE_ORD = ['MCQ', 'MSQ', 'Numerical', 'Matching', 'Paragraph', 'Subjective'];
+  const typeOf = r => { const x = D.raw.get(r.id) || {}, t = x.type || 'MCQ'; return t === 'Comprehension' || (t === 'Numerical' && /^\s*Para:/i.test(x.question || '')) ? 'Paragraph' : t; };
+  const years = [...new Set(pool.map(r => r.y).filter(Boolean))].sort((a, b) => b - a), types = [...new Set(pool.map(typeOf))].sort((a, b) => { const ia = TYPE_ORD.indexOf(a), ib = TYPE_ORD.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
   let list = [], page = 0, openId = '';
   const wrap = h('div', { class: 'dl' }), ul = h('ul', { class: 'dl-list' }), pager = h('nav', { class: 'dl-pager', 'aria-label': 'Pages' }), count = h('span', { class: 'dl-count', role: 'status' });
   let expCount = null;
@@ -108,7 +102,7 @@ function render(env, o) {
     const mark = h('span', { class: 'dl-st ' + (st || ''), title: st === 'c' ? 'You got this right in a test' : st === 'w' ? 'You got this wrong in a test' : st === 's' ? 'Left unanswered in a test' : 'Not attempted', text: st === 'c' ? '✓' : st === 'w' ? '✕' : st === 's' ? '–' : '' });
     const head = h('button', { type: 'button', class: 'dl-main', 'aria-expanded': 'false', onclick: () => toggle(li, r) },
       h('span', { class: 'dl-n' }, h('b', { text: String(i + 1) }), mark),
-      h('span', { class: 'dl-qt' }, h('span', { class: 'dl-q', html: rich(x.question) }), h('span', { class: 'dl-meta', text: srcLine(x) })));
+      h('span', { class: 'dl-qt' }, h('span', { class: 'dl-q', html: richBase(x.question) }), h('span', { class: 'dl-meta', text: srcLine(x) })));
     li.append(head, h('span', { class: 'dl-sd' }, rowMenu(r, x, li)), h('div', { class: 'dl-detail', hidden: true }));
     return li;
   }
