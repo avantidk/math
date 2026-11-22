@@ -1139,7 +1139,7 @@ def clock_strip():
                   '<div class="cd-n clk-t"><div><b data-u="d">&ndash;</b><span>days</span></div><div><b data-u="h">&ndash;</b><span>hours</span></div><div><b data-u="m">&ndash;</b><span>minutes</span></div><div><b data-u="s">&ndash;</b><span>seconds</span></div></div>'
                   f'<a class="clk-go" href="exams/{sl}/">Dates, safe scores and pattern &rarr;</a></article>')
     return ('<section class="clock" aria-label="Countdown to JEE Main and JEE Advanced"><div class="swrap"><div class="clock-head">'
-            '<p class="clock-kick">GTA VI can be delayed. Your exam cannot.</p>'
+            '<p class="clock-kick">We launched on 17 Nov 2026, two days before GTA VI. Your exam is next.</p>'
             '<p class="clock-h">Your exams are coming. Make every day count.</p></div>'
             f'<div class="clock-grid">{cards}</div><p class="clock-fine">Dates can change: always confirm on the official website.</p></div></section>')
 
