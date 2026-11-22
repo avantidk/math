@@ -739,3 +739,16 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 @media(max-width:700px){.clock-grid{grid-template-columns:1fr}.clock{padding-top:20px}}
 .clk a.clk-go{color:#fff}.clk a.clk-go:hover{color:var(--gold)}
 .clock-grid{margin-bottom:6px}.clock-fine{padding-bottom:12px}
+
+/* v1033: the countdown spans the whole front width and fades into the dark banner below */
+.clock{background:linear-gradient(180deg,#eef3ff 0%,#dbe6ff 38%,#5d79c9 72%,#0a1636 100%);padding:34px 0 44px;border-bottom:0}
+.clock .swrap{max-width:1240px}
+.clock-grid{max-width:none;gap:24px}
+.clk{padding:28px 32px 24px;border-radius:24px}
+.clk-top{margin-bottom:22px}.clk-top .exlogo,.clk-top img{width:64px;height:64px;border-radius:16px}
+.clk-n{font-size:clamp(20px,2vw,26px)}.clk-d{font-size:15px}
+.clk .cd-n.clk-t{gap:16px}.clk .cd-n div{padding:18px 6px;border-radius:16px}
+.clk .cd-n b{font-size:clamp(34px,4.6vw,60px)}.clk .cd-n span{font-size:13px}
+.clk-go{margin-top:18px;font-size:15px}
+.clock-fine{color:#c9d4ee;padding-bottom:0;margin-top:20px}
+@media(max-width:700px){.clock{padding:22px 0 30px;background:linear-gradient(180deg,#eef3ff 0%,#dbe6ff 30%,#5d79c9 70%,#0a1636 100%)}.clk{padding:20px 18px 18px}.clk-top .exlogo,.clk-top img{width:52px;height:52px}.clk .cd-n.clk-t{gap:10px}.clk .cd-n div{padding:12px 4px}.clk .cd-n b{font-size:clamp(26px,8vw,34px)}}
