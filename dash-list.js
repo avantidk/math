@@ -72,7 +72,10 @@ function render(env, o) {
       && (!F.status || (F.status === 'u' ? !res()[r.id] : res()[r.id] === F.status)) && (o.filters || []).every(f => !F.extra[f.key].size || F.extra[f.key].has(f.get(r))));
     const key = r => (r.y || 0) * 1e3;
     const chOrd = c => ((env.D.chByCode[c] || {}).order || 999), qn = r => r.qn || 0, idn = r => { const m = /(\d+)$/.exec(String(r.id)); return m ? +m[1] : 0; };   /* the number at the end of the id follows the book's order, also where two chapters of the book share one list (their question numbers start again at 1) */
-    list.sort((a, b) => F.sort === 'seq' ? chOrd(a.ch) - chOrd(b.ch) || String(a.bk).localeCompare(String(b.bk)) || (a.shn || 0) - (b.shn || 0) || idn(a) - idn(b) || qn(a) - qn(b) || (a.id < b.id ? -1 : 1) : F.sort === 'new' ? (b.y || 0) - (a.y || 0) || (a.id < b.id ? 1 : -1) : F.sort === 'old' ? (a.y || 0) - (b.y || 0) || (a.id < b.id ? -1 : 1) : F.sort === 'easy' ? String(a.d).localeCompare(String(b.d)) || (b.y || 0) - (a.y || 0) : String(b.d).localeCompare(String(a.d)) || (b.y || 0) - (a.y || 0));
+    /* the order of the books: source, then the chapter of the book (BB Ex ids start BB-<chapter>-), then the exercise, then the question */
+    const cn = r => { const m = /^BB-(\d+)-/.exec(String(r.id)); return m ? +m[1] : 0; }, gk = r => r.ch + '|' + r.bk + '|' + (r.src || ''), gmin = new Map();
+    if (F.sort === 'seq') list.forEach(r => { const k = gk(r), v = idn(r); if (!gmin.has(k) || v < gmin.get(k)) gmin.set(k, v); });
+    list.sort((a, b) => F.sort === 'seq' ? chOrd(a.ch) - chOrd(b.ch) || String(a.bk).localeCompare(String(b.bk)) || cn(a) - cn(b) || (gmin.get(gk(a)) || 0) - (gmin.get(gk(b)) || 0) || (a.shn || 0) - (b.shn || 0) || idn(a) - idn(b) || qn(a) - qn(b) || (a.id < b.id ? -1 : 1) : F.sort === 'new' ? (b.y || 0) - (a.y || 0) || (a.id < b.id ? 1 : -1) : F.sort === 'old' ? (a.y || 0) - (b.y || 0) || (a.id < b.id ? -1 : 1) : F.sort === 'easy' ? String(a.d).localeCompare(String(b.d)) || (b.y || 0) - (a.y || 0) : String(b.d).localeCompare(String(a.d)) || (b.y || 0) - (a.y || 0));
     page = 0; draw();
   };
   const pages = () => Math.max(1, Math.ceil(list.length / PAGE));

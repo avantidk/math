@@ -58,7 +58,7 @@ function sheetOf(book, id, paper) {
   if (!m) return null;
   /* Ln Ex keeps its own names (O-1 to O-4). Where one list holds two chapters of the book (for example Integration and Area Under the Curve), each chapter is its own sheet, so a sheet starts at its own Q1 */
   const src = book === 'Ln Ex' ? (String(paper || '').split(' · ')[1] || '') : '';
-  return { no: +m[1], label: (src ? src + ' · ' : '') + (book === 'Ln DY' ? 'DY-' : book === 'Ln Ex' ? 'O-' : 'Ex-') + (+m[1]) };
+  return { no: +m[1], src, label: (src ? src + ' · ' : '') + (book === 'Ln DY' ? 'DY-' : book === 'Ln Ex' ? 'O-' : 'Ex-') + (+m[1]) };
 }
 /* The dashboard starts from the small index (every question without its text: index/questions.json, boot.js) and fetches the
    full records (text, options, answer) only for what is on the screen: the chapter of a list page, a past paper, the questions
@@ -76,7 +76,7 @@ function load() {
     ix.rows.forEach(x => {
       const isP = x.s === 'P'; if (!isP && !prem) return;
       const bk = isP ? '' : x.bk, sh = isP ? null : sheetOf(bk, x.i, x.p);
-      D.rows.push({ id: x.i, P: isP, ex: isP ? (EXAM_OF_BANK[x.ex] || null) : null, y: isP ? x.y || null : null, ch: x.cc, tp: x.tp || '', tc: x.tc || '', d: x.d, ok: !!x.g && !!TESTABLE[x.t], bk, shl: sh ? sh.label : '', shn: sh ? sh.no : 0,
+      D.rows.push({ id: x.i, P: isP, ex: isP ? (EXAM_OF_BANK[x.ex] || null) : null, y: isP ? x.y || null : null, ch: x.cc, tp: x.tp || '', tc: x.tc || '', d: x.d, ok: !!x.g && !!TESTABLE[x.t], bk, shl: sh ? sh.label : '', src: sh ? sh.src || '' : '', shn: sh ? sh.no : 0,
         ty: x.t || 'MCQ', qn: +x.n || 0, pa: !!x.pa, mx: !!x.mx });
     });
     D.byId = new Map(D.rows.map(r => [r.id, r]));
@@ -528,7 +528,8 @@ function viewList(mode, slug, ch, kind, arg) {
   }
   const sub = [c ? c.chapter : ch, mode === 'pyq' && e ? e.name : 'Practice questions'].join(' · ');   /* the breadcrumb stays in the page for navigation and search, but is not shown on list pages */
   window.DashList.render(listEnv(),
-    { rows: pool, title, sub, head: h('div', { class: 'd-head' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c ? c.chapter : ch)), practiceLabel: 'Practice ' + what, testLabel: 'Take ' + what + ' Test', emptyText: kind === 'bookmarked' ? 'Tap the bookmark on any question to keep it here.' : 'No questions here yet.',
+    { rows: pool, title, sub, seqOrder: mode !== 'pyq', filters: mode === 'pyq' ? [] : [{ key: 'bk', label: 'Source', values: [...new Set(pool.map(r => r.bk).filter(Boolean))].sort().map(b => [b, b]), get: r => r.bk }],   /* practice questions: in the order of the book (source, exercise, question), with a Source filter */
+      head: h('div', { class: 'd-head' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c ? c.chapter : ch)), practiceLabel: 'Practice ' + what, testLabel: 'Take ' + what + ' Test', emptyText: kind === 'bookmarked' ? 'Tap the bookmark on any question to keep it here.' : 'No questions here yet.',
       startTest: list => launchTestFrom(list, c, mode, e, 20, what.toLowerCase() + ' test', kind === 'all' ? null : title) });
 }
 function viewChapter(mode, slug, ch, section, extra) {

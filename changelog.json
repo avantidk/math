@@ -1,5 +1,12 @@
 [
   {
+    "v": "1042",
+    "date": "22 Nov 2026",
+    "items": [
+      "Non-PYQ practice lists now follow the books: source, then the chapter of the book, then the exercise, then the question number (the default order is 'Exercise order'), and there is a new Source filter (BB Ex, Ln DY, Ln Ex)."
+    ]
+  },
+  {
     "v": "1041",
     "date": "22 Nov 2026",
     "items": [
