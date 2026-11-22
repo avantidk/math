@@ -1145,16 +1145,23 @@ function pickN(pool, n, even, used, tough) {
   out.forEach(q => used.add(q.i)); return out;
 }
 /* the questions of a test: for each type in mix (for example MCQ 20, Numerical 5) about ratioP of them from PYQs and the rest from practice questions */
-function compose(poolP, poolN, mix, ratioP, even, tough) {
+/* Order rules: JEE Advanced and CBSE keep their sections in order (Advanced: MCQ, then MSQ, then Numerical; CBSE: A, B, C, D, E) and the questions are shuffled only inside a section.
+   NDA is chapter wise: 4 to 5 questions of a chapter come one after the other. */
+function ndaOrder(list) {
+  const g = new Map(); shuffled(list).forEach(q => { if (!g.has(q.cc)) g.set(q.cc, []); g.get(q.cc).push(q); });
+  const out = []; shuffled([...g.values()]).forEach(l => { const r = Math.ceil(l.length / 5); let i = 0; for (let j = 0; j < r; j++) { const k = Math.ceil((l.length - i) / (r - j)); out.push(...l.slice(i, i + k)); i += k; } });
+  return out;
+}
+function compose(poolP, poolN, mix, ratioP, even, tough, exam) {
   const used = new Set(), out = [];
   Object.entries(mix).forEach(([type, n]) => {
     const tp = poolP.filter(q => q.t === type), tn = poolN.filter(q => q.t === type), nP = Math.min(tp.length, Math.round(n * ratioP));
     let got = pickN(tp, nP, even, used, tough).concat(pickN(tn, n - nP, even, used, tough));
     if (got.length < n) got = got.concat(pickN(tp, n - got.length, even, used, tough));
     if (got.length < n) got = got.concat(pickN(tn, n - got.length, even, used, tough));
-    out.push(...got);
+    out.push(...(exam === 'NDA' ? got : shuffled(got)));
   });
-  return out;
+  return exam === 'NDA' ? ndaOrder(out) : out;
 }
 /* the control bar on top of the mocks: where the questions come from (PYQ, Non-PYQ, Mix) and how tough they are (slider).
    Free accounts have PYQ only: the other two buttons are locked and lead to Premium. */
@@ -1283,7 +1290,11 @@ async function modeCustom() {
     try {
       const qs0 = pickN(pool(), S.n, S.order === 'even', new Set(), diff.st.tough); let qs = qs0;
       if (S.order === 'easy') qs = qs.slice().sort((a, b) => (a.d || 'L2').localeCompare(b.d || 'L2'));
-      const chs = [...new Set(qs.map(q => q.cc))];
+      if (S.scheme === 'NDA') qs = ndaOrder(qs);   /* chapter wise, 4 to 5 questions of a chapter in a row */
+      else if (S.scheme === 'JEE Advanced' || S.scheme === 'CBSE 12') {   /* sections first (shuffle only inside a section) */
+        const rank = q => S.scheme === 'CBSE 12' ? 'ABCDE'.indexOf(String(q.sec || '').toUpperCase()) : ['MCQ', 'MSQ', 'Numerical'].indexOf(q.t);
+        qs = shuffled(qs).sort((a, b) => (rank(a) < 0 ? 9 : rank(a)) - (rank(b) < 0 ? 9 : rank(b)));
+      }
       await launchTest({ title: S.title || 'Your Practice Test', qs, exam: S.scheme, mins: S.mins, key: 'custom' });
     } catch (e) { toast(e.message); go.disabled = false; } } });
   function draw(light) {
@@ -1365,7 +1376,7 @@ async function modeFull() {
       grid.append(h('button', { type: 'button', class: 'pp-card' + (off ? ' is-off' : ''), disabled: off, onclick: async e => {
         const b = e.currentTarget; b.disabled = true;
         try {
-          const ratio = st.src === 'P' ? 1 : st.src === 'N' ? 0 : 0.6, mix = Object.assign({}, sc.rules.mix), qs = compose(mockPool(pyq, st), mockPool(np, st), mix, ratio, true, st.tough);
+          const ratio = st.src === 'P' ? 1 : st.src === 'N' ? 0 : 0.6, mix = Object.assign({}, sc.rules.mix), qs = compose(mockPool(pyq, st), mockPool(np, st), mix, ratio, true, st.tough, ex);
           if (qs.length < 5) throw new Error('Not enough questions for this choice. Widen the difficulty or the source.');
           await launchTest({ title: ex + ' full length mock' + mockTag(st), qs, exam: ex, mins: null, key: 'full-' + ex });
         } catch (err) { toast(err.message); b.disabled = false; } } },
@@ -1379,7 +1390,7 @@ async function modeFull() {
   const cbMix = (cbse && cbse.rules && cbse.rules.mix) || { A: 20, B: 5, C: 6, D: 4, E: 3 }, cbReady = cbq.length >= 38 && Object.keys(cbMix).every(k => bySec(k).length >= cbMix[k]);
   cards.push(cbReady ? h('button', { type: 'button', class: 'pp-card', onclick: async e => {
       const b = e.currentTarget; b.disabled = true;
-      try { const used = new Set(), qs = []; Object.keys(cbMix).forEach(k => qs.push(...pickN(bySec(k), cbMix[k], true, used)));
+      try { const used = new Set(), qs = []; Object.keys(cbMix).forEach(k => qs.push(...shuffled(pickN(bySec(k), cbMix[k], true, used))));
         await launchTest({ title: 'CBSE Class 12 full length mock', qs, exam: 'CBSE 12', mins: null, key: 'full-cbse' });
       } catch (err) { toast(err.message); b.disabled = false; } } },
       h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: '38 questions · ' + (cbse ? cbse.duration_min : 180) + ' min · 80 marks · no negative marking' }), h('small', { class: 'pt-hint', text: 'Sections A to E. Written-answer sections are shown as options.' }), h('span', { class: 'pp-go', text: 'Start ›' }))

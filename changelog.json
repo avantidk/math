@@ -1,5 +1,12 @@
 [
   {
+    "v": "1014",
+    "date": "22 Nov 2026",
+    "items": [
+      "Mock tests now follow each exam's real order: NDA questions come chapter by chapter (4 to 5 questions of a chapter in a row), and JEE Advanced and CBSE Class 12 keep their sections in order (A, B, C, D, E) with the questions shuffled only inside a section."
+    ]
+  },
+  {
     "v": "1013",
     "date": "22 Nov 2026",
     "items": [
