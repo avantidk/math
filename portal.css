@@ -1155,3 +1155,10 @@ html body .tb-menu a.tb.tb-dash { text-decoration: none; display: inline-flex; a
 @media (max-width: 980px) { .tx-hero { grid-template-columns: 1fr; } .tx-top, .tx-low { grid-column: span 3; } .tx-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .tx-top, .tx-low { grid-column: 1 / -1; } .tx-card:hover { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .tx-card { transition: none; } }
+
+.mt-wrap { margin: 10px 0 4px; overflow-x: auto; }
+.mt { width: 100%; border-collapse: collapse; font-size: .95em; background: var(--card, #fff); }
+.mt th, .mt td { border: 1px solid var(--rule, #d9e0ee); padding: 8px 10px; text-align: left; vertical-align: top; }
+.mt th { background: var(--bg, #f3f6fc); font-weight: 700; }
+.mt td { width: 50%; }
+.mt .mt-k { margin-right: 4px; }

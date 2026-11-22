@@ -66,7 +66,19 @@ function mathIn(node) {
     try { window.renderMathInElement(node, { delimiters: [{ left: '\\[', right: '\\]', display: true }, { left: '\\(', right: '\\)', display: false }], throwOnError: false }); } catch (e) { /* raw text stays */ }
   });
 }
-const qText = t => esc(t).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1').replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');   /* **bold** in question text */
+const qBase = t => esc(t).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1').replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');   /* **bold** in question text */
+/* Match the following: List-I and List-II are shown side by side as a table (P to 1, Q to 2, ...) */
+function matchTable(t) {
+  const m = /^([\s\S]*?)\n\s*List[\s-]*(?:I|1)\s*:?\s*\n([\s\S]*?)\n\s*List[\s-]*(?:II|2)\s*:?\s*\n([\s\S]*)$/.exec(String(t || ''));
+  if (!m) return null;
+  const items = (body, re) => { const out = []; String(body).split('\n').forEach(l => { const k = re.exec(l); if (k) out.push([k[1], k[2]]); else if (out.length && l.trim()) out[out.length - 1][1] += '\n' + l; }); return out; };
+  const a = items(m[2], /^\s*\(([P-T])\)\s*(.*)$/), b = items(m[3], /^\s*\(([1-9])\)\s*(.*)$/);
+  if (a.length < 2 || b.length < 2) return null;
+  const cell = x => x ? '<b class="mt-k">(' + esc(x[0]) + ')</b> <span>' + qBase(x[1]) + '</span>' : '';
+  let rows = ''; for (let i = 0; i < Math.max(a.length, b.length); i++) rows += '<tr><td>' + cell(a[i]) + '</td><td>' + cell(b[i]) + '</td></tr>';
+  return qBase(m[1]) + '<div class="mt-wrap"><table class="mt"><thead><tr><th scope="col">List-I</th><th scope="col">List-II</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+const qText = t => matchTable(t) || qBase(t);
 function figure(f) {
   if (!f || !f.svg) return null;
   return h('img', { class: 'pt-fig', alt: 'Figure', src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(f.svg) });
@@ -1645,6 +1657,7 @@ async function pageTake(code) {
 let EX = null;
 const TYPE_NAME = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct', Numerical: 'Numerical value', Matching: 'Matching (single correct)', SUBJ: 'Written question: pick the final answer', WRITTEN: 'Written question (not auto-marked)' };
 /* the marking scheme by question type, shown before the test starts */
+const secName = q => /^[1-4]$/.test(String(q.sec || '')) ? (q.sec === '4' ? (q.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 paragraph questions with 2 parts each') : SEC_NAME[q.sec]) : 'Section ' + q.sec;
 const SEC_NAME = { 1: 'Section 1 · Single correct (MCQ)', 2: 'Section 2 · One or more correct (MSQ)', 3: 'Section 3 · Numerical value', 4: 'Section 4 · 2 paragraph questions with 2 parts each', A: 'Section A · MCQ and Assertion-Reason', B: 'Section B · Very Short Answer (VSA)', C: 'Section C · Short Answer (SA)', D: 'Section D · Long Answer (LA)', E: 'Section E · Case Study / Source-Based' };
 function schemeTable(info) {
   const secs = info.sections || []; if (!secs.length) return h('p', { class: 'pt-hint', text: 'Correct +' + num(info.marks_correct, 2) + ' · wrong −' + num(info.marks_wrong, 2) });
@@ -1697,7 +1710,7 @@ function runExam(d) {
   }
   function drawPal() {
     pal.textContent = '';
-    qs.forEach((q, i) => { if (q.sec && (i === 0 || qs[i - 1].sec !== q.sec)) pal.append(h('div', { class: 'ex-psec', text: 'Section ' + q.sec })); pal.append(h('button', { type: 'button', class: 'ex-p ' + stateOf(ans[q.id]) + (i === X.cur ? ' cur' : ''), text: i + 1, 'aria-label': 'Question ' + (i + 1) + ': ' + { ans: 'answered', na: 'not answered', nv: 'not visited', mk: 'marked for review', am: 'answered and marked' }[stateOf(ans[q.id])], onclick: () => go(i) })); });
+    qs.forEach((q, i) => { if (q.sec && (i === 0 || qs[i - 1].sec !== q.sec)) pal.append(h('div', { class: 'ex-psec', text: secName(q) })); pal.append(h('button', { type: 'button', class: 'ex-p ' + stateOf(ans[q.id]) + (i === X.cur ? ' cur' : ''), text: i + 1, 'aria-label': 'Question ' + (i + 1) + ': ' + { ans: 'answered', na: 'not answered', nv: 'not visited', mk: 'marked for review', am: 'answered and marked' }[stateOf(ans[q.id])], onclick: () => go(i) })); });
   }
   function go(i) { track(); X.cur = Math.max(0, Math.min(qs.length - 1, i)); root.classList.remove('pal-open'); draw(); save(); }
   function draw() {
@@ -1729,7 +1742,7 @@ function runExam(d) {
           } }), h('b', { text: L }), h('span', { html: qText(t) }));
       }));
     }
-    main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge((q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'WRITTEN' ? 'Written question' : q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
+    main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge(/^[1-4]$/.test(String(q.sec || '')) ? secName(q) : (q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'WRITTEN' ? 'Written question' : q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
       h('span', { class: 'pt-hint', text: (q.mc != null && +q.mc === 0) ? 'Not auto-marked' : '+' + num(q.mc != null ? q.mc : d.marks_correct, 2) + (() => { const w = q.mw != null ? +q.mw : (q.type === 'MCQ' ? +d.marks_wrong : 0); return w ? ' / −' + num(w, 2) : ''; })() + (q.mp ? ' · partial marks' : '') }),
       X.qtEl = h('span', { class: 'ex-qtime', title: 'Time spent on this question', 'aria-label': 'Time on this question' })),
       h('div', { class: 'ex-q', html: qText(q.q) }), figure(q.f) || '', input,
