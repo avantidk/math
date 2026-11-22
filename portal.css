@@ -248,6 +248,7 @@ body.ex-on { overflow: hidden; }
 .ex-who b { color: var(--ink); } .ex-who span { color: var(--muted); font-size: 12.5px; }
 .ex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; }
 .ex-p { height: 40px; border-radius: 9px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); font: 700 13px var(--font-body); cursor: pointer; position: relative; }
+.ex-psec { grid-column: 1 / -1; margin: 6px 0 -2px; font: 700 11.5px var(--font-body); letter-spacing: .06em; text-transform: uppercase; color: var(--mute, #56637f); }
 .ex-p.cur { outline: 2.5px solid var(--accent); outline-offset: 1px; }
 .ex-p.ans { background: #17794a; border-color: #17794a; color: #fff; }
 .ex-p.na { background: #b4471d; border-color: #b4471d; color: #fff; }

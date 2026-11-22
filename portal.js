@@ -1018,10 +1018,12 @@ const markText = sc => {
   const r = mcqRule(sc); return '+' + num(r.c, 2) + (r.w ? ' / −' + num(r.w, 2) : '');
 };
 /* a question as it is stored inside a test (the answer key stays on the server; students never get ids or keys) */
-const tq = q => {
+const ADV_SEC = { MCQ: '1', MSQ: '2', Numerical: '3' };   /* JEE Advanced: Section 1 single correct, 2 one or more correct, 3 numerical (4 = paragraph questions, when they are in the bank) */
+const tq = (q, exam) => {
   const x = snap(q), ok = gradable(q), written = q.t === 'Subjective';
   const o = { id: x.id, type: written ? 'WRITTEN' : x.type === 'Comprehension' ? (/,/.test(x.a || '') ? 'MSQ' : 'MCQ') : x.type, q: x.q, o: x.o, a: x.a || '', ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' };
   if (q.e === 'CBSE' && /^[A-E]$/i.test(String(q.sec || ''))) o.sec = String(q.sec).toUpperCase();   /* CBSE Class 12: the section decides the marks (B to E are shown as 4 options) */
+  if (exam === 'JEE Advanced' && ADV_SEC[o.type]) o.sec = ADV_SEC[o.type];
   if (!ok) o.nk = true;   /* no answer key we can mark (or a written answer): shown in the test, not marked, answer shown in the review */
   return o;
 };
@@ -1114,7 +1116,7 @@ const isFree = () => { const p = AU().perm; return !(p.premium || p.staff || p.i
 async function launchTest(o) {
   const SC = await schemes(), sc = SC[o.exam] || SC['JEE Main'], rule = mcqRule(sc);
   const r = await rpc('create_personal_test', { p_title: o.title, p_duration_min: o.mins == null ? null : o.mins, p_marks_correct: rule.c, p_marks_wrong: rule.w,
-    p_questions: o.qs.map(tq), p_paper_key: o.key || null, p_audience: 'self', p_exam: o.exam });
+    p_questions: o.qs.map(q => tq(q, o.exam)), p_paper_key: o.key || null, p_audience: 'self', p_exam: o.exam });
   location.hash = '#/t/' + r.code;   /* the instructions come first; the test starts when you press Start */
 }
 /* pick n questions, chapters mixed evenly when asked */
@@ -1619,7 +1621,7 @@ async function pageTake(code) {
 let EX = null;
 const TYPE_NAME = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct', Numerical: 'Numerical value', Matching: 'Matching (single correct)', SUBJ: 'Written question: pick the final answer', WRITTEN: 'Written question (not auto-marked)' };
 /* the marking scheme by question type, shown before the test starts */
-const SEC_NAME = { A: 'Section A · MCQ and Assertion-Reason', B: 'Section B · Very Short Answer (VSA)', C: 'Section C · Short Answer (SA)', D: 'Section D · Long Answer (LA)', E: 'Section E · Case Study / Source-Based' };
+const SEC_NAME = { 1: 'Section 1 · Single correct (MCQ)', 2: 'Section 2 · One or more correct (MSQ)', 3: 'Section 3 · Numerical value', 4: 'Section 4 · Paragraph (numerical)', A: 'Section A · MCQ and Assertion-Reason', B: 'Section B · Very Short Answer (VSA)', C: 'Section C · Short Answer (SA)', D: 'Section D · Long Answer (LA)', E: 'Section E · Case Study / Source-Based' };
 function schemeTable(info) {
   const secs = info.sections || []; if (!secs.length) return h('p', { class: 'pt-hint', text: 'Correct +' + num(info.marks_correct, 2) + ' · wrong −' + num(info.marks_wrong, 2) });
   const row = x => { const unmarked = +x.c === 0;
@@ -1671,7 +1673,7 @@ function runExam(d) {
   }
   function drawPal() {
     pal.textContent = '';
-    qs.forEach((q, i) => pal.append(h('button', { type: 'button', class: 'ex-p ' + stateOf(ans[q.id]) + (i === X.cur ? ' cur' : ''), text: i + 1, 'aria-label': 'Question ' + (i + 1) + ': ' + { ans: 'answered', na: 'not answered', nv: 'not visited', mk: 'marked for review', am: 'answered and marked' }[stateOf(ans[q.id])], onclick: () => go(i) })));
+    qs.forEach((q, i) => { if (q.sec && (i === 0 || qs[i - 1].sec !== q.sec)) pal.append(h('div', { class: 'ex-psec', text: 'Section ' + q.sec })); pal.append(h('button', { type: 'button', class: 'ex-p ' + stateOf(ans[q.id]) + (i === X.cur ? ' cur' : ''), text: i + 1, 'aria-label': 'Question ' + (i + 1) + ': ' + { ans: 'answered', na: 'not answered', nv: 'not visited', mk: 'marked for review', am: 'answered and marked' }[stateOf(ans[q.id])], onclick: () => go(i) })); });
   }
   function go(i) { track(); X.cur = Math.max(0, Math.min(qs.length - 1, i)); root.classList.remove('pal-open'); draw(); save(); }
   function draw() {

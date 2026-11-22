@@ -1,5 +1,12 @@
 [
   {
+    "v": "1015",
+    "date": "22 Nov 2026",
+    "items": [
+      "JEE Advanced mocks now show Section 1, 2 and 3 (single correct, one or more correct, numerical) on the instructions page, on each question and as headings in the question palette. CBSE Class 12 shows Section A to E the same way."
+    ]
+  },
+  {
     "v": "1014",
     "date": "22 Nov 2026",
     "items": [
