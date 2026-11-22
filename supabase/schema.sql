@@ -2711,3 +2711,11 @@ grant execute on function public.avanti_verify(text, text, text), public.grant_p
   public.mark_payment_failed(text, text, text) to service_role;
 -- allowlist_add / allowlist_load_import / grade_attempt / save_student / sync_student_profile / link_student_account:
 -- only from the SQL Editor or from other functions.
+
+
+-- JEE Advanced 2026 pattern (the only one used, also for older papers): Section 1 single correct (+3/-1), Section 2 one or more correct (+4/-1, partial marks),
+-- Section 3 numerical (+4/0), Section 4 paragraph questions (two paragraphs of two questions each, +2/0). 18 questions, 60 marks.
+-- Section 4 questions are uploaded as type Comprehension. Safe to run again.
+update public.marking_schemes set n_questions = 18, max_marks = 60,
+  rules = '{"types":{"MCQ":{"c":3,"w":1},"MSQ":{"c":4,"w":1,"p":true},"Numerical":{"c":4,"w":0}},"sections":{"4":{"c":2,"w":0}},"mix":{"MCQ":4,"MSQ":5,"Numerical":5,"Comprehension":4},"notes":"Section 4 is two paragraphs with two questions each (+2, no negative marking)."}'::jsonb
+ where exam = 'JEE Advanced';

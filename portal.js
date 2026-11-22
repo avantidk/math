@@ -998,7 +998,7 @@ const examOfQ = x => x.e === 'CBSE' ? 'CBSE 12' : x.e === 'KCET' ? 'KCET' : x.e 
    touches old results). These are used only if that table cannot be read. */
 const SCHEME_FALLBACK = {
   'JEE Main': { duration_min: 75, n_questions: 25, rules: { types: { MCQ: { c: 4, w: 1 }, MSQ: { c: 4, w: 1 }, Numerical: { c: 4, w: 1 } }, mix: { MCQ: 20, Numerical: 5 } } },
-  'JEE Advanced': { duration_min: 65, n_questions: 18, rules: { types: { MCQ: { c: 3, w: 1 }, MSQ: { c: 4, w: 1, p: true }, Numerical: { c: 4, w: 0 } }, mix: { MCQ: 4, MSQ: 5, Numerical: 5 } } },
+  'JEE Advanced': { duration_min: 65, n_questions: 18, rules: { types: { MCQ: { c: 3, w: 1 }, MSQ: { c: 4, w: 1, p: true }, Numerical: { c: 4, w: 0 } }, sections: { 4: { c: 2, w: 0 } }, mix: { MCQ: 4, MSQ: 5, Numerical: 5, Comprehension: 4 } } },
   'KCET': { duration_min: 80, n_questions: 60, rules: { types: { MCQ: { c: 1, w: 0 } }, mix: { MCQ: 60 } } },
   'NDA': { duration_min: 150, n_questions: 120, rules: { types: { MCQ: { c: 2.5, w: 0.83 } }, mix: { MCQ: 120 } } },
   'IAT': { duration_min: 50, n_questions: 15, rules: { types: { MCQ: { c: 4, w: 1 } }, mix: { MCQ: 15 } } },
@@ -1018,7 +1018,7 @@ const markText = sc => {
   const r = mcqRule(sc); return '+' + num(r.c, 2) + (r.w ? ' / −' + num(r.w, 2) : '');
 };
 /* a question as it is stored inside a test (the answer key stays on the server; students never get ids or keys) */
-const ADV_SEC = { MCQ: '1', MSQ: '2', Numerical: '3' };   /* JEE Advanced: Section 1 single correct, 2 one or more correct, 3 numerical (4 = paragraph questions, when they are in the bank) */
+const ADV_SEC = { MCQ: '1', Matching: '1', MSQ: '2', Numerical: '3', Comprehension: '4' };   /* JEE Advanced: Section 1 single correct, 2 one or more correct, 3 numerical (4 = paragraph questions, when they are in the bank) */
 const tq = (q, exam) => {
   const x = snap(q), ok = gradable(q), written = q.t === 'Subjective';
   const o = { id: x.id, type: written ? 'WRITTEN' : x.type === 'Comprehension' ? (/,/.test(x.a || '') ? 'MSQ' : 'MCQ') : x.type, q: x.q, o: x.o, a: x.a || '', ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' };
@@ -1061,7 +1061,8 @@ async function pagePersonal(arg) {
   const SC = await schemes();
   const startPaper = async (paper, btn) => {
     const ex = schemeExam(paper.exam), sc = SC[ex] || SC['JEE Main'], rule = mcqRule(sc);
-    const qs = paper.qs.map(tq);
+    let qs = paper.qs.map(q => tq(q, ex));
+    if (ex === 'JEE Advanced') qs = qs.map((q, i) => [q, i]).sort((a, b) => (+a[0].sec || 9) - (+b[0].sec || 9) || a[1] - b[1]).map(x => x[0]);   /* 2026 sections: the paper's own order only inside a section (the sections moved between years) */
     btn.disabled = true;
     try {
       const r = await rpc('create_personal_test', { p_title: paper.label, p_duration_min: null, p_marks_correct: rule.c, p_marks_wrong: rule.w, p_questions: qs, p_paper_key: paper.key, p_audience: 'self', p_exam: ex });
@@ -1154,9 +1155,16 @@ function ndaOrder(list) {
   const out = []; shuffled([...g.values()]).forEach(l => { const r = Math.ceil(l.length / 5); let i = 0; for (let j = 0; j < r; j++) { const k = Math.ceil((l.length - i) / (r - j)); out.push(...l.slice(i, i + k)); i += k; } });
   return out;
 }
+/* JEE Advanced Section 4: paragraph questions. Questions of one paragraph (same text before the last line) stay together, two paragraphs of two questions each when possible. */
+function pickParas(pool, n, used) {
+  const g = new Map(); pool.filter(q => !used.has(q.i)).forEach(q => { const t = String(q.q || ''), k = t.slice(0, Math.max(0, t.lastIndexOf('\n'))) || t; if (!g.has(k)) g.set(k, []); g.get(k).push(q); });
+  const out = []; shuffled([...g.values()].filter(l => l.length >= 2)).concat(shuffled([...g.values()].filter(l => l.length < 2))).forEach(l => { if (out.length < n) out.push(...shuffled(l).slice(0, Math.min(2, n - out.length))); });
+  out.forEach(q => used.add(q.i)); return out;
+}
 function compose(poolP, poolN, mix, ratioP, even, tough, exam) {
   const used = new Set(), out = [];
   Object.entries(mix).forEach(([type, n]) => {
+    if (type === 'Comprehension') { const tp = poolP.filter(q => q.t === type), tn = poolN.filter(q => q.t === type); let got = pickParas(tp, Math.min(n, tp.length, ratioP >= 1 ? n : Math.round(n * ratioP) || (tn.length ? 0 : n)), used); if (got.length < n) got = got.concat(pickParas(tn, n - got.length, used)); if (got.length < n) got = got.concat(pickParas(tp, n - got.length, used)); out.push(...got); return; }
     const tp = poolP.filter(q => q.t === type), tn = poolN.filter(q => q.t === type), nP = Math.min(tp.length, Math.round(n * ratioP));
     let got = pickN(tp, nP, even, used, tough).concat(pickN(tn, n - nP, even, used, tough));
     if (got.length < n) got = got.concat(pickN(tp, n - got.length, even, used, tough));
@@ -1294,7 +1302,7 @@ async function modeCustom() {
       if (S.order === 'easy') qs = qs.slice().sort((a, b) => (a.d || 'L2').localeCompare(b.d || 'L2'));
       if (S.scheme === 'NDA') qs = ndaOrder(qs);   /* chapter wise, 4 to 5 questions of a chapter in a row */
       else if (S.scheme === 'JEE Advanced' || S.scheme === 'CBSE 12') {   /* sections first (shuffle only inside a section) */
-        const rank = q => S.scheme === 'CBSE 12' ? 'ABCDE'.indexOf(String(q.sec || '').toUpperCase()) : ['MCQ', 'MSQ', 'Numerical'].indexOf(q.t);
+        const rank = q => S.scheme === 'CBSE 12' ? 'ABCDE'.indexOf(String(q.sec || '').toUpperCase()) : ['MCQ', 'MSQ', 'Numerical', 'Comprehension'].indexOf(q.t);
         qs = shuffled(qs).sort((a, b) => (rank(a) < 0 ? 9 : rank(a)) - (rank(b) < 0 ? 9 : rank(b)));
       }
       await launchTest({ title: S.title || 'Your Practice Test', qs, exam: S.scheme, mins: S.mins, key: 'custom' });
@@ -1378,13 +1386,14 @@ async function modeFull() {
       grid.append(h('button', { type: 'button', class: 'pp-card' + (off ? ' is-off' : ''), disabled: off, onclick: async e => {
         const b = e.currentTarget; b.disabled = true;
         try {
-          const ratio = st.src === 'P' ? 1 : st.src === 'N' ? 0 : 0.6, mix = Object.assign({}, sc.rules.mix), qs = compose(mockPool(pyq, st), mockPool(np, st), mix, ratio, true, st.tough, ex);
+          const ratio = st.src === 'P' ? 1 : st.src === 'N' ? 0 : 0.6, mix = Object.assign({}, sc.rules.mix); if (!(sc.rules.sections && sc.rules.sections['4'])) delete mix.Comprehension;   /* until the 2026 Section 4 rule is in the database */
+          const qs = compose(mockPool(pyq, st), mockPool(np, st), mix, ratio, true, st.tough, ex);
           if (qs.length < 5) throw new Error('Not enough questions for this choice. Widen the difficulty or the source.');
           await launchTest({ title: ex + ' full length mock' + mockTag(st), qs, exam: ex, mins: null, key: 'full-' + ex });
         } catch (err) { toast(err.message); b.disabled = false; } } },
         h('b', { text: ex }), h('small', { text: (sc.n_questions || '') + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }),
         h('small', { class: 'pt-hint', text: off ? 'Too few questions for this choice' : have + ' matching questions' }),
-        sc.rules.notes && ex === 'JEE Advanced' ? h('small', { class: 'pt-hint', text: '14 questions today: Section 4 needs paragraph questions.' }) : null, h('span', { class: 'pp-go', text: off ? '' : 'Start ›' }))); });
+        sc.rules.notes && ex === 'JEE Advanced' && !(sc.rules.mix && sc.rules.mix.Comprehension) ? h('small', { class: 'pt-hint', text: '14 questions today: Section 4 needs paragraph questions.' }) : null, h('span', { class: 'pp-go', text: off ? '' : 'Start ›' }))); });
     cards.forEach(c => grid.append(c));
   }
   /* CBSE Class 12 (Code 041): 38 questions, 80 marks, 3 hours. Section A is MCQ; sections B to E are written-answer questions that the bank holds as 4 options (or several correct options), made from the uploaded solutions. */
