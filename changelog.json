@@ -1,5 +1,16 @@
 [
   {
+    "v": "1010",
+    "date": "22 Nov 2026",
+    "items": [
+      "The Question Bank scripts now load with the build number, so a new release is never served from an old saved copy (this could make the overview pop-ups and other new features fail on the first visit after an update).",
+      "The overview (bars) button in the top bar keeps working after the Own DPP Maker has been opened.",
+      "Help, Available tests, My School and My Students show an empty page, not an error message, when there is no data yet. A technical error now says to refresh and try again.",
+      "The banner numbers on a question list (attempted, correct, accuracy) update as soon as you answer a question.",
+      "Removed unused leftover code."
+    ]
+  },
+  {
     "v": "1009",
     "date": "21 Nov 2026",
     "items": [

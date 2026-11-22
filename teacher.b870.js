@@ -1883,7 +1883,7 @@ async function qbInit() {
     const html = await (pre.html || fetch('qb/qb.b525.html').then(r => r.text()));
     await Promise.all([document.getElementById('kcss') ? null : fetch('katex.css').then(r => r.text()).then(c => { if (!document.getElementById('kcss')) { const st = h('style', { text: c }); st.id = 'kcss'; document.head.append(st); } }), window.AvantiBoot.katex()]).catch(() => {});
     host.innerHTML = '<div id="dash-root">' + html + '</div>';
-    await window.AvantiBoot.loadScript(pre.js || 'qb/qb-all.b870.js');
+    await window.AvantiBoot.loadScript(pre.js || ('qb/qb-all.b870.js?v=' + window.AvantiBoot.build));
     await window.__qbStart();
     try {   /* opened from a dashboard pop-up: open the panel (retrying until it shows), then tell the pop-up it is ready */
       const o = sessionStorage.getItem('avanti-qbopen');
@@ -1899,7 +1899,8 @@ async function qbInit() {
 /* the Own DPP Maker of the dashboard: the same builder as the DPPs tab here, mounted inside the dashboard page */
 let MK_INIT = false, MK_NODE = null;
 async function mountMaker(host) {
-  if (!MK_INIT) { MK_INIT = true; document.addEventListener('click', onAct); document.addEventListener('change', onAct); downloads = gatedDownloads(downloads); window.addEventListener('resize', rescale); }
+  if (!MK_INIT) { MK_INIT = true; const guard = e => { if (e.target.closest && e.target.closest('#guideBtn, #qbInfoBtn, #qbPop')) return; onAct(e); };   /* the dashboard handles its own top-bar buttons */
+    document.addEventListener('click', guard); document.addEventListener('change', onAct); downloads = gatedDownloads(downloads); window.addEventListener('resize', rescale); }
   await ensureDpp(); await KATEX_P;
   const v = MK_NODE || (MK_NODE = $('#viewLib')); host.append(v); v.hidden = false; renderLib(); setTimeout(rescale, 60); setTimeout(rescale, 400);
 }

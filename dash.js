@@ -163,7 +163,6 @@ const homeItems = active => [
 ];
 
 /* ---------- DPPs: sources, then the exercise, then the questions ---------- */
-const MIXSEL = new Set(['BB Ex', 'Ln DY', 'Ln Ex']);   /* the sources ticked on the Mixed Practice page */
 const dppCount = name => D.rows.filter(r => !r.P && r.bk === name).length;
 function dppLocked() {
   side({ back: '', title: 'DPPs', items: homeItems('dpp') });
@@ -557,7 +556,6 @@ function viewChapter(mode, slug, ch, section, extra) {
       return h(go2 ? 'a' : 'div', { class: 'ov-lvc ov-lvc-' + (i + 1) + (r.length ? '' : ' is-off'), href: go2 ? '#' + go2 : null }, h('span', { class: 'ov-dot' }), h('div', {}, h('b', { text: name }), h('small', { text: word + ' · ' + num(r.length) + ' questions' })), h('span', { class: 'ov-go', html: IC.chev })); })));
   main(h('div', { class: 'd-head d-head-sr' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c.chapter_code)), hero, progress, h('h3', { class: 'ov-h', text: 'Practise' }), ways, levels, yearBlocks(rows, yrs, mode));
 }
-const perfRow = (label, v, t, tone) => h('div', { class: 'd-perf-r' }, h('span', { text: label }), h('b', { text: v + ' / ' + t }), bar(v, t, tone));
 function yearBlocks(rows, yrs, mode) {
   const years = Object.keys(yrs).map(Number).sort((a, b) => a - b);
   if (!years.length) return null;
@@ -581,17 +579,6 @@ async function launchTestFrom(rows, c, mode, e, count, label) {
   const r = await A().sb.rpc('create_personal_test', { p_title: 'Your Practice Test', p_duration_min: n * 3, p_marks_correct: 4, p_marks_wrong: 1, p_questions: qs, p_paper_key: 'chapter-' + c.chapter_code, p_audience: 'self', p_exam: 'JEE Main' });
   if (r.error) throw new Error(r.error.message);
   location.hash = '#/t/' + r.data.code;
-}
-function testLauncher(rows, c, mode, e) {
-  const pool = rows.filter(r => r.ok), sel = h('b', { class: 'd-sel d-sel-fixed', text: '25 questions', value: '25' });
-  const msg = h('small', { class: 'd-fine', role: 'status' });
-  const btn = h('button', { type: 'button', class: 'btn pri', text: '⚡ Start test', disabled: pool.length < 3, onclick: async ev => {
-    ev.stopPropagation(); btn.disabled = true; msg.textContent = 'Getting your questions ready…';
-    try {
-      await launchTestFrom(pool, c, mode, e, +sel.value, 'chapter test');
-    } catch (x) { msg.textContent = x.message || 'Could not start the test.'; btn.disabled = false; }
-  } });
-  return h('div', { class: 'd-launch', onclick: ev => ev.stopPropagation() }, sel, btn, msg, pool.length < 3 ? h('small', { class: 'd-fine', text: 'Not enough test-ready questions here yet.' }) : h('small', { class: 'd-fine', text: '3 min per question · +4 / −1 · saved in Practice Tests & Results' }));
 }
 
 /* ---------- topics ---------- */
@@ -699,7 +686,7 @@ const realTE = quiet => REALP || (REALP = (async () => {
   const keep = window.AvantiTeacher;
   if (!document.getElementById('qbStub')) document.body.append(h('div', { id: 'qbStub', hidden: true }, h('div', { id: 'viewLib' })));
   if (!quiet) toast('Preparing the download…');
-  await window.AvantiBoot.loadScript('teacher.b870.js');
+  await window.AvantiBoot.loadScript('teacher.b870.js?v=' + window.AvantiBoot.build);
   const real = window.AvantiTeacher; window.AvantiTeacher = keep; return real;
 })().catch(e => { REALP = null; throw e; }));
 const viaReal = fn => async (...a) => { const t = await realTE(); return t[fn](...a); };

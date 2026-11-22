@@ -142,7 +142,7 @@ function route(force) {
   const fn = pages[r];
   if (!fn) { leave(); return; }
   const tok = ++NAV; LOADING = tok;
-  Promise.resolve(fn(arg, r)).catch(e => { if (e !== STALE && tok === NAV) show(errorBox(e.message || String(e), route)); })
+  Promise.resolve(fn(arg, r)).catch(e => { if (e !== STALE && tok === NAV) show(errorBox(e instanceof TypeError ? 'Some information did not load. Please refresh the page and try again.' : (e.message || String(e)), route)); })
     .finally(() => { if (LOADING === tok) LOADING = 0; });
 }
 function leave(keepTab) {
@@ -1261,7 +1261,6 @@ async function modeCustom() {
   const S = { src: 'P', ex: new Set(['Main']), bk: new Set(), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), tough: 2, ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 25, mins: 75, auto: true, per: 3, scheme: 'JEE Main', title: '' };
   const schemeNames = Object.keys(SC).filter(k => SC[k] && SC[k].rules);
   const pool = () => all.filter(q => (q.s === 'P' ? S.src !== 'N' && S.ex.has(q.e) && (!q.y || (q.y >= S.y1 && q.y <= S.y2)) : S.src !== 'P' && S.bk.has(bookOf(q)) && !free) && (!S.ch.size || S.ch.has(q.cc)) && (diff.st.tough === 0 ? q.d === 'L1' : diff.st.tough === 4 ? q.d === 'L3' : true) && S.ty.has(q.t) && (!S.skip || done[q.i] !== 'c'));
-  const tog = (set, k, min) => { if (set.has(k)) { if (!min || set.size > min) set.delete(k); } else set.add(k); };
   const chip = (text, on, fn, small, dis) => h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(!!on), disabled: !!dis, onclick: fn }, text, small != null ? h('em', { class: 'cp-n', text: String(small) }) : null);
   const sect = (n, t, sub, ...kids) => h('section', { class: 'cp-sec' }, h('div', { class: 'cp-sh' }, h('b', { class: 'cp-no', text: String(n) }), h('div', {}, h('h2', { text: t }), sub ? h('p', { text: sub }) : null)), ...kids);
   const sumBox = h('aside', { class: 'cp-sum' }), again = () => draw();
@@ -1437,7 +1436,7 @@ async function exportResult(attemptId, title) {
 /* My School: Premium students and Premium teachers of one school see each other (basic details only) */
 async function pageSchool() {
   show(head('My School', ''), loading());
-  const list = await rpc('school_people');
+  const list = (await rpc('school_people')) || [];
   const p = P();
   show(head('My School', (p.school || '') + ' · ' + list.length + ' Premium member' + (list.length === 1 ? '' : 's')),
     card(h('p', { class: 'pt-hint', text: 'Premium teachers and Premium students of your school. Only basic details are shown.' }),
@@ -1505,7 +1504,7 @@ async function pageResults(id) {
 /* ---------- Student: available tests, reports ---------- */
 async function pageAvailable() {
   show(head('Available tests', ''), loading());
-  const [list, past] = await Promise.all([rpc('list_available_tests'), rpc('my_attempts').catch(() => [])]);
+  let [list, past] = await Promise.all([rpc('list_available_tests'), rpc('my_attempts').catch(() => [])]); list = list || []; past = past || [];
   const pastCard = card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Past tests' }), past.length ? h('span', { class: 'pt-meta', text: past.filter(a => a.status === 'submitted').length + ' submitted' }) : null),
     past.length ? pastTable(past) : empty('No tests taken yet', 'Your past tests and reports appear here after you submit a test.'));
   const codeIn = h('input', { type: 'text', class: 'pt-in', placeholder: 'Test code or link', 'aria-label': 'Test code or link' });
@@ -1969,11 +1968,6 @@ function planPicker(cur, until, canPremium, years, teacher) {
   node.value = () => ({ plan: sel.value, until: sel.value === 'premium' ? dt.value : null });
   return node;
 }
-async function savePlan(target, pick) {
-  if (!pick.changed()) return;
-  const v = pick.value();
-  await rpc('admin_set_plan', { p_user: target.user_id || null, p_student_id: target.user_id ? null : (target.student_id || null), p_plan: v.plan, p_until: v.until });
-}
 /* Admin only: the six account types for Edit teacher / Edit student. One choice sets the role (student or teacher) and the plan. */
 const ACCOUNT_KINDS = [['free_student', 'Free Student'], ['free_teacher', 'Free Teacher'], ['premium_student', 'Premium Student (1 year plan)'], ['premium_teacher', 'Premium Teacher (1 year plan)'], ['avanti_student', 'Avanti Student'], ['avanti_teacher', 'Avanti Teacher']];
 const kindOf = (role, planLabel) => { const r = role === 'teacher' ? 'teacher' : 'student'; return planLabel === 'staff' ? 'avanti_teacher' : planLabel === 'avanti' ? 'avanti_' + r : planLabel === 'premium' ? 'premium_' + r : 'free_' + r; };
@@ -2046,7 +2040,8 @@ async function pageStudents() {
   if (!can('manageStudents')) { if (can('createTests')) { location.replace('#/add-student'); return; } if (P().role === 'student') return show(card(empty('My Students is for teachers', 'This page is for teachers. Your tests and reports are in the profile menu.', link('#/tests', 'Available tests', 'btn pri')))); return nope('My Students is for teachers', ''); }
   show(head('My Students', ''), loading('Loading your students…'));
   const IS_ADMIN = can('isAdmin');
-  const R = IS_ADMIN ? { school: 'All schools', dob_visible: true, students: await rpc('admin_all_students') } : await rpc('school_students', { p_school: STU_SCHOOL || null });
+  let R = IS_ADMIN ? { school: 'All schools', dob_visible: true, students: await rpc('admin_all_students') } : await rpc('school_students', { p_school: STU_SCHOOL || null });
+  R = R || { school: STU_SCHOOL || '', dob_visible: true, students: [] };
   const all = R.students || [];
   const DOB_SHOWN = R.dob_visible !== false;
   const noDob = all.filter(x => x.student_id && !x.dob && (IS_ADMIN || x.source !== 'avanti')).length;
@@ -2201,7 +2196,7 @@ function planCompareCard() {
 }
 async function pageHelp() {
   show(head('Help & Support', ''), loading());
-  const c = await rpc('support_contact');
+  const c = (await rpc('support_contact')) || { email: 'unkganit@gmail.com', phone: '' };
   const p = P(), perm = AU().perm;
   const who = [p.full_name, p.email || (p.avanti_id ? 'ID ' + p.avanti_id : ''), p.role, perm.plan, p.school].filter(Boolean).join(' · ');
   const subject = 'Mathematics Dashboard: ';
