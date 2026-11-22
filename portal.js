@@ -8,6 +8,9 @@
 const h = window.AvantiUtil.h;
 const AU = () => window.AvantiAuth;
 const TE = () => window.AvantiTeacher;
+/* The question bank of the test pages holds every question WITHOUT its text (the small index): the text, options, answer and
+   figure of the questions on screen (or going into a test) are fetched here, only for the chapters or the past paper that hold them. */
+const fillQs = (qs, o) => { const t = TE(); return t && t.fill ? t.fill((qs || []).filter(Boolean), o) : Promise.resolve(qs); };
 const sb = () => AU().sb;
 /* Page loads: if the user opens another page while one is still loading, the old one stops quietly instead of drawing over
    the new page (STALE). Clicks and saves after a page has loaded are never affected. */
@@ -647,6 +650,7 @@ async function pageWsEdit(id) {
   if (error) throw new Error(error.message);
   if (!w) return show(head('Edit worksheet', ''), empty('Worksheet not found', 'It may have been deleted.', h('button', { type: 'button', class: 'btn pri', text: 'Back to Saved worksheets', onclick: () => { location.hash = '#/worksheets'; } })));
   const B = await fresh(TE().bank());
+  await fresh(fillQs(w.question_ids.map(i => B.byId.get(i))));
   let ids = w.question_ids.slice(), dirty = false;
   const title = h('input', { type: 'text', class: 'pt-in', value: w.title, maxlength: 200, oninput: () => { dirty = true; } });
   const count = h('span', { class: 'pt-wse-count' });
@@ -668,11 +672,12 @@ async function pageWsEdit(id) {
     });
     mathIn(list);
   }
-  const add = () => {
+  const add = async () => {
     const want = addIn.value.split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
     const ok = [], bad = [], dup = [];
     want.forEach(x => { const q = B.byId.get(x) || B.byId.get(x.toUpperCase()); const k = q ? q.i : null; if (!k) bad.push(x); else if (ids.includes(k) || ok.includes(k)) dup.push(x); else ok.push(k); });
     const room = 300 - ids.length, take = ok.slice(0, Math.max(0, room));
+    try { await fillQs(take.map(i => B.byId.get(i))); } catch (e) { addMsg.textContent = 'Could not load those questions. Check your connection and try again.'; return; }
     ids = ids.concat(take); if (take.length) dirty = true;
     addMsg.textContent = [take.length ? 'Added ' + take.length + '.' : '', dup.length ? 'Already in the worksheet: ' + dup.join(', ') + '.' : '', bad.length ? 'Not found: ' + bad.join(', ') + '.' : '', ok.length > take.length ? 'The limit is 300 questions.' : ''].filter(Boolean).join(' ');
     if (take.length) addIn.value = bad.join(', ');
@@ -705,7 +710,7 @@ function createTestFrom(ids, name) {
 }
 async function previewIds(title, ids) {
   const B = await fresh(TE().bank());
-  const qs = ids.map(i => B.byId.get(i)).filter(Boolean).map(snap);
+  const qs = await fillQs(ids.map(i => B.byId.get(i)).filter(Boolean)).then(l => l.map(snap));
   previewQs(title, qs, true);
 }
 function previewQs(title, qs, withAns) {
@@ -743,7 +748,9 @@ function paperInfo(x) {
 /* a question a test can mark: Numerical with a number, a range "a to b" or several accepted numbers "a or b" (the server grades them);
    options with letters A to D, or A to E when the question has 5 options (MSQ can have up to 5 correct) */
 const NUM_ANS = /^(-?\d+(?:\.\d+)?(\s+or\s+-?\d+(?:\.\d+)?)*|-?\d+(?:\.\d+)?\s*to\s*-?\d+(?:\.\d+)?)$/i;
-const gradable = q => { if (!q || !q.a) return false; const a = String(q.a).trim(), n = (q.o || []).length; if (q.t === 'Numerical') return NUM_ANS.test(a);
+const GRADE_T = ['MCQ', 'MSQ', 'Matching', 'Comprehension', 'Subjective'];
+const gradable = q => { if (q && q.g != null) return !!q.g && (q.t === 'Numerical' || GRADE_T.includes(q.t));   /* from the index: g = the answer key can be marked (same rule) */
+  if (!q || !q.a) return false; const a = String(q.a).trim(), n = (q.o || []).length; if (q.t === 'Numerical') return NUM_ANS.test(a);
   return (q.t === 'MCQ' || q.t === 'MSQ' || q.t === 'Matching' || q.t === 'Comprehension' || q.t === 'Subjective') && n > 0 && (n >= 5 ? /^[A-E](,[A-E])*$/ : /^[A-D](,[A-D])*$/).test(a.replace(/\s+/g, '')); };
 let CHN = new Map();
 function snap(q) { const ch = CHN.get(q.cc); return { id: q.i, type: q.t, q: q.q, o: q.o || [], a: q.a, ch: q.cc, chn: ch ? ch.n : q.cc, tp: q.tp || '', f: q.f && q.f.svg ? { svg: q.f.svg } : null, d: q.d, src: q.s === 'P' ? (q.e === 'Main' ? 'JEE Main' : q.e === 'Adv' ? 'JEE Advanced' : q.e) + (q.y ? ' ' + q.y : '') : 'Practice' }; }
@@ -759,7 +766,8 @@ async function pageCreate(arg, r) {
     Object.assign(S, { id: t.id, code: t.code, title: t.title, mins: t.duration_min, pos: +t.marks_correct, neg: +t.marks_wrong, cls: new Set(t.target_classes || []), streams: new Set(t.target_streams || []), school: t.school || '', schoolList: [t.school].concat(t.schools || []).filter(Boolean), active: t.is_active, sel: t.questions });
     const { data: mt } = await sb().rpc('my_tests'); const me = (mt || []).find(x => x.id === t.id); S.locked = !!(me && me.submitted > 0);
   } else if (PREFILL) {
-    S.sel = PREFILL.ids.map(i => B.byId.get(i)).filter(gradable).map(snap); S.title = PREFILL.title || '';
+    const pre = PREFILL.ids.map(i => B.byId.get(i)).filter(gradable); await fresh(fillQs(pre));
+    S.sel = pre.map(snap); S.title = PREFILL.title || '';
     const skipped = PREFILL.ids.length - S.sel.length; if (skipped) setTimeout(() => toast(skipped + ' question(s) were left out: tests use only MCQ, MSQ and numerical questions with an answer key.'), 300);
     PREFILL = null;
   }
@@ -786,7 +794,7 @@ async function pageCreate(arg, r) {
     return all.filter(x => (F.src === 'all' || (F.src === 'pyq' ? x.s === 'P' : x.s === 'N'))
       && (!F.exam || x.e === F.exam) && (!F.paper || paperKey(x) === F.paper) && (!F.chs.size || F.chs.has(x.cc)) && (!F.tp || x.tp === F.tp)
       && (!F.lv.size || F.lv.has(x.d)) && (!F.ty.size || F.ty.has(x.t))
-      && (!q || x.i.toLowerCase().includes(q) || x.q.toLowerCase().includes(q)));
+      && (!q || x.i.toLowerCase().includes(q) || String(x.q || '').toLowerCase().includes(q)));   /* text: only the questions loaded (the chapters or paper picked) */
   }
   function drawFilters() {
     filt.textContent = '';
@@ -826,7 +834,26 @@ async function pageCreate(arg, r) {
     filt.append(row, more);
   }
   const PER = 12;
+  /* chapters first: the questions of the chapters (or the paper, or the worksheet) picked are loaded, never the whole bank */
+  const picked = () => F.src === 'ws' || !!F.paper || F.chs.size > 0;
+  const paperSlug = list => { const q = F.paper && list.find(x => x.ps); return q ? q.ps : undefined; };
+  const loadPicked = () => {
+    if (F.src === 'ws' || F.paper) { const P0 = pool(); return fillQs(P0, { paper: paperSlug(P0) }); }
+    return fillQs(all.filter(x => F.chs.has(x.cc) && (F.src === 'all' || (F.src === 'pyq' ? x.s === 'P' : x.s === 'N'))));
+  };
+  let resTok = 0;
   function drawResults() {
+    const tok = ++resTok;
+    if (!picked()) {
+      const n = pool().length; resHead.textContent = ''; resHead.append(h('span', { text: n + ' question' + (n === 1 ? '' : 's') + ' match' }), h('span', { class: 'pt-actions' }, h('button', { type: 'button', class: 'btn', text: 'Add 10 random', disabled: !n, onclick: () => add(pool().filter(x => !selIds().has(x.i)).sort(() => Math.random() - 0.5).slice(0, 10)) })));
+      results.textContent = ''; pager.textContent = '';
+      results.append(empty('Pick chapters first', 'Choose one or more chapters (or a past paper) above, and their questions appear here.'));
+      return;
+    }
+    results.textContent = ''; pager.textContent = ''; results.append(loading('Loading the questions…'));
+    loadPicked().then(() => { if (tok === resTok) drawPage(); }, () => { if (tok !== resTok) return; results.textContent = ''; results.append(errorBox('Could not load the questions. Check your connection and try again.', () => drawResults())); });
+  }
+  function drawPage() {
     const P0 = pool(), have = selIds(), pages = Math.max(1, Math.ceil(P0.length / PER)); F.page = Math.min(F.page, pages - 1);
     const slice = P0.slice(F.page * PER, F.page * PER + PER);
     resHead.textContent = '';
@@ -847,8 +874,9 @@ async function pageCreate(arg, r) {
     if (pages > 1) pager.append(h('button', { type: 'button', class: 'btn', text: '‹ Previous', disabled: F.page === 0, onclick: () => { F.page--; drawResults(); } }), h('span', { text: 'Page ' + (F.page + 1) + ' of ' + pages }), h('button', { type: 'button', class: 'btn', text: 'Next ›', disabled: F.page >= pages - 1, onclick: () => { F.page++; drawResults(); } }));
     mathIn(results);
   }
-  function add(qs) {
+  async function add(qs) {
     if (S.locked) { toast('Students have submitted this test, so its questions cannot change.'); return; }
+    try { await fillQs(qs, { paper: paperSlug(qs) }); } catch (e) { toast('Could not load the questions. Check your connection and try again.'); return; }
     const have = selIds(); let n = 0;
     qs.forEach(q => { if (!have.has(q.i) && S.sel.length < 200) { S.sel.push(snap(q)); have.add(q.i); n++; } });
     if (S.sel.length >= 200) toast('A test can have at most 200 questions.');
@@ -1033,7 +1061,7 @@ const markText = sc => {
 /* a question as it is stored inside a test (the answer key stays on the server; students never get ids or keys) */
 /* JEE Advanced 2026 sections (used for every paper): 1 single correct, 2 one or more correct, 3 numerical, 4 paragraph questions (Paper 2) or matching (Paper 1).
    A paragraph question starts with "Para:" (stem, then on the last line what is asked). */
-const isPara = q => !!q && (q.t === 'Comprehension' || (q.t === 'Numerical' && /^\s*Para:/i.test(q.q || '')));
+const isPara = q => !!q && (q.t === 'Comprehension' || (q.t === 'Numerical' && (q.pa != null ? !!q.pa : /^\s*Para:/i.test(q.q || ''))));   /* pa: from the index */
 const advSec = q => isPara(q) ? '4' : q.t === 'Matching' ? '4' : q.t === 'Subjective' ? (/,/.test(q.a || '') ? '2' : '1') : ({ MCQ: '1', MSQ: '2', Numerical: '3' }[q.t] || '');
 const typeKey = q => isPara(q) ? 'Comprehension' : q.t;
 const ADV_MIX = { 1: { MCQ: 4, MSQ: 4, Numerical: 4, Matching: 4 }, 2: { MCQ: 4, MSQ: 5, Numerical: 5, Comprehension: 4 } };
@@ -1080,10 +1108,12 @@ async function pagePersonal(arg) {
   const SC = await schemes();
   const startPaper = async (paper, btn) => {
     const ex = schemeExam(paper.exam), sc = SC[ex] || SC['JEE Main'], rule = mcqRule(sc);
-    let qs = paper.qs.map(q => tq(q, ex));
-    if (ex === 'JEE Advanced') qs = qs.map((q, i) => [q, i]).sort((a, b) => (+a[0].sec || 9) - (+b[0].sec || 9) || a[1] - b[1]).map(x => x[0]);   /* 2026 sections: the paper's own order only inside a section (the sections moved between years) */
+    let qs = [];   /* 2026 JEE Advanced sections: the paper's own order only inside a section (the sections moved between years) */
     btn.disabled = true;
     try {
+      await fillQs(paper.qs, { paper: (paper.qs.find(q => q.ps) || {}).ps });   /* only this paper's file */
+      qs = paper.qs.map(q => tq(q, ex));
+      if (ex === 'JEE Advanced') qs = qs.map((q, i) => [q, i]).sort((a, b) => (+a[0].sec || 9) - (+b[0].sec || 9) || a[1] - b[1]).map(x => x[0]);
       const r = await rpc('create_personal_test', { p_title: paper.label, p_duration_min: null, p_marks_correct: rule.c, p_marks_wrong: rule.w, p_questions: qs, p_paper_key: paper.key, p_audience: 'self', p_exam: ex });
       location.hash = '#/t/' + r.code;   /* the test opens on its instructions: it starts only when you press Start */
     } catch (e) { toast(e.message); btn.disabled = false; }
@@ -1098,8 +1128,8 @@ async function pagePersonal(arg) {
         h('button', { type: 'button', class: 'pp-main', onclick: e => startPaper(pp, e.currentTarget) },
           h('b', { text: pp.label }), h('small', { text: pp.qs.length + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }), nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null, h('span', { class: 'pp-go', text: 'Open Instructions and Start ›' })),
         h('button', { type: 'button', class: 'pp-pdf', title: 'Download or share this paper', 'aria-label': 'Download or share ' + pp.label, 'aria-haspopup': 'menu', html: IC.share, onclick: e => dropMenu(e.currentTarget, [
-          { icon: IC.pdf, text: 'Download PDF', sub: 'The question paper', onclick: () => TE().exportIds(pp.qs.map(q => q.i), pp.label, 'pdf', 'Question paper', '', '', { key: false, exp: false }).catch(x => toast('Could not make the PDF: ' + ((x && x.message) || 'try again'))) },
-          can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { toast('Preparing the PDF…'); try { const r = await TE().pdfIds(pp.qs.map(q => q.i), pp.label, 'Question paper', '', ''); if (r) shareReady(r.blob, r.file, pp.label); } catch (x) { toast('Could not make the PDF: ' + ((x && x.message) || 'try again')); } } } : null,
+          { icon: IC.pdf, text: 'Download PDF', sub: 'The question paper', onclick: () => fillQs(pp.qs, { paper: (pp.qs.find(q => q.ps) || {}).ps }).then(() => TE().exportIds(pp.qs.map(q => q.i), pp.label, 'pdf', 'Question paper', '', '', { key: false, exp: false })).catch(x => toast('Could not make the PDF: ' + ((x && x.message) || 'try again'))) },
+          can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { toast('Preparing the PDF…'); try { await fillQs(pp.qs, { paper: (pp.qs.find(q => q.ps) || {}).ps }); const r = await TE().pdfIds(pp.qs.map(q => q.i), pp.label, 'Question paper', '', ''); if (r) shareReady(r.blob, r.file, pp.label); } catch (x) { toast('Could not make the PDF: ' + ((x && x.message) || 'try again')); } } } : null,
           { icon: IC.link, text: 'Copy link to this page', sub: 'The page link, not the PDF', onclick: () => copy(location.origin + '/dashboard#/modes/pyq', 'Page link copied') }]) }))); });
   };
   const status = x => !x.attempt_id ? badge('Not started', 'mute') : x.attempt_status === 'submitted' ? badge('Submitted', 'ok') : badge('In progress', 'mid');
@@ -1135,6 +1165,7 @@ async function pagePersonal(arg) {
 const isFree = () => { const p = AU().perm; return !(p.premium || p.staff || p.isAdmin); };
 async function launchTest(o) {
   const SC = await schemes(), sc = SC[o.exam] || SC['JEE Main'], rule = mcqRule(sc);
+  await fillQs(o.qs);   /* the questions were picked from the index: now only the chapters that hold them are fetched */
   const r = await rpc('create_personal_test', { p_title: o.title, p_duration_min: o.mins == null ? null : o.mins, p_marks_correct: rule.c, p_marks_wrong: rule.w,
     p_questions: o.qs.map(q => tq(q, o.exam)), p_paper_key: o.key || null, p_audience: 'self', p_exam: o.exam });
   location.hash = '#/t/' + r.code;   /* the instructions come first; the test starts when you press Start */
@@ -1176,7 +1207,7 @@ function ndaOrder(list) {
 }
 /* JEE Advanced Section 4: paragraph questions. Questions of one paragraph (same text before the last line) stay together, two paragraphs of two questions each when possible. */
 function pickParas(pool, n, used) {
-  const g = new Map(); pool.filter(q => !used.has(q.i)).forEach(q => { const t = String(q.q || ''), k = t.slice(0, Math.max(0, t.lastIndexOf('\n'))) || t; if (!g.has(k)) g.set(k, []); g.get(k).push(q); });
+  const g = new Map(); pool.filter(q => !used.has(q.i)).forEach(q => { const t = String(q.q || ''), k = q.pg || t.slice(0, Math.max(0, t.lastIndexOf('\n'))) || t; if (!g.has(k)) g.set(k, []); g.get(k).push(q); });   /* pg: the paragraph group from the index */
   const out = []; shuffled([...g.values()].filter(l => l.length >= 2)).concat(shuffled([...g.values()].filter(l => l.length < 2))).forEach(l => { if (out.length < n) out.push(...shuffled(l).slice(0, Math.min(2, n - out.length))); });
   out.forEach(q => used.add(q.i)); return out;
 }
@@ -1325,6 +1356,7 @@ async function modeCustom() {
     go.disabled = true;
     try {
       const qs0 = pickN(pool(), S.n, S.order === 'even', new Set(), diff.st.tough); let qs = qs0;
+      await fillQs(qs0);   /* the section order below reads the answer of written questions */
       if (S.order === 'easy') qs = qs.slice().sort((a, b) => (a.d || 'L2').localeCompare(b.d || 'L2'));
       if (S.scheme === 'NDA') qs = ndaOrder(qs);   /* chapter wise, 4 to 5 questions of a chapter in a row */
       else if (S.scheme === 'JEE Advanced' || S.scheme === 'CBSE 12') {   /* sections first (shuffle only inside a section) */

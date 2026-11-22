@@ -147,6 +147,7 @@ a.d-tile:hover, .d-tile[onclick]:hover, .d-tile:not(.is-off):hover { transform: 
 .dl-bm { width: 32px; height: 32px; border-radius: 10px; border: 0; background: none; color: var(--muted); cursor: pointer; display: grid; place-items: center; } .dl-bm:hover { background: var(--accent-soft); }
 .dl-bm[aria-pressed="true"], .dl-d-bm[aria-pressed="true"] { color: var(--gold-deep, #d9961a); } .dl-bm[aria-pressed="true"] svg, .dl-d-bm[aria-pressed="true"] svg path { fill: currentColor; }
 .dl-empty { display: flex; flex-direction: column; gap: 4px; padding: 36px 18px; text-align: center; color: var(--muted); }
+.dl-loading { align-items: center; gap: 10px; }   /* the questions of a page are being fetched (their chapter file) */
 .dl-more { display: flex; justify-content: center; padding: 4px 0 12px; }
 .dl-detail { grid-column: 1 / -1; padding: 0 16px 18px 62px; }
 .dl-detail[hidden] { display: none; }

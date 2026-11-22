@@ -32,6 +32,10 @@ tests and results. It replaced an older Claude artifact.
   Never move these files back into the website folder. Practice (non-PYQ) data is Premium-only on the server: `qb/data/nonpyq.json`,
   `qb/data/figures-np.json` and `sol-np/<chapter>.json` (PYQ solutions are in `sol/<chapter>.json`, PYQ figures in `qb/data/figures.json`).
   `/qbank` (and `qb/data/first.json`) are for the admin only; everyone else is sent to `/dashboard`.
+  The whole files `qb/data/pyq.json` and `qb/data/nonpyq.json` are ADMIN-ONLY. Everyone else loads only what is on screen from split files:
+  `index/questions.json` (ids + metadata, no text), `pyq/<chapter>.json`, `np/<chapter>.json` (Premium) and `papers/<paper>.json`.
+  After ANY change to pyq.json or nonpyq.json, re-run `python3 .github/scripts/split_content.py --upload` (from a session that can
+  reach the bucket with the service key) or non-admin accounts keep seeing the old questions.
 - Tests: the clock runs from the start and never pauses; 3 violations (leaving the test screen / full screen) submit automatically;
   correct answers open at start + full duration; the question bank is closed while an attempt is running.
 - `supabase/schema.sql`: the whole database; safe to run again. It also creates the private storage bucket `user-solutions` (images of own solutions, max 2 per question per student, 20 uploads a day) and its policies. `supabase/functions/`: Edge Functions.

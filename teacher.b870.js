@@ -817,7 +817,22 @@ async function addExplPages(wrap, pages) {
   finally { hst.remove(); }
   rescale();
 }
+/* On the dashboard the bank is the light index (window.__BANK: no question text): the text of the picked chapters is fetched
+   before a sheet is laid out, exported or saved (only those chapters, never the whole bank). In /qbank the bank is complete. */
+const fillT = (qs, o) => { const todo = (qs || []).filter(q => q && q.q == null); return todo.length && window.AvantiContent && window.AvantiContent.fill ? window.AvantiContent.fill(todo, o).then(() => qs) : Promise.resolve(qs); };
+const libFill = () => { if (!BANK || !LS.chs.length) return null; const todo = dppPool(true).map(q => BYID.get(q.i)).filter(q => q && q.q == null); return todo.length ? fillT(todo) : null; };   /* dppPool gives copies: the bank's own objects are filled */
+function libThen(fn) {
+  const p = libFill(); if (!p) { fn(); return; }
+  Object.keys(BK).forEach(k => { delete BK[k]; });   /* sheets laid out before the text came are made again */
+  p.then(() => fn(), () => toast('Could not load the questions. Check your connection and try again.'));
+}
 function showLibPrev() {
+  const p = libFill(); if (!p) { showLibPrev0(); return; }
+  const wrap = $('#libPrev'), tok = LS.tok = (LS.tok || 0) + 1; wrap.textContent = ''; wrap.append(h('div', { class: 'qbload' }, h('div', { class: 'spin' }), h('p', { text: 'Loading the questions\u2026' })));
+  Object.keys(BK).forEach(k => { delete BK[k]; });
+  p.then(() => { if (LS.tok === tok) showLibPrev0(); }, () => { if (LS.tok !== tok) return; wrap.textContent = ''; wrap.append(h('div', { class: 'empty', text: 'Could not load the questions. Check your connection and try again.' })); });
+}
+function showLibPrev0() {
   const pages = currentPages(), wrap = $('#libPrev'), msg = $('#libMsg'); wrap.textContent = '';
   if (!pages.length) { wrap.append(h('div', { class: 'empty', text: 'No questions here yet.' })); msg.textContent = ''; return; }
   LS.shown = true; LS.page = 0;
@@ -1387,7 +1402,7 @@ function onAct(e) {
   const gate = { lexp: k, pdfdl: t.dataset.f || 'pdf', xprint: 'print', xshare: 'share', pdfshare: 'share' }[a];
   if (gate && !(gate === 'pdf' && a === 'lexp' && PERM().pdfPyq) && !need(gate)) return;
   switch (a) {
-    case 'lexp': exportLib(k); break;
+    case 'lexp': libThen(() => exportLib(k)); break;
     case 'theme': themeToggle(); break;
     case 'guide': guideOpen(); break;
     case 'guideclose': guideClose(); break;
@@ -1407,9 +1422,9 @@ function onAct(e) {
     case 'liblv': { const n = LS.lv.includes(k) ? LS.lv.filter(x => x !== k) : LS.lv.concat(k); if (!n.length) { toast('Keep at least one level'); break; } LS.lv = ['L1', 'L2', 'L3'].filter(x => n.includes(x)); renderLib(); break; }
     case 'mall': case 'mnone': { const boxe = $('#' + k); boxe.querySelectorAll('.ml input').forEach(x => { x.checked = a === 'mall'; }); boxe.querySelector('.ml input') ? boxe.querySelector('.ml input').dispatchEvent(new Event('change')) : 0; break; }
     case 'libshow': showLibPrev(); break;
-    case 'wssave': case 'wstest': { const w = window.AvantiPortal && wsSource(t.dataset.src); if (w) { if (a === 'wssave') window.AvantiPortal.saveWorksheet(w.ids, w.title); else window.AvantiPortal.createTestFrom(w.ids, w.title); } break; }
-    case 'xprint': { const g = pdfSource(t); if (g) printFrom(g.get); break; }
-    case 'xshare': { const g = pdfSource(t); if (g) shareFrom(t, g.title, g.get); break; }
+    case 'wssave': case 'wstest': libThen(() => { const w = window.AvantiPortal && wsSource(t.dataset.src); if (w) { if (a === 'wssave') window.AvantiPortal.saveWorksheet(w.ids, w.title); else window.AvantiPortal.createTestFrom(w.ids, w.title); } }); break;
+    case 'xprint': libThen(() => { const g = pdfSource(t); if (g) printFrom(g.get); }); break;
+    case 'xshare': libThen(() => { const g = pdfSource(t); if (g) shareFrom(t, g.title, g.get); }); break;
     case 'libshuffle': { LS.seed = 1 + Math.floor(Math.random() * 2147483000); showLibPrev(); toast('New set of questions'); break; }
     case 'libswap': { const r = dppCur(); if (dppSwap(r, k)) showLibPrev(); else toast('No other question can replace this one'); break; }
     case 'libpage': LS.page = +k; showLibPrev(); break;
@@ -1949,9 +1964,10 @@ window.AvantiTeacher = {
   /* the question bank (same data as the Question Bank, DPPs and PYQs tabs), for the test maker */
   bank: () => ensureDpp().then(() => ({ qs: BANK.all, byId: BYID, chapters: CHMAP })),
   /* saved worksheets: the same PDF / Word / PowerPoint export and share menu as DPPs (plan checks inside) */
-  exportIds: async (ids, title, kind, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } if (opts) pages = pages.map(p => Object.assign({}, p, { key: !!opts.key, exp: !!opts.exp })); doExport(kind, { pages, file: title }); },
-  pdfIds: async (ids, title, label, info, subLine) => { await ensureDpp(); await KATEX_P; const pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
-  shareIds: async (btn, ids, title) => { await ensureDpp(); await KATEX_P; const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
+  fill: (qs, o) => fillT(qs, o),   /* the text of these questions (dashboard: fetched by chapter or paper; /qbank: already there) */
+  exportIds: async (ids, title, kind, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } if (opts) pages = pages.map(p => Object.assign({}, p, { key: !!opts.key, exp: !!opts.exp })); doExport(kind, { pages, file: title }); },
+  pdfIds: async (ids, title, label, info, subLine) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); const pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
+  shareIds: async (btn, ids, title) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
   math: node => math(node),
   viewHandout: (x, url) => viewHandout(x, url),
   mountMaker: host => mountMaker(host)

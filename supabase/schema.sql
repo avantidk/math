@@ -2076,6 +2076,11 @@ end $$;
 -- 11g. Paid content in Supabase Storage (private bucket "content"). Nothing is public; every file is checked here:
 --   qb/..., sol/..., must.json, bank-meta.json  questions, answers, solutions: any signed-in account with a role,
 --                                               but NOT while that person is writing a test
+--   qb/data/pyq.json, qb/data/nonpyq.json       the WHOLE bank in one file each: the admin only
+--   index/..., pyq/..., papers/...              the bank split by .github/scripts/split_content.py (re-run it after pyq.json or
+--                                               nonpyq.json change): the light index (no text), one chapter, one past paper:
+--                                               any signed-in account with a role, not during a test
+--   np/...                                      practice questions of one chapter: Premium (and Staff), not during a test
 --   handouts/index.json                         the list of handouts (titles only): any signed-in account
 --   handouts/...                                handout PDFs: Premium (and Avanti / Staff) only
 --   admin/...                                   Word / PowerPoint export code: the admin only
@@ -2095,6 +2100,9 @@ begin
   if n ~ '^handouts/(11M1|12M13)(_|/)' then return true; end if;   -- the first Class 11 and the first Class 12 handout are free for every signed-in account
   if n like 'handouts/%' then return public.plan_of(me) in ('premium', 'staff'); end if;
   if n = 'qb/data/first.json' then return false; end if;   -- the Question Bank's own start file: the admin only (allowed above)
+  if n in ('qb/data/pyq.json', 'qb/data/nonpyq.json') then return false; end if;   -- the whole bank in one request: the admin only (allowed above); everybody else reads the split files
+  if n like 'np/%' then return public.plan_of(me) in ('premium', 'staff') and not public.in_test(); end if;   -- practice questions of one chapter
+  if n like 'index/%' or n like 'pyq/%' or n like 'papers/%' then return not public.in_test(); end if;   -- the light index, one chapter of PYQs, one past paper
   if n in ('qb/data/nonpyq.json', 'qb/data/figures-np.json') or n like 'sol-np/%' then   -- practice questions, their figures and solutions
     return public.plan_of(me) in ('premium', 'staff') and not public.in_test();
   end if;

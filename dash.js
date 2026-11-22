@@ -46,7 +46,7 @@ const IC = {
 };
 
 /* ---------- data ---------- */
-const D = { ready: null, rows: [], raw: new Map(), chapters: [], chByCode: {}, topics: {}, must: {}, mustK: {}, maxYear: 2026, sum: { bookmarks: [], results: {} }, tests: null };
+const D = { ready: null, rows: [], raw: new Map(), byId: new Map(), chapters: [], chByCode: {}, topics: {}, must: {}, mustK: {}, maxYear: 2026, sum: { bookmarks: [], results: {} }, tests: null };
 /* DPP sources and their exercise (sheet) numbers, read from the question ids */
 const SOURCES = [
   { k: 'bb', name: 'BB Ex', sub: 'Exercise sheets, chapter by chapter', tone: '#2563eb' }, { k: 'dy', name: 'Ln DY', sub: 'Do Yourself sheets after every class', tone: '#059669' },
@@ -57,32 +57,40 @@ function sheetOf(book, id) {
   const m = book === 'Ln DY' ? /-DY(\d+)-/.exec(id) : book === 'Ln Ex' ? /-O(\d+)-/.exec(id) : book === 'BB Ex' ? /^BB-\d+-(\d+)-/.exec(id) : null;
   return m ? { no: +m[1], label: (book === 'Ln DY' ? 'DY-' : 'Ex-') + (+m[1]) } : null;
 }
-/* answers a test can mark: a number, a range "a to b", or a list of accepted numbers "a or b"; letters A to D (A to E for 5 options) */
-const NUM = '-?\\d+(?:\\.\\d+)?', NUM_ANS = new RegExp('^(' + NUM + '(\\s+or\\s+' + NUM + ')*|' + NUM + '\\s*to\\s*' + NUM + ')$', 'i');
-const isGradable = r => { const a = String(r.answer == null ? '' : r.answer).trim(); if (!a) return false;
-  if (r.type === 'Numerical') return NUM_ANS.test(a);
-  const n = (r.options || []).length;
-  return (r.type === 'MCQ' || r.type === 'MSQ') && n > 0 && (n >= 5 ? /^[A-E](,[A-E])*$/ : /^[A-D](,[A-D])*$/).test(a.replace(/\s+/g, '')); };
+/* The dashboard starts from the small index (every question without its text: index/questions.json, boot.js) and fetches the
+   full records (text, options, answer) only for what is on the screen: the chapter of a list page, a past paper, the questions
+   picked for a test. The admin's account reads the two whole files instead (boot.js decides). */
+const TESTABLE = { MCQ: 1, MSQ: 1, Numerical: 1 };   /* the types a test made here can mark (with an answer key: g) */
 function load() {
   if (D.ready) return D.ready;
   const C = window.AvantiContent;
-  D.ready = Promise.all([C.get('qb/data/pyq.json'), (A().perm.premium ? C.get('qb/data/nonpyq.json') : Promise.resolve([])), C.get('qb/data/chapters.json'), C.get('qb/data/topics.json').catch(() => []), C.get('must.json').catch(() => [])]).then(([pyq, np, chs, tops, must]) => {
+  D.ready = Promise.all([C.index(), C.get('qb/data/chapters.json'), C.get('qb/data/topics.json').catch(() => []), C.get('must.json').catch(() => [])]).then(([ix, chs, tops, must]) => {
     D.chapters = (chs || []).slice().sort((a, b) => a.order - b.order); D.chapters.forEach(c => { D.chByCode[c.chapter_code] = c; });
     (tops || []).forEach(t => { (D.topics[t.chapter_code] = D.topics[t.chapter_code] || []).push(t); });
     (must || []).forEach(m => { D.must[m.c] = (m.i || []).map(x => x.r); (m.i || []).forEach(x => { D.mustK[x.r] = x.k; }); });
-    (pyq || []).concat(np || []).forEach(r => {
-      const P = r.source === 'PYQ' || (pyq.indexOf && false);
-      const isP = r.source === 'PYQ';
-      D.raw.set(String(r.id), r);
-      const bk = isP ? '' : (r.book || r.publisher || ''), sh = isP ? null : sheetOf(bk, String(r.id));
-      D.rows.push({ id: String(r.id), P: isP, ex: isP ? (EXAM_OF_BANK[r.exam] || null) : null, y: isP ? Number(r.year) || null : null, ch: r.chapter_code, tp: r.topic || '', tc: r.topic_code || '', d: r.difficulty, ok: isGradable(r), bk, shl: sh ? sh.label : '', shn: sh ? sh.no : 0 });
-      if (!P) { /* kept for readability */ }
+    const prem = !!A().perm.premium;   /* practice questions are listed for Premium only (as before) */
+    D.rows = []; D.ix = ix;
+    ix.rows.forEach(x => {
+      const isP = x.s === 'P'; if (!isP && !prem) return;
+      const bk = isP ? '' : x.bk, sh = isP ? null : sheetOf(bk, x.i);
+      D.rows.push({ id: x.i, P: isP, ex: isP ? (EXAM_OF_BANK[x.ex] || null) : null, y: isP ? x.y || null : null, ch: x.cc, tp: x.tp || '', tc: x.tc || '', d: x.d, ok: !!x.g && !!TESTABLE[x.t], bk, shl: sh ? sh.label : '', shn: sh ? sh.no : 0,
+        ty: x.t || 'MCQ', qn: +x.n || 0, pa: !!x.pa, mx: !!x.mx });
     });
+    D.byId = new Map(D.rows.map(r => [r.id, r]));
     D.rows.forEach(r => { if (r.y && r.y > D.maxYear) D.maxYear = r.y; });
     D.maxYear = Math.min(D.maxYear, new Date().getFullYear());
   });
   return D.ready;
 }
+/* the full records of these rows, fetched by chapter (or by past paper: o.paper); afterwards D.raw has them */
+async function need(rows, o) {
+  const miss = (rows || []).filter(r => r && !D.raw.has(r.id));
+  if (!miss.length) return;
+  const m = await window.AvantiContent.records(miss.map(r => r.id), o);
+  miss.forEach(r => { const x = m.get(r.id); if (x) D.raw.set(r.id, x); });
+}
+/* a test starts (or the account signs out): boot.js empties its copies, and the dashboard lets go of its own */
+window.addEventListener('avanti-content-cleared', () => { D.raw.clear(); (BANKQ || []).forEach(q => { delete q.q; delete q.o; delete q.a; delete q.f; }); });
 async function loadMine(force) {
   try { const s = await A().sb.rpc('dash_summary'); if (!s.error && s.data) D.sum = s.data; } catch (e) { /* the page still works without it */ }
   if (force || !D.tests) { try { const t = await A().sb.rpc('dash_tests'); D.tests = !t.error && Array.isArray(t.data) ? t.data : []; } catch (e) { D.tests = []; } }
@@ -289,10 +297,11 @@ function popPage(title, path) {
   box.querySelector('.dpop-x').focus();
 }
 /* ---------- special picks: a small carousel on the home page, each opens a question list ---------- */
+/* the families of mix-breed questions (for reference: the copies that count are in boot.js and split_content.py, mx in the index) */
 const MIXF = { trig: /\\(sin|cos|tan|cot|sec|csc)\b/, log: /\\(log|ln)\b/, int: /\\int/, lim: /\\lim/, der: /\\frac\{d|derivative|differentiable|f'|\\prime/, mat: /matri|determinant|vmatrix|adj\b/, vec: /\\vec|\\hat|vector|overrightarrow/, cx: /complex|\\bar\{z\}|\|z|\\omega|\barg\b/,
   conic: /parabola|ellipse|hyperbola|circle|focus|directrix|eccentric/, prob: /probabilit|dice|coin|randomly/, seq: /\ba\.?p\b|\bg\.?p\b|arithmetic|geometric|sequence|progression/, bin: /\\binom|binomial|permutation|combination|arrange|\^\{?n\}?c|\{\}\^/, set: /relation|\\cup|\\cap|bijective|injective|one-one|onto/, quad: /quadratic|discriminant/ };
 let MIXSET = null;
-const mixIds = () => MIXSET || (MIXSET = new Set(D.rows.filter(r => r.P).filter(r => { const x = D.raw.get(r.id) || {}, t = ((x.question || '') + ' ' + (x.options || []).join(' ')).toLowerCase(); let n = 0; for (const k in MIXF) if (MIXF[k].test(t)) n++; return n >= 3; }).map(r => r.id)));
+const mixIds = () => MIXSET || (MIXSET = new Set(D.rows.filter(r => r.P && r.mx).map(r => r.id)));   /* mx: worked out from the question text when the index is made (the MIXF rules, in boot.js and split_content.py) */
 const PICKS = [
   { k: 'repeated', t: 'Repeated questions', s: 'Asked again and again in JEE', tone: '#e11d48', title: 'Repeated Questions', pool: () => D.rows.filter(r => r.P && (D.mustK[r.id] === 'i' || D.mustK[r.id] === 'e')) },
   { k: 'sure', t: 'Sure-shot questions', s: 'Hand-picked for the next exam', tone: '#d9961a', title: 'Sure-shot Questions', pool: () => D.rows.filter(r => r.P && D.mustK[r.id] === 'u') },
@@ -503,7 +512,7 @@ async function markingOf(x) {
   const n = v => String(Number(v)), w = +t.w ? '\u2212' + n(t.w) : '0';
   return '+' + n(t.c) + ' / ' + w + (t.p ? ' (partial marks possible)' : '');
 }
-const listEnv = () => ({ D, A, h, main, stat, IC, pct, openQB, toast, marking: markingOf, content: window.AvantiContent, mathReady: () => window.AvantiBoot.katex().catch(() => {}) });
+const listEnv = () => ({ D, A, h, main, stat, IC, pct, openQB, toast, need, marking: markingOf, content: window.AvantiContent, mathReady: () => window.AvantiBoot.katex().catch(() => {}) });
 /* a question list inside the dashboard (dash-list.js draws it) */
 function viewList(mode, slug, ch, kind, arg) {
   const c = D.chByCode[ch], e = EX[slug], rows = scope(mode, slug, ch), idSet = new Set(rows.map(r => r.id));
@@ -604,6 +613,8 @@ async function launchTestFrom(rows, c, mode, e, count, label, part) {
   const n = Math.min(25, pool.length), fresh =   /* every test made here has 25 questions */ pool.filter(r => D.sum.results[r.id] !== 'c'), pick = (fresh.length >= n ? fresh : pool).slice();
   for (let i = pick.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pick[i], pick[j]] = [pick[j], pick[i]]; }
   const chosen = pick.slice(0, n); let figs = {}; try { figs = await window.AvantiContent.figures(); } catch (x) { figs = {}; }
+  await need(chosen);   /* picked from the index: only the chapters of these questions are fetched */
+  if (chosen.some(r => !D.raw.has(r.id))) throw new Error('Some questions could not be loaded. Check your connection and try again.');
   const qs = chosen.map(r => { const x = D.raw.get(r.id), f = figs[r.id]; return { id: r.id, type: x.type, q: x.question, o: x.options || [], a: String(x.answer), ch: x.chapter_code, chn: c.chapter, tp: x.topic || '', f: f && f.svg ? { svg: f.svg } : null, s: r.P ? 'P' : 'N' }; });
   const r = await A().sb.rpc('create_personal_test', { p_title: testName(c, mode, e, label, part), p_duration_min: n * 3, p_marks_correct: 4, p_marks_wrong: 1, p_questions: qs, p_paper_key: 'chapter-' + c.chapter_code, p_audience: 'self', p_exam: 'JEE Main' });
   if (r.error) throw new Error(r.error.message);
@@ -633,7 +644,7 @@ function viewTopics(head, rows, mode, c, slug) {
 /* ---------- bookmarks ---------- */
 function plain(s) { return String(s || '').replace(/\\\(|\\\)|\\\[|\\\]/g, '').replace(/\\[a-zA-Z]+/g, ' ').replace(/[{}^_$]/g, '').replace(/\s+/g, ' ').trim(); }
 function viewBookmarks(head, rows, label) {
-  const mine = new Set(D.sum.bookmarks), list = (rows ? rows.filter(r => mine.has(r.id)) : D.sum.bookmarks.map(id => D.rows.find(r => r.id === id)).filter(Boolean));
+  const mine = new Set(D.sum.bookmarks), list = (rows ? rows.filter(r => mine.has(r.id)) : D.sum.bookmarks.map(id => D.byId.get(id)).filter(Boolean));
   const box = h('div', { class: 'd-bm' });
   const draw = () => { box.textContent = ''; const cur = list.filter(r => D.sum.bookmarks.includes(r.id));
     if (!cur.length) { box.append(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'No bookmarked questions yet' }), h('p', { text: 'Tap the bookmark on any question to keep it here.' }), h('a', { class: 'btn', href: '#d/pyq', text: 'Open PYQs' }))); return; }
@@ -642,7 +653,11 @@ function viewBookmarks(head, rows, label) {
       box.append(h('div', { class: 'd-bmq' }, h('div', { class: 'd-bmq-m' }, h('span', { class: 'd-code', text: r.id }), h('small', { text: ex + ' · ' + ((D.chByCode[r.ch] || {}).chapter || r.ch) })),
         h('p', { class: 'd-bmq-t', text: plain(x.question).slice(0, 220) }),
         h('button', { type: 'button', class: 'btn', text: 'Remove', onclick: async () => { try { const t = await A().sb.rpc('toggle_bookmark', { p_qid: r.id }); if (!t.error) { D.sum.bookmarks = D.sum.bookmarks.filter(i => i !== r.id); draw(); } } catch (e) { /* offline */ } } }))); }); };
-  draw(); main(head, h('section', { class: 'd-card' }, box));
+  main(head, h('section', { class: 'd-card' }, box));
+  const cur = list.filter(r => D.sum.bookmarks.includes(r.id));
+  if (cur.every(r => D.raw.has(r.id))) { draw(); return; }
+  const tok = NAV; box.append(loadingBox('Loading your bookmarked questions…'));   /* only the chapters of the bookmarked questions */
+  need(cur).then(() => { if (tok === NAV) draw(); }, () => { if (tok !== NAV) return; box.textContent = ''; box.append(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'Could not load the questions' }), h('button', { type: 'button', class: 'btn', text: 'Try again', onclick: () => route() }))); });
 }
 function viewBookmarksPage() { side({ back: '', title: 'Bookmarked Qs', sub: 'Your important questions', items: homeItems('bookmarks') }); viewBookmarks(h('div', { class: 'd-head' }, h('h2', { text: 'Bookmarked questions' }), h('p', { text: 'Questions you marked as important, across all chapters.' })), null, ''); }
 
@@ -690,28 +705,34 @@ async function route() {
 /* The Tests pages (portal.js) ask the Question Bank engine for the questions. On the dashboard that engine is not loaded, so the same list is built here from
    the dashboard's own data. Downloads (PDF of a paper or an answer sheet) are made by the Question Bank, so those open there. */
 const QB_EXAM = { 'JEE Main': 'Main', 'AIEEE': 'Main', 'JEE Advanced': 'Adv', 'IIT': 'Adv', 'KCET': 'KCET', 'IAT': 'IAT', 'NDA': 'NDA', 'CBSE': 'CBSE', 'CBSE 12': 'CBSE' };
-function qbCompact(r, figs) {
-  const e = QB_EXAM[r.exam]; if (!e) return null;
-  const P = r.source === 'PYQ';
-  let o = r.options || []; if (typeof o === 'string') { try { o = JSON.parse(o); } catch (x) { o = []; } }
-  const q = { i: String(r.id), s: P ? 'P' : 'N', e, y: P && r.year != null && r.year !== '' ? Number(r.year) : null, p: r.paper, t: r.type, cc: r.chapter_code, tc: String(r.topic_code || '').replace(/^JM-/, ''), tp: r.topic || '', d: r.difficulty, q: r.question || '', o, a: r.answer == null ? '' : String(r.answer) };
-  if (!P) { q.pb = r.publisher || 'Practice'; q.sec = r.section || ''; if (r.pyq) q.pq = r.pyq_ref || ''; } else if (r.section) q.sec = r.section;
-  if (r.oos) q.oo = 1;
-  const f = r.figure && r.figure.svg ? r.figure : figs && figs[r.id] && figs[r.id].svg ? figs[r.id] : null; if (f) q.f = f;
+const TE_EXAMS = { Main: 1, Adv: 1, KCET: 1, IAT: 1, NDA: 1 };   /* the exams of the Question Bank engine (teacher.b870.js) */
+/* one question of the test pages, from its index entry: no text yet (q, o, a, f are filled in by AvantiContent.fill when needed) */
+function qbLight(x) {
+  const e = QB_EXAM[x.ex]; if (!e) return null;
+  const P = x.s === 'P';
+  const q = { i: x.i, s: P ? 'P' : 'N', e, y: P ? x.y : null, p: x.p, t: x.t, cc: x.cc, tc: String(x.tc || '').replace(/^JM-/, ''), tp: x.tp || '', d: x.d, g: x.g ? 1 : 0, pa: x.pa ? 1 : 0 };
+  if (x.pg) q.pg = x.pg; if (x.ps) q.ps = x.ps;
+  if (!P) { q.pb = x.bk || 'Practice'; q.sec = x.sec || ''; if (x.pq) q.pq = x.pq; } else if (x.sec) q.sec = x.sec;
+  if (x.oo) q.oo = 1;
   return q;
 }
-let BANKP = null;
+let BANKP = null, BANKQ = null;
 const dashBank = () => BANKP || (BANKP = (async () => {
   await load();
-  const [meta, figs] = await Promise.all([fetch('bank-meta.json').then(r => { if (!r.ok) throw new Error('bank-meta'); return r.json(); }), window.AvantiContent.figures().catch(() => ({}))]);
+  const C = window.AvantiContent, meta = await fetch('bank-meta.json').then(r => { if (!r.ok) throw new Error('bank-meta'); return r.json(); });
   const qs = [], byId = new Map(), chapters = new Map();
-  D.raw.forEach(r => { const q = qbCompact(r, figs); if (q) { qs.push(q); byId.set(q.i, q); } });
+  D.rows.forEach(r => { const x = D.ix.byId.get(r.id), q = x && qbLight(x); if (q) { qs.push(q); byId.set(q.i, q); } });
   meta.chapters.forEach(c => chapters.set(c.c, c));
+  if (C.mode() === 'full') await C.fill(qs);   /* the admin has the whole bank already: everything is filled in at once, as before */
+  BANKQ = qs;
+  /* the Question Bank engine (Own DPP Maker, PDF / Word / PowerPoint) uses the same light questions */
+  window.__BANK = { chapters: meta.chapters, syl: meta.syl, qs: qs.filter(q => TE_EXAMS[q.e]) };
   return { qs, byId, chapters };
 })().catch(e => { BANKP = null; throw e; }));
 /* PDF / Word / PowerPoint exports are made by the Question Bank engine: it is loaded here, in the background, the first time a download is asked for */
 let REALP = null;
 const realTE = quiet => REALP || (REALP = (async () => {
+  await dashBank();   /* the engine starts from the light question list (window.__BANK), never from the whole files */
   const keep = window.AvantiTeacher;
   if (!document.getElementById('qbStub')) document.body.append(h('div', { id: 'qbStub', hidden: true }, h('div', { id: 'viewLib' })));
   if (!quiet) toast('Preparing the download…');
@@ -719,7 +740,7 @@ const realTE = quiet => REALP || (REALP = (async () => {
   const real = window.AvantiTeacher; window.AvantiTeacher = keep; return real;
 })().catch(e => { REALP = null; throw e; }));
 const viaReal = fn => async (...a) => { const t = await realTE(); return t[fn](...a); };
-window.AvantiTeacher = { hideViews() {}, toast, bank: dashBank, setTab: k => { location.hash = { lib: '#d/dpp', pyq: '#d/pyq', ho: '#d/handouts' }[k] || '#d/'; },
+window.AvantiTeacher = { hideViews() {}, toast, bank: dashBank, fill: (qs, o) => window.AvantiContent.fill(qs, o), setTab: k => { location.hash = { lib: '#d/dpp', pyq: '#d/pyq', ho: '#d/handouts' }[k] || '#d/'; },
   exportIds: viaReal('exportIds'), pdfIds: viaReal('pdfIds'), shareIds: viaReal('shareIds'), math() {} };
 function start() {
   shell();

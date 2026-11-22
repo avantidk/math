@@ -59,7 +59,7 @@ function render(env, o) {
   const F = { hide: false, years: new Set(), status: '', lv: new Set(), types: new Set(), sort: o.seqOrder ? 'seq' : 'new', extra: {} };
   (o.filters || []).forEach(f => { F.extra[f.key] = new Set(); });
   const TYPE_ORD = ['MCQ', 'MSQ', 'Numerical', 'Matching', 'Paragraph', 'Subjective'];
-  const typeOf = r => { const x = D.raw.get(r.id) || {}, t = x.type || 'MCQ'; return t === 'Comprehension' || (t === 'Numerical' && /^\s*Para:/i.test(x.question || '')) ? 'Paragraph' : t; };
+  const typeOf = r => { const t = r.ty || 'MCQ'; return t === 'Comprehension' || (t === 'Numerical' && r.pa) ? 'Paragraph' : t; };   /* from the index (pa: a "Para:" question) */
   const years = [...new Set(pool.map(r => r.y).filter(Boolean))].sort((a, b) => b - a), types = [...new Set(pool.map(typeOf))].sort((a, b) => { const ia = TYPE_ORD.indexOf(a), ib = TYPE_ORD.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
   let list = [], page = 0, openId = '';
   const wrap = h('div', { class: 'dl' }), ul = h('ul', { class: 'dl-list' }), pager = h('nav', { class: 'dl-pager', 'aria-label': 'Pages' }), count = h('span', { class: 'dl-count', role: 'status' });
@@ -71,16 +71,21 @@ function render(env, o) {
     list = pool.filter(r => (!F.hide || !att(res()[r.id])) && (!F.years.size || F.years.has(r.y)) && (!F.lv.size || F.lv.has(r.d)) && (!F.types.size || F.types.has(typeOf(r)))
       && (!F.status || (F.status === 'u' ? !res()[r.id] : res()[r.id] === F.status)) && (o.filters || []).every(f => !F.extra[f.key].size || F.extra[f.key].has(f.get(r))));
     const key = r => (r.y || 0) * 1e3;
-    const chOrd = c => ((env.D.chByCode[c] || {}).order || 999), qn = r => +((env.D.raw.get(r.id) || {}).qno) || 0;
+    const chOrd = c => ((env.D.chByCode[c] || {}).order || 999), qn = r => r.qn || 0;
     list.sort((a, b) => F.sort === 'seq' ? chOrd(a.ch) - chOrd(b.ch) || String(a.bk).localeCompare(String(b.bk)) || (a.shn || 0) - (b.shn || 0) || qn(a) - qn(b) || (a.id < b.id ? -1 : 1) : F.sort === 'new' ? (b.y || 0) - (a.y || 0) || (a.id < b.id ? 1 : -1) : F.sort === 'old' ? (a.y || 0) - (b.y || 0) || (a.id < b.id ? -1 : 1) : F.sort === 'easy' ? String(a.d).localeCompare(String(b.d)) || (b.y || 0) - (a.y || 0) : String(b.d).localeCompare(String(a.d)) || (b.y || 0) - (a.y || 0));
     page = 0; draw();
   };
   const pages = () => Math.max(1, Math.ceil(list.length / PAGE));
+  /* only the questions of this page are drawn, so only their chapter files are fetched (a spinner meanwhile) */
+  let drawTok = 0;
   const draw = () => {
     openId = ''; ul.textContent = '';
-    const from = page * PAGE, to = Math.min(list.length, from + PAGE);
-    for (let i = from; i < to; i++) ul.append(row(list[i], i));
-    paint();
+    const from = page * PAGE, to = Math.min(list.length, from + PAGE), vis = list.slice(from, to), tok = ++drawTok;
+    const fill = () => { ul.textContent = ''; for (let i = from; i < to; i++) ul.append(row(list[i], i)); paint(); };
+    if (vis.every(r => D.raw.has(r.id))) { fill(); return Promise.resolve(); }
+    ul.append(h('li', { class: 'dl-empty dl-loading' }, h('div', { class: 'spin' }), h('span', { text: 'Loading the questions…' }))); paint();
+    return env.need(vis).then(() => { if (tok === drawTok) fill(); }, () => { if (tok !== drawTok) return; ul.textContent = '';
+      ul.append(h('li', { class: 'dl-empty' }, h('b', { text: 'Could not load the questions' }), h('button', { type: 'button', class: 'btn', text: 'Try again', onclick: () => draw() }))); });
   };
   const goPage = (n, scroll) => { page = Math.max(0, Math.min(pages() - 1, n)); draw(); if (scroll !== false) { const t = wrap.querySelector('.dl-bar') || wrap; t.scrollIntoView({ block: 'start', behavior: 'smooth' }); } };
   const filtered = () => F.hide || F.years.size || F.lv.size || F.types.size || F.status || (o.filters || []).some(f => F.extra[f.key].size);
@@ -88,7 +93,7 @@ function render(env, o) {
     const from = page * PAGE, to = Math.min(list.length, from + PAGE);
     count.textContent = list.length ? 'Showing ' + (from + 1) + '–' + to + ' of ' + list.length + (filtered() ? ' (filtered from ' + pool.length + ')' : '') : 'No questions';
     pager.textContent = ''; if (expCount) expCount.textContent = String(list.length);
-    if (!list.length) { ul.textContent = ''; ul.append(h('li', { class: 'dl-empty' }, h('b', { text: 'No questions match' }), h('span', { text: filtered() ? 'Change or clear the filters above.' : (o.emptyText || 'Nothing here yet.') }))); return; }
+    if (!list.length) { drawTok++; ul.textContent = ''; ul.append(h('li', { class: 'dl-empty' }, h('b', { text: 'No questions match' }), h('span', { text: filtered() ? 'Change or clear the filters above.' : (o.emptyText || 'Nothing here yet.') }))); return; }
     const n = pages(); if (n < 2) return;
     const btn = (t, p, cur, dis, label) => h('button', { type: 'button', class: 'dl-pg' + (cur ? ' on' : ''), disabled: !!dis, 'aria-label': label || 'Page ' + t, 'aria-current': cur ? 'page' : null, html: typeof t === 'string' && t[0] === '<' ? t : null, text: typeof t === 'string' && t[0] === '<' ? null : String(t), onclick: () => goPage(p) });
     const set = new Set([0, n - 1, page - 1, page, page + 1]); if (page < 2) { set.add(1); set.add(2); } if (page > n - 3) { set.add(n - 2); set.add(n - 3); }
@@ -206,7 +211,7 @@ function render(env, o) {
     env.mathReady().then(() => { q.innerHTML = rich(x.question); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); });
     return box;
   }
-  const step = i => { if (i < 0 || i >= list.length) return; const pg = Math.floor(i / PAGE); if (pg !== page) { page = pg; draw(); } const li = ul.querySelector('.dl-row[data-id="' + list[i].id + '"]'); if (li) toggle(li, list[i]); };
+  const step = async i => { if (i < 0 || i >= list.length) return; const pg = Math.floor(i / PAGE); if (pg !== page) { page = pg; await draw(); } const li = ul.querySelector('.dl-row[data-id="' + list[i].id + '"]'); if (li) toggle(li, list[i]); };
 
   /* controls */
   const tog = h('label', { class: 'dl-switch' }, h('input', { type: 'checkbox', role: 'switch', onchange: e => { F.hide = e.target.checked; apply(); } }), h('span', { class: 'dl-track', 'aria-hidden': 'true' }), h('span', { text: 'Hide attempted' }));

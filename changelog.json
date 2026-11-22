@@ -1,5 +1,14 @@
 [
   {
+    "v": "1039",
+    "date": "22 Nov 2026",
+    "items": [
+      "The dashboard now downloads only what is on the screen: a light list of question numbers and topics (no question text) at the start, then only the chapter, page or paper you open. The whole question bank downloads only for the admin; nobody else can get it in one file.",
+      "Tests that span chapters (full-length mock, Create Your Practice Test, Must Solve, bookmarks) fetch only the chapters of the questions they use. The teacher test maker asks you to pick chapters first, then loads just those.",
+      "Question fixes: three past-paper MCQs that had no correct option now have one (KCET 2018 Q105, NDA 2023 Q81 and Q117); 38 practice questions moved to their right chapters."
+    ]
+  },
+  {
     "v": "1038",
     "date": "22 Nov 2026",
     "items": [
