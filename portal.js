@@ -1274,7 +1274,6 @@ async function modeCustom() {
   for (let y = yMax; y >= yMin; y--) { yr1.append(h('option', { value: y, text: y })); yr2.append(h('option', { value: y, text: y })); } yr1.value = S.y1; yr2.value = S.y2;
   const nIn = h('input', { type: 'number', class: 'pt-in', min: 5, max: 100, value: S.n, 'aria-label': 'Number of questions', oninput: e => { S.n = Math.max(5, Math.min(100, +e.target.value || 5)); if (S.auto) { S.mins = S.n * S.per; minIn.value = S.mins; } draw(true); } });
   const minIn = h('input', { type: 'number', class: 'pt-in', min: 5, max: 360, value: S.mins, 'aria-label': 'Time in minutes', oninput: e => { S.auto = false; S.mins = Math.max(5, Math.min(360, +e.target.value || 5)); draw(true); } });
-  const perSel = h('select', { class: 'pt-in', 'aria-label': 'Time per question', onchange: e => { S.per = +e.target.value; S.auto = true; S.mins = S.n * S.per; minIn.value = S.mins; draw(true); } }, [[2, '2 min per question (fast)'], [3, '3 min per question (exam pace)'], [4, '4 min per question (relaxed)']].map(([v, t]) => h('option', { value: v, text: t, selected: v === 3 })));
   const scSel = h('select', { class: 'pt-in', 'aria-label': 'Marking scheme', onchange: e => { S.scheme = e.target.value; draw(true); } }, schemeNames.map(k => h('option', { value: k, text: k + ' (' + markText(SC[k]) + ')', selected: k === S.scheme })));
   const ordSel = h('select', { class: 'pt-in', 'aria-label': 'Order of questions', onchange: e => { S.order = e.target.value; } }, [['random', 'Random'], ['even', 'Chapters mixed evenly'], ['easy', 'Easy to hard']].map(([v, t]) => h('option', { value: v, text: t })));
   const titleIn = h('input', { type: 'text', class: 'pt-in', maxlength: 80, placeholder: 'Your Practice Test', 'aria-label': 'Test name', oninput: e => { S.title = e.target.value.trim(); } });
@@ -1303,7 +1302,7 @@ async function modeCustom() {
       sect(1, 'Source', 'Previous year questions and practice questions.', srcBar.el, h('div', { class: 'cp-pills' }, exBox, bkBox), h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'From year (previous year questions)' }), yr1), h('label', { class: 'pt-fld' }, h('span', { text: 'To year' }), yr2))),
       sect(2, 'Chapters', 'Pick one or more chapters. Leave it as it is for every chapter.', h('div', { class: 'cp-pills' }, chBox)),
       sect(3, 'Difficulty and question type', null, diff.el, h('div', { class: 'cp-pills' }, tyBox), skipBox),
-      sect(4, 'Size, time and marking', null, h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Number of questions' }), nIn), h('label', { class: 'pt-fld' }, h('span', { text: 'Time per question' }), perSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Total time (minutes)' }), minIn)),
+      sect(4, 'Size, time and marking', null, h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Number of questions' }), nIn), h('label', { class: 'pt-fld' }, h('span', { text: 'Time you want (minutes)' }), minIn)),
         h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Marking scheme' }), scSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Order of questions' }), ordSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Test name' }), titleIn)))),
       sumBox));
 }

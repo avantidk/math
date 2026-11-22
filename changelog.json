@@ -1,5 +1,12 @@
 [
   {
+    "v": "1013",
+    "date": "22 Nov 2026",
+    "items": [
+      "Create your own test: removed the fixed 'time per question' choice. You now type the time you want in minutes (it starts at 3 minutes per question and you can change it freely)."
+    ]
+  },
+  {
     "v": "1012",
     "date": "22 Nov 2026",
     "items": [
