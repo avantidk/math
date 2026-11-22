@@ -181,7 +181,10 @@ function renderMenu() {
   slot.textContent = '';
   const perm = A.perm, student = p.role === 'student', teacher = p.role === 'teacher';
   const pre = 'dashboard';   /* every account page is a dashboard page; only the Question Bank is /qbank */
-  const items = [['#/qb', 'Question Bank'], ['#/profile', 'Edit profile'], ['#/personal', 'My Performance']];
+  /* the Question Bank (/qbank) is for the admin only; everyone else uses the dashboard */
+  if (!perm.isAdmin && /\/qbank(\.html)?\/?$/.test(location.pathname)) { location.replace('dashboard'); return; }
+  const items = [['#/profile', 'Edit profile'], ['#/personal', 'My Performance']];
+  if (perm.isAdmin) items.unshift(['#/qb', 'Question Bank']);
   if (perm.plan === 'premium' && !p.is_avanti) items.push(['#/membership', 'Membership']);
   if (student) {
     if (perm.plan !== 'free') items.push(['#/tests', 'Available tests']);   /* tests made by teachers are for Premium students only */

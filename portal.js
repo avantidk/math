@@ -427,33 +427,34 @@ const HERO_ART = `<svg viewBox="0 0 320 240" role="img" aria-label="PDF workshee
 function membershipContent(teacher) {
   return teacher ? {
     eyebrow: 'Premium for teachers', title: 'Teach more. Prepare less.',
-    lead: 'Every DPP, PYQ paper and handout as a ready-to-print PDF, your whole school\'s students in one place, and results you can act on.',
+    lead: 'Practice questions, DPPs and handouts as ready-to-print PDFs, your whole school\'s students in one place, and results you can act on.',
     feats: [
-      ['pdf', 'Every PDF, print-ready', 'DPPs, chapterwise and shift-wise PYQ papers, handouts and your own Question Bank picks, with answer keys and full explanations.'],
-      ['share', 'Share in one tap', 'Send any PDF to your class on WhatsApp, by email or through any app on your phone.'],
-      ['folder', 'Saved worksheets', 'Keep the question sets you build and reuse them for tests or downloads whenever you need them.'],
+      ['pdf', 'Every PDF, print-ready', 'DPPs, chapterwise and shift-wise PYQ papers and handouts, with answer keys and full explanations.'],
+      ['folder', 'Non-PYQs, DPPs and the Own DPP Maker', 'All practice questions from books and sheets, ready-made DPPs, and a maker to build your own practice sheet.'],
+      ['share', 'Unlimited test links', 'Make tests for your class, batch or school and share one link with your students.'],
       ['users', 'My Students', 'Every student of your school by class, stream and session, with sign-in status, tests taken, average and last test.'],
       ['chart', 'Deeper results', 'Open any student\'s test history and report, and export your results to CSV.'],
-      ['copy', 'Copy questions', 'Copy question text and IDs straight into your own notes and slides.']
+      ['copy', 'Saved worksheets', 'Keep the question sets you build and reuse them for tests or downloads whenever you need them.']
     ],
-    rows: [['View Question Bank, DPPs, PYPs and handouts', 1, 1], ['Create online tests for your school (one test link as a trial)', 1, 1], ['Results of your own tests', 1, 1],
-      ['Download and print every PDF', 0, 1], ['Share PDFs on WhatsApp and email', 0, 1], ['Copy question text', 0, 1], ['Saved worksheets', 0, 1], ['My Students with performance', 0, 1],
+    rows: [['All previous year questions with answers and solutions', 1, 1], ['PDF download of previous year questions', 1, 1], ['Past papers, mocks and your own tests', 1, 1], ['First Class 11 and Class 12 handouts to view', 1, 1], ['Create online tests for your school (one test link as a trial)', 1, 1], ['Results of your own tests', 1, 1],
+      ['Non-PYQ practice questions (books and sheets)', 0, 1], ['DPPs and the Own DPP Maker', 0, 1], ['All handouts to view and download', 0, 1], ['Download and print every PDF', 0, 1], ['Saved worksheets', 0, 1], ['My Students with performance', 0, 1],
       ['Unlimited test links for your school', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1]],
-    faq: [['Do my students need Premium to take my tests?', 'Yes. Only Premium students of your school, class and batch can take tests made by teachers. Free students can take past papers from My Performance.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs can be shared straight from the phone.']]
+    faq: [['Do my students need Premium to take my tests?', 'Yes. Only Premium students of your school, class and batch can take tests made by teachers. Free students can take past papers and mocks from the Tests page.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs open in any PDF app.'], ['Is the payment refundable?', 'No. A payment is final once it goes through, so try the Free plan first.']]
   } : {
     eyebrow: 'Premium for students', title: 'Practise anywhere. Know where you stand.',
-    lead: 'Download every DPP, PYQ paper and handout to practise offline, and see your rank among every student who took the test.',
+    lead: 'Practice questions, DPPs and every handout, mocks with the source and difficulty you choose, and your rank among every student who took the test.',
     feats: [
-      ['pdf', 'Every PDF to keep', 'DPPs, PYQ papers and handouts with answer keys and full explanations.'],
-      ['phone', 'Practise offline', 'Keep the PDFs on your phone and practise on the bus, at home or without the internet.'],
-      ['print', 'Print and share', 'Print sheets for your notebook, or share them with friends on WhatsApp.'],
+      ['pdf', 'Non-PYQs and DPPs', 'All practice questions from books and sheets, ready-made DPPs and the Own DPP Maker, with answer keys and full explanations.'],
+      ['target', 'Mocks your way', 'Chapter-wise and full-length mocks and your own tests with PYQ, practice or a mix, a difficulty slider and JEE Advanced Paper 1 and 2.'],
+      ['phone', 'Every handout, offline', 'View all handwritten handouts and keep the PDFs on your phone to practise without the internet.'],
+      ['print', 'Print every PDF', 'Print DPPs, papers and handouts for your notebook.'],
       ['trophy', 'Rank among all students', 'See where you stand among everyone who took the test, not just your school.'],
-      ['target', 'Compare with the top', 'See the average and the top score of all students on every test you take.'],
-      ['copy', 'Copy questions', 'Copy questions into your own notes for revision.']
+      ['chart', 'Compare with the top', 'See the average and the top score of all students on every test you take.']
     ],
-    rows: [['View Question Bank, DPPs, PYPs and handouts', 1, 1], ['Take your school\'s tests', 1, 1], ['Question-wise review and topic analysis', 1, 1], ['Rank in your school', 1, 1],
-      ['Rank among all students', 0, 1], ['Average and top score of all students', 0, 1], ['Download and print every PDF', 0, 1], ['Share PDFs', 0, 1], ['Copy question text', 0, 1]],
-    faq: [['I am on the Avanti list. Do I need to pay?', 'No. Students on the Avanti list get Premium free. Sign in with your Avanti ID.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs open in any PDF app.']]
+    rows: [['All previous year questions with answers and solutions', 1, 1], ['Past papers, chapter-wise and full-length mocks from PYQs', 1, 1], ['Your own tests from previous year questions', 1, 1], ['Question-wise review and topic analysis', 1, 1], ['Rank in your school', 1, 1], ['PDF download of previous year questions', 1, 1], ['First Class 11 and Class 12 handouts to view', 1, 1],
+      ['Non-PYQ practice questions (books and sheets)', 0, 1], ['DPPs and the Own DPP Maker', 0, 1], ['Mocks and own tests with practice or mixed questions and a difficulty slider', 0, 1], ['All handouts to view and download', 0, 1], ['Take your school\'s tests', 0, 1], ['Download and print every PDF', 0, 1],
+      ['Rank among all students', 0, 1], ['Average and top score of all students', 0, 1]],
+    faq: [['I am on the Avanti list. Do I need to pay?', 'No. Students on the Avanti list get Premium free. Sign in with your Avanti ID.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs open in any PDF app.'], ['Is the payment refundable?', 'No. A payment is final once it goes through, so try the Free plan first.']]
   };
 }
 async function pageMembership() {
@@ -2257,7 +2258,9 @@ async function pageHelp() {
     ['I cannot sign in with my Student ID.', 'Check the ID and date of birth with your teacher. After 5 wrong tries the ID is locked for 15 minutes.'],
     ['I paid but I am still on Free.', 'Wait two minutes and refresh the page. If it is still Free, email with the payment ID from Membership → Payment history.'],
     ['My school, class or name is wrong.', 'Students: ask your teacher to correct it. Teachers: email us and we will change the school.'],
-    ['A question, answer or figure is wrong.', 'Email the question ID (shown in the question menu) and what should be corrected.']];
+    ['A question, answer or figure is wrong.', 'Email the question ID (shown in the question menu) and what should be corrected.'],
+    ['When do I see the correct answers of a test?', 'Your score, ranks and analysis show as soon as you submit. The correct answers open when the time of the paper is over (3 hours after you started a 3-hour paper), even if you submitted early.'],
+    ['My internet or power went during a test.', 'The timer pauses by itself while you are away. Open the test again and carry on; your saved answers are kept.']];
   show(head('Help & Support', 'Found a problem or have a question? Write to us and we will get back to you.'),
     h('div', { class: 'pt-grid2 pt-helpgrid' },
       h('div', { class: 'pt-hstack' },

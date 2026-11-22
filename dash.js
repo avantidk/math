@@ -263,7 +263,7 @@ function popPage(title, path, qbPanel) {
   if (qbPanel) { try { sessionStorage.setItem('avanti-qbopen', qbPanel); } catch (x) { /* optional */ } }
   const frame = h('iframe', { class: 'dpop-f', title, src: '/' + path + '?embed=1', loading: 'eager' }), load = h('div', { class: 'dpop-load' }, h('div', { class: 'spin' }), h('p', { text: 'Loading…' }));
   const ready = e => { if (e.origin === location.origin && e.data && e.data.qbReady) { load.remove(); window.removeEventListener('message', ready); clearTimeout(slow); } };
-  const slow = setTimeout(() => { if (!load.isConnected) return; load.textContent = ''; load.append(h('p', { text: 'This is taking longer than usual.' }), h('a', { class: 'btn', href: 'qbank#/qb', text: 'Open the Question Bank' })); }, 30000);
+  const slow = setTimeout(() => { if (!load.isConnected) return; load.textContent = ''; load.append(h('p', { text: 'This is taking longer than usual. Refresh the page to try again.' }), A().perm.isAdmin ? h('a', { class: 'btn', href: 'qbank#/qb', text: 'Open the Question Bank' }) : null); }, 30000);
   if (qbPanel) window.addEventListener('message', ready); else frame.addEventListener('load', () => load.remove());
   let closed = false;
   const close = () => { if (closed) return; closed = true; window.removeEventListener('message', ready); window.removeEventListener('popstate', back); box.remove(); document.removeEventListener('keydown', key); document.body.classList.remove('dpop-on'); if (history.state && history.state.dpop) history.back(); };
@@ -541,7 +541,7 @@ function viewChapter(mode, slug, ch, section, extra) {
   const metric = (cls, ic, n, l) => h('div', { class: 'ov-m ' + cls }, h('span', { class: 'ov-m-i', html: ic }), h('div', {}, h('b', { text: n }), h('small', { text: l })));
   const progress = h('section', { class: 'ov-card ov-prog' }, h('div', { class: 'ov-card-h' }, h('h3', { text: 'Your progress' }), h('small', { text: 'from tests you have submitted' })),
     h('div', { class: 'ov-prog-b' }, ring, h('div', { class: 'ov-metrics' }, metric('', IC.all, solved + ' / ' + total, 'Attempted'), metric('ok', IC.target, String(right), 'Correct'), metric('bad', IC.test, String(wrong), 'Wrong'), metric('acc', IC.up, solved ? acc + '%' : '—', 'Accuracy'))),
-    (() => { const other = D.rows.filter(r => (mode === 'pyq' ? !r.P : r.P) && r.ch === ch), od = solvedOf(other), nm = mode === 'pyq' ? 'Non-PYQs' : 'PYQs', off = mode === 'pyq' && locked();
+    mode !== 'pyq' ? null : (() => { const other = D.rows.filter(r => !r.P && r.ch === ch), od = solvedOf(other), nm = 'Non-PYQs', off = locked();   /* a Non-PYQ chapter page shows only Non-PYQ numbers */
       return h('div', { class: 'ov-other' }, h('div', { class: 'ov-other-l' }, h('span', { text: nm + ' of this chapter attempted' }), h('b', { text: off ? 'Premium' : num(od) + ' / ' + num(other.length) })), bar(off ? 0 : od, other.length || 1)); })(),
     h('p', { class: 'ov-note', text: solved ? 'You have answered ' + solved + ' of ' + total + ' questions here.' : 'Answer questions here, or take a chapter test, and your numbers appear.' }));
   /* ways to practise */
@@ -616,7 +616,7 @@ function viewBookmarks(head, rows, label) {
   const box = h('div', { class: 'd-bm' });
   const draw = () => { box.textContent = ''; const cur = list.filter(r => D.sum.bookmarks.includes(r.id));
     if (!cur.length) { box.append(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'No bookmarked questions yet' }), h('p', { text: 'Tap the bookmark on any question to keep it here.' }), h('a', { class: 'btn', href: '#d/pyq', text: 'Open PYQs' }))); return; }
-    box.append(h('div', { class: 'd-row-actions' }, h('button', { type: 'button', class: 'btn pri', text: 'Practise these ' + cur.length + ' in the Question Bank', onclick: () => openQB(cur.map(r => r.id), (label || 'Bookmarked') + ' · bookmarked') })));
+    if (A().perm.isAdmin) box.append(h('div', { class: 'd-row-actions' }, h('button', { type: 'button', class: 'btn pri', text: 'Practise these ' + cur.length + ' in the Question Bank', onclick: () => openQB(cur.map(r => r.id), (label || 'Bookmarked') + ' · bookmarked') })));
     cur.forEach(r => { const x = D.raw.get(r.id) || {}, ex = r.P ? ((EX[r.ex] || {}).name || '') + (r.y ? ' ' + r.y : '') : (x.publisher || 'Practice');
       box.append(h('div', { class: 'd-bmq' }, h('div', { class: 'd-bmq-m' }, h('span', { class: 'd-code', text: r.id }), h('small', { text: ex + ' · ' + ((D.chByCode[r.ch] || {}).chapter || r.ch) })),
         h('p', { class: 'd-bmq-t', text: plain(x.question).slice(0, 220) }),
@@ -645,7 +645,7 @@ async function route() {
   if (pr && pr[1] !== 'home') {   /* an account or test page of portal.js, drawn inside the dashboard */
     const to = { dpps: '#d/dpp', pyps: '#d/pyq', handouts: '#d/handouts' }[pr[1]];
     if (to) { location.replace(to); return; }
-    if (pr[1] === 'qb') { location.replace('qbank#/qb'); return; }
+    if (pr[1] === 'qb') { location.replace(A().perm.isAdmin ? 'qbank#/qb' : 'dashboard'); return; }
     return viewPortalPage(hs, pr[1]);
   }
   const tok = ++NAV;

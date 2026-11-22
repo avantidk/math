@@ -1,5 +1,15 @@
 [
   {
+    "v": "1032",
+    "date": "22 Nov 2026",
+    "items": [
+      "The Question Bank page and its menu item are now only for the admin. Everyone else uses the dashboard (PYQs, Non-PYQs, DPPs, Tests, Handouts).",
+      "New home page: the countdown to JEE Main and JEE Advanced is at the very top in two blocks, the screens shown are the new dashboard, and the Free, Premium and Avanti plans list exactly what each includes.",
+      "The guide is rewritten for the whole dashboard: plans, PYQs, Non-PYQs, DPPs, tests (JEE Advanced Paper 1 and 2, NDA, own tests), taking a test, reports and when answers open, handouts and downloads. The Membership and Help plan tables are corrected too.",
+      "Chapter overview of a Non-PYQ chapter no longer shows a PYQ progress line."
+    ]
+  },
+  {
     "v": "1031",
     "date": "22 Nov 2026",
     "items": [

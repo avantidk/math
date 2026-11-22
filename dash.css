@@ -629,3 +629,10 @@ body.dpop-on { overflow: hidden; }
 /* formulas on their own line: tight spacing (lists and match tables) */
 .dl-q .katex-display, .dl-fullq .katex-display, .dl-mt .katex-display { margin: 4px 0; padding: 0; }
 .dl-mt td { padding: 8px 10px; } .dl-mt td .katex-display { text-align: left; }
+/* the plan table in the guide */
+.gd-body .gd-tw { overflow-x: auto; margin: 10px 0; border: 1px solid var(--rule); border-radius: 12px; }
+.gd-body .gd-t { width: 100%; border-collapse: collapse; font-size: 14px; }
+.gd-body .gd-t th, .gd-body .gd-t td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.gd-body .gd-t th { background: var(--accent-soft); font-weight: 700; position: sticky; top: 0; }
+.gd-body .gd-t td:nth-child(2), .gd-body .gd-t td:nth-child(3), .gd-body .gd-t th:nth-child(2), .gd-body .gd-t th:nth-child(3) { white-space: nowrap; text-align: center; }
+.gd-body .gd-t tr:last-child td { border-bottom: 0; }

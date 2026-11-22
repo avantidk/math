@@ -1696,55 +1696,91 @@ const THEME_ICONS = {
 function themeInit() { let m = null; try { m = localStorage.getItem(THEME_KEY); } catch (e) { m = null; } if (m === 'dark' || m === 'light') document.documentElement.setAttribute('data-theme', m); themeApply(themeNow()); }
 function themeToggle() { const m = themeNow() === 'dark' ? 'light' : 'dark'; themeApply(m); try { localStorage.setItem(THEME_KEY, m); } catch (e) { /* optional */ } }
 const GUIDE_HTML = () => `
-<p class="gd-lead">The Mathematics Dashboard is अंक-IT's one place for JEE Maths teaching material: a searchable question bank, ready-made DPPs, past-year papers (PYPs), revision handouts and online tests. Questions and papers can be downloaded as Word, PDF or PowerPoint.</p>
-<nav class="gd-toc" aria-label="Guide sections"><a href="#gd-start">Getting started</a><a href="#gd-qb">Question Bank (profile menu)</a><a href="#gd-dpp">DPPs</a><a href="#gd-pyq">PYPs</a><a href="#gd-ho">Handouts</a><a href="#gd-test">Tests and results</a><a href="#gd-dates">Exam dates</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a></nav>
+<p class="gd-lead">The Mathematics Dashboard is अंक-IT's one place for JEE Maths practice: previous year questions (PYQs) with solutions, practice questions, DPPs, handwritten handouts and online tests with reports. It also covers KCET, NDA and IAT papers.</p>
+<nav class="gd-toc" aria-label="Guide sections"><a href="#gd-start">Getting started</a><a href="#gd-plans">Free and Premium</a><a href="#gd-home">Dashboard</a><a href="#gd-pyq">PYQs</a><a href="#gd-np">Non-PYQs</a><a href="#gd-dpp">DPPs</a><a href="#gd-test">Tests</a><a href="#gd-take">Taking a test</a><a href="#gd-rep">Reports and answers</a><a href="#gd-ho">Handouts</a><a href="#gd-dates">Exam dates</a><a href="#gd-exp">Downloads</a><a href="#gd-tips">Tips</a></nav>
 <h3 id="gd-start">Getting started</h3>
 <ul>
-<li><b>Sign in</b> with Google, or with your Student ID if you are an Avanti student. Your choice of Teacher or Student is saved the first time you sign in.</li>
-<li><b>Plans:</b> Free, Premium and Avanti. Premium unlocks downloads, handouts and more; Avanti students and teachers get Premium without paying. Compare plans in Help &amp; Support, and upgrade from the profile menu &rarr; Membership.</li>
-<li><b>Profile menu</b> (your name, top right): the Question Bank, profile, membership, tests, results, students, help and sign out. Teachers' schools are approved by अंक-IT before students and tests become visible.</li>
+<li><b>Sign in</b> with Google, or with your Student ID if you are an Avanti student. Your choice of Student or Teacher is saved the first time you sign in.</li>
+<li><b>One device at a time.</b> If you sign in on another device, the first one is signed out. Teachers' schools are approved by अंक-IT before students and tests become visible.</li>
+<li><b>Top bar:</b> Dashboard, PYQs, DPPs, Tests and Handouts. The round icon on the right is your profile menu (profile, membership, My Performance, tests, students, help and logout). The home icon opens the public home page, the question mark opens this guide, and the moon/sun switches light and dark.</li>
+<li><b>Exam countdown:</b> the days left for JEE Main and JEE Advanced are on your dashboard and at the top of the home page.</li>
 </ul>
-<h3 id="gd-qb">1. Question Bank</h3>
-<p>Every question in one list: JEE Main, JEE Advanced, AIEEE and IIT-JEE previous-year questions (PYQs) plus practice questions from different sources.</p>
+<h3 id="gd-plans">Free, Premium and Avanti</h3>
+<p>Free is open to every account that signs in. Premium is a one-year plan (₹299 for students, ₹599 for teachers, no auto-renewal). Avanti students and teachers get Premium without paying. A payment is not refunded once made, so try Free first.</p>
+<div class="gd-tw"><table class="gd-t"><thead><tr><th>What you get</th><th>Free</th><th>Premium / Avanti</th></tr></thead><tbody>
+<tr><td>All PYQs (JEE Main, JEE Advanced, KCET, NDA, IAT) with answers and solutions</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Past papers, chapter-wise and full-length mocks from PYQs, your own tests</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Report with topic analysis and rank in your school</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>PDF download of PYQs</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>First Class 11 and Class 12 handouts to view</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Non-PYQ practice questions (books and sheets)</td><td>Locked</td><td>Yes</td></tr>
+<tr><td>DPPs and the Own DPP Maker</td><td>Locked</td><td>Yes</td></tr>
+<tr><td>Mocks and own tests with Non-PYQ or Mix source</td><td>Locked</td><td>Yes</td></tr>
+<tr><td>All handouts (view and PDF)</td><td>Locked</td><td>Yes</td></tr>
+<tr><td>PDF download and printing of DPPs, papers and handouts</td><td>PYQs only</td><td>Yes</td></tr>
+<tr><td>Rank among all students, average and top score</td><td>School only</td><td>Yes</td></tr>
+<tr><td>Take tests made by your teacher (students)</td><td>Locked</td><td>Yes</td></tr>
+<tr><td>Teachers: unlimited test links, My Students, saved worksheets, CSV export</td><td>One trial link</td><td>Yes</td></tr>
+</tbody></table></div>
+<p>Upgrade from the profile menu &rarr; Membership. The Help &amp; Support page compares the plans for you.</p>
+<h3 id="gd-home">Dashboard</h3>
+<p>Your home screen: a greeting with your numbers, the exam countdowns, <b>Special picks</b> (repeated questions, sure-shot questions, mix-breed questions), cards for PYQs, Non-PYQs, DPPs, Tests, Handouts and Bookmarks, <b>Your progress</b> (PYQs and Non-PYQs attempted, correct answers) and your recent tests. The left menu always takes you to the same places, plus Bookmarked Qs and Test History.</p>
+<h3 id="gd-pyq">PYQs</h3>
 <ul>
-<li><b>Find questions:</b> search by words or question id; filter by chapter, source, exam, year, class, level (L1 easy, L2 medium, L3 hard), type (single, multiple, numerical) and topic.</li>
-<li><b>Each question card</b> shows exam, date and shift, level and tags. Use the eye icon to show the answer, the book icon to open the solution, and the &equiv; menu for the topic, type, question id and <b>Flag</b> (to report a wrong question).</li>
-<li><b>Filter</b> menu: <b>Show selected</b>, <b>Show repeated</b> (questions marked "Same as …"), <b>Show Out of Syllabus</b>, <b>Show all answers</b>, <b>Hide options</b> and <b>Attention</b> (every question that needs a check). Tick as many as you like; the button shows how many are on.</li>
-<li><b>Tick questions</b> (or Select all filtered) and export just those. "Answer Key" adds the key at the end and "Explanation" adds the full solutions on new pages after it.</li>
-<li><b>Overview icon</b> (bar-chart circle at the top right) opens the question counts, the chapter-wise count, the syllabus priority and the chapter weightage charts.</li>
+<li><b>Path:</b> PYQs &rarr; choose an exam &rarr; choose a chapter. The chapter page has an <b>Overview</b> (your progress, difficulty split, year-wise graph for the last 5 years, table from 2013 and the 5 most important subtopics), <b>All PYQs</b>, <b>Topic-wise Qs</b>, <b>Must Do</b> (high-yield repeated questions), <b>Bookmarked</b> and Test History.</li>
+<li><b>Levels:</b> Confidence Booster (Level 1, easy), Balanced (Level 2) and Rank Booster (Level 3, tough).</li>
+<li><b>Each question row:</b> tap it to open. Tap an option to check it; for numerical questions type the answer and press Check. Open <b>Full explanation</b>, <b>Others' solutions</b> and <b>Comments</b> under the question. The three-lines menu on the right bookmarks the question or reports a mistake. The arrows go to the previous or next question.</li>
+<li><b>Filters:</b> years, attempt status, difficulty and type, in the order MCQ, MSQ, Numerical, Matching, Paragraph, Subjective. "Hide attempted" hides what you already did. Sort by year. Match the following questions show List-I and List-II as a table.</li>
+<li><b>Subjective questions</b> of the old IIT-JEE papers have 4 options with the final answer and say (Subjective) in the question.</li>
+<li><b>Export:</b> the panel on top downloads exactly the questions in your list (after filters) as a PDF, with an answer key and explanations if you switch them on. PYQ PDFs are free for every account.</li>
 </ul>
-<h3 id="gd-dpp">2. DPPs</h3>
-<p>Ready-made practice sheets. Choose what you need:</p>
+<h3 id="gd-np">Non-PYQs (Premium)</h3>
+<p>Practice questions from books and sheets, organised the same way as PYQs: chapter, overview, all questions, topic-wise, bookmarks. Free accounts see a Premium note instead.</p>
+<h3 id="gd-dpp">DPPs (Premium)</h3>
 <ul>
-<li><b>Subtopic DPPs</b> &ndash; practice questions grouped by subtopic of a chapter.</li>
-<li><b>Level 1, 2, 3 booklet</b> &ndash; a chapter booklet by difficulty and source.</li>
-<li><b>PYQs topic-wise</b> &ndash; past-year questions of a chapter by topic, filtered by exam, year and level.</li>
+<li><b>Chapterwise DPPs</b> from BB Ex, Ln DY, Ln Ex and more, for PYQs and for Non-PYQs.</li>
+<li><b>Own DPP Maker:</b> pick chapters and subtopics, choose the sources (books and PYQs), set the toughness (easy, mixed, tough) and the mix of practice and PYQs. The sheet is made as A4 pages with live preview; turn on Answer Key and Explanation, shuffle, then download, print or share.</li>
 </ul>
-<p>Pick one or many chapters, see the live preview page by page, and download. Turn on "Answer Key" to add answers on a separate page and "Explanation" to add the full solutions.</p>
-<h3 id="gd-pyq">3. PYPs (previous year papers)</h3>
-<p>Past-year papers in two forms: <b>Question Paper</b> (a full shift paper by date and shift, in paper order) and <b>Chapterwise</b> (all PYQs of a chapter). Pick JEE Main, JEE Advanced, KCET, IAT or NDA, preview, then download.</p>
-<h3 id="gd-ho">4. Handouts</h3>
-<p>Handwritten revision notes chapter by chapter (PDF), grouped by Class 11 and Class 12. Each handout has three icon buttons: the <b>eye</b> opens it in the viewer, the <b>download arrow</b> saves the PDF, and the <b>half-filled circle</b> saves the black-and-white version for printing. Hold the pointer over an icon to see its name. On a PC or a tablet held sideways, the viewer opens on the <b>left half</b> and the dashboard stays on the <b>right half</b>, so you can read a handout and solve questions from the Question Bank at the same time. Drag the divider to change the split (double-click it to go back to 50/50). Press &times; or Esc to close the handout. The bar at the top of the viewer has <b>zoom out/in</b> (click the percentage to fit the width; Ctrl + scroll also zooms), <b>invert colours</b> (white-on-black pages, for the viewer only), <b>page jump</b> (type a page number and press Enter, or use the arrows), <b>fit to screen</b> (the whole page fits in view), <b>full screen</b>, <b>download</b> and <b>share</b>. On a phone the handout opens full screen. Handouts need Premium.</p>
-<h3 id="gd-test">5. Tests and results</h3>
+<h3 id="gd-test">Tests</h3>
+<p>Open Tests. Every test has marks and instructions shown before you start, and your result stays in your own account.</p>
 <ul>
-<li><b>Teachers</b> can create online tests for their approved school, class and stream, share the test link, and see each student's result and a report.</li>
-<li><b>Students</b> see the tests available to them, attempt them online, and see their own results afterwards.</li>
+<li><b>Previous Year Papers:</b> sit a real paper, shift by shift (JEE Main, JEE Advanced, KCET, NDA, IAT), with the real time and real marking.</li>
+<li><b>Chapter Wise Mock:</b> pick a chapter for a mixed test.</li>
+<li><b>Must Solve / Repeated Questions:</b> only the high-yield repeated questions.</li>
+<li><b>Full Length Mock:</b> a whole exam with its official duration, question count and marking, chapters mixed. <b>JEE Advanced</b> has Paper 1 (Sections 1 to 4: MCQ, MSQ, Numerical, Matching) and Paper 2 (MCQ, MSQ, Numerical and Section 4 with 2 paragraph questions of 2 parts each), 65 minutes each. <b>NDA</b> questions come chapter by chapter (4 to 5 of a chapter in a row). Sections stay in order and questions are shuffled only inside a section.</li>
+<li><b>Create Your Practice Test:</b> choose the source (PYQ, Non-PYQ or Mix), exam, years, chapters, difficulty slider, question types, number of questions and your own time in minutes, and the marking scheme (also JEE Advanced Paper 1 or 2).</li>
+<li><b>Source and difficulty:</b> at the top of the mocks, PYQ / Non-PYQ / Mix and a difficulty slider from Easy to Tough. Free accounts can use PYQ only.</li>
 </ul>
+<h3 id="gd-take">Taking a test</h3>
+<ul>
+<li><b>Timer:</b> it runs only while the test page is open. If your internet or power goes, it pauses by itself and carries on when you come back. Time spent away is not counted.</li>
+<li><b>Screen:</b> question palette (answered, not answered, not visited, marked for review), Save &amp; next, Mark for review &amp; next, Clear response. Sections are shown on each question and above the palette. Answers are saved while you write; the test submits itself when the time ends.</li>
+<li><b>Question types:</b> single correct, one or more correct, numerical (type the value), matching and paragraph questions. A question tagged Subjective gives 4 options for the final answer.</li>
+<li>Avoid switching tabs; the number of switches is recorded.</li>
+</ul>
+<h3 id="gd-rep">Reports and answers</h3>
+<ul>
+<li>After you submit you see your score, accuracy, time, rank in your school (Premium: rank among all students, average and top), topic-wise analysis and a question-wise review with right or wrong, marks and time.</li>
+<li><b>Correct answers open when the time of the paper is over</b> (for a 3-hour paper, 3 hours after you started), also if you submitted early, so that nobody can pass the answers on while others are still writing. The answer-key PDFs open at the same time; the question paper PDF is available at once.</li>
+<li><b>My Performance</b> (profile menu) lists all your tests, results and reports. The dashboard also shows your overall progress.</li>
+<li>Teachers see the results of their tests, each student's report, and can export results to CSV.</li>
+</ul>
+<h3 id="gd-ho">Handouts</h3>
+<p>Handwritten revision notes chapter by chapter, grouped by Class 11 and Class 12. The first handout of each class is free to view; all others are part of Premium. Each handout has buttons to view it, to download the PDF and to save a black-and-white version for printing. On a PC or a tablet held sideways the viewer opens with the contents list on the left.</p>
 <h3 id="gd-dates">Exam dates</h3>
-<p>Dates of every exam whose papers are in the bank. New exams are added to this table when they are uploaded.</p>
+<p>Dates of every exam whose papers are in the bank. The exam pages of the website also show the countdown, the safe scores and the exam pattern.</p>
 <div id="gd-dates-box" style="max-height:340px;overflow:auto;border:1px solid var(--color-border-line,#ccc);border-radius:8px">Loading…</div>
 <h3 id="gd-exp">Downloads</h3>
 <ul>
-<li><b>Word</b> is fully editable, with real equations. <b>PowerPoint</b> is editable too. <b>PDF</b> is ready to print.</li>
-<li>Question papers use two columns. Papers exported from chapters do not repeat chapter headings.</li>
+<li>PYQ PDFs: every account. DPPs, papers, handouts, printing and PDFs of Non-PYQs: Premium. Sharing and editable Word or PowerPoint files are for Avanti teachers.</li>
+<li>Question papers use two columns; equations are drawn as proper maths.</li>
 <li>If your browser blocks a download, allow downloads for this page and try again.</li>
 </ul>
 <h3 id="gd-tips">Tips</h3>
 <ul>
-<li>The <b>moon/sun icon</b> switches light and dark mode.</li>
-<li>On a phone the menu wraps into two rows; every feature works there too.</li>
-<li>Seen a wrong question, answer or figure? Open the &equiv; menu and press <b>Flag</b>, or write to us from Help &amp; Support.</li>
-<li>Maths is written in proper notation; if a formula looks broken, refresh the page once.</li>
+<li>On a phone everything works too; options go two per row or one per row so they stay readable.</li>
+<li>Seen a wrong question, answer or figure? Use the three-lines menu on the question to report it, or write to us from Help &amp; Support.</li>
+<li>If a formula looks broken, refresh the page once. If you paid but are still on Free, wait two minutes and refresh, then write to us with the payment ID.</li>
 </ul>
 `;
 
