@@ -301,7 +301,7 @@ function viewHome() {
   side({ back: null, title: 'Dashboard', sub: 'Choose how you want to practise', items: homeItems('home') });
   const pyq = D.rows.filter(r => r.P), np = D.rows.filter(r => !r.P), res = D.sum.results, solved = D.rows.filter(r => att(res[r.id])).length, right = D.rows.filter(r => res[r.id] === 'c').length;
   const p = A().profile || {}, first = p.full_name ? p.full_name.split(' ')[0] : '', hr = new Date().getHours(), greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
-  const pyqDone = pyq.filter(r => att(res[r.id])).length, lock = locked();
+  const pyqDone = pyq.filter(r => att(res[r.id])).length, npDone = np.filter(r => att(res[r.id])).length, lock = locked();
   const days = d => Math.ceil((Date.parse(d + 'T00:00:00+05:30') - Date.now()) / 864e5);
   const stat3 = (n, l) => h('div', { class: 'dh-st' }, h('b', { text: n }), h('span', { text: l }));
   const hero = h('section', { class: 'dh-hero' },
@@ -324,6 +324,7 @@ function viewHome() {
     card('#0891b2', IC.mark, 'Bookmarks', 'Questions you marked', num(D.sum.bookmarks.length) + ' saved', { go: 'd/bookmarks' }));
   const prog = h('section', { class: 'dh-box' }, h('div', { class: 'dh-bh' }, h('h3', { text: 'Your progress' }), h('small', { text: 'from submitted tests' })),
     h('div', { class: 'dh-prog' }, h('div', { class: 'dh-pl' }, h('span', { text: 'PYQs attempted' }), h('b', { text: num(pyqDone) + ' / ' + num(pyq.length) })), bar(pyqDone, pyq.length)),
+    h('div', { class: 'dh-prog' }, h('div', { class: 'dh-pl' }, h('span', { text: 'Non-PYQs attempted' }), h('b', { text: lock ? 'Premium' : num(npDone) + ' / ' + num(np.length) })), bar(lock ? 0 : npDone, np.length || 1)),
     h('div', { class: 'dh-prog' }, h('div', { class: 'dh-pl' }, h('span', { text: 'Correct answers' }), h('b', { text: solved ? num(right) + ' of ' + num(solved) + ' (' + pct(right, solved) + '%)' : '—' })), bar(right, solved || 1, 'ok')));
   const tests = (D.tests || []).slice(0, 4);
   const rec = h('section', { class: 'dh-box' }, h('div', { class: 'dh-bh' }, h('h3', { text: 'Recent tests' }), h('a', { href: '#d/history', text: 'All tests ›' })),
