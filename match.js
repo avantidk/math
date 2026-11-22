@@ -23,7 +23,9 @@
   /* the table as HTML; render(text) turns one cell's text into HTML; cls = [wrapper, table, label] */
   function table(m, render, cls) {
     const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const cell = x => x ? '<b class="' + cls[2] + '">(' + esc(x[0]) + ')</b> <span>' + render(x[1]) + '</span>' : '';
+    /* a display formula inside a table cell is drawn inline (a display one would add a lot of empty space) */
+    const inl = t => String(t).replace(/\\\[([\s\S]*?)\\\]/g, (m0, e) => '\\(\\displaystyle ' + e.trim() + '\\)').replace(/\s*\n\s*/g, ' ');
+    const cell = x => x ? '<b class="' + cls[2] + '">(' + esc(x[0]) + ')</b> <span>' + render(inl(x[1])) + '</span>' : '';
     let rows = ''; for (let i = 0; i < Math.max(m.a.length, m.b.length); i++) rows += '<tr><td>' + cell(m.a[i]) + '</td><td>' + cell(m.b[i]) + '</td></tr>';
     const wl = arr => Math.max(8, ...arr.map(x => String(x[1]).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length)), la = wl(m.a), lb = wl(m.b), wa = Math.max(34, Math.min(80, Math.round(100 * la / (la + lb))));
     return '<div class="' + cls[0] + '"><table class="' + cls[1] + '"><colgroup><col style="width:' + wa + '%"><col style="width:' + (100 - wa) + '%"></colgroup><thead><tr><th scope="col">' + esc(m.h1) + '</th><th scope="col">' + esc(m.h2) + '</th></tr></thead><tbody>' + rows + '</tbody></table></div>';

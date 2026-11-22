@@ -1,5 +1,13 @@
 [
   {
+    "v": "1029",
+    "date": "22 Nov 2026",
+    "items": [
+      "Match the following tables: equations inside the cells are drawn in the line instead of in their own block, so the rows are much shorter.",
+      "Subjective questions (with options) now say (Subjective) at the end of the question, so it is clear next to the options."
+    ]
+  },
+  {
     "v": "1028",
     "date": "22 Nov 2026",
     "items": [
