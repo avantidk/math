@@ -970,6 +970,8 @@ const QBJ = {};
 function qbJson(n) {
   if (!QBJ[n]) {
     const pre = window.__qbPre && window.__qbPre.data && window.__qbPre.data[n];
+    const pm = window.AvantiAuth && window.AvantiAuth.perm, paid = !!(pm && (pm.premium || pm.staff || pm.isAdmin));
+    if (n === 'nonpyq' && !paid) return (QBJ[n] = Promise.resolve([]));   /* practice questions are Premium: a Free account never asks for them */
     const direct = () => fetch('qb/data/' + n + '.json').then(r => { if (!r.ok) throw new Error(n); return r.json(); });
     QBJ[n] = (pre ? Promise.resolve(pre).catch(direct) : direct()).catch(e => { delete QBJ[n]; throw e; });
   }
@@ -988,8 +990,9 @@ function qbCompact(r, withKcet) {
 }
 /* pictures are in qb/data/figures.json (not inside pyq.json / nonpyq.json); loaded once, shared with the Question Bank */
 let figP = null;
-window.__getFigs = function () {
-  if (!figP) figP = fetch('qb/data/figures.json').then(r => { if (!r.ok) throw new Error('figures'); return r.json(); }).catch(e => { figP = null; throw e; });
+window.__getFigs = function () {   /* PYQ figures, plus practice figures (figures-np.json) for Premium: boot.js merges them */
+  const C = window.AvantiContent;
+  if (!figP) figP = (C && C.figures ? C.figures() : fetch('qb/data/figures.json').then(r => { if (!r.ok) throw new Error('figures'); return r.json(); })).catch(e => { figP = null; throw e; });
   return figP;
 };
 let bankP = null;
@@ -1701,7 +1704,7 @@ const GUIDE_HTML = () => `
 <h3 id="gd-start">Getting started</h3>
 <ul>
 <li><b>Sign in</b> with Google, or with your Student ID if you are an Avanti student. Your choice of Student or Teacher is saved the first time you sign in.</li>
-<li><b>One device at a time.</b> If you sign in on another device, the first one is signed out. Teachers' schools are approved by अंक-IT before students and tests become visible.</li>
+<li><b>One computer, one phone and one tablet at a time.</b> Your account can be open on one of each at the same time. If you sign in on another device of the same kind (for example a second phone), the older one is signed out. Teachers' schools are approved by अंक-IT before students and tests become visible.</li>
 <li><b>Top bar:</b> Dashboard, PYQs, DPPs, Tests and Handouts. The round icon on the right is your profile menu (profile, membership, My Performance, tests, students, help and logout). The home icon opens the public home page, the question mark opens this guide, and the moon/sun switches light and dark.</li>
 <li><b>Exam countdown:</b> the days left for JEE Main and JEE Advanced are on your dashboard and at the top of the home page.</li>
 </ul>
@@ -1709,13 +1712,13 @@ const GUIDE_HTML = () => `
 <p>Free is open to every account that signs in. Premium is a one-year plan (₹299 for students, ₹599 for teachers, no auto-renewal). Avanti students and teachers get Premium without paying. A payment is not refunded once made, so try Free first.</p>
 <div class="gd-tw"><table class="gd-t"><thead><tr><th>What you get</th><th>Free</th><th>Premium / Avanti</th></tr></thead><tbody>
 <tr><td>All PYQs (JEE Main, JEE Advanced, KCET, NDA, IAT) with answers and solutions</td><td>Yes</td><td>Yes</td></tr>
-<tr><td>Past papers, chapter-wise and full-length mocks from PYQs, your own tests</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Every kind of test: past papers, chapter-wise and full-length mocks, must-solve tests, your own tests (from PYQs)</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>Report with topic analysis and rank in your school</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>PDF download of PYQs</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>First Class 11 and Class 12 handouts to view</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>Non-PYQ practice questions (books and sheets)</td><td>Locked</td><td>Yes</td></tr>
 <tr><td>DPPs and the Own DPP Maker</td><td>Locked</td><td>Yes</td></tr>
-<tr><td>Mocks and own tests with Non-PYQ or Mix source</td><td>Locked</td><td>Yes</td></tr>
+<tr><td>Choosing Non-PYQ or Mix questions in a test (Free: PYQ only)</td><td>Locked</td><td>Yes</td></tr>
 <tr><td>All handouts (view and PDF)</td><td>Locked</td><td>Yes</td></tr>
 <tr><td>PDF download and printing of DPPs, papers and handouts</td><td>PYQs only</td><td>Yes</td></tr>
 <tr><td>Rank among all students, average and top score</td><td>School only</td><td>Yes</td></tr>
@@ -1753,15 +1756,15 @@ const GUIDE_HTML = () => `
 </ul>
 <h3 id="gd-take">Taking a test</h3>
 <ul>
-<li><b>Timer:</b> it runs only while the test page is open. If your internet or power goes, it pauses by itself and carries on when you come back. Time spent away is not counted.</li>
+<li><b>Timer:</b> it starts when you press Start and runs on the clock until the time of the test is over, also while the page is closed or your internet is off. Your saved answers stay in your account: open the test again to carry on.</li>
 <li><b>Screen:</b> question palette (answered, not answered, not visited, marked for review), Save &amp; next, Mark for review &amp; next, Clear response. Sections are shown on each question and above the palette. Answers are saved while you write; the test submits itself when the time ends.</li>
 <li><b>Question types:</b> single correct, one or more correct, numerical (type the value), matching and paragraph questions. A question tagged Subjective gives 4 options for the final answer.</li>
-<li>Avoid switching tabs; the number of switches is recorded.</li>
+<li><b>Warnings:</b> switching to another tab or app, or leaving full screen, gives a warning. At 3 warnings the test is submitted automatically.</li>
 </ul>
 <h3 id="gd-rep">Reports and answers</h3>
 <ul>
 <li>After you submit you see your score, accuracy, time, rank in your school (Premium: rank among all students, average and top), topic-wise analysis and a question-wise review with right or wrong, marks and time.</li>
-<li><b>Correct answers open when the time of the paper is over</b> (for a 3-hour paper, 3 hours after you started), also if you submitted early, so that nobody can pass the answers on while others are still writing. The answer-key PDFs open at the same time; the question paper PDF is available at once.</li>
+<li><b>Correct answers open when the full exam time is over</b> (for a 3-hour paper, 3 hours after you started), also if you submitted early, so that nobody can pass the answers on while others are still writing. The answer-key PDFs open at the same time; the question paper PDF is available at once.</li>
 <li><b>My Performance</b> (profile menu) lists all your tests, results and reports. The dashboard also shows your overall progress.</li>
 <li>Teachers see the results of their tests, each student's report, and can export results to CSV.</li>
 </ul>

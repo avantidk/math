@@ -357,8 +357,8 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .pg-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:40px;align-items:start}
 .pg-side{position:sticky;top:88px;display:flex;flex-direction:column;gap:16px;padding:34px 0 20px}
 .side-cta{background:linear-gradient(135deg,#0a1636,#16307a);color:#fff;border-radius:18px;padding:22px}
-.pg-side h2{margin:0 0 10px!important;font:600 18px var(--head)!important}
-.side-cta h2{color:#fff!important}
+.pg-side .side-title{margin:0 0 10px!important;font:600 18px var(--head)!important;color:var(--navy)!important;letter-spacing:-.01em}
+.side-cta .side-title{color:#fff!important}
 .side-cta p{color:#c9d6f5!important;margin:0 0 16px!important;font-size:15px}
 .side-cta .sb{width:100%}
 .side-box{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px}
@@ -702,7 +702,7 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .tg-e { background: #dff3e8; color: #17794a; } .tg-me { background: #e8f4dc; color: #4b7d17; } .tg-m { background: #fdf0cf; color: #8a6200; } .tg-t { background: #fde1c9; color: #a64a00; } .tg-vt { background: #fbd5da; color: #b0182c; }
 .pw-y { margin: 12px 0; border: 1px solid var(--line); border-radius: 14px; background: #fff; } .pw-y > summary { cursor: pointer; list-style: none; padding: 12px 18px; } .pw-y > summary::-webkit-details-marker { display: none; }
 .pw-y h2 { margin: 0; display: flex; align-items: baseline; gap: 12px; font-size: 20px; } .pw-y h2 small { font: 500 13px var(--body); color: var(--mute); } .pw-y .pg-table { border: 0; border-top: 1px solid var(--line); border-radius: 0 0 14px 14px; }
-.pw-t table { min-width: 760px; } .pw-t td.tc { font-size: 13px; color: var(--mute); } .pw-t td.bar-c { width: 140px; }
+.pw-t table { min-width: 760px; } .pw-t td:nth-child(8) { font-size: 13px; color: var(--mute); } .pw-t td:nth-child(6) { width: 140px; } .pw-t td:nth-child(n+2):nth-child(-n+5) { text-align: right; font-variant-numeric: tabular-nums; }
 .pw-two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .pw-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; counter-reset: pw; }
 .pw-list li { counter-increment: pw; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 14px; background: #fff; border: 1px solid var(--line); border-radius: 12px; } .pw-list li span { grid-column: 1; color: var(--mute); font-size: 13px; } .pw-list li em { grid-column: 2; grid-row: 1 / 3; align-self: center; font: 700 18px var(--body); font-style: normal; color: var(--navy); }
 @media (max-width: 700px) { .pw-two { grid-template-columns: 1fr; } }
@@ -795,3 +795,8 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 /* FAQ in two columns on a wide screen */
 @media(min-width:960px){.faq{max-width:1180px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:14px 18px}}
 .clock-fine{color:#fff;text-shadow:0 1px 8px rgba(30,0,40,.85);font-weight:500}
+/* old-address pages that send the visitor to the new page */
+.pg-moved{max-width:640px;margin:0 auto;padding:72px 16px;text-align:center}
+.pg-moved h1{font-size:clamp(26px,4vw,34px);margin:0 0 14px}
+.pg-moved p{margin:8px 0;color:#2d3a58;font-size:17px}
+.pg-moved a{font-weight:600}

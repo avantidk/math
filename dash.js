@@ -57,9 +57,12 @@ function sheetOf(book, id) {
   const m = book === 'Ln DY' ? /-DY(\d+)-/.exec(id) : book === 'Ln Ex' ? /-O(\d+)-/.exec(id) : book === 'BB Ex' ? /^BB-\d+-(\d+)-/.exec(id) : null;
   return m ? { no: +m[1], label: (book === 'Ln DY' ? 'DY-' : 'Ex-') + (+m[1]) } : null;
 }
+/* answers a test can mark: a number, a range "a to b", or a list of accepted numbers "a or b"; letters A to D (A to E for 5 options) */
+const NUM = '-?\\d+(?:\\.\\d+)?', NUM_ANS = new RegExp('^(' + NUM + '(\\s+or\\s+' + NUM + ')*|' + NUM + '\\s*to\\s*' + NUM + ')$', 'i');
 const isGradable = r => { const a = String(r.answer == null ? '' : r.answer).trim(); if (!a) return false;
-  if (r.type === 'Numerical') return /^-?\d+(\.\d+)?$/.test(a) || /^-?\d+(\.\d+)?\s*to\s*-?\d+(\.\d+)?$/i.test(a);
-  return (r.type === 'MCQ' || r.type === 'MSQ') && (r.options || []).length > 0 && /^[A-D](,[A-D])*$/.test(a); };
+  if (r.type === 'Numerical') return NUM_ANS.test(a);
+  const n = (r.options || []).length;
+  return (r.type === 'MCQ' || r.type === 'MSQ') && n > 0 && (n >= 5 ? /^[A-E](,[A-E])*$/ : /^[A-D](,[A-D])*$/).test(a.replace(/\s+/g, '')); };
 function load() {
   if (D.ready) return D.ready;
   const C = window.AvantiContent;
@@ -93,6 +96,7 @@ const correctOf = rows => rows.filter(r => D.sum.results[r.id] === 'c').length;
 /* ---------- small pieces ---------- */
 const locked = () => { const p = A().perm; return !(p.premium || p.staff || p.isAdmin); };   /* Free accounts */
 function openQB(ids, title) {
+  if (!A().perm.isAdmin) { toast('The Question Bank is for the admin only.'); return; }   /* /qbank sends everyone else back here */
   try { sessionStorage.setItem('avanti-qbpreset', JSON.stringify({ ids: ids.slice(0, 3000), title: title || '' })); } catch (e) { /* storage blocked */ }
   location.href = 'qbank';
 }
@@ -132,10 +136,12 @@ function shell() {
     const g = e.target.closest('#guideBtn'), i = e.target.closest('#qbInfoBtn'), it = e.target.closest('#qbPop .tb-item');
     if (g) { try { const t = await realTE(); t.guide(); } catch (x) { toast('The guide did not load. Try again.'); } return; }
     if (i) { const open = pop().hidden; pop().hidden = !open; i.setAttribute('aria-expanded', String(open)); return; }
-    if (it) { shut(); const k = it.dataset.qbpanel || it.dataset.k; const pg = { heroov: 'Mathematics Bank: Question Counts', overview: 'Chapter-wise Count', syl: 'Syllabus Priority', wchart: 'Chapter Weightage' }[k]; if (pg) popPage(pg, 'qbank', k); return; }
+    if (it) { shut(); const k = it.dataset.qbpanel || it.dataset.k, pg = PANELS[k]; if (pg) popPage(pg[0], pg[1]); return; }
     shut();
   });
 }
+/* the four chart buttons of the top bar open the matching public page (no question in them) inside a pop-up, for every plan */
+const PANELS = { heroov: ['Mathematics Bank: Question Counts', 'question-counts/'], overview: ['Chapter-wise Count', 'chapter-wise-count/'], syl: ['Syllabus Priority', 'syllabus-priority/'], wchart: ['Chapter Weightage', 'chapter-weightage/'] };
 let COLL = false; try { COLL = localStorage.getItem('d-side-collapsed') === '1'; } catch (e) { /* default open */ }
 const PANEL_IC = svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/>');
 function applyColl() { const b = $('.d-body'); if (b) b.classList.toggle('d-collapsed', COLL); document.querySelectorAll('.d-colbtn').forEach(x => { x.setAttribute('aria-pressed', String(COLL)); x.title = COLL ? 'Show the menu' : 'Hide the menu'; x.setAttribute('aria-label', x.title); }); }
@@ -201,6 +207,13 @@ function viewDppSrc(k, ch, ex) {
   if (locked()) return dppLocked();
   const src = SRC[k]; if (!src) return go('d/dpp');
   const rows = srcRows(src), base = 'd/dpp/' + k;
+  if (!rows.length) {   /* a source with no questions yet */
+    side({ back: 'd/dpp', title: src.name, sub: 'Coming soon', items: homeItems('dpp') });
+    main(h('div', { class: 'd-head' }, crumb('DPPs', src.name), h('h2', { text: src.name })),
+      h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: src.name + ' questions are coming soon' }), h('p', { text: 'There are no questions in ' + src.name + ' yet. Try another source, or make a sheet of your own with the Own DPP Maker.' }),
+        h('div', { class: 'pt-actions' }, h('a', { class: 'btn pri', href: '#d/dpp', text: '‹ All DPP sources' }), h('a', { class: 'btn', href: '#d/dpp/maker', text: 'Own DPP Maker' }))));
+    return;
+  }
   if (!ch) {   /* level 1: the chapters of the source */
     const chs = chaptersOf(rows);
     side({ back: 'd/dpp', title: src.name, sub: 'Choose a chapter', items: [{ label: 'All questions', icon: IC.all, hash: base + '/all', badge: String(rows.length) }].concat(chs.map(c => ({ label: c.chapter_code + ' · ' + c.chapter, icon: IC.list, hash: base + '/' + c.chapter_code, badge: String(rows.filter(r => r.ch === c.chapter_code).length) }))) });
@@ -258,13 +271,12 @@ async function viewDppMaker() {
 
 /* ---------- Step 1: source ---------- */
 /* a page of the site shown in a pop-up (cross at the top right), so nobody leaves the dashboard */
-function popPage(title, path, qbPanel) {
+function popPage(title, path) {
   const old = document.getElementById('dPop'); if (old) old.remove();
-  if (qbPanel) { try { sessionStorage.setItem('avanti-qbopen', qbPanel); } catch (x) { /* optional */ } }
   const frame = h('iframe', { class: 'dpop-f', title, src: '/' + path + '?embed=1', loading: 'eager' }), load = h('div', { class: 'dpop-load' }, h('div', { class: 'spin' }), h('p', { text: 'Loading…' }));
-  const ready = e => { if (e.origin === location.origin && e.data && e.data.qbReady) { load.remove(); window.removeEventListener('message', ready); clearTimeout(slow); } };
-  const slow = setTimeout(() => { if (!load.isConnected) return; load.textContent = ''; load.append(h('p', { text: 'This is taking longer than usual. Refresh the page to try again.' }), A().perm.isAdmin ? h('a', { class: 'btn', href: 'qbank#/qb', text: 'Open the Question Bank' }) : null); }, 30000);
-  if (qbPanel) window.addEventListener('message', ready); else frame.addEventListener('load', () => load.remove());
+  const ready = e => { if (e.origin === location.origin && e.data && e.data.embedReady) { load.remove(); window.removeEventListener('message', ready); clearTimeout(slow); } };
+  const slow = setTimeout(() => { if (!load.isConnected) return; load.textContent = ''; load.append(h('p', { text: 'This is taking longer than usual. Check your connection and try again.' }), h('a', { class: 'btn', href: '/' + path, target: '_blank', rel: 'noopener', text: 'Open the page in a new tab' })); }, 30000);
+  window.addEventListener('message', ready); frame.addEventListener('load', () => { load.remove(); clearTimeout(slow); });
   let closed = false;
   const close = () => { if (closed) return; closed = true; window.removeEventListener('message', ready); window.removeEventListener('popstate', back); box.remove(); document.removeEventListener('keydown', key); document.body.classList.remove('dpop-on'); if (history.state && history.state.dpop) history.back(); };
   const back = () => { if (!closed) { history.replaceState(null, ''); close(); } };   /* the phone's Back button closes the pop-up */
@@ -509,7 +521,7 @@ function viewList(mode, slug, ch, kind, arg) {
   const sub = [c ? c.chapter : ch, mode === 'pyq' && e ? e.name : 'Practice questions'].join(' · ');   /* the breadcrumb stays in the page for navigation and search, but is not shown on list pages */
   window.DashList.render(listEnv(),
     { rows: pool, title, sub, head: h('div', { class: 'd-head' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c ? c.chapter : ch)), practiceLabel: 'Practice ' + what, testLabel: 'Take ' + what + ' Test', emptyText: kind === 'bookmarked' ? 'Tap the bookmark on any question to keep it here.' : 'No questions here yet.',
-      startTest: list => launchTestFrom(list, c, mode, e, 20, what.toLowerCase() + ' test') });
+      startTest: list => launchTestFrom(list, c, mode, e, 20, what.toLowerCase() + ' test', kind === 'all' ? null : title) });
 }
 function viewChapter(mode, slug, ch, section, extra) {
   const c = D.chByCode[ch]; if (!c) return go(mode === 'pyq' ? 'd/pyq' : 'd/np');
@@ -578,13 +590,22 @@ function yearBlocks(rows, yrs, mode) {
 }
 
 /* ---------- Create Chapter Test ---------- */
-async function launchTestFrom(rows, c, mode, e, count, label) {
+/* a clear name for a test made here: "Chapter test: Matrices", "Topic test: Matrices · PYQs", "DPP test: BB Ex · 12M3", ... */
+function testName(c, mode, e, label, part) {
+  const what = String(label || 'practice test').replace(/\s*test$/i, '').replace(/^bucket$/i, 'practice'), kind = what.charAt(0).toUpperCase() + what.slice(1) + ' test';
+  const name = (c && (c.chapter || c.n)) || 'Practice', src = mode === 'pyq' ? (e ? e.name + ' PYQs' : 'PYQs') : mode === 'np' ? 'Practice questions' : '';
+  if (/^dpp$/i.test(what)) return 'DPP test: ' + name.replace(/\s*DPP$/, '');
+  if (/^practice$/i.test(what) && !part) return 'Practice test: ' + name;
+  if (/^bookmarked$/i.test(String(part || '').split(' ')[0])) return ('Bookmarked questions test: ' + name).slice(0, 120);
+  return (kind + ': ' + (part ? part + ' · ' : '') + name + (src && !/^chapter$/i.test(what) ? ' · ' + src : '')).slice(0, 120);
+}
+async function launchTestFrom(rows, c, mode, e, count, label, part) {
   const pool = rows.filter(r => r.ok); if (pool.length < 3) throw new Error('Not enough test-ready questions here yet.');
   const n = Math.min(25, pool.length), fresh =   /* every test made here has 25 questions */ pool.filter(r => D.sum.results[r.id] !== 'c'), pick = (fresh.length >= n ? fresh : pool).slice();
   for (let i = pick.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pick[i], pick[j]] = [pick[j], pick[i]]; }
-  const chosen = pick.slice(0, n); let figs = {}; try { figs = await window.AvantiContent.get('qb/data/figures.json'); } catch (x) { figs = {}; }
+  const chosen = pick.slice(0, n); let figs = {}; try { figs = await window.AvantiContent.figures(); } catch (x) { figs = {}; }
   const qs = chosen.map(r => { const x = D.raw.get(r.id), f = figs[r.id]; return { id: r.id, type: x.type, q: x.question, o: x.options || [], a: String(x.answer), ch: x.chapter_code, chn: c.chapter, tp: x.topic || '', f: f && f.svg ? { svg: f.svg } : null, s: r.P ? 'P' : 'N' }; });
-  const r = await A().sb.rpc('create_personal_test', { p_title: 'Your Practice Test', p_duration_min: n * 3, p_marks_correct: 4, p_marks_wrong: 1, p_questions: qs, p_paper_key: 'chapter-' + c.chapter_code, p_audience: 'self', p_exam: 'JEE Main' });
+  const r = await A().sb.rpc('create_personal_test', { p_title: testName(c, mode, e, label, part), p_duration_min: n * 3, p_marks_correct: 4, p_marks_wrong: 1, p_questions: qs, p_paper_key: 'chapter-' + c.chapter_code, p_audience: 'self', p_exam: 'JEE Main' });
   if (r.error) throw new Error(r.error.message);
   location.hash = '#/t/' + r.data.code;
 }
@@ -682,7 +703,7 @@ function qbCompact(r, figs) {
 let BANKP = null;
 const dashBank = () => BANKP || (BANKP = (async () => {
   await load();
-  const [meta, figs] = await Promise.all([fetch('bank-meta.json').then(r => { if (!r.ok) throw new Error('bank-meta'); return r.json(); }), window.AvantiContent.get('qb/data/figures.json').catch(() => ({}))]);
+  const [meta, figs] = await Promise.all([fetch('bank-meta.json').then(r => { if (!r.ok) throw new Error('bank-meta'); return r.json(); }), window.AvantiContent.figures().catch(() => ({}))]);
   const qs = [], byId = new Map(), chapters = new Map();
   D.raw.forEach(r => { const q = qbCompact(r, figs); if (q) { qs.push(q); byId.set(q.i, q); } });
   meta.chapters.forEach(c => chapters.set(c.c, c));

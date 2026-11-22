@@ -32,14 +32,16 @@ function h(tag, props, ...kids) {
 }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 window.AvantiUtil = Object.freeze({ h, esc });
-const BUILD = '1037';
+const BUILD = '1038';
 const RELEASED = '22 Nov 2026';   /* date of this release, shown in the footer */
 const SB_URL = 'https://usehxhvzhdbcmnmqaxoo.supabase.co';
 const SB_KEY = 'sb_publishable_QQ_N_B6kl416kbGMF0DQtw_9Jg58PoN';
 const QB_HTML = 'qb/qb.b525.html', QB_JS = 'qb/qb-all.b870.js?v=' + BUILD, TEACHER_JS = 'teacher.b870.js?v=' + BUILD;   /* the build number in the address, so a new release is never served from the saved copy */
 const KATEX_JS = 'vendor/katex-0.16.9.min.js';
 /* files served from Supabase Storage (bucket "content"), always with the user's token */
-const CONTENT = /^(qb\/data\/|sol\/|must\.json|bank-meta\.json|handouts\/)/;
+const CONTENT = /^(qb\/data\/|sol\/|sol-np\/|must\.json|bank-meta\.json|handouts\/)/;
+/* practice (Premium) files: never written to Cache Storage, so nothing paid stays in the browser after a plan ends */
+const PREMIUM_FILE = /^(qb\/data\/nonpyq\.json|qb\/data\/figures-np\.json|sol-np\/)/;
 /* public files kept in the browser cache as well */
 const PUBLIC = /^(qb\/qb\.b\d+\.html|syllabus\.json|katex\.css)$/;
 const origFetch = window.fetch.bind(window);
@@ -58,14 +60,29 @@ async function cache() {
   if (cacheUser !== uid) {
     cacheUser = uid;
     const name = CACHE_PREFIX + uid + '-b' + BUILD;
-    cacheP = window.caches.open(name).catch(() => null);
+    cacheP = window.caches.open(name).then(c => { dropPremium(c); return c; }).catch(() => null);
     /* older builds, and other accounts that used this browser, never keep paid files here */
     window.caches.keys().then(ks => ks.forEach(k => { if ((k.startsWith(CACHE_PREFIX) || k.startsWith('avanti-teacher-')) && k !== name) window.caches.delete(k); })).catch(() => {});
   }
   return cacheP;
 }
+/* copies of practice files left by an older build are removed (they are never stored now) */
+function dropPremium(c) {
+  if (!c) return;
+  c.keys().then(ks => ks.forEach(r => { let u = ''; try { u = clean(new URL(r.url).pathname); } catch (e) { u = ''; } if (PREMIUM_FILE.test(u)) c.delete(r).catch(() => {}); })).catch(() => {});
+}
+/* the copies kept in memory on this visit (downloaded files, the solutions map, the figures) */
+function clearMemory() {
+  Object.keys(inflight).forEach(k => { delete inflight[k]; });
+  Object.keys(refreshed).forEach(k => { delete refreshed[k]; });
+  Object.keys(data).forEach(k => { delete data[k]; });
+  chOf = null; figsP = null;
+  if (window.__qbPre) window.__qbPre = null;
+}
+/* everything readable in this browser: Cache Storage and the in-memory copies. Called at sign-out and when a test starts or resumes. */
 async function clearCaches() {
   cacheP = null; cacheUser = null;
+  clearMemory();
   try { const ks = await window.caches.keys(); await Promise.all(ks.filter(k => k.startsWith(CACHE_PREFIX) || k.startsWith('avanti-teacher-')).map(k => window.caches.delete(k))); } catch (e) { /* nothing cached */ }
 }
 /* one request to Supabase Storage (the database decides whether this account may have the file) */
@@ -79,7 +96,7 @@ async function remote(path) {
    An unchanged file costs only a small "not modified" answer (the browser keeps it). The copy in Cache Storage is used only
    when there is no internet, and it is deleted as soon as the server refuses the file. Handout PDFs are never kept. */
 const inflight = {}, refreshed = {};
-const keep = url => !/^handouts\/.+\.pdf$/i.test(url);
+const keep = url => !/^handouts\/.+\.pdf$/i.test(url) && !PREMIUM_FILE.test(url);
 function net(url) {
   if (!inflight[url]) {
     const go = CONTENT.test(url) ? remote(url) : origFetch(url, { cache: 'no-cache' });
@@ -135,28 +152,48 @@ function adminScript(path) {
   return adminLoaded[path];
 }
 
-/* Solutions are stored one file per chapter (sol/<chapter>.json); only the chapters asked for are downloaded. */
+/* Solutions are stored one file per chapter: PYQ solutions in sol/<chapter>.json, practice (non-PYQ) solutions in sol-np/<chapter>.json
+   (Premium, Staff and the admin only). Only the chapters asked for are downloaded; a file that is missing or refused simply gives no solutions. */
 const data = {};
-let chOf = null;
+let chOf = null, figsP = null;
+const isPaid = () => { const p = window.AvantiAuth && window.AvantiAuth.perm; return !!(p && (p.premium || p.staff || p.isAdmin)); };
 function chapterOf() {
-  if (!chOf) chOf = Promise.all([data.pyq || getJson('qb/data/pyq.json'), data.nonpyq || getJson('qb/data/nonpyq.json')]).then(([a, b]) => {
-    const m = new Map(); (a || []).concat(b || []).forEach(q => { if (q && q.id != null) m.set(String(q.id), q.chapter_code || 'other'); }); return m;
-  }).catch(e => { chOf = null; throw e; });
+  if (!chOf) {
+    const np = isPaid() ? (data.nonpyq || getJson('qb/data/nonpyq.json')).catch(() => []) : Promise.resolve([]);   /* Free accounts never ask for practice files */
+    chOf = Promise.all([data.pyq || getJson('qb/data/pyq.json'), np]).then(([a, b]) => {
+      const m = new Map();
+      (a || []).forEach(q => { if (q && q.id != null) m.set(String(q.id), { ch: q.chapter_code || 'other', np: false }); });
+      (b || []).forEach(q => { if (q && q.id != null && !m.has(String(q.id))) m.set(String(q.id), { ch: q.chapter_code || 'other', np: true }); });
+      return m;
+    }).catch(e => { chOf = null; throw e; });
+  }
   return chOf;
 }
 async function sols(ids) {
-  const m = await chapterOf(), chs = new Set();
-  (ids || []).forEach(id => { chs.add(m.get(String(id)) || 'other'); });
+  const m = await chapterOf(), files = new Set();
+  (ids || []).forEach(id => { const x = m.get(String(id)) || { ch: 'other', np: false }; files.add((x.np ? 'sol-np/' : 'sol/') + encodeURIComponent(x.ch) + '.json'); });
   const out = {};
-  await Promise.all([...chs].map(c => getJson('sol/' + encodeURIComponent(c) + '.json').then(o => { Object.assign(out, o); })));
+  await Promise.all([...files].map(f => getJson(f).then(o => { Object.assign(out, o); }, e => { if (/^sol\//.test(f) && !/\((400|403|404)\)/.test(e.message)) throw e; })));
   return out;
+}
+/* Figures: qb/data/figures.json holds the PYQ figures (everyone); qb/data/figures-np.json the practice figures (Premium only).
+   Both are merged; a missing or refused file is skipped. */
+function figures() {
+  if (!figsP) {
+    const one = (p, ok) => (ok ? getJson(p).catch(() => ({})) : Promise.resolve({}));
+    figsP = Promise.all([one('qb/data/figures.json', true), one('qb/data/figures-np.json', isPaid())]).then(([a, b]) => Object.assign({}, b || {}, a || {}));
+  }
+  return figsP;
 }
 
 function fail() {
   const a = document.getElementById('app'); if (!a) return;
   a.innerHTML = '<div style="padding:48px 16px;text-align:center;font-family:system-ui,sans-serif"><p>The dashboard could not load. Please refresh the page.</p></div>';
 }
+/* /qbank is the admin's Question Bank: nobody else gets as far as asking for its files */
+const onQbank = () => /\/qbank(\.html)?\/?$/.test(location.pathname);
 async function start() {
+  if (onQbank() && !(window.AvantiAuth && window.AvantiAuth.perm && window.AvantiAuth.perm.isAdmin)) { location.replace('dashboard' + location.hash); return; }
   ['topics', 'chapters'].forEach(n => { data[n] = getJson('qb/data/' + n + '.json'); });
   const first = getJson('qb/data/first.json'); first.catch(() => {});
   const html = window.fetch(QB_HTML + '?v=' + BUILD).then(r => { if (!r.ok) throw new Error(QB_HTML); return r.text(); });
@@ -185,6 +222,6 @@ async function start() {
     }
   });
 }
-window.AvantiContent = Object.freeze({ get: getJson, fetch: p => window.fetch(p), sols, adminScript, clearCaches });
+window.AvantiContent = Object.freeze({ get: getJson, fetch: p => window.fetch(p), sols, figures, adminScript, clearCaches });
 window.AvantiBoot = Object.freeze({ start, loadScript, katex, build: BUILD, released: RELEASED });
 })();

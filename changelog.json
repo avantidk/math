@@ -1,5 +1,20 @@
 [
   {
+    "v": "1038",
+    "date": "22 Nov 2026",
+    "items": [
+      "Security audit fixes. Tests: the timer runs from the start and never pauses (no more 30-hour pause). Leaving the test screen or full screen is a warning; at 3 warnings the test is submitted automatically. The question bank stays closed while a test is running, and anything the browser had saved is cleared when a test starts.",
+      "Correct answers open only when the full exam time is over, counted from your start: finish a 3-hour test in 2 h 30 min and the answers open 30 minutes later. Score, ranks and right/wrong are shown at once.",
+      "Devices: one account can be signed in on one computer, one phone and one tablet at the same time. A new sign-in on the same kind of device signs the old one out for good (it has to sign in again).",
+      "Practice (non-PYQ) solutions and figures are now separate files that only Premium accounts can open. The Question Bank page (/qbank) is for the admin only; everyone else goes to the dashboard. Word and PowerPoint stay limited as before.",
+      "Admin: Approvals has a new Blocked Avanti IDs card to unblock an Avanti ID after too many wrong dates of birth.",
+      "Own solutions: at most 2 images per question per student. Free teachers see a Premium page for My Students instead of a blank screen. Tests are no longer locked: only the question type (Non-PYQ / Mix) is Premium; Free accounts use PYQs. Chapter tests are named after their chapter.",
+      "The four chart panels (Question Counts, Chapter-wise Count, Syllabus Priority, Chapter Weightage) work for everyone again. Numerical answers can list several accepted values (\"3 or 9\"); MSQs with 5 options are graded.",
+      "Question bank data: every past paper is numbered 1..N, chapter names match the chapter list, 55 untagged practice questions got topics, first screen counts fixed, a few answers and links corrected.",
+      "Search: titles and descriptions are no longer cut off, old addresses redirect properly, thin pages are hidden from search, cleaner sitemap and robots.txt; public pages cannot be shown inside other websites."
+    ]
+  },
+  {
     "v": "1037",
     "date": "22 Nov 2026",
     "items": [

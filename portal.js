@@ -451,8 +451,8 @@ function membershipContent(teacher) {
       ['trophy', 'Rank among all students', 'See where you stand among everyone who took the test, not just your school.'],
       ['chart', 'Compare with the top', 'See the average and the top score of all students on every test you take.']
     ],
-    rows: [['All previous year questions with answers and solutions', 1, 1], ['Past papers, chapter-wise and full-length mocks from PYQs', 1, 1], ['Your own tests from previous year questions', 1, 1], ['Question-wise review and topic analysis', 1, 1], ['Rank in your school', 1, 1], ['PDF download of previous year questions', 1, 1], ['First Class 11 and Class 12 handouts to view', 1, 1],
-      ['Non-PYQ practice questions (books and sheets)', 0, 1], ['DPPs and the Own DPP Maker', 0, 1], ['Mocks and own tests with practice or mixed questions and a difficulty slider', 0, 1], ['All handouts to view and download', 0, 1], ['Take your school\'s tests', 0, 1], ['Download and print every PDF', 0, 1],
+    rows: [['All previous year questions with answers and solutions', 1, 1], ['Every test: past papers, chapter-wise and full-length mocks, must-solve tests (from PYQs)', 1, 1], ['Your own tests from previous year questions', 1, 1], ['Question-wise review and topic analysis', 1, 1], ['Rank in your school', 1, 1], ['PDF download of previous year questions', 1, 1], ['First Class 11 and Class 12 handouts to view', 1, 1],
+      ['Non-PYQ practice questions (books and sheets)', 0, 1], ['DPPs and the Own DPP Maker', 0, 1], ['Non-PYQ or Mix questions in any test (Free: PYQ only)', 0, 1], ['All handouts to view and download', 0, 1], ['Take your school\'s tests', 0, 1], ['Download and print every PDF', 0, 1],
       ['Rank among all students', 0, 1], ['Average and top score of all students', 0, 1]],
     faq: [['I am on the Avanti list. Do I need to pay?', 'No. Students on the Avanti list get Premium free. Sign in with your Avanti ID.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs open in any PDF app.'], ['Is the payment refundable?', 'No. A payment is final once it goes through, so try the Free plan first.']]
   };
@@ -740,7 +740,11 @@ function paperInfo(x) {
   const label = (/\b(19|20)\d{2}\b/.test(p) ? p : (EXN[x.e] || x.e) + ' ' + (x.y || '') + ' · ' + p).trim();
   return { key: paperKey(x), e: x.e, label, t, sh };
 }
-const gradable = q => { if (!q || !q.a) return false; if (q.t === 'Numerical') return /^-?\d+(\.\d+)?$/.test(q.a.trim()) || /^-?\d+(\.\d+)?\s*to\s*-?\d+(\.\d+)?$/i.test(q.a.trim()); return (q.t === 'MCQ' || q.t === 'MSQ' || q.t === 'Matching' || q.t === 'Comprehension' || q.t === 'Subjective') && (q.o || []).length > 0 && /^[A-D](,[A-D])*$/.test(q.a); };
+/* a question a test can mark: Numerical with a number, a range "a to b" or several accepted numbers "a or b" (the server grades them);
+   options with letters A to D, or A to E when the question has 5 options (MSQ can have up to 5 correct) */
+const NUM_ANS = /^(-?\d+(?:\.\d+)?(\s+or\s+-?\d+(?:\.\d+)?)*|-?\d+(?:\.\d+)?\s*to\s*-?\d+(?:\.\d+)?)$/i;
+const gradable = q => { if (!q || !q.a) return false; const a = String(q.a).trim(), n = (q.o || []).length; if (q.t === 'Numerical') return NUM_ANS.test(a);
+  return (q.t === 'MCQ' || q.t === 'MSQ' || q.t === 'Matching' || q.t === 'Comprehension' || q.t === 'Subjective') && n > 0 && (n >= 5 ? /^[A-E](,[A-E])*$/ : /^[A-D](,[A-D])*$/).test(a.replace(/\s+/g, '')); };
 let CHN = new Map();
 function snap(q) { const ch = CHN.get(q.cc); return { id: q.i, type: q.t, q: q.q, o: q.o || [], a: q.a, ch: q.cc, chn: ch ? ch.n : q.cc, tp: q.tp || '', f: q.f && q.f.svg ? { svg: q.f.svg } : null, d: q.d, src: q.s === 'P' ? (q.e === 'Main' ? 'JEE Main' : q.e === 'Adv' ? 'JEE Advanced' : q.e) + (q.y ? ' ' + q.y : '') : 'Practice' }; }
 async function pageCreate(arg, r) {
@@ -1198,14 +1202,14 @@ function mockBar(onChange, o) {
   const hint = h('p', { class: 'mk-hint', role: 'status' }), slider = h('input', { type: 'range', class: 'mk-range', min: 0, max: 4, step: 1, value: 2, 'aria-label': 'Difficulty of the questions' });
   const drawSeg = () => { seg.textContent = ''; [['P', 'PYQ', 'Previous year questions'], ['N', 'Non-PYQ', 'Practice questions'], ['M', 'Mix', 'Both']].forEach(([k, t, sub]) => {
     const off = free && k !== 'P';
-    seg.append(h('button', { type: 'button', class: 'mk-sb' + (off ? ' is-off' : ''), 'aria-pressed': String(st.src === k), title: off ? 'Practice questions are part of Premium' : sub, onclick: () => { if (off) { location.hash = '#/membership'; return; } st.src = k; drawSeg(); onChange(); } },
+    seg.append(h('button', { type: 'button', class: 'mk-sb' + (off ? ' is-off' : ''), 'aria-pressed': String(st.src === k), title: off ? 'Non-PYQ and Mix questions are part of Premium' : sub, onclick: () => { if (off) { location.hash = '#/membership'; return; } st.src = k; drawSeg(); onChange(); } },
       h('b', { text: t }), off ? h('span', { class: 'mk-lock', html: lockIc }) : h('small', { text: sub })));
   }); };
   const drawHint = () => { hint.textContent = TOUGH_NAME[st.tough] + ': ' + TOUGH_HINT[st.tough]; };
   slider.addEventListener('input', () => { st.tough = +slider.value; drawHint(); onChange(); });
   drawSeg(); drawHint();
   const el = h('section', { class: 'mk-bar' + (o.noSrc || o.noTough ? ' mk-one' : '') },
-    o.noSrc ? null : h('div', { class: 'mk-col' }, h('span', { class: 'mk-l', text: 'Question source' }), seg, free ? h('small', { class: 'mk-fine', html: 'Free accounts use previous year questions. <a href="#/membership">Get Premium</a> for practice questions.' }) : null),
+    o.noSrc ? null : h('div', { class: 'mk-col' }, h('span', { class: 'mk-l', text: 'Question source' }), seg, free ? h('small', { class: 'mk-fine', html: 'Free accounts can choose PYQ only. <a href="#/membership">Get Premium</a> for Non-PYQ and Mix.' }) : null),
     o.noTough ? null : h('div', { class: 'mk-col' }, h('span', { class: 'mk-l', text: 'Difficulty' }), slider, h('div', { class: 'mk-ticks', 'aria-hidden': 'true' }, TOUGH_NAME.map(t => h('span', { text: t }))), hint));
   return { el, st };
 }
@@ -1221,10 +1225,10 @@ const TXI = {
   full: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4.5l3 1.8M9.5 2.5h5"/></svg>' };
 const MODES = [
   { k: 'pyq', t: 'Previous Year Papers', d: 'Sit a real paper, shift by shift: every question, the real time and the real marking.', tags: ['JEE · KCET · NDA · IAT', 'Real marking'], tone: 'blue' },
-  { k: 'chapter', t: 'Chapter Wise Mock', d: 'Pick one chapter and get a mixed test of previous year and practice questions.', tags: ['25 questions', 'PYQs + practice'], tone: 'green', np: true },
+  { k: 'chapter', t: 'Chapter Wise Mock', d: 'Pick one chapter and get a timed test of its questions, with the source and difficulty you choose.', tags: ['25 questions', 'Any chapter'], tone: 'green' },
   { k: 'sure', t: 'Must Solve / Repeated Questions', d: 'Only the questions that came again and again in JEE, plus the sure-shot ones.', tags: ['High yield', 'All chapters or one'], tone: 'gold' },
   { k: 'custom', t: 'Create Your Practice Test', d: 'You decide the chapters, the source, the difficulty, the number of questions and the time.', tags: ['Your own mix', 'Any chapter'], tone: 'violet' },
-  { k: 'full', t: 'Full Length Mock', d: 'A whole exam: chapters mixed, with the official duration, question count and marking.', tags: ['Official timing', 'All chapters'], tone: 'rose', np: true }];
+  { k: 'full', t: 'Full Length Mock', d: 'A whole exam: chapters mixed, with the official duration, question count and marking.', tags: ['Official timing', 'All chapters'], tone: 'rose' }];
 const modeBanner = (kick, title, sub, ...actions) => h('section', { class: 'tx-banner' }, h('div', { class: 'tx-b-in' }, h('span', { class: 'tx-kick', text: kick }), h('h1', { text: title }), sub ? h('p', { text: sub }) : null), h('div', { class: 'tx-b-act' }, link('#/modes', '‹ All tests', 'btn tx-ghost'), actions));
 async function pageModes(arg) {
   if (arg === 'pyq') return pagePersonal('pyq');
@@ -1232,13 +1236,14 @@ async function pageModes(arg) {
   if (arg === 'chapter') return modeChapter();
   if (arg === 'sure') return modeSure();
   if (arg === 'full') return modeFull();
+  /* every kind of test is open to every plan; only the choice of Non-PYQ or Mix questions inside a test is part of Premium */
   const free = isFree();
   let n = null; try { const c = await rpc('menu_counts'); n = c && c.personal; } catch (e) { n = null; }
   show(head('Tests', 'Choose how you want to be tested. Every result stays in your own account.', link('#/personal', 'My Performance' + (n != null ? ' (' + n + ')' : ''), 'btn pri')),
-    h('div', { class: 'tx-grid' }, MODES.map((m, i) => { const off = free && m.np;
-      return h('a', { class: 'tx-card tx-' + m.tone + (i < 3 ? ' tx-top' : ' tx-low') + (off ? ' is-off' : ''), href: off ? '#/membership' : '#/modes/' + m.k, 'aria-label': m.t + (off ? ' (Premium)' : '') },
-        h('span', { class: 'tx-ic', html: TXI[m.k] }), off ? h('span', { class: 'tx-lock', text: '🔒 Premium' }) : null, h('h2', { text: m.t }), h('p', { text: m.d }),
-        h('ul', { class: 'tx-tags' }, m.tags.map(t => h('li', { text: t }))), h('span', { class: 'tx-go', text: off ? 'Unlock with Premium ›' : 'Open ›' })); })));
+    free ? h('p', { class: 'pt-hint', html: 'Every test is free. Free accounts use previous year questions (PYQ); <a href="#/membership">Premium</a> adds Non-PYQ and Mix questions.' }) : null,
+    h('div', { class: 'tx-grid' }, MODES.map((m, i) => h('a', { class: 'tx-card tx-' + m.tone + (i < 3 ? ' tx-top' : ' tx-low'), href: '#/modes/' + m.k, 'aria-label': m.t },
+        h('span', { class: 'tx-ic', html: TXI[m.k] }), h('h2', { text: m.t }), h('p', { text: m.d }),
+        h('ul', { class: 'tx-tags' }, m.tags.map(t => h('li', { text: t }))), h('span', { class: 'tx-go', text: 'Open ›' })))));
 }
 const modeHead = (t, sub) => modeBanner('TESTS', t, sub);
 const chip = (text, on, fn, dis) => h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(!!on), text, disabled: !!dis, onclick: fn });
@@ -1314,7 +1319,7 @@ async function modeCustom() {
     if (S.advp) { S.n = advN(S.advp); S.mins = advMin(S.advp); S.auto = false; nIn.value = S.n; minIn.value = S.mins; }
     nIn.disabled = !!S.advp; draw(true); } }, scOpts.map(([v, k, t]) => h('option', { value: v, text: t, selected: k === S.scheme && !S.advp && v === k })));
   const ordSel = h('select', { class: 'pt-in', 'aria-label': 'Order of questions', onchange: e => { S.order = e.target.value; } }, [['random', 'Random'], ['even', 'Chapters mixed evenly'], ['easy', 'Easy to hard']].map(([v, t]) => h('option', { value: v, text: t })));
-  const titleIn = h('input', { type: 'text', class: 'pt-in', maxlength: 80, placeholder: 'Your Practice Test', 'aria-label': 'Test name', oninput: e => { S.title = e.target.value.trim(); } });
+  const titleIn = h('input', { type: 'text', class: 'pt-in', maxlength: 80, placeholder: 'Practice test: chapters you pick', 'aria-label': 'Test name', oninput: e => { S.title = e.target.value.trim(); } });
   const skipBox = h('label', { class: 'cp-check' }, h('input', { type: 'checkbox', checked: true, onchange: e => { S.skip = e.target.checked; draw(); } }), h('span', {}, h('b', { text: 'Skip questions I have already solved correctly' }), h('small', { text: 'Keeps the test fresh. Uses your own results.' })));
   const go = h('button', { type: 'button', class: 'btn pri pt-big', text: 'Start test', onclick: async () => {
     go.disabled = true;
@@ -1327,7 +1332,8 @@ async function modeCustom() {
         qs = shuffled(qs).sort((a, b) => (rank(a) < 0 ? 9 : rank(a)) - (rank(b) < 0 ? 9 : rank(b)));
       }
       if (S.advp) { const pl = pool(); qs = compose(pl.filter(q => q.s === 'P'), pl.filter(q => q.s !== 'P'), ADV_MIX[S.advp], S.src === 'P' ? 1 : S.src === 'N' ? 0 : 0.5, S.order === 'even', diff.st.tough, 'JEE Advanced'); }   /* Paper 1 or 2 of 2026: sections 1 to 4, shuffled only inside a section */
-      await launchTest({ title: S.title || (S.advp ? 'JEE Advanced Paper ' + S.advp + ' practice' : 'Your Practice Test'), qs, exam: S.scheme, mins: S.mins, key: 'custom' });
+      const chName = S.ch.size === 1 ? ((CHN.get([...S.ch][0]) || {}).n || '') : S.ch.size ? S.ch.size + ' chapters' : 'All chapters';
+      await launchTest({ title: S.title || (S.advp ? 'JEE Advanced Paper ' + S.advp + ' practice' : 'Practice test: ' + chName + mockTag({ src: S.src, tough: diff.st.tough })), qs, exam: S.scheme, mins: S.mins, key: 'custom' });
     } catch (e) { toast(e.message); go.disabled = false; } } });
   function draw(light) {
     const avail = pool().length, n = Math.min(S.n, avail);
@@ -1365,7 +1371,7 @@ async function modeChapter() {
         try {
           const p = x.match, ratio = st.src === 'P' ? 1 : st.src === 'N' ? 0 : 0.5, qs = compose(p.filter(q => q.s === 'P'), p.filter(q => q.s === 'N'), sc.rules.mix, ratio, false, st.tough), n = qs.length;
           if (n < need) throw new Error('Not enough questions for this choice. Widen the difficulty or the source.');
-          await launchTest({ title: x.c.n + ' · chapter wise mock' + mockTag(st), qs, exam: 'JEE Main', mins: Math.max(10, Math.round(sc.duration_min * n / sc.n_questions)), key: 'chapter-' + x.c.c });
+          await launchTest({ title: 'Chapter test: ' + x.c.n + mockTag(st), qs, exam: 'JEE Main', mins: Math.max(10, Math.round(sc.duration_min * n / sc.n_questions)), key: 'chapter-' + x.c.c });
         } catch (err) { toast(err.message); b.disabled = false; } } },
         h('b', { text: x.c.n }), h('small', { text: off ? 'Too few questions for this choice' : Math.min(x.match.length, sc.n_questions) + ' of ' + x.match.length + ' matching questions' }), h('span', { class: 'pp-go', text: off ? '' : 'Start ›' }))); });
   }
@@ -1438,6 +1444,7 @@ async function modeFull() {
 /* Marking scheme and answers of a finished test as a small PDF: the marks by question type, then every question with the right answer, your answer and your marks */
 async function markingSheet(attemptId, title) {
   const R = await rpc('attempt_report', { p_attempt: attemptId });
+  if (R.answers_at) throw new Error('The answers open at ' + new Date(R.answers_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + ', when the full exam time is over.');
   let info = null; try { info = await rpc('test_info', { p_code: R.test.code }); } catch (e) { info = null; }
   await window.AvantiBoot.loadScript('vendor/jspdf-2.5.1.umd.min.js');
   const { jsPDF } = window.jspdf, doc = new jsPDF({ unit: 'mm', format: 'a4' }), W = 210, M = 14;
@@ -1474,7 +1481,7 @@ async function exportResult(attemptId, title) {
     [{ text: 'Cancel', onclick: () => {} }, { text: 'Download PDF', pri: true, onclick: async () => {
       try {
         const R0 = await rpc('attempt_report', { p_attempt: attemptId });
-        if (mode !== 'q' && R0.answers_at) { toast('The answer key opens at ' + new Date(R0.answers_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + ', when the time of the paper is over. You can download the question paper now.'); return; }
+        if (mode !== 'q' && R0.answers_at) { toast('Correct answers open at ' + new Date(R0.answers_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + ' (when the full exam time is over). You can download the question paper now.'); return; }
         if (mode === 'm') { await markingSheet(attemptId, title); return; }
         const R = R0, ids = (R.items || []).map(i => i.qid).filter(Boolean);
         if (!ids.length) { toast('The questions of this test are not available.'); return; }
@@ -1600,15 +1607,16 @@ async function pageReport(id) {
   const items = R.items || [];
   /* the whole report is shown at once; the correct answers open when the time of the paper is over (so they cannot be passed on to others who are still writing) */
   const keysAt = R.answers_at ? new Date(R.answers_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+  if (keysAt) items.forEach(it => { it.correct_answer = null; });   /* never shown (or kept) before the full exam time is over, whatever the server sends */
   const st = { correct: ['Correct', 'ok'], partial: ['Partly correct', 'mid'], wrong: ['Wrong', 'bad'], skipped: ['Not answered', 'mute'] };
   const review = h('div', { class: 'pt-plist' }, items.map(it => qCard({ type: it.sj ? 'Subjective' : it.type, q: it.q, o: it.o, f: it.f, tp: it.topic }, it.pos - 1, {
-    status: it.status, response: it.response, answer: it.correct_answer, code: it.qid,   /* question codes are shown only here, after the test */
+    status: it.status, response: it.response, answer: it.correct_answer, code: keysAt ? null : it.qid,   /* question codes are shown only here, after the test, once the answers are open (a code would lead to the answer in the bank) */
     right: h('span', { class: 'pt-qmeta' }, it.status ? badge(st[it.status][0], st[it.status][1]) : badge(it.response ? 'Answered' : 'Not answered', 'mute'), h('span', { class: 'pt-hint', text: (it.marks == null ? '' : (it.marks > 0 ? '+' : '') + num(it.marks, 2) + ' marks · ') + mmss(it.time_sec) })),
-    extra: h('p', { class: 'pt-yours' }, 'Your answer: ', h('b', { text: it.response || '—' }), ' · Correct answer: ', h('b', { text: keysAt ? 'shown at ' + keysAt : (it.correct_answer || '—') })) })));
+    extra: h('p', { class: 'pt-yours' }, 'Your answer: ', h('b', { text: it.response || '—' }), ' · Correct answer: ', h('b', { text: keysAt ? 'opens at ' + keysAt : (it.correct_answer || '—') })) })));
   let only = 'all';
   const filt = h('div', { class: 'seg pt-seg' }, [['all', 'All'], ['wrong', 'Wrong'], ['skipped', 'Not answered'], ['correct', 'Correct']].map(([k, tx]) => h('button', { type: 'button', 'aria-pressed': String(k === only), text: tx, onclick: e => { only = k; filt.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === e.target))); review.querySelectorAll('.pt-q').forEach(q => { q.hidden = only !== 'all' && !q.classList.contains('st-' + only); }); } })));
   show(top,
-    keysAt ? h('div', { class: 'pt-note', role: 'note' }, h('b', { text: 'Correct answers appear at ' + keysAt + '. ' }), 'They open when the time of the paper is over, so they cannot be shared while others are still writing it. Your score, ranks, right and wrong answers, marks and topic analysis are shown now.') : null,
+    keysAt ? h('div', { class: 'pt-note', role: 'note' }, h('b', { text: 'Correct answers open at ' + keysAt + ' (when the full exam time is over). ' }), 'So they cannot be shared while others are still writing the paper. Your score, ranks, right and wrong answers, marks and topic analysis are shown now. Open this report again after that time to see them.') : null,
     !R.full ? h('div', { class: 'pt-upsell' }, h('span', { text: 'You see how you did within your school. Premium students also see their rank among all students who took this test.' }), link('#/membership', 'Upgrade to Premium', 'btn pt-gold')) : null,
     h('div', { class: 'pt-stats' }, stat('Score', num(a.score, 2) + ' / ' + num(a.max_score, 2), R.full && R.stats ? 'Average ' + num(R.stats.average, 2) + ' · Top ' + num(R.stats.top, 2) : 'School average ' + num(R.school_stats && R.school_stats.average, 2) + ' · Top ' + num(R.school_stats && R.school_stats.top, 2)),
       stat('Accuracy', pct(acc), a.correct + ' correct of ' + att + ' attempted'), stat('Time taken', mmss(a.time_taken_sec), 'of ' + t.duration_min + ' min'),
@@ -1642,14 +1650,20 @@ async function pageTake(code) {
   if (!info.is_active && !info.attempt_id) { show(card(empty(info.title, 'This test is not open right now. Ask your teacher.', link('#/tests', 'Available tests', 'btn')))); return; }
   const startBtn = h('button', { type: 'button', class: 'btn pri pt-big', text: info.attempt_status === 'in_progress' ? 'Resume test' : 'Start test', onclick: async () => {
     startBtn.disabled = true; startBtn.textContent = 'Starting…';
-    try { const d = await rpc('start_attempt', { p_code: code }); if (d.status === 'submitted') { location.replace('#/report/' + d.attempt_id); return; } try { await document.documentElement.requestFullscreen(); } catch (e) { /* not supported */ } runExam(d); }
+    try {
+      const d = await rpc('start_attempt', { p_code: code }); if (d.status === 'submitted') { location.replace('#/report/' + d.attempt_id); return; }
+      /* nothing with answers or solutions stays readable in this browser while the test runs: the saved copies are removed before the first question shows */
+      try { if (window.AvantiContent) await window.AvantiContent.clearCaches(); } catch (e) { /* nothing cached */ }
+      try { await document.documentElement.requestFullscreen(); } catch (e) { /* not supported */ }
+      runExam(d);
+    }
     catch (e) { startBtn.disabled = false; startBtn.textContent = 'Start test'; toast(e.message); }
   } });
   show(h('div', { class: 'pt-start' }, card(h('p', { class: 'pt-sub', text: info.audience === 'self' ? 'Your personal test' : 'Test by ' + info.teacher }), h('h1', { text: info.title }),
     h('div', { class: 'pt-stats' }, stat('Questions', info.n_questions), stat('Time', info.duration_min + ' min'), stat('Maximum marks', num(info.max_marks != null ? info.max_marks : info.marks_correct * info.n_questions, 2))),
     schemeTable(info),
     h('h2', { text: 'Instructions' }),
-    h('ul', { class: 'pt-feats' }, ['The timer runs only while this page is open. If the power or internet goes, the timer pauses by itself. Open the test again within 30 hours to carry on; after 30 hours it is submitted with your saved answers.', 'Your answers are saved automatically every few seconds. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Do not switch tabs or apps. Every switch is recorded and your teacher can see it.', 'The test submits by itself when the time is up.'].map(x => h('li', { text: x }))),
+    h('ul', { class: 'pt-feats' }, ['The timer starts when you press Start and runs on the clock until the full time is over, also if you close the page or lose the internet. Open the test again to carry on with your saved answers.', 'Your answers are saved automatically every few seconds. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Stay on the test in full screen. Switching to another tab or app, or leaving full screen, gives a warning. At 3 warnings the test is submitted automatically.', 'The test submits by itself when the time is up. The correct answers open when the full exam time is over.'].map(x => h('li', { text: x }))),
     h('p', { class: 'pt-hint', text: 'Signed in as ' + (P().full_name || P().email || P().avanti_id) + (P().school ? ' · ' + P().school : '') }),
     startBtn)));
 }
@@ -1673,7 +1687,9 @@ function schemeTable(info) {
 function exitExam() {
   if (!EX) return;
   clearInterval(EX.tick); clearInterval(EX.auto);
-  document.removeEventListener('visibilitychange', EX.onVis); window.removeEventListener('beforeunload', EX.onUnload); window.removeEventListener('offline', EX.onOffline); window.removeEventListener('online', EX.onOnline);
+  document.removeEventListener('visibilitychange', EX.onVis); document.removeEventListener('fullscreenchange', EX.onFull); document.removeEventListener('webkitfullscreenchange', EX.onFull);
+  window.removeEventListener('beforeunload', EX.onUnload); window.removeEventListener('offline', EX.onOffline); window.removeEventListener('online', EX.onOnline);
+  if (EX.warnClose) EX.warnClose();
   EX.root.remove(); document.body.classList.remove('ex-on'); EX = null;
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 }
@@ -1681,12 +1697,13 @@ function runExam(d) {
   exitExam();
   const qs = d.questions, ans = {};
   qs.forEach(q => { const a = (d.answers || {})[q.id] || {}; ans[q.id] = { r: a.r == null ? (q.type === 'MSQ' ? [] : '') : a.r, t: +a.t || 0, m: !!a.m, v: !!a.v }; });
-  /* the clock counts active time only: the server says how many seconds are left, this page counts down from there and stops while offline */
-  const X = EX = { d, qs, ans, cur: 0, tabs: d.tab_switches || 0, dirty: false, saving: false, enter: Date.now(), done: false, left: d.remaining_sec != null ? d.remaining_sec : Math.max(0, d.duration_min * 60 - (Date.parse(d.server_now) - Date.parse(d.started_at)) / 1000), sync: Date.now(), paused: !navigator.onLine };
+  /* the clock is wall-clock time from the start: the server says how many seconds are left, this page counts down from there and never stops.
+     X.tabs is the number of warnings (tab or app switch, leaving full screen); the server submits the test at 3. */
+  const X = EX = { d, qs, ans, cur: 0, tabs: d.tab_switches || 0, dirty: false, saving: false, enter: Date.now(), done: false, left: d.remaining_sec != null ? d.remaining_sec : Math.max(0, d.duration_min * 60 - (Date.parse(d.server_now) - Date.parse(d.started_at)) / 1000), sync: Date.now(), lastViol: 0, wasFull: !!document.fullscreenElement };
   const root = X.root = h('div', { class: 'ex', role: 'application', 'aria-label': 'Test: ' + d.title });
   document.body.classList.add('ex-on'); document.body.append(root);
   const timer = h('span', { class: 'ex-timer', role: 'timer', 'aria-live': 'off' });
-  const pauseBar = h('div', { class: 'ex-pause', role: 'alert', hidden: true, text: 'No connection: your timer is paused. Your answers are kept on this page and saved again as soon as you are back online.' });
+  const pauseBar = h('div', { class: 'ex-pause', role: 'alert', hidden: navigator.onLine, text: 'No connection. The timer keeps running. Your answers are kept on this page and saved as soon as you are back online.' });
   const saved = h('span', { class: 'ex-saved', role: 'status' });
   const main = h('main', { class: 'ex-main' }), pal = h('div', { class: 'ex-grid' });
   const side = h('aside', { class: 'ex-side', 'aria-label': 'Question palette' },
@@ -1704,8 +1721,14 @@ function runExam(d) {
   async function save(force) {
     if (X.done || X.saving || (!X.dirty && !force)) return;
     X.saving = true; track(); X.dirty = false; saved.textContent = 'Saving…'; saved.className = 'ex-saved';
-    try { const r = await rpc('save_attempt', { p_attempt: d.attempt_id, p_answers: payload(), p_tab_switches: X.tabs }); if (r.status === 'time_up') { finish(true); return; } if (r.remaining_sec != null) { X.left = r.remaining_sec; X.sync = Date.now(); } setPaused(false); saved.textContent = 'Saved ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
-    catch (e) { X.dirty = true; saved.textContent = 'Not saved: offline? Retrying…'; saved.className = 'ex-saved bad'; setPaused(true); }
+    try {
+      const r = await rpc('save_attempt', { p_attempt: d.attempt_id, p_answers: payload(), p_tab_switches: X.tabs });
+      if (r && r.status === 'submitted') { X.saving = false; closed(r.reason === 'violations' ? 'The test was submitted after 3 warnings.' : 'This test is already submitted.'); return; }
+      if (r && r.status === 'time_up') { X.saving = false; finish(true); return; }
+      if (r && r.remaining_sec != null) { X.left = r.remaining_sec; X.sync = Date.now(); }
+      pauseBar.hidden = true; saved.textContent = 'Saved ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    }
+    catch (e) { X.dirty = true; saved.textContent = 'Not saved: offline? Retrying…'; saved.className = 'ex-saved bad'; if (!navigator.onLine) pauseBar.hidden = false; }
     X.saving = false;
   }
   function drawPal() {
@@ -1758,19 +1781,18 @@ function runExam(d) {
     const s2 = Math.floor(ans[q.id].t + (Date.now() - X.enter) / 1000);
     X.qtEl.textContent = '\u23f1 ' + Math.floor(s2 / 60) + ':' + String(s2 % 60).padStart(2, '0');
   }
-  /* pause and resume the countdown (no connection = paused; the first save that goes through resumes it with the server's time) */
-  function setPaused(on) {
-    if (X.paused === on || X.done) return;
-    if (on) X.left = Math.max(0, X.left - (Date.now() - X.sync) / 1000); X.sync = Date.now(); X.paused = on;
-    pauseBar.hidden = !on; timer.classList.toggle('paused', on); if (on) track(); else X.enter = Date.now();
-  }
-  X.onOffline = () => setPaused(true); X.onOnline = () => { X.dirty = true; save(true); };
+  /* no connection: the timer keeps running (it is the server's clock); answers are saved again when the internet is back */
+  X.onOffline = () => { pauseBar.hidden = false; }; X.onOnline = () => { pauseBar.hidden = true; X.dirty = true; save(true); };
   window.addEventListener('offline', X.onOffline); window.addEventListener('online', X.onOnline);
+  /* the server has already submitted the test (3 warnings, or submitted elsewhere): straight to the report */
+  function closed(why) {
+    if (X.done) return; X.done = true; clearInterval(X.tick); clearInterval(X.auto);
+    exitExam(); location.replace('#/report/' + d.attempt_id); toast(why);
+  }
   function tickTimer() {
     tickQ();
-    if (X.paused) { pauseBar.hidden = false; timer.classList.add('paused'); }
-    const left = (X.paused ? X.left : X.left - (Date.now() - X.sync) / 1000) * 1000;
-    if (left <= 0 && !X.paused) { timer.textContent = '0:00'; finish(true); return; }
+    const left = (X.left - (Date.now() - X.sync) / 1000) * 1000;
+    if (left <= 0) { timer.textContent = '0:00'; finish(true); return; }
     const s = Math.max(0, Math.ceil(left / 1000)), hh = Math.floor(s / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
     timer.textContent = (hh ? hh + ':' + String(mm).padStart(2, '0') : mm) + ':' + String(ss).padStart(2, '0');
     timer.classList.toggle('low', s <= 300);
@@ -1782,23 +1804,39 @@ function runExam(d) {
     modal('Submit the test?', h('div', {}, h('ul', { class: 'pt-feats' }, h('li', { text: 'Answered: ' + (c.ans + c.am) }), h('li', { text: 'Not answered: ' + (c.na + c.nv) }), h('li', { text: 'Marked for review: ' + (c.mk + c.am) })),
       h('p', { class: 'pt-hint', text: 'You cannot change your answers after submitting.' })), [{ text: 'Back to test', onclick: () => {} }, { text: 'Submit', pri: true, onclick: () => { finish(false); } }]);
   }
-  async function finish(timeUp) {
+  async function finish(timeUp, why) {
     if (X.done) return; X.done = true; track();
-    clearInterval(X.tick); clearInterval(X.auto);
-    main.textContent = ''; main.append(loading(timeUp ? 'Time is up. Submitting your answers…' : 'Submitting your answers…'));
+    clearInterval(X.tick); clearInterval(X.auto); if (X.warnClose) X.warnClose();
+    main.textContent = ''; main.append(loading(why === 'violations' ? '3 warnings: the test is being submitted automatically…' : timeUp ? 'Time is up. Submitting your answers…' : 'Submitting your answers…'));
     for (let i = 0; i < 5; i++) {
-      try { const r = await rpc('submit_attempt', { p_attempt: d.attempt_id, p_answers: payload(), p_tab_switches: X.tabs }); exitExam(); location.replace('#/report/' + r.attempt_id); toast('Submitted. Here is your report.'); return; }
+      try { const r = await rpc('submit_attempt', { p_attempt: d.attempt_id, p_answers: payload(), p_tab_switches: X.tabs }); exitExam(); location.replace('#/report/' + ((r && r.attempt_id) || d.attempt_id)); toast(why === 'violations' || (r && r.reason === 'violations') ? 'The test was submitted automatically after 3 warnings. Here is your report.' : 'Submitted. Here is your report.'); return; }
       catch (e) { main.textContent = ''; main.append(errorBox('Could not submit yet (' + e.message + '). Trying again…')); await new Promise(r => setTimeout(r, 3000)); }
     }
     main.textContent = ''; main.append(errorBox('Your answers were saved, but the test could not be submitted. Check your internet and press Try again.', () => { X.done = false; finish(timeUp); }));
   }
-  X.onVis = () => {
+  /* Warnings: switching to another tab or app, or leaving full screen. One action counts once (a tab switch often also leaves full screen).
+     Each warning is saved at once; the 3rd submits the test. */
+  const MAX_WARN = 3;
+  function violation(what) {
     if (X.done) return;
-    if (document.visibilityState === 'hidden') { X.tabs++; X.dirty = true; save(true); }
-    else modal('Stay on the test', h('p', { text: 'You left the test window. This has happened ' + X.tabs + ' time' + (X.tabs === 1 ? '' : 's') + ' and your teacher can see it. The timer did not stop.' }), [{ text: 'Back to the test', pri: true, onclick: () => {} }]);
+    const now = Date.now(); if (now - X.lastViol < 2500) return; X.lastViol = now;
+    X.tabs++; X.dirty = true;
+    if (X.tabs >= MAX_WARN) { finish(false, 'violations'); return; }
+    save(true);
+    if (X.warnClose) X.warnClose();
+    X.warnClose = modal('Warning ' + X.tabs + ' of ' + MAX_WARN, h('div', {}, h('p', {}, h('b', { text: 'Warning ' + X.tabs + ' of ' + MAX_WARN + ': ' }), what + '. '),
+      h('p', { text: 'At ' + MAX_WARN + ' warnings the test is submitted automatically. The timer keeps running.' })),
+      [{ text: 'Back to the test', pri: true, onclick: () => { X.warnClose = null; if (!document.fullscreenElement && X.wasFull) { try { const p = document.documentElement.requestFullscreen(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* not supported */ } } } }]);
+  }
+  X.onVis = () => { if (!X.done && document.visibilityState === 'hidden') violation('You left the test to open another tab or app'); };
+  X.onFull = () => {
+    if (X.done) return;
+    if (document.fullscreenElement || document.webkitFullscreenElement) { X.wasFull = true; return; }
+    if (X.wasFull) violation('You left full screen');
   };
   X.onUnload = e => { if (!X.done) { e.preventDefault(); e.returnValue = ''; } };
   document.addEventListener('visibilitychange', X.onVis);
+  document.addEventListener('fullscreenchange', X.onFull); document.addEventListener('webkitfullscreenchange', X.onFull);
   window.addEventListener('beforeunload', X.onUnload);
   X.tick = setInterval(tickTimer, 1000); X.auto = setInterval(() => save(true), 25000);   /* every save is also a heartbeat for the server's clock */
   tickTimer(); draw();
@@ -1861,9 +1899,20 @@ async function addStudentFlow(after, defSchool) {
       return false;
     } }]);
 }
+/* Free teachers: My Students is part of the Premium teacher plan (an upgrade page, never a redirect) */
+function premiumTeacherPage() {
+  show(head('My Students', ''), card(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'My Students is part of the Premium teacher plan' }),
+      h('p', { text: 'See every student of your school by class, stream and session, with sign-in status, tests taken, average score and last test, and open any student\u2019s test history.' }),
+      h('p', { class: 'pt-hint', text: 'Students register by themselves and choose their school; you see them here once your school is approved.' }),
+      h('div', { class: 'pt-actions' }, link('#/membership', '\u2605 Upgrade to Premium', 'btn pt-gold'), link('#/my-tests', 'School Tests & Results', 'btn')))));
+}
 function pageAddStudent() {
-  if (!can('isAdmin')) { location.replace('#/students'); return; }
-  if (!can('createTests')) return nope('Adding students is for teachers', '');
+  /* only the admin adds students (the server refuses everyone else): students register by themselves and choose their school */
+  if (!can('isAdmin')) {
+    if (P().role === 'teacher' && !can('manageStudents')) return premiumTeacherPage();
+    return show(head('Add a student', ''), card(empty('Students register by themselves', 'Students sign in with Google (Avanti students with their Avanti ID) and choose their school. Only the admin adds students. ' + (can('manageStudents') ? 'You see them in My Students once your school is approved.' : ''),
+      can('manageStudents') ? link('#/students', 'My Students', 'btn pri') : link('#/help', 'Help & Support', 'btn'))));
+  }
   if (can('manageStudents')) { location.replace('#/students'); return; }
   let f = studentForm(); const holder = h('div', {}, f), msg = h('p', { class: 'pt-msg', role: 'status' }), done = h('div', { class: 'pt-plist' });
   const btn = h('button', { type: 'button', class: 'btn pri pt-big', text: 'Add student', onclick: async () => {
@@ -2086,7 +2135,7 @@ function approvalBadge(x) {
   return k === 'approved' ? badge('Approved', 'ok') : k === 'pending' ? badge('Not Approved', 'bad') : badge('Unassigned', 'mute');
 }
 async function pageStudents() {
-  if (!can('manageStudents')) { if (can('createTests')) { location.replace('#/add-student'); return; } if (P().role === 'student') return show(card(empty('My Students is for teachers', 'This page is for teachers. Your tests and reports are in the profile menu.', link('#/tests', 'Available tests', 'btn pri')))); return nope('My Students is for teachers', ''); }
+  if (!can('manageStudents')) { if (P().role === 'teacher') return premiumTeacherPage(); if (P().role === 'student') return show(card(empty('My Students is for teachers', 'This page is for teachers. Your tests and reports are in the profile menu.', link('#/tests', 'Available tests', 'btn pri')))); return nope('My Students is for teachers', ''); }
   show(head('My Students', ''), loading('Loading your students…'));
   const IS_ADMIN = can('isAdmin');
   let R = IS_ADMIN ? { school: 'All schools', dob_visible: true, students: await rpc('admin_all_students') } : await rpc('school_students', { p_school: STU_SCHOOL || null });
@@ -2165,7 +2214,8 @@ async function pageStudents() {
 
 /* ---------- One student's dashboard (teachers: Premium) ---------- */
 async function pageStudent(uid) {
-  if (!can('manageStudents') || !/^[0-9a-f-]{36}$/i.test(uid || '')) { location.hash = '#/students'; return; }
+  if (!can('manageStudents')) return P().role === 'teacher' ? premiumTeacherPage() : pageStudents();
+  if (!/^[0-9a-f-]{36}$/i.test(uid || '')) { location.hash = '#/students'; return; }
   show(head('Student', ''), loading('Loading the student dashboard…'));
   let st = STU_ROWS.get(uid);
   if (!st) { try { const R = can('isAdmin') ? { students: await rpc('admin_all_students') } : await rpc('school_students', { p_school: STU_SCHOOL || null }); STU_ROWS = new Map((R.students || []).filter(x => x.user_id).map(x => [x.user_id, x])); st = STU_ROWS.get(uid); } catch (e) { /* shown below */ } }
@@ -2259,8 +2309,10 @@ async function pageHelp() {
     ['I paid but I am still on Free.', 'Wait two minutes and refresh the page. If it is still Free, email with the payment ID from Membership → Payment history.'],
     ['My school, class or name is wrong.', 'Students: ask your teacher to correct it. Teachers: email us and we will change the school.'],
     ['A question, answer or figure is wrong.', 'Email the question ID (shown in the question menu) and what should be corrected.'],
-    ['When do I see the correct answers of a test?', 'Your score, ranks and analysis show as soon as you submit. The correct answers open when the time of the paper is over (3 hours after you started a 3-hour paper), even if you submitted early.'],
-    ['My internet or power went during a test.', 'The timer pauses by itself while you are away. Open the test again and carry on; your saved answers are kept.']];
+    ['When do I see the correct answers of a test?', 'Your score, ranks and analysis show as soon as you submit. The correct answers open when the full exam time is over (3 hours after you started a 3-hour paper), even if you submitted early.'],
+    ['My internet or power went during a test.', 'The timer keeps running from the moment you started. Open the test again as soon as you can and carry on; your saved answers are kept.'],
+    ['Why was my test submitted by itself?', 'Switching to another tab or app, or leaving full screen, gives a warning. At 3 warnings the test is submitted automatically. It is also submitted when the time is over.'],
+    ['Can I use my account on more than one device?', 'Yes: on one computer, one phone and one tablet at the same time. Signing in on a second device of the same kind signs the older one out.']];
   show(head('Help & Support', 'Found a problem or have a question? Write to us and we will get back to you.'),
     h('div', { class: 'pt-grid2 pt-helpgrid' },
       h('div', { class: 'pt-hstack' },
@@ -2365,6 +2417,8 @@ async function pageApprovals() {
   const roleAct = async (r, action) => { try { await rpc('admin_role_request', { p_id: r.id, p_action: action }); toast(action === 'approve' ? 'Role changed' : 'Request rejected'); pageApprovals(); } catch (e) { toast(e.message); } };
   /* students who signed up with Google and chose their school themselves: their school needs approval too */
   const pstu = await rpc('admin_pending_students').catch(() => []);
+  /* Avanti IDs blocked from ID sign-in after too many wrong tries: the admin can unblock one */
+  const blockedCard = blockedAvantiCard();
   /* Schools: rename (or merge into another) and delete */
   const sch = await rpc('admin_schools').catch(() => []);
   const editSchool = async s => {
@@ -2408,11 +2462,43 @@ async function pageApprovals() {
     h('p', { class: 'pt-hint', text: 'Every school choice needs your approval: teachers, Avanti staff and students. Until then a teacher cannot see or add students or make tests, and a student cannot see or take tests. Not approving asks them to choose the school again.' }),
     card(h('h2', { text: 'Teachers waiting for approval' }), pend.length ? table(pend) : empty('Nothing waiting', 'New teachers appear here after they choose their school.')),
     card(h('h2', { text: 'Students waiting for approval (' + pstu.length + ')' }), pstu.length ? stuTable(pstu) : empty('Nothing waiting', 'Students who sign up with Google and choose their school appear here. Students you or their teacher added are approved already.')),
+    blockedCard,
     card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Schools (' + sch.length + ')' })),
       h('p', { class: 'pt-hint', text: 'Edit renames a school everywhere (students, teachers, tests, results); typing the name of another school merges the two. Delete works when no student on the student list belongs to the school.' }),
       h('div', { class: 'pt-frow' }, h('input', { type: 'search', class: 'pt-in', placeholder: 'Search schools', 'aria-label': 'Search schools', oninput: e => drawSch(e.target.value.trim()) })), schBody),
     card(h('div', { class: 'pt-ct' }, h('h2', { text: 'All teachers' }), allCount),
       h('div', { class: 'pt-frow' }, h('input', { type: 'search', class: 'pt-in', placeholder: 'Search name, email or school', 'aria-label': 'Search teachers', oninput: e => drawAll(e.target.value.trim()) })), allBody));
+}
+
+/* Admin, Approvals page: Avanti IDs that cannot sign in with ID + date of birth right now (too many wrong tries), with Unblock */
+function blockedAvantiCard() {
+  const body = h('div', {}, loading('Loading blocked IDs…')), count = h('span', { class: 'pt-meta' });
+  let list = [], q = '';
+  const search = h('input', { type: 'search', class: 'pt-in', placeholder: 'Search Avanti ID, name or school', 'aria-label': 'Search blocked Avanti IDs', oninput: e => { q = e.target.value.trim().toLowerCase(); draw(); } });
+  const unblock = async (x, btn) => {
+    if (!await confirmBox('Unblock ' + x.avanti_id + '?', (x.full_name || 'This student') + ' can sign in with the Avanti ID and date of birth again at once.', 'Unblock')) return;
+    btn.disabled = true;
+    try { await AU().rpc('admin_unlock_avanti', { p_id: x.avanti_id }); toast('Unblocked ' + x.avanti_id); load(); } catch (e) { btn.disabled = false; toast(e.message); }
+  };
+  function draw() {
+    const rows = list.filter(x => !q || [x.avanti_id, x.full_name, x.school].some(v => String(v || '').toLowerCase().includes(q)));
+    count.textContent = list.length ? rows.length + ' of ' + list.length + ' blocked' : '';
+    body.textContent = '';
+    if (!list.length) { body.append(empty('No Avanti ID is blocked', 'An ID is blocked for a while after too many wrong sign-in tries. Blocked IDs appear here.')); return; }
+    body.append(rows.length ? h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Avanti ID', 'Student', 'School', 'Wrong tries (15 min)', 'Wrong tries (24 h)', ''].map(x => h('th', { text: x })))),
+      h('tbody', {}, rows.map(x => { const b = h('button', { type: 'button', class: 'btn pri', text: 'Unblock' }); b.addEventListener('click', () => unblock(x, b));
+        return h('tr', {}, h('td', {}, h('b', { text: x.avanti_id })), h('td', { text: x.full_name || '—' }), h('td', { text: x.school || '—' }), h('td', { class: 'pt-num', text: x.fails_15m == null ? '—' : String(x.fails_15m) }), h('td', { class: 'pt-num', text: x.fails_24h == null ? '—' : String(x.fails_24h) }), h('td', {}, b)); }))))
+      : empty('No blocked ID matches', 'Change the search.'));
+  }
+  async function load() {
+    body.textContent = ''; body.append(loading('Loading blocked IDs…'));
+    try { const r = await AU().rpc('admin_locked_avanti'); list = Array.isArray(r) ? r : []; draw(); }
+    catch (e) { body.textContent = ''; body.append(errorBox('Could not load the blocked Avanti IDs (' + (e.message || 'error') + ').', load)); }
+  }
+  load();
+  return card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Blocked Avanti IDs' }), count),
+    h('p', { class: 'pt-hint', text: 'Avanti IDs that cannot sign in with ID and date of birth right now, after too many wrong tries. Unblock lets the student try again at once.' }),
+    h('div', { class: 'pt-frow' }, search, h('button', { type: 'button', class: 'btn', text: 'Refresh', onclick: () => load() })), body);
 }
 
 /* Footer: website version → list of updates (changelog.json) */

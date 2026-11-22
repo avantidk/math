@@ -3,14 +3,24 @@
    name icon). It never sends it anywhere and never signs anyone in: that is done by auth.js on the home page. */
 (function () {
   'use strict';
-  var d = document, de = d.documentElement, user = null;
+  var d = document, de = d.documentElement, user = null, framed = false;
+  /* Clickjacking protection (GitHub Pages cannot send frame-ancestors / X-Frame-Options): if another website has put this page inside a
+     frame, break out of it, or hide the page when the browser refuses. Frames from this same site (the dashboard's chart pop-ups) are fine. */
+  try {
+    if (window.top !== window.self) {
+      var same = false; try { same = window.top.location.origin === window.location.origin; } catch (e) { same = false; }
+      if (!same) { try { window.top.location.replace(window.location.href); } catch (e) { /* sandboxed frame */ } de.style.display = 'none'; return; }
+      framed = true;
+    }
+  } catch (e) { /* never block the page because of this check */ }
   var ROOT = '/'; try { ROOT = new URL('.', d.currentScript.src).href; } catch (e) { ROOT = '/'; }
   try {
     var raw = window.localStorage.getItem('sb-usehxhvzhdbcmnmqaxoo-auth-token');
     if (raw) { var o = JSON.parse(raw); if (o && o.access_token && o.user) user = o.user; }
   } catch (e) { user = null; }
   if (user) de.classList.add('signed-in');
-  if (/[?&]embed=1/.test(window.location.search)) de.classList.add('embed');   /* shown inside a pop-up of the dashboard: only the content */
+  var embed = framed && /[?&]embed=1/.test(window.location.search);
+  if (embed) de.classList.add('embed');   /* shown inside a pop-up of the dashboard: only the content (site.css hides the header, sidebar and footer) */
   /* The question-bank app lives at /qbank. Old links and sign-in returns that still land on the home page are sent there:
      /#/t/<code> test links, /#/profile, ?code= (Google sign-in coming back) and ?login=1 when someone is already signed in. */
   var pg = de.getAttribute('data-page'), q = window.location.search, hs = window.location.hash;
@@ -21,6 +31,12 @@
   if (/^\/qbank\/?$/.test(window.location.pathname) && /not found/i.test(d.title)) window.location.replace(ROOT + 'qbank.html' + q + hs);
   function ready(fn) { if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', fn); else fn(); }
   ready(function () {
+    if (embed) {
+      /* inside the dashboard's pop-up: no breadcrumbs, and a link opens in a new tab so the dashboard stays where it is */
+      Array.prototype.forEach.call(d.querySelectorAll('.pg-crumbs, .share, [data-share]'), function (el) { el.hidden = true; el.style.display = 'none'; });
+      Array.prototype.forEach.call(d.querySelectorAll('a[href]'), function (a) { var hr = a.getAttribute('href') || ''; if (hr.charAt(0) !== '#') { a.target = '_blank'; a.rel = 'noopener'; } });
+      try { window.parent.postMessage({ embedReady: true }, window.location.origin); } catch (e) { /* the frame's load event does the same */ }
+    }
     if (user) {
       var meta = user.user_metadata || {};
       var name = String(meta.full_name || meta.name || user.email || '').trim();

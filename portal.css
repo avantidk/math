@@ -1106,7 +1106,6 @@ html.plan-free [data-act="lexp"][data-k="pdf"] { display: inline-flex !important
 /* Tests hub (v981 design) and the test page rules (v975) */
 .pp-card.is-off { opacity: .55; cursor: not-allowed; }
 .ex-pause { background: #b4471d; color: #fff; padding: 9px 14px; font-weight: 600; font-size: 14px; text-align: center; }
-.ex-timer.paused { opacity: .55; text-decoration: line-through; }
 .ex-subj { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; } .ex-subj .ex-opts { width: 100%; }
 .pt-radio { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; cursor: pointer; } .pt-radio:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
 .pt-code { font: 700 11.5px var(--font-body); background: var(--accent-soft); color: var(--accent); border-radius: 8px; padding: 3px 8px; }

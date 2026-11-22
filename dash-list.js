@@ -39,7 +39,8 @@ const srcLine = x => {
   return name + (x.year ? ' ' + x.year : '') + (p ? ' (' + p + ')' : '');
 };
 let FIGS = null;
-const figures = env => (FIGS || (FIGS = env.content.get('qb/data/figures.json').catch(() => ({}))));
+/* PYQ figures for everyone, practice figures too for Premium (boot.js merges the two files and skips one that is refused) */
+const figures = env => (FIGS || (FIGS = (env.content.figures ? env.content.figures() : env.content.get('qb/data/figures.json')).catch(() => { FIGS = null; return {}; })));
 
 /* ---------- small pop-up menus for the filters ---------- */
 let openMenu = null;
@@ -175,8 +176,10 @@ function render(env, o) {
       const inp = h('input', { type: 'text', inputmode: 'decimal', class: 'dl-numin', placeholder: 'Type your answer', 'aria-label': 'Your answer', autocomplete: 'off' }), res = h('div', { class: 'dl-numres', role: 'status' });
       const check = () => {
         const v = inp.value.trim(); if (!v) { inp.focus(); return; } if (!raw) { env.toast('The answer for this question is not available yet.'); return; }
-        const range = /^(-?\d+(?:\.\d+)?)\s*to\s*(-?\d+(?:\.\d+)?)$/i.exec(raw), n = parseFloat(v.replace(/[^0-9eE+\-.]/g, '')); let good = false;
-        if (range) good = n >= Math.min(+range[1], +range[2]) - 1e-9 && n <= Math.max(+range[1], +range[2]) + 1e-9; else if (/^-?\d+(\.\d+)?$/.test(raw)) good = Math.abs(n - parseFloat(raw)) < 1e-6 || Math.abs(n - parseFloat(raw)) <= Math.abs(parseFloat(raw)) * 1e-9; else good = v.replace(/\s/g, '').toLowerCase() === raw.replace(/\s/g, '').toLowerCase();
+        /* the key is a number, a range "a to b", or several accepted numbers "a or b" */
+        const range = /^(-?\d+(?:\.\d+)?)\s*to\s*(-?\d+(?:\.\d+)?)$/i.exec(raw), n = parseFloat(v.replace(/[^0-9eE+\-.]/g, '')), alts = raw.split(/\s+or\s+/i).map(x => x.trim()); let good = false;
+        const same = k => Math.abs(n - parseFloat(k)) < 1e-6 || Math.abs(n - parseFloat(k)) <= Math.abs(parseFloat(k)) * 1e-9;
+        if (range) good = n >= Math.min(+range[1], +range[2]) - 1e-9 && n <= Math.max(+range[1], +range[2]) + 1e-9; else if (alts.every(k => /^-?\d+(\.\d+)?$/.test(k))) good = !isNaN(n) && alts.some(same); else good = v.replace(/\s/g, '').toLowerCase() === raw.replace(/\s/g, '').toLowerCase();
         record(r.id, good); res.className = 'dl-numres ' + (good ? 'ok' : 'bad'); res.innerHTML = (good ? ICON.chk + '<b>Correct</b>' : ICON.x + '<b>Wrong</b> · correct answer: ') + (good ? '' : rich(raw));
       };
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
@@ -274,7 +277,8 @@ function solution(env, id, pane) {
     const t = typeof sv === 'string' ? sv : sv.t; pane.append(h('div', { class: 'dl-sol', html: rich(t) }));
   }).catch(() => { pane.textContent = ''; pane.append(h('p', { class: 'dl-soft bad', text: 'Could not load the explanation. Check your connection.' })); });
 }
-/* ---------- other people's solutions (up to 3 images each) ---------- */
+/* ---------- other people's solutions (each person: at most 2 images per question in all) ---------- */
+const MAX_IMG = 2;
 function shrink(file) {
   return new Promise((res, rej) => {
     const u = URL.createObjectURL(file), img = new Image();
@@ -286,12 +290,16 @@ const when = t => { try { return new Date(t).toLocaleDateString('en-IN', { day: 
 const who = (a, at) => h('div', { class: 'dl-who' }, h('b', { text: (a && a.name) || 'Member' }), h('span', { class: 'dl-role', text: (a && a.role) || '' }), h('span', { class: 'dl-when', text: when(at) }));
 function others(env, id, pane, count) {
   const A = env.A; pane.textContent = '';
-  const form = h('div', { class: 'dl-form', hidden: true }), msg = h('span', { class: 'dl-soft', text: 'Up to 3 images, handwritten or typed.' });
-  const pick = h('input', { type: 'file', accept: 'image/*', multiple: true, 'aria-label': 'Choose up to 3 images' }), prev = h('div', { class: 'dl-prev' }), note = h('textarea', { rows: 2, maxlength: 500, placeholder: 'Optional note (for example: shorter method)' });
+  let used = 0;   /* images this person has already posted for this question */
+  const left = () => Math.max(0, MAX_IMG - used), hint = () => (left() ? 'Up to ' + left() + ' image' + (left() === 1 ? '' : 's') + ', handwritten or typed (2 per question in all).' : 'You have already added 2 images for this question, the most allowed. Delete one of your solutions to add another.');
+  const form = h('div', { class: 'dl-form', hidden: true }), msg = h('span', { class: 'dl-soft', text: hint() });
+  const pick = h('input', { type: 'file', accept: 'image/*', multiple: true, 'aria-label': 'Choose up to 2 images' }), prev = h('div', { class: 'dl-prev' }), note = h('textarea', { rows: 2, maxlength: 500, placeholder: 'Optional note (for example: shorter method)' });
   let files = []; const drawPrev = () => { prev.textContent = ''; files.forEach((f, i) => prev.append(h('span', {}, h('img', { src: URL.createObjectURL(f), alt: 'Image ' + (i + 1) }), h('button', { type: 'button', 'aria-label': 'Remove image', text: '×', onclick: () => { files.splice(i, 1); drawPrev(); } })))); };
-  pick.addEventListener('change', () => { Array.from(pick.files || []).forEach(f => { if (files.length < 3) files.push(f); }); pick.value = ''; drawPrev(); });
+  pick.addEventListener('change', () => { const add = Array.from(pick.files || []); let over = false; add.forEach(f => { if (files.length < left()) files.push(f); else over = true; }); pick.value = ''; msg.textContent = over ? 'Only ' + left() + ' image' + (left() === 1 ? '' : 's') + ' can be added for this question (2 in all).' : hint(); drawPrev(); });
   const send = h('button', { type: 'button', class: 'btn pri', text: 'Post solution', onclick: async () => {
+    if (!left()) { msg.textContent = hint(); return; }
     if (!files.length) { msg.textContent = 'Choose at least one image.'; return; }
+    if (files.length > left()) files = files.slice(0, left());
     const s = A().session, uid = s && s.user ? s.user.id : (A().profile || {}).id; if (!uid) { msg.textContent = 'Please sign in again.'; return; }
     send.disabled = true; msg.textContent = 'Uploading…';
     try {
@@ -305,6 +313,7 @@ function others(env, id, pane, count) {
   pane.append(h('button', { type: 'button', class: 'btn pri', text: 'Add your solution', onclick: () => { form.hidden = !form.hidden; } }), form, list);
   A().sb.rpc('qb_solutions_for', { p_qid: id }).then(async r => {
     if (r.error) throw new Error(r.error.message); const rows = r.data || []; count(rows.length);
+    used = rows.filter(x => x.mine).reduce((a, x) => a + (x.images || []).length, 0); msg.textContent = hint(); pick.disabled = !left();
     const paths = rows.flatMap(x => x.images || []); let urls = {};
     if (paths.length) { const s = await A().sb.storage.from('user-solutions').createSignedUrls(paths, 3600); ((s && s.data) || []).forEach(z => { if (z.signedUrl) urls[z.path] = z.signedUrl; }); }
     list.textContent = ''; if (!rows.length) { list.append(h('p', { class: 'dl-soft', text: 'No one has added a solution yet. Be the first.' })); return; }
