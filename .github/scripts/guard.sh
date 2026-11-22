@@ -39,7 +39,7 @@ grep -q 'storage/v1/object/authenticated/content' boot.js 2>/dev/null || bad "bo
 grep -q 'Content-Security-Policy' qbank.html 2>/dev/null && grep -q 'Content-Security-Policy' index.html 2>/dev/null || bad "index.html or qbank.html lost its Content-Security-Policy."
 grep -l -E 'https://(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|unpkg\.com)' $LIVE 2>/dev/null | while read -r f; do echo "::error::$f loads code from a CDN. Libraries must be in vendor/ (the security policy blocks other sites)."; done
 grep -q -E 'https://(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|unpkg\.com)' $LIVE 2>/dev/null && fail=1
-for s in 'function public.content_allowed' 'function public.approved_school' "interval '3 hours'" "source = 'avanti'"; do
+for s in 'function public.content_allowed' 'function public.approved_school' "v_keys := not v_mine or now() >= a.started_at + make_interval(mins" "source = 'avanti'"; do
   grep -q -F "$s" supabase/schema.sql || bad "supabase/schema.sql lost a security rule ($s)."
 done
 
