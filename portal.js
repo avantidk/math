@@ -1018,12 +1018,17 @@ const markText = sc => {
   const r = mcqRule(sc); return '+' + num(r.c, 2) + (r.w ? ' / −' + num(r.w, 2) : '');
 };
 /* a question as it is stored inside a test (the answer key stays on the server; students never get ids or keys) */
-const ADV_SEC = { MCQ: '1', Matching: '1', MSQ: '2', Numerical: '3', Comprehension: '4' };   /* JEE Advanced: Section 1 single correct, 2 one or more correct, 3 numerical (4 = paragraph questions, when they are in the bank) */
+/* JEE Advanced 2026 sections (used for every paper): 1 single correct, 2 one or more correct, 3 numerical, 4 paragraph questions (Paper 2) or matching (Paper 1).
+   A paragraph question starts with "Para:" (stem, then on the last line what is asked). */
+const isPara = q => !!q && (q.t === 'Comprehension' || (q.t === 'Numerical' && /^\s*Para:/i.test(q.q || '')));
+const advSec = q => isPara(q) ? '4' : q.t === 'Matching' ? '4' : ({ MCQ: '1', MSQ: '2', Numerical: '3' }[q.t] || '');
+const typeKey = q => isPara(q) ? 'Comprehension' : q.t;
+const ADV_MIX = { 1: { MCQ: 4, MSQ: 4, Numerical: 4, Matching: 4 }, 2: { MCQ: 4, MSQ: 5, Numerical: 5, Comprehension: 4 } };
 const tq = (q, exam) => {
   const x = snap(q), ok = gradable(q), written = q.t === 'Subjective';
   const o = { id: x.id, type: written ? 'WRITTEN' : x.type === 'Comprehension' ? (/,/.test(x.a || '') ? 'MSQ' : 'MCQ') : x.type, q: x.q, o: x.o, a: x.a || '', ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' };
   if (q.e === 'CBSE' && /^[A-E]$/i.test(String(q.sec || ''))) o.sec = String(q.sec).toUpperCase();   /* CBSE Class 12: the section decides the marks (B to E are shown as 4 options) */
-  if (exam === 'JEE Advanced' && ADV_SEC[o.type]) o.sec = ADV_SEC[o.type];
+  if (exam === 'JEE Advanced' && advSec(q)) o.sec = advSec(q);
   if (!ok) o.nk = true;   /* no answer key we can mark (or a written answer): shown in the test, not marked, answer shown in the review */
   return o;
 };
@@ -1164,8 +1169,8 @@ function pickParas(pool, n, used) {
 function compose(poolP, poolN, mix, ratioP, even, tough, exam) {
   const used = new Set(), out = [];
   Object.entries(mix).forEach(([type, n]) => {
-    if (type === 'Comprehension') { const tp = poolP.filter(q => q.t === type), tn = poolN.filter(q => q.t === type); let got = pickParas(tp, Math.min(n, tp.length, ratioP >= 1 ? n : Math.round(n * ratioP) || (tn.length ? 0 : n)), used); if (got.length < n) got = got.concat(pickParas(tn, n - got.length, used)); if (got.length < n) got = got.concat(pickParas(tp, n - got.length, used)); out.push(...got); return; }
-    const tp = poolP.filter(q => q.t === type), tn = poolN.filter(q => q.t === type), nP = Math.min(tp.length, Math.round(n * ratioP));
+    if (type === 'Comprehension') { const tp = poolP.filter(q => typeKey(q) === type), tn = poolN.filter(q => typeKey(q) === type); let got = pickParas(tp, Math.min(n, tp.length, ratioP >= 1 ? n : Math.round(n * ratioP) || (tn.length ? 0 : n)), used); if (got.length < n) got = got.concat(pickParas(tn, n - got.length, used)); if (got.length < n) got = got.concat(pickParas(tp, n - got.length, used)); out.push(...got); return; }
+    const tp = poolP.filter(q => typeKey(q) === type), tn = poolN.filter(q => typeKey(q) === type), nP = Math.min(tp.length, Math.round(n * ratioP));
     let got = pickN(tp, nP, even, used, tough).concat(pickN(tn, n - nP, even, used, tough));
     if (got.length < n) got = got.concat(pickN(tp, n - got.length, even, used, tough));
     if (got.length < n) got = got.concat(pickN(tn, n - got.length, even, used, tough));
@@ -1302,7 +1307,7 @@ async function modeCustom() {
       if (S.order === 'easy') qs = qs.slice().sort((a, b) => (a.d || 'L2').localeCompare(b.d || 'L2'));
       if (S.scheme === 'NDA') qs = ndaOrder(qs);   /* chapter wise, 4 to 5 questions of a chapter in a row */
       else if (S.scheme === 'JEE Advanced' || S.scheme === 'CBSE 12') {   /* sections first (shuffle only inside a section) */
-        const rank = q => S.scheme === 'CBSE 12' ? 'ABCDE'.indexOf(String(q.sec || '').toUpperCase()) : ['MCQ', 'MSQ', 'Numerical', 'Comprehension'].indexOf(q.t);
+        const rank = q => S.scheme === 'CBSE 12' ? 'ABCDE'.indexOf(String(q.sec || '').toUpperCase()) : (+advSec(q) || 0) - 1;
         qs = shuffled(qs).sort((a, b) => (rank(a) < 0 ? 9 : rank(a)) - (rank(b) < 0 ? 9 : rank(b)));
       }
       await launchTest({ title: S.title || 'Your Practice Test', qs, exam: S.scheme, mins: S.mins, key: 'custom' });
@@ -1372,7 +1377,7 @@ async function modeSure() {
   }
   draw(); show(modeHead('Must Solve / Repeated Questions', 'Choose a chapter, or all of them.'), card(chips, info, go));
 }
-const FULL_EXAMS = [['JEE Main', 'Main'], ['JEE Advanced', 'Adv'], ['KCET', 'KCET'], ['NDA', 'NDA'], ['IAT', 'IAT'], ['CUET', null]];
+const FULL_EXAMS = [['JEE Main', 'Main'], ['JEE Advanced', 'Adv', 1], ['JEE Advanced', 'Adv', 2], ['KCET', 'KCET'], ['NDA', 'NDA'], ['IAT', 'IAT'], ['CUET', null]];
 async function modeFull() {
   show(modeHead('Full Length Mock', 'Choose the source and the difficulty, then an exam.'), loading('Loading the question bank…'));
   const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
@@ -1381,19 +1386,22 @@ async function modeFull() {
   function draw() {
     grid.textContent = '';
     note.textContent = (st.src === 'P' ? 'Previous year questions' : st.src === 'N' ? 'Practice questions' : 'Previous year and practice questions mixed') + ', with the official duration and marking of the exam. Each start picks new random questions.';
-    FULL_EXAMS.forEach(([ex, code]) => { const sc = SC[ex]; if (!sc) return;
+    FULL_EXAMS.forEach(([ex, code, pp]) => { const sc = SC[ex]; if (!sc) return;
+      const advReady = !!(sc.rules.sections && sc.rules.sections['4:Matching']);   /* the 2026 two-paper rule is in the database */
+      if (pp && !advReady && pp === 1) return;   /* old rule: one Advanced card only (the Paper 2 card) */
+      const pmix = pp && advReady ? ADV_MIX[pp] : null, nq = pmix ? Object.values(pmix).reduce((a, x) => a + x, 0) : sc.n_questions, label = pp && advReady ? ex + ' · Paper ' + pp : ex;
       const pyq = all.filter(q => q.s === 'P' && (code ? q.e === code : q.cc.startsWith('12'))), np = all.filter(q => q.s === 'N' && (code ? true : q.cc.startsWith('12'))), have = mockPool(pyq.concat(np), st).length, off = have < 5;
       grid.append(h('button', { type: 'button', class: 'pp-card' + (off ? ' is-off' : ''), disabled: off, onclick: async e => {
         const b = e.currentTarget; b.disabled = true;
         try {
-          const ratio = st.src === 'P' ? 1 : st.src === 'N' ? 0 : 0.6, mix = Object.assign({}, sc.rules.mix); if (!(sc.rules.sections && sc.rules.sections['4'])) delete mix.Comprehension;   /* until the 2026 Section 4 rule is in the database */
+          const ratio = st.src === 'P' ? 1 : st.src === 'N' ? 0 : 0.6, mix = Object.assign({}, pmix || sc.rules.mix); if (!pmix && !(sc.rules.sections && sc.rules.sections['4'])) delete mix.Comprehension;   /* until the 2026 Section 4 rule is in the database */
           const qs = compose(mockPool(pyq, st), mockPool(np, st), mix, ratio, true, st.tough, ex);
           if (qs.length < 5) throw new Error('Not enough questions for this choice. Widen the difficulty or the source.');
-          await launchTest({ title: ex + ' full length mock' + mockTag(st), qs, exam: ex, mins: null, key: 'full-' + ex });
+          await launchTest({ title: label + ' full length mock' + mockTag(st), qs, exam: ex, mins: pmix && pp === 1 ? Math.round(sc.duration_min * nq / (sc.n_questions || nq)) : null, key: 'full-' + ex + (pmix ? '-p' + pp : '') });
         } catch (err) { toast(err.message); b.disabled = false; } } },
-        h('b', { text: ex }), h('small', { text: (sc.n_questions || '') + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }),
+        h('b', { text: label }), h('small', { text: (nq || '') + ' questions · ' + (pmix && pp === 1 ? Math.round(sc.duration_min * nq / (sc.n_questions || nq)) : sc.duration_min) + ' min · ' + markText(sc) }),
         h('small', { class: 'pt-hint', text: off ? 'Too few questions for this choice' : have + ' matching questions' }),
-        sc.rules.notes && ex === 'JEE Advanced' && !(sc.rules.mix && sc.rules.mix.Comprehension) ? h('small', { class: 'pt-hint', text: '14 questions today: Section 4 needs paragraph questions.' }) : null, h('span', { class: 'pp-go', text: off ? '' : 'Start ›' }))); });
+        sc.rules.notes && ex === 'JEE Advanced' && !advReady && !(sc.rules.mix && sc.rules.mix.Comprehension) ? h('small', { class: 'pt-hint', text: '14 questions today: Section 4 needs paragraph questions.' }) : null, h('span', { class: 'pp-go', text: off ? '' : 'Start ›' }))); });
     cards.forEach(c => grid.append(c));
   }
   /* CBSE Class 12 (Code 041): 38 questions, 80 marks, 3 hours. Section A is MCQ; sections B to E are written-answer questions that the bank holds as 4 options (or several correct options), made from the uploaded solutions. */
@@ -1634,7 +1642,7 @@ const SEC_NAME = { 1: 'Section 1 · Single correct (MCQ)', 2: 'Section 2 · One 
 function schemeTable(info) {
   const secs = info.sections || []; if (!secs.length) return h('p', { class: 'pt-hint', text: 'Correct +' + num(info.marks_correct, 2) + ' · wrong −' + num(info.marks_wrong, 2) });
   const row = x => { const unmarked = +x.c === 0;
-    return h('tr', {}, h('th', { scope: 'row', text: x.sec && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
+    return h('tr', {}, h('th', { scope: 'row', text: x.sec === '4' ? (x.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · Paragraph questions') : x.sec && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
       h('td', { class: 'pt-num', text: unmarked ? 'not marked' : '+' + num(x.c, 2) + (x.p ? ' (partial marks possible)' : '') }),
       h('td', { class: 'pt-num', text: unmarked ? '—' : x.w != null ? (+x.w ? '−' + num(x.w, 2) : '0') : (x.type === 'MCQ' || x.type === 'Matching') ? (+info.marks_wrong ? '−' + num(info.marks_wrong, 2) : '0') : '0' })); };
   const unm = secs.filter(x => +x.c === 0).reduce((a, x) => a + x.n, 0);
