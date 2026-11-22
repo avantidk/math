@@ -570,8 +570,8 @@ body.dpop-on { overflow: hidden; }
 .dl-mt { width: 100%; border-collapse: collapse; font-size: .95em; background: #fff; }
 .dl-mt th, .dl-mt td { border: 1px solid #d9e0ee; padding: 8px 10px; text-align: left; vertical-align: top; }
 .dl-mt th { background: #f3f6fc; font-weight: 700; }
-.dl-mt td { width: 50%; }
-.dl-mt .dl-mk { margin-right: 4px; }
+.dl-mt { table-layout: fixed; }
+.dl-mt .dl-mtk { margin-right: 4px; }
 
 .d-yr { align-items: stretch; }
 .d-yr > .d-card { align-self: stretch; }
@@ -612,3 +612,8 @@ body.dpop-on { overflow: hidden; }
 .d-tn b { font-size: 14px; line-height: 1.3; color: var(--ink, #13203f); overflow-wrap: anywhere; }
 .d-tn i { display: block; height: 6px; border-radius: 99px; background: linear-gradient(90deg, var(--accent), #5b8cff); }
 .d-tc { font: 600 12.5px var(--font-body); color: var(--mute, #56637f); white-space: nowrap; }
+
+.dl-opts.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.dl-opts.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dl-opts.c1 { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 760px) { .dl-opts.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dl-opts.c2 { grid-template-columns: minmax(0, 1fr); } }

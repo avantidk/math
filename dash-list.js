@@ -25,6 +25,8 @@ function richBase(t) {
   }
   return (out + plainTxt(s.slice(last))).replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>');   /* **bold** in the question text */
 }
+/* Layout of the four options: 1 row when all are short, 2 rows (2 columns) when they fit comfortably, otherwise 4 rows. Never 3 + 1. */
+const optCls = arr => { const w = x => String(x == null ? '' : x).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length, m = Math.max(0, ...(arr || []).map(w)); return (arr || []).length === 4 ? (m <= 14 ? 'c4' : m <= 48 ? 'c2' : 'c1') : 'c1'; };
 /* Match the following: List-I and List-II side by side in a table (P with 1, Q with 2, ...) */
 function rich(t) {
   const m = /^([\s\S]*?)\n\s*List[\s-]*(?:I|1)\s*:?\s*\n([\s\S]*?)\n\s*List[\s-]*(?:II|2)\s*:?\s*\n([\s\S]*)$/.exec(String(t == null ? '' : t));
@@ -32,9 +34,10 @@ function rich(t) {
   const items = (body, re) => { const out = []; String(body).split('\n').forEach(l => { const k = re.exec(l); if (k) out.push([k[1], k[2]]); else if (out.length && l.trim()) out[out.length - 1][1] += '\n' + l; }); return out; };
   const a = items(m[2], /^\s*\(([P-T])\)\s*(.*)$/), b = items(m[3], /^\s*\(([1-9])\)\s*(.*)$/);
   if (a.length < 2 || b.length < 2) return richBase(t);
-  const cell = x => x ? '<b class="dl-mk">(' + esc(x[0]) + ')</b> <span>' + richBase(x[1]) + '</span>' : '';
+  const cell = x => x ? '<b class="dl-mtk">(' + esc(x[0]) + ')</b> <span>' + richBase(x[1]) + '</span>' : '';
   let rows = ''; for (let i = 0; i < Math.max(a.length, b.length); i++) rows += '<tr><td>' + cell(a[i]) + '</td><td>' + cell(b[i]) + '</td></tr>';
-  return richBase(m[1]) + '<div class="dl-mtw"><table class="dl-mt"><thead><tr><th scope="col">List-I</th><th scope="col">List-II</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  const wl = arr => Math.max(8, ...arr.map(x => String(x[1]).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length)), la = wl(a), lb = wl(b), wa = Math.max(34, Math.min(80, Math.round(100 * la / (la + lb))));
+  return richBase(m[1]) + '<div class="dl-mtw"><table class="dl-mt"><colgroup><col style="width:' + wa + '%"><col style="width:' + (100 - wa) + '%"></colgroup><thead><tr><th scope="col">List-I</th><th scope="col">List-II</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 const srcLine = x => {
   if (x.source && x.source !== 'PYQ') return (x.paper ? String(x.paper) : (x.book || x.publisher || 'Practice')) + (x.qno ? ' · Q' + x.qno : '');
@@ -199,7 +202,7 @@ function render(env, o) {
     };
     const q = h('div', { class: 'dl-fullq', html: rich(x.question) });
     const kids = [q, fig,
-      optEls.length ? h('div', { class: 'dl-opts' }, optEls) : null, numBox,
+      optEls.length ? h('div', { class: 'dl-opts ' + optCls(opts) }, optEls) : null, numBox,
       rep, h('div', { class: 'dl-tabrow' }, tabs, nav), body].filter(Boolean);
     box.append(...kids);
     env.mathReady().then(() => { q.innerHTML = rich(x.question); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); });

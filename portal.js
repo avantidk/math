@@ -67,6 +67,8 @@ function mathIn(node) {
   });
 }
 const qBase = t => esc(t).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1').replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');   /* **bold** in question text */
+/* Layout of the four options: 1 row when all are short, 2 rows (2 columns) when they fit comfortably, otherwise 4 rows. Never 3 + 1. */
+const optCls = arr => { const w = x => String(x == null ? '' : x).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length, m = Math.max(0, ...(arr || []).map(w)); return (arr || []).length === 4 ? (m <= 14 ? 'c4' : m <= 48 ? 'c2' : 'c1') : 'c1'; };
 /* Match the following: List-I and List-II are shown side by side as a table (P to 1, Q to 2, ...) */
 function matchTable(t) {
   const m = /^([\s\S]*?)\n\s*List[\s-]*(?:I|1)\s*:?\s*\n([\s\S]*?)\n\s*List[\s-]*(?:II|2)\s*:?\s*\n([\s\S]*)$/.exec(String(t || ''));
@@ -76,7 +78,8 @@ function matchTable(t) {
   if (a.length < 2 || b.length < 2) return null;
   const cell = x => x ? '<b class="mt-k">(' + esc(x[0]) + ')</b> <span>' + qBase(x[1]) + '</span>' : '';
   let rows = ''; for (let i = 0; i < Math.max(a.length, b.length); i++) rows += '<tr><td>' + cell(a[i]) + '</td><td>' + cell(b[i]) + '</td></tr>';
-  return qBase(m[1]) + '<div class="mt-wrap"><table class="mt"><thead><tr><th scope="col">List-I</th><th scope="col">List-II</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  const wl = arr => Math.max(8, ...arr.map(x => String(x[1]).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length)), la = wl(a), lb = wl(b), wa = Math.max(34, Math.min(80, Math.round(100 * la / (la + lb))));
+  return qBase(m[1]) + '<div class="mt-wrap"><table class="mt"><colgroup><col style="width:' + wa + '%"><col style="width:' + (100 - wa) + '%"></colgroup><thead><tr><th scope="col">List-I</th><th scope="col">List-II</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 const qText = t => matchTable(t) || qBase(t);
 function figure(f) {
@@ -727,7 +730,7 @@ function qCard(q, i, o) {
   return h('article', { class: 'pt-q' + (o.status ? ' st-' + o.status : '') },
     h('div', { class: 'pt-qh' }, h('strong', { text: 'Q' + (i + 1) }), o.code ? h('span', { class: 'pt-code', title: 'Question code', text: o.code }) : null, badge(q.type || 'MCQ'), q.tp ? h('span', { class: 'pt-hint', text: q.tp }) : null, o.right),
     h('div', { class: 'pt-qt', html: qText(q.q) }), figure(q.f),
-    opts.length ? h('ol', { class: 'pt-opts' }, opts) : null,
+    opts.length ? h('ol', { class: 'pt-opts ' + optCls(q.o) }, opts) : null,
     o.answer != null && !(q.o || []).length ? h('p', { class: 'pt-ans' }, 'Answer: ', h('b', { text: o.answer })) : null,
     o.extra);
 }
@@ -1735,7 +1738,7 @@ function runExam(d) {
         })));
     } else {
       const multi = q.type === 'MSQ';
-      input = h('div', { class: 'ex-opts', role: multi ? 'group' : 'radiogroup', 'aria-label': 'Options' }, (q.o || []).map((t, k) => {
+      input = h('div', { class: 'ex-opts ' + optCls(q.o), role: multi ? 'group' : 'radiogroup', 'aria-label': 'Options' }, (q.o || []).map((t, k) => {
         const L = LETTERS[k], on = multi ? a.r.includes(L) : a.r === L;
         return h('label', { class: 'ex-opt' + (on ? ' on' : '') },
           h('input', { type: multi ? 'checkbox' : 'radio', name: 'exo', value: L, checked: on, onchange: e => {
