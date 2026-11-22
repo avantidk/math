@@ -36,8 +36,8 @@ function rich(t) {
 const srcLine = x => {
   if (x.source && x.source !== 'PYQ') {   /* practice questions: Ln.Ex.O1.Q16.Chapter name (book, exercise, question number, chapter of the book) */
     const book = String(x.book || x.publisher || 'Practice'), id = String(x.id || ''), m = /-O(\d+)-/.exec(id) || /-DY(\d+)-/.exec(id) || /^BB-\d+-(\d+)-/.exec(id);
-    const ex = m ? (book === 'Ln Ex' ? 'O' : book === 'Ln DY' ? 'DY' : 'E') + (+m[1]) : '', chap = String(x.paper || '').split(' · ')[1] || x.chapter || '';
-    return [book.replace(/\s+/g, '.'), ex, x.qno ? 'Q' + x.qno : '', chap].filter(Boolean).join('.');
+    const ex = m ? (book === 'Ln Ex' ? 'O' : 'E') + (+m[1]) : '', chap = book === 'Ln DY' ? (x.chapter || '') : (String(x.paper || '').split(' · ')[1] || x.chapter || '');
+    return [book === 'BB Ex' ? 'BB' : book.replace(/\s+/g, '.'), ex, x.qno ? 'Q' + x.qno : '', chap].filter(Boolean).join('.');
   }
   const name = EXAM_NAME[x.exam] || x.exam || '', p = String(x.paper || '').replace(String(x.year || ''), '').replace(/\s*\(([^)]*)\)/g, ' · $1').replace(/\s+/g, ' ').replace(/^[\s,.\-–·]+|[\s,.\-–·]+$/g, '');
   return name + (x.year ? ' ' + x.year : '') + (p ? ' (' + p + ')' : '');
