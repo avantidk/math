@@ -1,5 +1,12 @@
 [
   {
+    "v": "1024",
+    "date": "22 Nov 2026",
+    "items": [
+      "Opened question in the lists: the tabs (Full explanation, Others' solutions, Comments) and the previous/next buttons are now on one line, the 'Type your answer' box has a clear border, and the opened question is white with a soft outline and shadow so it no longer blends into the page."
+    ]
+  },
+  {
     "v": "1023",
     "date": "22 Nov 2026",
     "items": [

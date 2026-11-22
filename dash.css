@@ -587,3 +587,20 @@ body.dpop-on { overflow: hidden; }
 .d-lv b { font-size: 20px; } .d-lv small { opacity: .9; font-weight: 600; }
 .d-lv1 { background: #0b7a4e; } .d-lv2 { background: #8a5a00; } .d-lv3 { background: #c1352f; }
 .d-yr .d-t td, .d-yr .d-t th { padding-top: 11px; padding-bottom: 11px; }
+
+/* v1024: tabs and previous/next on one line; clearer answer box; the open question stands out from the page */
+.dl-tabrow { display: flex; align-items: flex-end; gap: 10px; border-bottom: 1px solid var(--rule); flex-wrap: nowrap; }
+.dl-tabrow .dl-tabs { flex: 1; min-width: 0; border-bottom: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.dl-tabrow .dl-tab { white-space: nowrap; }
+.dl-tabrow .dl-nav { margin-left: 0; flex: none; padding-bottom: 6px; }
+.dl-numin { border: 1.5px solid color-mix(in srgb, var(--accent) 45%, var(--rule)); background: var(--panel); box-shadow: 0 1px 2px rgba(12, 26, 61, .08); }
+.dl-numin:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.dl-row.open { background: var(--panel); box-shadow: inset 4px 0 0 var(--accent), 0 0 0 1px color-mix(in srgb, var(--accent) 25%, var(--rule)), 0 8px 22px rgba(12, 26, 61, .08); border-radius: 6px; position: relative; z-index: 1; }
+.dl-row.open .dl-main, .dl-row.open .dl-sd { background: color-mix(in srgb, var(--accent) 9%, var(--panel)); }
+.dl-row .dl-numin { border: 1.5px solid color-mix(in srgb, var(--accent) 50%, var(--rule)); background: var(--panel); box-shadow: 0 1px 3px rgba(12, 26, 61, .12); }
+@media (max-width: 520px) {
+  .dl-tabrow { gap: 4px; }
+  .dl-tabrow .dl-tab { font-size: 12.5px; padding: 8px 6px; }
+  .dl-tabrow .dl-nav { gap: 4px; }
+  .dl-tabrow .dl-nav .btn { min-width: 0; width: 34px; height: 34px; padding: 0; justify-content: center; }
+}

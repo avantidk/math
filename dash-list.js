@@ -188,18 +188,19 @@ function render(env, o) {
     const idx = list.findIndex(z => z.id === r.id);
     const nav = h('span', { class: 'dl-nav' }, h('button', { type: 'button', class: 'btn', 'aria-label': 'Previous question', html: ICON.prev, disabled: idx <= 0, onclick: () => step(idx - 1) }), h('button', { type: 'button', class: 'btn', 'aria-label': 'Next question', html: ICON.next, disabled: idx >= list.length - 1, onclick: () => step(idx + 1) }));
     const panes = { sol: h('div', { class: 'dl-pane' }), oth: h('div', { class: 'dl-pane', hidden: true }), com: h('div', { class: 'dl-pane', hidden: true }) }, loaded = {}, tabs = h('div', { class: 'dl-tabs', role: 'tablist' });
-    const tabBtns = {}; [['sol', 'Full explanation'], ['oth', 'Others’ solutions'], ['com', 'Comments']].forEach(([k, t]) => { const b = h('button', { type: 'button', role: 'tab', class: 'dl-tab', 'aria-selected': 'false', text: t, onclick: () => show(k) }); tabBtns[k] = b; tabs.append(b); });
+    const small = window.matchMedia && window.matchMedia('(max-width: 520px)').matches, TN = small ? { sol: 'Explanation', oth: 'Others’', com: 'Comments' } : { sol: 'Full explanation', oth: 'Others’ solutions', com: 'Comments' };
+    const tabBtns = {}; [['sol', TN.sol], ['oth', TN.oth], ['com', TN.com]].forEach(([k, t]) => { const b = h('button', { type: 'button', role: 'tab', class: 'dl-tab', 'aria-selected': 'false', text: t, onclick: () => show(k) }); tabBtns[k] = b; tabs.append(b); });
     const body = h('div', { class: 'dl-tabbody', hidden: true }, panes.sol, panes.oth, panes.com);
     const show = k => {
       const was = !body.hidden && tabBtns[k].getAttribute('aria-selected') === 'true'; body.hidden = was;
       Object.keys(panes).forEach(p => { panes[p].hidden = was || p !== k; tabBtns[p].setAttribute('aria-selected', String(!was && p === k)); });
       if (was || loaded[k]) return; loaded[k] = true;
-      if (k === 'sol') solution(env, r.id, panes.sol); else if (k === 'oth') others(env, r.id, panes.oth, n => { tabBtns.oth.textContent = 'Others’ solutions' + (n ? ' (' + n + ')' : ''); }); else comments(env, r.id, panes.com, n => { tabBtns.com.textContent = 'Comments' + (n ? ' (' + n + ')' : ''); });
+      if (k === 'sol') solution(env, r.id, panes.sol); else if (k === 'oth') others(env, r.id, panes.oth, n => { tabBtns.oth.textContent = TN.oth + (n ? ' (' + n + ')' : ''); }); else comments(env, r.id, panes.com, n => { tabBtns.com.textContent = TN.com + (n ? ' (' + n + ')' : ''); });
     };
     const q = h('div', { class: 'dl-fullq', html: rich(x.question) });
     const kids = [q, fig,
       optEls.length ? h('div', { class: 'dl-opts' }, optEls) : null, numBox,
-      h('div', { class: 'dl-acts' }, nav), rep, tabs, body].filter(Boolean);
+      rep, h('div', { class: 'dl-tabrow' }, tabs, nav), body].filter(Boolean);
     box.append(...kids);
     env.mathReady().then(() => { q.innerHTML = rich(x.question); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); });
     return box;
