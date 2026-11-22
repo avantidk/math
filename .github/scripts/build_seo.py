@@ -197,6 +197,7 @@ def page(title, desc, canon, body, depth, jsonld=None, og_title=None, up=None, n
 <meta name="apple-mobile-web-app-title" content="अंक-IT">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preload" href="{up}vendor/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{up}vendor/fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{up}site.css?v={VER}">
 <link rel="stylesheet" href="{up}pwa.css?v={VER}">
 <script src="{up}site.js?v={VER}"></script>
@@ -1152,7 +1153,7 @@ def home_block():
         if i == 0: return frame(s[0], s[4])
         f = frame(s[0], s[4]).replace(f'src="img/shots/{s[0]}.webp"', f'src="{PIX}" data-src="img/shots/{s[0]}.webp"').replace(' loading="lazy"', '')
         return f + f'<noscript><img src="img/shots/{s[0]}.webp" width="1366" height="800" alt="{E(s[4])}"></noscript>'
-    slides = ''.join(f'<figure class="car-slide" id="car-s{i}" role="tabpanel" aria-roledescription="slide" aria-label="{i + 1} of {len(shots)}: {E(s[1])}" data-title="{E(s[1])}">{slide_img(s, i)}<figcaption><p class="hd">{E(s[2])}</p><p>{E(s[3])}</p></figcaption></figure>' for i, s in enumerate(shots))
+    slides = ''.join(f'<div class="car-slide" id="car-s{i}" role="tabpanel" aria-roledescription="slide" aria-label="{i + 1} of {len(shots)}: {E(s[1])}" data-title="{E(s[1])}">{slide_img(s, i)}<div class="car-cap"><p class="hd">{E(s[2])}</p><p>{E(s[3])}</p></div></div>' for i, s in enumerate(shots))
     showcase = ('<div class="car" data-car><div class="car-tabs" hidden></div><div class="car-view">'
                 f'<div class="car-track" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Screens from the dashboard">{slides}</div>'
                 '<button type="button" class="car-btn car-prev" aria-label="Previous screen" hidden>&lsaquo;</button><button type="button" class="car-btn car-next" aria-label="Next screen" hidden>&rsaquo;</button></div>'

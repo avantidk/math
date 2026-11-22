@@ -1,5 +1,12 @@
 [
   {
+    "v": "1011",
+    "date": "22 Nov 2026",
+    "items": [
+      "Website speed and accessibility checks: the heading font now loads early, so the page no longer jumps when it appears (layout shift), and the dashboard-screens slider on the home page no longer uses an invalid accessibility role."
+    ]
+  },
+  {
     "v": "1010",
     "date": "22 Nov 2026",
     "items": [

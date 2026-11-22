@@ -324,8 +324,8 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .car-track:focus-visible{outline:3px solid #8fb0ff;outline-offset:6px}
 .car-slide{flex:0 0 100%;scroll-snap-align:center;margin:0;padding:0 2px 4px}
 .car-slide .frame{box-shadow:0 26px 60px rgba(12,26,61,.18);border:1px solid var(--line)}
-.car-slide figcaption{max-width:720px;margin:24px auto 0;text-align:center}
-.car-slide figcaption h3{font-size:24px}.car-slide figcaption p{margin-top:8px;color:var(--mute);font-size:17px}
+.car-slide .car-cap{max-width:720px;margin:24px auto 0;text-align:center}
+.car-slide .car-cap h3{font-size:24px}.car-slide .car-cap p{margin-top:8px;color:var(--mute);font-size:17px}
 .car-btn{position:absolute;top:36%;transform:translateY(-50%);z-index:2;display:grid;place-items:center;width:48px;height:48px;border:0;border-radius:50%;background:#fff;color:var(--navy);font-size:30px;line-height:1;box-shadow:0 8px 24px rgba(12,26,61,.25);cursor:pointer;transition:transform .12s,background .12s}
 .car-btn:hover{background:var(--navy);color:#fff}
 .car-btn:focus-visible{outline:3px solid #8fb0ff;outline-offset:3px}
