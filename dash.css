@@ -572,3 +572,18 @@ body.dpop-on { overflow: hidden; }
 .dl-mt th { background: #f3f6fc; font-weight: 700; }
 .dl-mt td { width: 50%; }
 .dl-mt .dl-mk { margin-right: 4px; }
+
+.d-yr { align-items: stretch; }
+.d-yr > .d-card { align-self: stretch; }
+.d-yrl { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.d-yrl .d-sum { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; }
+.d-sts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.d-st { background: var(--bg, #f3f6fc); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.d-st small { color: var(--mute, #56637f); font-weight: 600; }
+.d-st b { font-size: 22px; color: var(--ink, #13203f); }
+.d-st span { color: var(--mute, #56637f); font-size: 12.5px; }
+.d-lvs { display: flex; gap: 8px; }
+.d-lv { border-radius: 12px; padding: 10px 12px; min-width: 76px; display: flex; flex-direction: column; gap: 2px; color: #fff; }
+.d-lv b { font-size: 20px; } .d-lv small { opacity: .9; font-weight: 600; }
+.d-lv1 { background: #0b7a4e; } .d-lv2 { background: #8a5a00; } .d-lv3 { background: #c1352f; }
+.d-yr .d-t td, .d-yr .d-t th { padding-top: 11px; padding-bottom: 11px; }

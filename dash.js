@@ -559,14 +559,20 @@ function viewChapter(mode, slug, ch, section, extra) {
 function yearBlocks(rows, yrs, mode) {
   const years = Object.keys(yrs).map(Number).sort((a, b) => a - b);
   if (!years.length) return null;
-  const shown = years.slice(-15), max = Math.max(...shown.map(y => yrs[y])), W = 560, H = 190, bw = W / shown.length;
-  const bars = shown.map((y, i) => { const v = yrs[y], bh = Math.max(3, (v / max) * (H - 44)); return '<g><title>' + y + ': ' + v + ' questions</title><rect x="' + (i * bw + 6) + '" y="' + (H - 24 - bh) + '" width="' + (bw - 12) + '" height="' + bh + '" rx="5" class="yb"/><text x="' + (i * bw + bw / 2) + '" y="' + (H - 24 - bh - 6) + '" text-anchor="middle" class="yv">' + v + '</text><text x="' + (i * bw + bw / 2) + '" y="' + (H - 7) + '" text-anchor="middle" class="yl">' + String(y).slice(2) + '</text></g>'; }).join('');
+  const shown = years.slice(-5), tbl = years.filter(y => y >= 2013), max = Math.max(...shown.map(y => yrs[y])), W = 560, H = 190, bw = W / shown.length;
+  const bars = shown.map((y, i) => { const v = yrs[y], bh = Math.max(3, (v / max) * (H - 44)), pad = Math.max(6, (bw - 56) / 2); return '<g><title>' + y + ': ' + v + ' questions</title><rect x="' + (i * bw + pad) + '" y="' + (H - 24 - bh) + '" width="' + (bw - 2 * pad) + '" height="' + bh + '" rx="5" class="yb"/><text x="' + (i * bw + bw / 2) + '" y="' + (H - 24 - bh - 6) + '" text-anchor="middle" class="yv">' + v + '</text><text x="' + (i * bw + bw / 2) + '" y="' + (H - 7) + '" text-anchor="middle" class="yl">' + y + '</text></g>'; }).join('');
   const chart = h('div', { class: 'd-chart', role: 'img', 'aria-label': 'Questions per year', html: '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" preserveAspectRatio="xMidYMid meet">' + bars + '</svg>' });
   const lv = y => ['L1', 'L2', 'L3'].map(L => rows.filter(r => r.y === y && r.d === L).length);
   const table = h('div', { class: 'd-tw' }, h('table', { class: 'd-t' }, h('thead', {}, h('tr', {}, ['Year', 'Questions', 'Level 1', 'Level 2', 'Level 3'].map(x => h('th', { text: x })))),
-    h('tbody', {}, years.slice().reverse().map(y => h('tr', {}, h('td', { text: String(y) }), h('td', { text: String(yrs[y]) }), lv(y).map(n => h('td', { text: String(n) })))))));
-  return [h('h3', { class: 'd-sec', text: 'Year-wise distribution' }), h('div', { class: 'd-two d-two-top' }, h('section', { class: 'd-card' }, h('div', { class: 'd-card-h' }, h('h3', { text: 'Graph' }), h('small', { text: 'questions per year (last 15 years)' })), chart),
-    h('section', { class: 'd-card' }, h('div', { class: 'd-card-h' }, h('h3', { text: 'Table' }), h('small', { text: 'all years' })), table))];
+    h('tbody', {}, tbl.slice().reverse().map(y => h('tr', {}, h('td', {}, h('b', { text: String(y) })), h('td', { text: String(yrs[y]) }), lv(y).map(n => h('td', { text: String(n) })))))));
+  /* a summary under the graph fills the column next to the (taller) table */
+  const tot = tbl.reduce((a, y) => a + yrs[y], 0), lvt = [0, 1, 2].map(i => tbl.reduce((a, y) => a + lv(y)[i], 0)), peak = tbl.reduce((b, y) => (yrs[y] > yrs[b] ? y : b), tbl[0] || years[0]);
+  const stat2 = (k, v, sub) => h('div', { class: 'd-st' }, h('small', { text: k }), h('b', { text: v }), sub ? h('span', { text: sub }) : null);
+  const sumCard = tbl.length ? h('section', { class: 'd-card d-sum' }, h('div', { class: 'd-card-h' }, h('h3', { text: 'Since 2013' }), h('small', { text: tbl.length + ' years' })),
+    h('div', { class: 'd-sts' }, stat2('Questions', num(tot)), stat2('Per year', (tot / tbl.length).toFixed(1), 'on average'), stat2('Busiest year', String(peak), yrs[peak] + ' questions'), stat2('Last 5 years', num(shown.reduce((a, y) => a + yrs[y], 0)), 'questions')),
+    h('div', { class: 'd-lvs', role: 'img', 'aria-label': 'Share of Level 1, 2 and 3 questions since 2013' }, ['Level 1', 'Level 2', 'Level 3'].map((n, i) => h('div', { class: 'd-lv d-lv' + (i + 1), style: 'flex:' + Math.max(lvt[i], 0.01) }, h('b', { text: String(lvt[i]) }), h('small', { text: n }))))) : null;
+  return [h('h3', { class: 'd-sec', text: 'Year-wise distribution' }), h('div', { class: 'd-two d-two-top d-yr' }, h('div', { class: 'd-yrl' }, h('section', { class: 'd-card' }, h('div', { class: 'd-card-h' }, h('h3', { text: 'Graph' }), h('small', { text: 'questions per year (last 5 years)' })), chart), sumCard),
+    h('section', { class: 'd-card' }, h('div', { class: 'd-card-h' }, h('h3', { text: 'Table' }), h('small', { text: '2013 onwards' })), table))];
 }
 
 /* ---------- Create Chapter Test ---------- */
