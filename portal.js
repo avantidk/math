@@ -1280,9 +1280,9 @@ async function modeCustom() {
   const exams = Object.keys(EXN).filter(k => count(q => exOf(q) === k)), books = [...new Set(all.map(bookOf).filter(Boolean))].sort();
   const TYPE_NICE = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct (MSQ)', Numerical: 'Numerical value', Matching: 'Match the following', Comprehension: 'Comprehension (passage based)' };
   const types = Object.keys(TYPE_NICE).filter(t => count(q => q.t === t)).concat([...new Set(all.map(q => q.t))].filter(t => !TYPE_NICE[t] && t !== 'Subjective'));
-  const S = { src: 'P', ex: new Set(['Main']), bk: new Set(), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), tough: 2, ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 25, mins: 75, auto: true, per: 3, scheme: 'JEE Main', title: '' };
+  const S = { src: 'P', ex: new Set(['Main']), bk: new Set(), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), tough: 2, ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 25, mins: 75, auto: true, per: 3, scheme: 'JEE Main', advp: 0, title: '' };
   const schemeNames = Object.keys(SC).filter(k => SC[k] && SC[k].rules);
-  const pool = () => all.filter(q => (q.s === 'P' ? S.src !== 'N' && S.ex.has(q.e) && (!q.y || (q.y >= S.y1 && q.y <= S.y2)) : S.src !== 'P' && S.bk.has(bookOf(q)) && !free) && (!S.ch.size || S.ch.has(q.cc)) && (diff.st.tough === 0 ? q.d === 'L1' : diff.st.tough === 4 ? q.d === 'L3' : true) && S.ty.has(q.t) && (!S.skip || done[q.i] !== 'c'));
+  const pool = () => all.filter(q => (q.s === 'P' ? S.src !== 'N' && S.ex.has(q.e) && (!q.y || (q.y >= S.y1 && q.y <= S.y2)) : S.src !== 'P' && S.bk.has(bookOf(q)) && !free) && (!S.ch.size || S.ch.has(q.cc)) && (diff.st.tough === 0 ? q.d === 'L1' : diff.st.tough === 4 ? q.d === 'L3' : true) && (S.advp || S.ty.has(q.t)) && (!S.skip || done[q.i] !== 'c'));
   const chip = (text, on, fn, small, dis) => h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(!!on), disabled: !!dis, onclick: fn }, text, small != null ? h('em', { class: 'cp-n', text: String(small) }) : null);
   const sect = (n, t, sub, ...kids) => h('section', { class: 'cp-sec' }, h('div', { class: 'cp-sh' }, h('b', { class: 'cp-no', text: String(n) }), h('div', {}, h('h2', { text: t }), sub ? h('p', { text: sub }) : null)), ...kids);
   const sumBox = h('aside', { class: 'cp-sum' }), again = () => draw();
@@ -1296,7 +1296,13 @@ async function modeCustom() {
   for (let y = yMax; y >= yMin; y--) { yr1.append(h('option', { value: y, text: y })); yr2.append(h('option', { value: y, text: y })); } yr1.value = S.y1; yr2.value = S.y2;
   const nIn = h('input', { type: 'number', class: 'pt-in', min: 5, max: 100, value: S.n, 'aria-label': 'Number of questions', oninput: e => { S.n = Math.max(5, Math.min(100, +e.target.value || 5)); if (S.auto) { S.mins = S.n * S.per; minIn.value = S.mins; } draw(true); } });
   const minIn = h('input', { type: 'number', class: 'pt-in', min: 5, max: 360, value: S.mins, 'aria-label': 'Time in minutes', oninput: e => { S.auto = false; S.mins = Math.max(5, Math.min(360, +e.target.value || 5)); draw(true); } });
-  const scSel = h('select', { class: 'pt-in', 'aria-label': 'Marking scheme', onchange: e => { S.scheme = e.target.value; draw(true); } }, schemeNames.map(k => h('option', { value: k, text: k + ' (' + markText(SC[k]) + ')', selected: k === S.scheme })));
+  const advOK = !!(SC['JEE Advanced'] && SC['JEE Advanced'].rules.sections && SC['JEE Advanced'].rules.sections['4:Matching']);   /* the 2026 two-paper rule is in the database */
+  const advN = p => Object.values(ADV_MIX[p]).reduce((a, x) => a + x, 0), advMin = p => Math.round(SC['JEE Advanced'].duration_min * advN(p) / (SC['JEE Advanced'].n_questions || advN(p)));
+  const scOpts = []; schemeNames.forEach(k => { scOpts.push([k, k, k + ' (' + markText(SC[k]) + ')']); if (k === 'JEE Advanced' && advOK) [1, 2].forEach(p => scOpts.push([k + '|' + p, k, 'JEE Advanced · Paper ' + p + ' (' + advN(p) + ' questions, 2026 sections 1 to 4)'])); });
+  const scSel = h('select', { class: 'pt-in', 'aria-label': 'Marking scheme', onchange: e => {
+    const [k, p] = e.target.value.split('|'); S.scheme = k; S.advp = +p || 0;
+    if (S.advp) { S.n = advN(S.advp); S.mins = advMin(S.advp); S.auto = false; nIn.value = S.n; minIn.value = S.mins; }
+    nIn.disabled = !!S.advp; draw(true); } }, scOpts.map(([v, k, t]) => h('option', { value: v, text: t, selected: k === S.scheme && !S.advp && v === k })));
   const ordSel = h('select', { class: 'pt-in', 'aria-label': 'Order of questions', onchange: e => { S.order = e.target.value; } }, [['random', 'Random'], ['even', 'Chapters mixed evenly'], ['easy', 'Easy to hard']].map(([v, t]) => h('option', { value: v, text: t })));
   const titleIn = h('input', { type: 'text', class: 'pt-in', maxlength: 80, placeholder: 'Your Practice Test', 'aria-label': 'Test name', oninput: e => { S.title = e.target.value.trim(); } });
   const skipBox = h('label', { class: 'cp-check' }, h('input', { type: 'checkbox', checked: true, onchange: e => { S.skip = e.target.checked; draw(); } }), h('span', {}, h('b', { text: 'Skip questions I have already solved correctly' }), h('small', { text: 'Keeps the test fresh. Uses your own results.' })));
@@ -1310,7 +1316,8 @@ async function modeCustom() {
         const rank = q => S.scheme === 'CBSE 12' ? 'ABCDE'.indexOf(String(q.sec || '').toUpperCase()) : (+advSec(q) || 0) - 1;
         qs = shuffled(qs).sort((a, b) => (rank(a) < 0 ? 9 : rank(a)) - (rank(b) < 0 ? 9 : rank(b)));
       }
-      await launchTest({ title: S.title || 'Your Practice Test', qs, exam: S.scheme, mins: S.mins, key: 'custom' });
+      if (S.advp) { const pl = pool(); qs = compose(pl.filter(q => q.s === 'P'), pl.filter(q => q.s !== 'P'), ADV_MIX[S.advp], S.src === 'P' ? 1 : S.src === 'N' ? 0 : 0.5, S.order === 'even', diff.st.tough, 'JEE Advanced'); }   /* Paper 1 or 2 of 2026: sections 1 to 4, shuffled only inside a section */
+      await launchTest({ title: S.title || (S.advp ? 'JEE Advanced Paper ' + S.advp + ' practice' : 'Your Practice Test'), qs, exam: S.scheme, mins: S.mins, key: 'custom' });
     } catch (e) { toast(e.message); go.disabled = false; } } });
   function draw(light) {
     const avail = pool().length, n = Math.min(S.n, avail);
