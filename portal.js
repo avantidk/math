@@ -1297,7 +1297,7 @@ async function modeCustom() {
   const nIn = h('input', { type: 'number', class: 'pt-in', min: 5, max: 100, value: S.n, 'aria-label': 'Number of questions', oninput: e => { S.n = Math.max(5, Math.min(100, +e.target.value || 5)); if (S.auto) { S.mins = S.n * S.per; minIn.value = S.mins; } draw(true); } });
   const minIn = h('input', { type: 'number', class: 'pt-in', min: 5, max: 360, value: S.mins, 'aria-label': 'Time in minutes', oninput: e => { S.auto = false; S.mins = Math.max(5, Math.min(360, +e.target.value || 5)); draw(true); } });
   const advOK = !!(SC['JEE Advanced'] && SC['JEE Advanced'].rules.sections && SC['JEE Advanced'].rules.sections['4:Matching']);   /* the 2026 two-paper rule is in the database */
-  const advN = p => Object.values(ADV_MIX[p]).reduce((a, x) => a + x, 0), advMin = p => Math.round(SC['JEE Advanced'].duration_min * advN(p) / (SC['JEE Advanced'].n_questions || advN(p)));
+  const advN = p => Object.values(ADV_MIX[p]).reduce((a, x) => a + x, 0), advMin = p => SC['JEE Advanced'].duration_min;   /* 65 minutes for both papers */
   const scOpts = []; schemeNames.forEach(k => { scOpts.push([k, k, k + ' (' + markText(SC[k]) + ')']); if (k === 'JEE Advanced' && advOK) [1, 2].forEach(p => scOpts.push([k + '|' + p, k, 'JEE Advanced · Paper ' + p + ' (' + advN(p) + ' questions, 2026 sections 1 to 4)'])); });
   const scSel = h('select', { class: 'pt-in', 'aria-label': 'Marking scheme', onchange: e => {
     const [k, p] = e.target.value.split('|'); S.scheme = k; S.advp = +p || 0;
@@ -1404,9 +1404,9 @@ async function modeFull() {
           const ratio = st.src === 'P' ? 1 : st.src === 'N' ? 0 : 0.6, mix = Object.assign({}, pmix || sc.rules.mix); if (!pmix && !(sc.rules.sections && sc.rules.sections['4'])) delete mix.Comprehension;   /* until the 2026 Section 4 rule is in the database */
           const qs = compose(mockPool(pyq, st), mockPool(np, st), mix, ratio, true, st.tough, ex);
           if (qs.length < 5) throw new Error('Not enough questions for this choice. Widen the difficulty or the source.');
-          await launchTest({ title: label + ' full length mock' + mockTag(st), qs, exam: ex, mins: pmix && pp === 1 ? Math.round(sc.duration_min * nq / (sc.n_questions || nq)) : null, key: 'full-' + ex + (pmix ? '-p' + pp : '') });
+          await launchTest({ title: label + ' full length mock' + mockTag(st), qs, exam: ex, mins: null, key: 'full-' + ex + (pmix ? '-p' + pp : '') });
         } catch (err) { toast(err.message); b.disabled = false; } } },
-        h('b', { text: label }), h('small', { text: (nq || '') + ' questions · ' + (pmix && pp === 1 ? Math.round(sc.duration_min * nq / (sc.n_questions || nq)) : sc.duration_min) + ' min · ' + markText(sc) }),
+        h('b', { text: label }), h('small', { text: (nq || '') + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }),
         h('small', { class: 'pt-hint', text: off ? 'Too few questions for this choice' : have + ' matching questions' }),
         sc.rules.notes && ex === 'JEE Advanced' && !advReady && !(sc.rules.mix && sc.rules.mix.Comprehension) ? h('small', { class: 'pt-hint', text: '14 questions today: Section 4 needs paragraph questions.' }) : null, h('span', { class: 'pp-go', text: off ? '' : 'Start ›' }))); });
     cards.forEach(c => grid.append(c));
@@ -1645,11 +1645,11 @@ async function pageTake(code) {
 let EX = null;
 const TYPE_NAME = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct', Numerical: 'Numerical value', Matching: 'Matching (single correct)', SUBJ: 'Written question: pick the final answer', WRITTEN: 'Written question (not auto-marked)' };
 /* the marking scheme by question type, shown before the test starts */
-const SEC_NAME = { 1: 'Section 1 · Single correct (MCQ)', 2: 'Section 2 · One or more correct (MSQ)', 3: 'Section 3 · Numerical value', 4: 'Section 4 · Paragraph (numerical)', A: 'Section A · MCQ and Assertion-Reason', B: 'Section B · Very Short Answer (VSA)', C: 'Section C · Short Answer (SA)', D: 'Section D · Long Answer (LA)', E: 'Section E · Case Study / Source-Based' };
+const SEC_NAME = { 1: 'Section 1 · Single correct (MCQ)', 2: 'Section 2 · One or more correct (MSQ)', 3: 'Section 3 · Numerical value', 4: 'Section 4 · 2 paragraph questions with 2 parts each', A: 'Section A · MCQ and Assertion-Reason', B: 'Section B · Very Short Answer (VSA)', C: 'Section C · Short Answer (SA)', D: 'Section D · Long Answer (LA)', E: 'Section E · Case Study / Source-Based' };
 function schemeTable(info) {
   const secs = info.sections || []; if (!secs.length) return h('p', { class: 'pt-hint', text: 'Correct +' + num(info.marks_correct, 2) + ' · wrong −' + num(info.marks_wrong, 2) });
   const row = x => { const unmarked = +x.c === 0;
-    return h('tr', {}, h('th', { scope: 'row', text: x.sec === '4' ? (x.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · Paragraph questions') : x.sec && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
+    return h('tr', {}, h('th', { scope: 'row', text: x.sec === '4' ? (x.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 paragraph questions with 2 parts each') : x.sec && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
       h('td', { class: 'pt-num', text: unmarked ? 'not marked' : '+' + num(x.c, 2) + (x.p ? ' (partial marks possible)' : '') }),
       h('td', { class: 'pt-num', text: unmarked ? '—' : x.w != null ? (+x.w ? '−' + num(x.w, 2) : '0') : (x.type === 'MCQ' || x.type === 'Matching') ? (+info.marks_wrong ? '−' + num(info.marks_wrong, 2) : '0') : '0' })); };
   const unm = secs.filter(x => +x.c === 0).reduce((a, x) => a + x.n, 0);
