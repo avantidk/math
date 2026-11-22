@@ -223,10 +223,11 @@ create or replace function public.sweep_attempts(p_user uuid default null) retur
 language plpgsql security definer set search_path = public as $$
 declare a record; n integer := 0;
 begin
-  for a in select x.id, x.started_at, t.duration_min from public.attempts x join public.tests t on t.id = x.test_id
+  -- a test whose own clock (the active time) has run out, or that nobody has opened for 24 hours, is submitted with the saved answers
+  for a in select x.id, x.last_beat, x.elapsed_sec, t.duration_min from public.attempts x join public.tests t on t.id = x.test_id
             where x.status = 'in_progress' and (p_user is null or x.user_id = p_user)
-              and now() > x.started_at + make_interval(mins => t.duration_min) + interval '2 minutes' loop
-    update public.attempts set submitted_at = coalesce(submitted_at, least(now(), a.started_at + make_interval(mins => a.duration_min))) where id = a.id;
+              and (x.elapsed_sec > t.duration_min * 60 + 120 or coalesce(x.last_beat, x.started_at) < now() - interval '24 hours') loop
+    update public.attempts set submitted_at = coalesce(submitted_at, now()) where id = a.id;
     perform public.grade_attempt(a.id); n := n + 1;
   end loop;
   return n;
@@ -896,7 +897,7 @@ alter table public.payments                 enable row level security;
 alter table public.worksheets               enable row level security;
 alter table public.tests                    enable row level security;
 alter table public.attempts                 enable row level security;
--- Test clock: it runs from the start and never pauses (elapsed_sec = seconds since the start). 3 violations (leaving the test
+-- Test clock: active time only (elapsed_sec); it waits while the power or internet is gone. 3 violations (leaving the test
 -- screen or full screen) submit the attempt automatically. last_beat is only the time of the last save.
 alter table public.attempts add column if not exists elapsed_sec integer not null default 0;
 alter table public.attempts add column if not exists last_beat timestamptz;
@@ -1096,13 +1097,16 @@ begin
   where id = a.id;
 end $$;
 
--- The clock: seconds since the start (it never pauses).
+-- The clock counts only the time the test page is really open. The page sends a heartbeat about every 25 seconds (every save is one);
+-- each beat adds the time since the last beat, at most 45 seconds. When the power or the internet is gone there are no beats, so the
+-- clock waits, and the test carries on from where it stopped when the student opens it again. Leaving the screen is not a pause:
+-- it is a violation (3 violations submit the test).
 create or replace function public.attempt_beat(p_id uuid) returns public.attempts
 language plpgsql security definer set search_path = public as $$
 declare a public.attempts;
 begin
   update public.attempts set
-    elapsed_sec = least(greatest(extract(epoch from (now() - started_at))::integer, 0), 2000000000),
+    elapsed_sec = least(elapsed_sec + least(greatest(extract(epoch from (now() - coalesce(last_beat, now())))::integer, 0), 45), 2000000000),
     last_beat = now()
    where id = p_id and status = 'in_progress' returning * into a;
   if a.id is null then select * into a from public.attempts where id = p_id; end if;

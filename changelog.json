@@ -1,5 +1,13 @@
 [
   {
+    "v": "1041",
+    "date": "22 Nov 2026",
+    "items": [
+      "Test timer: it pauses by itself while your internet or power is gone and carries on from where it stopped. Switching tabs or apps stays a warning (the third warning submits the test).",
+      "Differential Equations (12M21) and Area Under the Curve (in 12M20) now follow the solved book file: each part of the book is its own sheet (for example 'Area Under the Curve · O-3'), so Q1 is the book's Q1 and the order is the book's order. The 14 paragraph questions that had lost their paragraph start with Para: and the paragraph text. Ln Ex sheets are named O-1 to O-4 and Ln DY sheets DY-n everywhere (also in downloads), not 'Exercise-1'."
+    ]
+  },
+  {
     "v": "1040",
     "date": "22 Nov 2026",
     "items": [

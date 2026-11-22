@@ -53,9 +53,12 @@ const SOURCES = [
   { k: 'lx', name: 'Ln Ex', sub: 'Exercise sheets, level by level', tone: '#7c3aed' }, { k: 'ci', name: 'Cg ill', sub: 'Worked illustrations', tone: '#b45309' },
   { k: 'ce', name: 'Cg Ex', sub: 'Exercise sheets', tone: '#db2777' }, { k: 'cd', name: 'Cg DPPs', sub: 'Daily practice problems', tone: '#0891b2' }];
 const SRC = Object.fromEntries(SOURCES.map(x => [x.k, x]));
-function sheetOf(book, id) {
+function sheetOf(book, id, paper) {
   const m = book === 'Ln DY' ? /-DY(\d+)-/.exec(id) : book === 'Ln Ex' ? /-O(\d+)-/.exec(id) : book === 'BB Ex' ? /^BB-\d+-(\d+)-/.exec(id) : null;
-  return m ? { no: +m[1], label: (book === 'Ln DY' ? 'DY-' : book === 'Ln Ex' ? 'O-' : 'Ex-') + (+m[1]) } : null;   /* Ln Ex keeps its own names: O-1 to O-4 */
+  if (!m) return null;
+  /* Ln Ex keeps its own names (O-1 to O-4). Where one list holds two chapters of the book (for example Integration and Area Under the Curve), each chapter is its own sheet, so a sheet starts at its own Q1 */
+  const src = book === 'Ln Ex' ? (String(paper || '').split(' · ')[1] || '') : '';
+  return { no: +m[1], label: (src ? src + ' · ' : '') + (book === 'Ln DY' ? 'DY-' : book === 'Ln Ex' ? 'O-' : 'Ex-') + (+m[1]) };
 }
 /* The dashboard starts from the small index (every question without its text: index/questions.json, boot.js) and fetches the
    full records (text, options, answer) only for what is on the screen: the chapter of a list page, a past paper, the questions
@@ -72,7 +75,7 @@ function load() {
     D.rows = []; D.ix = ix;
     ix.rows.forEach(x => {
       const isP = x.s === 'P'; if (!isP && !prem) return;
-      const bk = isP ? '' : x.bk, sh = isP ? null : sheetOf(bk, x.i);
+      const bk = isP ? '' : x.bk, sh = isP ? null : sheetOf(bk, x.i, x.p);
       D.rows.push({ id: x.i, P: isP, ex: isP ? (EXAM_OF_BANK[x.ex] || null) : null, y: isP ? x.y || null : null, ch: x.cc, tp: x.tp || '', tc: x.tc || '', d: x.d, ok: !!x.g && !!TESTABLE[x.t], bk, shl: sh ? sh.label : '', shn: sh ? sh.no : 0,
         ty: x.t || 'MCQ', qn: +x.n || 0, pa: !!x.pa, mx: !!x.mx });
     });
@@ -203,8 +206,9 @@ function viewDpp() {
 const srcRows = src => D.rows.filter(r => !r.P && r.bk === src.name);
 const chaptersOf = rows => [...new Set(rows.map(r => r.ch))].map(c => D.chByCode[c]).filter(Boolean).sort((a, b) => a.order - b.order);
 function exercisesOf(rows) {
-  const m = new Map(); rows.forEach(r => { const t = r.shl || 'Questions', o = m.get(t) || m.set(t, { t, n: r.shn || 0, c: 0 }).get(t); o.c++; });
-  return [...m.values()].sort((a, b) => a.n - b.n || a.t.localeCompare(b.t));
+  const idn = r => { const k = /(\d+)$/.exec(String(r.id)); return k ? +k[1] : 0; };
+  const m = new Map(); rows.forEach(r => { const t = r.shl || 'Questions', o = m.get(t) || m.set(t, { t, n: r.shn || 0, c: 0, m: 1e9 }).get(t); o.c++; o.m = Math.min(o.m, idn(r)); });
+  return [...m.values()].sort((a, b) => a.n - b.n || a.m - b.m || a.t.localeCompare(b.t));   /* by exercise number, then in the order of the book */
 }
 function viewDppSrc(k, ch, ex) {
   if (locked()) return dppLocked();

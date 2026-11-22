@@ -1171,7 +1171,7 @@ FAQ = [
  ('How much does Premium cost?', 'Premium is ₹299 a year for students and ₹599 a year for teachers. Avanti students get Premium free. A payment is not refunded once made, so try the Free plan first.'),
  ('What tests can I take?', 'Previous year papers shift by shift, chapter-wise mocks, must-solve repeated questions, full-length mocks with the official duration and marking (JEE Main, JEE Advanced Paper 1 and Paper 2, KCET, NDA, IAT), and your own tests with the chapters, difficulty and time you choose.'),
  ('When do I see the correct answers after a test?', 'You see your score, ranks, right and wrong answers, marks and topic analysis as soon as you submit. The correct answers open when the time of the paper is over, for example 3 hours after you started a 3-hour paper, even if you submitted early, so answers cannot be passed on while others are still writing.'),
- ('What if my internet or power goes during a test?', 'The timer keeps running on the exam clock, so the time is counted even if your connection or power is gone. Your answers are kept on the page and saved as soon as you are back online, and the test is submitted when the time ends.'),
+ ('What if my internet or power goes during a test?', 'The timer pauses by itself while your internet or power is gone and carries on from where it stopped when you open the test again. Your saved answers stay in your account. Switching tabs or apps is different: it is a warning, and the third warning submits the test.'),
  ('How do I sign in?', 'Use your Google account. Avanti students can sign in with their Student ID instead. You choose Student or Teacher the first time, and your account works on one device at a time.'),
  ('Can teachers create tests?', 'Yes. Teachers whose school has been approved can build an online test from the questions, share one link with their students and see results and ranks.'),
 ]
@@ -1194,7 +1194,7 @@ def clock_strip():
 # ---------- the home page (goes inside index.html) ----------
 def home_block():
     feats = [
-     ('i-blue', svg('<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 9h4M7 12h7"/>'), 'NTA-style online tests', 'A full-screen test with timer, question palette, mark for review and auto-submit. Past papers, chapter-wise and full-length mocks, or a test of your own.'),
+     ('i-blue', svg('<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 9h4M7 12h7"/>'), 'NTA-style online tests', 'A full-screen test with timer, question palette, mark for review and auto-submit. Past papers, chapter-wise and full-length mocks, or a test of your own. The timer pauses if your internet or power goes.'),
      ('i-gold', svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), 'Instant reports and ranks', 'Score, accuracy, rank in your school and among all students, topic-wise analysis and time per question. Correct answers open when the paper time is over.'),
      ('i-green', svg('<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'), f'{BANK_N} question bank', 'Filter by chapter, topic, level, exam and year. Every question comes with its answer and a full solution.'),
      ('i-purple', svg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/>'), 'Past papers 2000–2026', 'JEE Main, JEE Advanced and more, paper by paper and chapter by chapter, with answer keys.'),

@@ -1740,13 +1740,13 @@ function runExam(d) {
   exitExam();
   const qs = d.questions, ans = {};
   qs.forEach(q => { const a = (d.answers || {})[q.id] || {}; ans[q.id] = { r: a.r == null ? (q.type === 'MSQ' ? [] : '') : a.r, t: +a.t || 0, m: !!a.m, v: !!a.v }; });
-  /* the clock is wall-clock time from the start: the server says how many seconds are left, this page counts down from there and never stops.
+  /* the clock counts the time the page is open and online: the server says how many seconds are left, this page counts down from there, and waits while the power or the internet is gone (then carries on from where it stopped).
      X.tabs is the number of warnings (tab or app switch, leaving full screen); the server submits the test at 3. */
   const X = EX = { d, qs, ans, cur: 0, tabs: d.tab_switches || 0, dirty: false, saving: false, enter: Date.now(), done: false, left: d.remaining_sec != null ? d.remaining_sec : Math.max(0, d.duration_min * 60 - (Date.parse(d.server_now) - Date.parse(d.started_at)) / 1000), sync: Date.now(), lastViol: 0, wasFull: !!document.fullscreenElement };
   const root = X.root = h('div', { class: 'ex', role: 'application', 'aria-label': 'Test: ' + d.title });
   document.body.classList.add('ex-on'); document.body.append(root);
   const timer = h('span', { class: 'ex-timer', role: 'timer', 'aria-live': 'off' });
-  const pauseBar = h('div', { class: 'ex-pause', role: 'alert', hidden: navigator.onLine, text: 'No connection. The timer keeps running. Your answers are kept on this page and saved as soon as you are back online.' });
+  const pauseBar = h('div', { class: 'ex-pause', role: 'alert', hidden: navigator.onLine, text: 'No connection. The timer is paused and carries on from where it stopped when you are back online. Your answers are kept on this page.' });
   const saved = h('span', { class: 'ex-saved', role: 'status' });
   const main = h('main', { class: 'ex-main' }), pal = h('div', { class: 'ex-grid' });
   const side = h('aside', { class: 'ex-side', 'aria-label': 'Question palette' },
@@ -1761,6 +1761,11 @@ function runExam(d) {
   const stateOf = a => (a.m ? (filled(a) ? 'am' : 'mk') : filled(a) ? 'ans' : a.v ? 'na' : 'nv');
   function track() { const now = Date.now(), q = qs[X.cur]; if (q) ans[q.id].t += Math.round((now - X.enter) / 1000); X.enter = now; }
   function payload() { const o = {}; qs.forEach(q => { const a = ans[q.id]; o[q.id] = { r: a.r, t: a.t, m: a.m, v: a.v }; }); return o; }
+  function setPaused(on) {   /* no internet: the countdown waits; back online: it carries on from where it stopped */
+    if (on && !X.pauseAt) X.pauseAt = Date.now();
+    if (!on && X.pauseAt) { X.sync += Date.now() - X.pauseAt; X.pauseAt = 0; }
+    pauseBar.hidden = !on;
+  }
   async function save(force) {
     if (X.done || X.saving || (!X.dirty && !force)) return;
     X.saving = true; track(); X.dirty = false; saved.textContent = 'Saving…'; saved.className = 'ex-saved';
@@ -1768,10 +1773,10 @@ function runExam(d) {
       const r = await rpc('save_attempt', { p_attempt: d.attempt_id, p_answers: payload(), p_tab_switches: X.tabs });
       if (r && r.status === 'submitted') { X.saving = false; closed(r.reason === 'violations' ? 'The test was submitted after 3 warnings.' : 'This test is already submitted.'); return; }
       if (r && r.status === 'time_up') { X.saving = false; finish(true); return; }
-      if (r && r.remaining_sec != null) { X.left = r.remaining_sec; X.sync = Date.now(); }
+      if (r && r.remaining_sec != null) { X.left = r.remaining_sec; X.sync = Date.now(); X.pauseAt = 0; }
       pauseBar.hidden = true; saved.textContent = 'Saved ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
     }
-    catch (e) { X.dirty = true; saved.textContent = 'Not saved: offline? Retrying…'; saved.className = 'ex-saved bad'; if (!navigator.onLine) pauseBar.hidden = false; }
+    catch (e) { X.dirty = true; saved.textContent = 'Not saved: offline? Retrying…'; saved.className = 'ex-saved bad'; setPaused(true); }
     X.saving = false;
   }
   function drawPal() {
@@ -1824,8 +1829,8 @@ function runExam(d) {
     const s2 = Math.floor(ans[q.id].t + (Date.now() - X.enter) / 1000);
     X.qtEl.textContent = '\u23f1 ' + Math.floor(s2 / 60) + ':' + String(s2 % 60).padStart(2, '0');
   }
-  /* no connection: the timer keeps running (it is the server's clock); answers are saved again when the internet is back */
-  X.onOffline = () => { pauseBar.hidden = false; }; X.onOnline = () => { pauseBar.hidden = true; X.dirty = true; save(true); };
+  /* no connection: the timer waits; answers are saved again when the internet is back */
+  X.onOffline = () => setPaused(true); X.onOnline = () => { X.dirty = true; save(true); };   /* the timer carries on once a save has gone through */
   window.addEventListener('offline', X.onOffline); window.addEventListener('online', X.onOnline);
   /* the server has already submitted the test (3 warnings, or submitted elsewhere): straight to the report */
   function closed(why) {
@@ -1834,7 +1839,7 @@ function runExam(d) {
   }
   function tickTimer() {
     tickQ();
-    const left = (X.left - (Date.now() - X.sync) / 1000) * 1000;
+    const left = (X.left - ((X.pauseAt || Date.now()) - X.sync) / 1000) * 1000;
     if (left <= 0) { timer.textContent = '0:00'; finish(true); return; }
     const s = Math.max(0, Math.ceil(left / 1000)), hh = Math.floor(s / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
     timer.textContent = (hh ? hh + ':' + String(mm).padStart(2, '0') : mm) + ':' + String(ss).padStart(2, '0');
@@ -2354,7 +2359,7 @@ async function pageHelp() {
     ['My school, class or name is wrong.', 'Students: ask your teacher to correct it. Teachers: email us and we will change the school.'],
     ['A question, answer or figure is wrong.', 'Email the question ID (shown in the question menu) and what should be corrected.'],
     ['When do I see the correct answers of a test?', 'Your score, ranks and analysis show as soon as you submit. The correct answers open when the full exam time is over (3 hours after you started a 3-hour paper), even if you submitted early.'],
-    ['My internet or power went during a test.', 'The timer keeps running, so open the test again as soon as you can. Your answers are saved when you are back online, and the test is submitted when the time ends.']];
+    ['My internet or power went during a test.', 'The timer pauses by itself and carries on from where it stopped when you open the test again. Your saved answers are kept. Switching tabs or apps is not a pause: it is a warning, and the third warning submits the test.']];
   show(head('Help & Support', 'Found a problem or have a question? Write to us and we will get back to you.'),
     h('div', { class: 'pt-grid2 pt-helpgrid' },
       h('div', { class: 'pt-hstack' },
