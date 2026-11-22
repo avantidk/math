@@ -15,7 +15,7 @@ const ICON = { bm: svg('<path d="M6 3.5h12v17l-6-4.2-6 4.2z"/>'), warn: svg('<pa
 
 /* ---------- maths in text: \( inline \) and \[ display \], line breaks kept ---------- */
 const plainTxt = x => esc(x).replace(/\n/g, '<br>');
-function rich(t) {
+function richBase(t) {
   const K = window.katex, s = String(t == null ? '' : t), re = /\\\((.+?)\\\)|\\\[([\s\S]+?)\\\]/g; let out = '', last = 0, m;
   while ((m = re.exec(s))) {
     out += plainTxt(s.slice(last, m.index));
@@ -24,6 +24,17 @@ function rich(t) {
     last = re.lastIndex;
   }
   return (out + plainTxt(s.slice(last))).replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>');   /* **bold** in the question text */
+}
+/* Match the following: List-I and List-II side by side in a table (P with 1, Q with 2, ...) */
+function rich(t) {
+  const m = /^([\s\S]*?)\n\s*List[\s-]*(?:I|1)\s*:?\s*\n([\s\S]*?)\n\s*List[\s-]*(?:II|2)\s*:?\s*\n([\s\S]*)$/.exec(String(t == null ? '' : t));
+  if (!m) return richBase(t);
+  const items = (body, re) => { const out = []; String(body).split('\n').forEach(l => { const k = re.exec(l); if (k) out.push([k[1], k[2]]); else if (out.length && l.trim()) out[out.length - 1][1] += '\n' + l; }); return out; };
+  const a = items(m[2], /^\s*\(([P-T])\)\s*(.*)$/), b = items(m[3], /^\s*\(([1-9])\)\s*(.*)$/);
+  if (a.length < 2 || b.length < 2) return richBase(t);
+  const cell = x => x ? '<b class="dl-mk">(' + esc(x[0]) + ')</b> <span>' + richBase(x[1]) + '</span>' : '';
+  let rows = ''; for (let i = 0; i < Math.max(a.length, b.length); i++) rows += '<tr><td>' + cell(a[i]) + '</td><td>' + cell(b[i]) + '</td></tr>';
+  return richBase(m[1]) + '<div class="dl-mtw"><table class="dl-mt"><thead><tr><th scope="col">List-I</th><th scope="col">List-II</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 const srcLine = x => {
   if (x.source && x.source !== 'PYQ') return (x.paper ? String(x.paper) : (x.book || x.publisher || 'Practice')) + (x.qno ? ' · Q' + x.qno : '');

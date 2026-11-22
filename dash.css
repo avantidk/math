@@ -565,3 +565,10 @@ body.dpop-on { overflow: hidden; }
 .tp-no { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font: 700 13px var(--font-body); }
 .tp-grid .cc-t { min-height: 2.6em; }
 @media (max-width: 520px) { .cc-grid { grid-template-columns: minmax(0, 1fr); } .cc-sortw { margin-left: 0; } .cc-search { max-width: none; flex-basis: 100%; } }
+
+.dl-mtw { margin: 10px 0 4px; overflow-x: auto; }
+.dl-mt { width: 100%; border-collapse: collapse; font-size: .95em; background: #fff; }
+.dl-mt th, .dl-mt td { border: 1px solid #d9e0ee; padding: 8px 10px; text-align: left; vertical-align: top; }
+.dl-mt th { background: #f3f6fc; font-weight: 700; }
+.dl-mt td { width: 50%; }
+.dl-mt .dl-mk { margin-right: 4px; }
