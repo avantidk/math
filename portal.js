@@ -1475,8 +1475,10 @@ async function exportResult(attemptId, title) {
   modal('Download "' + title + '"', h('div', { class: 'pt-form' }, h('p', { class: 'pt-hint', text: 'Choose what the PDF should contain. Downloads are available after you finish a test.' }), rows),
     [{ text: 'Cancel', onclick: () => {} }, { text: 'Download PDF', pri: true, onclick: async () => {
       try {
+        const R0 = await rpc('attempt_report', { p_attempt: attemptId });
+        if (mode !== 'q' && R0.answers_at) { toast('The answer key opens at ' + new Date(R0.answers_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + ', when the time of the paper is over. You can download the question paper now.'); return; }
         if (mode === 'm') { await markingSheet(attemptId, title); return; }
-        const R = await rpc('attempt_report', { p_attempt: attemptId }), ids = (R.items || []).map(i => i.qid).filter(Boolean);
+        const R = R0, ids = (R.items || []).map(i => i.qid).filter(Boolean);
         if (!ids.length) { toast('The questions of this test are not available.'); return; }
         await TE().exportIds(ids, title, 'pdf', 'Test', '', '', { key: mode !== 'q', exp: mode === 'e' });
       } catch (e) { toast(e.message || 'Could not export'); } } }]);
@@ -1598,7 +1600,7 @@ async function pageReport(id) {
   const top = head(t.title, (mine ? '' : (a.student_name || 'Student') + (a.school ? ' · ' + a.school : '') + ' · ') + 'Submitted ' + when(a.submitted_at),
     ...(mine ? [link('#/reports', 'My Reports', 'btn'), h('button', { type: 'button', class: 'btn', text: 'Export', onclick: () => exportResult(id, t.title) })] : [h('button', { type: 'button', class: 'btn', text: '‹ Back to results', onclick: () => history.back() })]));
   const items = R.items || [];
-  /* the student sees the correct answers 3 hours after starting the test (so they cannot be passed on during the test) */
+  /* the whole report is shown at once; the correct answers open when the time of the paper is over (so they cannot be passed on to others who are still writing) */
   const keysAt = R.answers_at ? new Date(R.answers_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
   const st = { correct: ['Correct', 'ok'], partial: ['Partly correct', 'mid'], wrong: ['Wrong', 'bad'], skipped: ['Not answered', 'mute'] };
   const review = h('div', { class: 'pt-plist' }, items.map(it => qCard({ type: it.type, q: it.q, o: it.o, f: it.f, tp: it.topic }, it.pos - 1, {
@@ -1608,7 +1610,7 @@ async function pageReport(id) {
   let only = 'all';
   const filt = h('div', { class: 'seg pt-seg' }, [['all', 'All'], ['wrong', 'Wrong'], ['skipped', 'Not answered'], ['correct', 'Correct']].map(([k, tx]) => h('button', { type: 'button', 'aria-pressed': String(k === only), text: tx, onclick: e => { only = k; filt.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === e.target))); review.querySelectorAll('.pt-q').forEach(q => { q.hidden = only !== 'all' && !q.classList.contains('st-' + only); }); } })));
   show(top,
-    keysAt ? h('div', { class: 'pt-note', role: 'note' }, h('b', { text: 'Correct answers appear at ' + keysAt + '. ' }), 'They are shown 3 hours after you started the test, so they cannot be shared while others are still writing it. Until then you see your total score and ranks; which answers were right or wrong appears at the same time.') : null,
+    keysAt ? h('div', { class: 'pt-note', role: 'note' }, h('b', { text: 'Correct answers appear at ' + keysAt + '. ' }), 'They open when the time of the paper is over, so they cannot be shared while others are still writing it. Your score, ranks, right and wrong answers, marks and topic analysis are shown now.') : null,
     !R.full ? h('div', { class: 'pt-upsell' }, h('span', { text: 'You see how you did within your school. Premium students also see their rank among all students who took this test.' }), link('#/membership', 'Upgrade to Premium', 'btn pt-gold')) : null,
     h('div', { class: 'pt-stats' }, stat('Score', num(a.score, 2) + ' / ' + num(a.max_score, 2), R.full && R.stats ? 'Average ' + num(R.stats.average, 2) + ' · Top ' + num(R.stats.top, 2) : 'School average ' + num(R.school_stats && R.school_stats.average, 2) + ' · Top ' + num(R.school_stats && R.school_stats.top, 2)),
       stat('Accuracy', pct(acc), a.correct + ' correct of ' + att + ' attempted'), stat('Time taken', mmss(a.time_taken_sec), 'of ' + t.duration_min + ' min'),
@@ -1616,7 +1618,7 @@ async function pageReport(id) {
       stat('Answers', a.correct + ' / ' + a.wrong + ' / ' + a.skipped, 'correct / wrong / not answered')),
     card(h('h2', { text: 'Topic-wise performance' }), h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Topic', 'Questions', 'Correct', 'Wrong', 'Not answered', 'Marks', 'Accuracy', ''].map(x => h('th', { text: x })))),
       h('tbody', {}, (R.topics || []).map(x => h('tr', {}, h('td', {}, h('b', { text: x.topic }), x.chapter ? h('div', { class: 'pt-hint', text: x.chapter }) : null), h('td', { class: 'pt-num', text: x.total }), h('td', { class: 'pt-num', text: x.correct }), h('td', { class: 'pt-num', text: x.wrong }), h('td', { class: 'pt-num', text: x.skipped }), h('td', { class: 'pt-num', text: num(x.marks, 2) }), h('td', { class: 'pt-num', text: pct(x.accuracy) }), h('td', { class: 'pt-barcell' }, bar(x.accuracy, x.accuracy == null ? '' : x.accuracy < 40 ? 'bad' : x.accuracy < 70 ? 'mid' : 'ok')))))))),
-    card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Question-wise review' }), keysAt ? null : filt), review));
+    card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Question-wise review' }), filt), review));
   mathIn(review);
 }
 

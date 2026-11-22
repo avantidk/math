@@ -1,5 +1,14 @@
 [
   {
+    "v": "1022",
+    "date": "22 Nov 2026",
+    "items": [
+      "Test reports now show everything at once: score, ranks, right and wrong for each question, marks and the topic analysis.",
+      "The correct answers (and the answer key PDF) open only when the time of the paper is over, for example 3 hours after you started a 3-hour paper, even if you submitted early. This stops early finishers from sharing the answers.",
+      "The timer already pauses by itself when the internet or power goes; that is unchanged."
+    ]
+  },
+  {
     "v": "1021",
     "date": "22 Nov 2026",
     "items": [

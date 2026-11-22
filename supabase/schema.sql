@@ -1199,9 +1199,10 @@ begin
               and (t.owner_id = me.id or lower(me.school) = lower(coalesce(a.school, ''))))) then
     raise exception 'Report not found';
   end if;
-  -- the student sees the correct answers only 3 hours after starting the test (stops sharing answer keys during a test)
-  v_mine := a.user_id = me.id;
-  v_keys := not v_mine or t.audience = 'self' or now() >= a.started_at + interval '3 hours';   -- your own practice test shows its answers at once
+    v_mine := a.user_id = me.id;
+  -- the correct answers open when the time of the paper is over (the duration of the paper, counted from the student's start, plus any time the clock was paused),
+  -- also when the student submitted early; the rest of the report (score, ranks, right or wrong, marks, topic analysis) is shown at once
+  v_keys := not v_mine or now() >= a.started_at + make_interval(mins => coalesce(t.duration_min, 180)) + make_interval(secs => greatest(0, extract(epoch from (coalesce(a.submitted_at, now()) - a.started_at)) - coalesce(a.time_taken_sec, 0)));
   -- Free students see their school only; Premium students, teachers and Staff also see the comparison with all students
   v_full := a.user_id <> me.id or public.plan_of(me) in ('premium', 'staff');
   if a.status <> 'submitted' then raise exception 'This test has not been submitted yet'; end if;
@@ -1219,24 +1220,24 @@ begin
     'test', json_build_object('title', t.title, 'code', t.code, 'duration_min', t.duration_min, 'n_questions', t.n_questions,
                  'marks_correct', t.marks_correct, 'marks_wrong', t.marks_wrong),
     'full', v_full,
-    'answers_at', case when not v_keys then a.started_at + interval '3 hours' end,
+    'answers_at', case when not v_keys then a.started_at + make_interval(mins => coalesce(t.duration_min, 180)) + make_interval(secs => greatest(0, extract(epoch from (coalesce(a.submitted_at, now()) - a.started_at)) - coalesce(a.time_taken_sec, 0))) end,
     'rank', (select json_build_object('overall', case when v_full then r.r_all end, 'overall_of', case when v_full then r.n_all end,
                     'school', r.r_school, 'school_of', r.n_school) from ranked r where r.id = a.id),
     'stats', case when v_full then (select json_build_object('average', round(avg(score), 2), 'top', max(score)) from public.attempts where test_id = t.id and status = 'submitted') end,
     'school_stats', (select json_build_object('average', round(avg(score), 2), 'top', max(score)) from public.attempts
                       where test_id = t.id and status = 'submitted' and lower(coalesce(school, '')) = lower(coalesce(a.school, ''))),
     'items', (select json_agg(json_build_object('pos', it.pos, 'qid', it.qid, 'max', coalesce((q.e->'m'->>'c')::numeric, t.marks_correct), 'sec', q.e->>'sec', 'type', it.qtype, 'response', it.response,
-                 'correct_answer', case when v_keys then it.correct_answer end, 'status', case when v_keys then it.status end, 'marks', case when v_keys then it.marks end, 'time_sec', it.time_sec,
+                 'correct_answer', case when v_keys then it.correct_answer end, 'status', it.status, 'marks', it.marks, 'time_sec', it.time_sec,
                  'chapter', it.chapter, 'topic', it.topic, 'q', q.e->'q', 'o', q.e->'o', 'f', q.e->'f') order by it.pos)
                 from public.attempt_items it
                 left join lateral (select e from jsonb_array_elements(t.questions) with ordinality z(e, o) where z.o = it.pos) q on true
                where it.attempt_id = a.id),
-    'topics', case when not v_keys then '[]'::json else (select coalesce(json_agg(tt order by tt.accuracy nulls first, tt.topic), '[]'::json) from (
+    'topics', (select coalesce(json_agg(tt order by tt.accuracy nulls first, tt.topic), '[]'::json) from (
                  select coalesce(it.topic, 'Other') as topic, it.chapter, count(*) as total,
                         count(*) filter (where it.status in ('correct', 'partial')) as correct, count(*) filter (where it.status = 'wrong') as wrong,
                         count(*) filter (where it.status = 'skipped') as skipped, sum(it.marks) as marks,
                         round(100.0 * count(*) filter (where it.status in ('correct', 'partial')) / nullif(count(*) filter (where it.status <> 'skipped'), 0), 1) as accuracy
-                   from public.attempt_items it where it.attempt_id = a.id group by 1, 2) tt) end
+                   from public.attempt_items it where it.attempt_id = a.id group by 1, 2) tt)
   ) into res;
   return res;
 end $$;
