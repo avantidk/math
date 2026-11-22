@@ -17,7 +17,7 @@ const ICON = { bm: svg('<path d="M6 3.5h12v17l-6-4.2-6 4.2z"/>'), warn: svg('<pa
 const plainTxt = x => esc(x).replace(/\n/g, '<br>');
 function richBase(t) {
   /* a display formula stands on its own line: no extra empty line before or after it */
-  const K = window.katex, s = String(t == null ? '' : t).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1'), re = /\\\((.+?)\\\)|\\\[([\s\S]+?)\\\]/g; let out = '', last = 0, m;
+  const K = window.katex, s = String(t == null ? '' : t).replace(/[ \t]*\{\{figure\}\}[ \t]*/g, ' ').replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1'), re = /\\\((.+?)\\\)|\\\[([\s\S]+?)\\\]/g; let out = '', last = 0, m;
   while ((m = re.exec(s))) {
     out += plainTxt(s.slice(last, m.index));
     const tex = m[1] != null ? m[1] : m[2];
@@ -34,7 +34,7 @@ function rich(t) {
   return m ? richBase(m.pre) + window.AvantiMatch.table(m, richBase, ['dl-mtw', 'dl-mt', 'dl-mtk']) : richBase(t);
 }
 const srcLine = x => {
-  if (x.source && x.source !== 'PYQ') return (x.paper ? String(x.paper) : (x.book || x.publisher || 'Practice')) + (x.qno ? ' · Q' + x.qno : '');
+  if (x.source && x.source !== 'PYQ') return (x.paper ? String(x.paper).replace(/\s*·\s*(Exercise-\d+|O-\d+|DY-\d+)\s*$/, '') : (x.book || x.publisher || 'Practice')) + (x.qno ? ' · Q' + x.qno : '');   /* the exercise is in the page title, not in every row */
   const name = EXAM_NAME[x.exam] || x.exam || '', p = String(x.paper || '').replace(String(x.year || ''), '').replace(/\s*\(([^)]*)\)/g, ' · $1').replace(/\s+/g, ' ').replace(/^[\s,.\-–·]+|[\s,.\-–·]+$/g, '');
   return name + (x.year ? ' ' + x.year : '') + (p ? ' (' + p + ')' : '');
 };
@@ -195,12 +195,14 @@ function render(env, o) {
       if (was || loaded[k]) return; loaded[k] = true;
       if (k === 'sol') solution(env, r.id, panes.sol); else if (k === 'oth') others(env, r.id, panes.oth, n => { tabBtns.oth.textContent = TN.oth + (n ? ' (' + n + ')' : ''); }); else comments(env, r.id, panes.com, n => { tabBtns.com.textContent = TN.com + (n ? ' (' + n + ')' : ''); });
     };
-    const q = h('div', { class: 'dl-fullq', html: rich(x.question) });
-    const kids = [q, fig,
+    /* {{figure}} marks where the picture belongs: the text before it, the figure, then the rest of the text */
+    const qParts = String(x.question == null ? '' : x.question).split('{{figure}}'), qHead = qParts[0], qTail = qParts.slice(1).join(' ').trim();
+    const q = h('div', { class: 'dl-fullq', html: rich(qHead) }), qAfter = qTail ? h('div', { class: 'dl-fullq', html: rich(qTail) }) : null;
+    const kids = [q, fig, qAfter,
       optEls.length ? h('div', { class: 'dl-opts ' + optCls(opts) }, optEls) : null, numBox,
       rep, h('div', { class: 'dl-tabrow' }, tabs, nav), body].filter(Boolean);
     box.append(...kids);
-    env.mathReady().then(() => { q.innerHTML = rich(x.question); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); });
+    env.mathReady().then(() => { q.innerHTML = rich(qHead); if (qAfter) qAfter.innerHTML = rich(qTail); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); });
     return box;
   }
   const step = i => { if (i < 0 || i >= list.length) return; const pg = Math.floor(i / PAGE); if (pg !== page) { page = pg; draw(); } const li = ul.querySelector('.dl-row[data-id="' + list[i].id + '"]'); if (li) toggle(li, list[i]); };

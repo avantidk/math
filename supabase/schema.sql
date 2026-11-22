@@ -570,6 +570,10 @@ create trigger on_auth_identity_saved after insert or update on auth.identities
 -- -------------------------------------------------------------------------------------
 -- 4. Profile functions used by the website
 -- -------------------------------------------------------------------------------------
+-- "From where did you get to know about us?" (asked once, after the first sign-in)
+alter table public.profiles add column if not exists heard_from text;
+alter table public.profiles add column if not exists heard_other text;
+
 create or replace function public.my_profile() returns json
 language plpgsql security definer set search_path = public as $$
 declare p public.profiles;
@@ -583,7 +587,7 @@ begin
   return json_build_object('id', p.id, 'email', p.email, 'role', p.role, 'plan', public.plan_of(p),
     'premium_until', p.premium_until, 'is_staff', p.is_staff, 'full_name', p.full_name, 'school', p.school,
     'class', p.class, 'stream', p.stream, 'category', p.category, 'gender', p.gender, 'batch', p.batch, 'session', p.session,
-    'avanti_id', p.avanti_id, 'is_avanti', p.is_avanti,
+    'avanti_id', p.avanti_id, 'is_avanti', p.is_avanti, 'heard_from', p.heard_from, 'heard_other', p.heard_other,
     'can_create_tests', public.admin_of(p) or ((p.is_staff or p.role = 'teacher') and public.approved_school(p) is not null),
     'can_manage_students', p.is_staff or (p.role = 'teacher' and public.plan_of(p) = 'premium'),
     'price_paise', public.price_paise(p.role),
@@ -607,12 +611,13 @@ begin
 end $$;
 
 drop function if exists public.update_my_profile(text, text, text, text);
+drop function if exists public.update_my_profile(text, text, text, text, text, text);
 -- Saves the signed-in user's details. Every field is required (teachers: name and school).
 -- The school is chosen once and waits for the admin's approval; after that it changes only through
 -- request_school_change (approved by the admin). Only the admin sets their own school freely.
 -- Students fill each detail once; after that only the admin can correct it (teachers can view their students).
 create or replace function public.update_my_profile(p_full_name text, p_school text, p_class text, p_stream text,
-  p_category text default null, p_gender text default null) returns json
+  p_category text default null, p_gender text default null, p_heard_from text default null, p_heard_other text default null) returns json
 language plpgsql security definer set search_path = public as $$
 declare me public.profiles; v_av boolean; v_admin boolean;
 begin
@@ -632,6 +637,10 @@ begin
     stream    = case when v_av and stream    is not null then stream    else public.norm_stream(left(p_stream, 40)) end,
     category  = case when v_av and category  is not null then category  else public.norm_category(left(p_category, 30)) end,
     gender    = case when v_av and gender    is not null then gender    else public.norm_gender(left(p_gender, 30)) end,
+    heard_from  = case when heard_from is not null then heard_from
+                       when p_heard_from in ('Discord/Reddit', 'Friend/Teacher', 'Google/Bing', 'Other') then p_heard_from else null end,
+    heard_other = case when heard_from is not null then heard_other
+                       when p_heard_from = 'Other' then left(nullif(trim(p_heard_other), ''), 120) else null end,
     updated_at = now()
   where id = auth.uid() returning * into me;
   if me.role = 'student' and public.is_not_working(me.school) then
@@ -1682,6 +1691,7 @@ begin
   return (select coalesce(json_agg(json_build_object('id', p.id, 'full_name', p.full_name, 'email', p.email, 'school', p.school,
             'approved', public.admin_of(p) or p.school_approved, 'is_staff', p.is_staff, 'is_admin', public.admin_of(p), 'approved_at', p.school_approved_at, 'approved_by', p.school_approved_by, 'note', p.school_note,
             'plan', public.plan_of(p), 'plan_label', public.plan_label(p), 'premium_until', p.premium_until, 'created_at', p.created_at,
+            'heard_from', case when p.heard_from = 'Other' then 'Other: ' || coalesce(p.heard_other, '') else p.heard_from end,
             'school_known', exists (select 1 from public.student_allowlist a where lower(a.school) = lower(p.school)),
             'students', (select count(*) from public.student_allowlist a where lower(a.school) = lower(p.school)),
             'tests', (select count(*) from public.tests t where t.owner_id = p.id))
@@ -2615,13 +2625,13 @@ begin
   if not public.is_admin() then raise exception 'Only the admin can see this'; end if;
   with st as (
     select a.avanti_id as student_id, coalesce(p.full_name, a.full_name) as full_name, a.class, a.stream, a.category, a.gender, a.session,
-           a.source, p.id as user_id, a.email, a.dob, a.school as school,
+           a.source, p.id as user_id, a.email, a.dob, a.school as school, p.heard_from as hf, p.heard_other as ho,
            case when nullif(trim(coalesce(a.school, '')), '') is null then 'unassigned' else 'approved' end as school_status,
            case when p.id is not null then public.plan_label(p) when a.source = 'avanti' then 'avanti' when a.premium_until > now() then 'premium' else 'free' end as plan_label,
            coalesce(p.premium_until, a.premium_until) as premium_until, a.created_at, true as complete
       from public.student_allowlist a left join public.profiles p on p.avanti_id = a.avanti_id
     union all
-    select null, p.full_name, p.class, p.stream, p.category, p.gender, p.session, 'google', p.id, p.email, null::date, p.school,
+    select null, p.full_name, p.class, p.stream, p.category, p.gender, p.session, 'google', p.id, p.email, null::date, p.school, p.heard_from, p.heard_other,
            case when nullif(trim(coalesce(p.school, '')), '') is null or lower(trim(p.school)) in ('not in school', 'not working') then 'unassigned'
                 when p.school_approved then 'approved' else 'pending' end,
            public.plan_label(p), p.premium_until, p.created_at, p.role is not null
@@ -2634,6 +2644,7 @@ begin
            'gender', st.gender, 'session', st.session, 'source', st.source, 'avanti', st.source = 'avanti', 'dob', st.dob, 'user_id', st.user_id, 'email', st.email,
            'school', st.school, 'school_status', st.school_status, 'complete', st.complete,
            'plan_label', st.plan_label, 'premium_until', st.premium_until, 'signed_in', st.user_id is not null, 'created_at', st.created_at,
+           'heard_from', case when st.hf = 'Other' then 'Other: ' || coalesce(st.ho, '') else st.hf end,
            'tests', coalesce(pf.tests, 0), 'avg_pct', pf.avg_pct, 'last_at', pf.last_at) order by st.created_at desc), '[]'::json)
     into res from st left join perf pf on pf.user_id = st.user_id;
   return res;

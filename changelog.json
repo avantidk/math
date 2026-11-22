@@ -1,5 +1,16 @@
 [
   {
+    "v": "1038",
+    "date": "22 Nov 2026",
+    "items": [
+      "Bookmarked Qs now opens the same list screen as every other question list (filters, export, worksheet, test). The 'Practise these in the Question Bank' button and every other link to the Question Bank are gone; only the admin has Question Bank, in the profile menu.",
+      "The paper download menu (Tests > Previous Year Papers) now also offers Download Word and Download PowerPoint to accounts that may have them (admin and Avanti teachers).",
+      "New sign-ups are asked 'From where did you get to know about us?' (Discord/Reddit, Friend/Teacher, Google/Bing, Other with a box to type). The admin sees the answer in the students list and the teachers list.",
+      "Ln Ex exercises are named O-1 to O-4, as in the book. The exercise name is in the page title only and no longer repeated (wrongly, as Exercise-5) on every question.",
+      "{{figure}} no longer shows in the text; the figure is drawn where it belongs. Every Subjective question now says (Subjective)."
+    ]
+  },
+  {
     "v": "1037",
     "date": "22 Nov 2026",
     "items": [

@@ -55,7 +55,7 @@ const SOURCES = [
 const SRC = Object.fromEntries(SOURCES.map(x => [x.k, x]));
 function sheetOf(book, id) {
   const m = book === 'Ln DY' ? /-DY(\d+)-/.exec(id) : book === 'Ln Ex' ? /-O(\d+)-/.exec(id) : book === 'BB Ex' ? /^BB-\d+-(\d+)-/.exec(id) : null;
-  return m ? { no: +m[1], label: (book === 'Ln DY' ? 'DY-' : 'Ex-') + (+m[1]) } : null;
+  return m ? { no: +m[1], label: (book === 'Ln DY' ? 'DY-' : book === 'Ln Ex' ? 'O-' : 'Ex-') + (+m[1]) } : null;   /* Ln Ex keeps its own names: O-1 to O-4 */
 }
 const isGradable = r => { const a = String(r.answer == null ? '' : r.answer).trim(); if (!a) return false;
   if (r.type === 'Numerical') return /^-?\d+(\.\d+)?$/.test(a) || /^-?\d+(\.\d+)?\s*to\s*-?\d+(\.\d+)?$/i.test(a);
@@ -92,10 +92,6 @@ const correctOf = rows => rows.filter(r => D.sum.results[r.id] === 'c').length;
 
 /* ---------- small pieces ---------- */
 const locked = () => { const p = A().perm; return !(p.premium || p.staff || p.isAdmin); };   /* Free accounts */
-function openQB(ids, title) {
-  try { sessionStorage.setItem('avanti-qbpreset', JSON.stringify({ ids: ids.slice(0, 3000), title: title || '' })); } catch (e) { /* storage blocked */ }
-  location.href = 'qbank';
-}
 const go = hash => { location.hash = hash; };
 function logo(e) {
   const mono = h('span', { class: 'd-mono', style: '--tone:' + e.tone, text: e.short });
@@ -263,7 +259,7 @@ function popPage(title, path, qbPanel) {
   if (qbPanel) { try { sessionStorage.setItem('avanti-qbopen', qbPanel); } catch (x) { /* optional */ } }
   const frame = h('iframe', { class: 'dpop-f', title, src: '/' + path + '?embed=1', loading: 'eager' }), load = h('div', { class: 'dpop-load' }, h('div', { class: 'spin' }), h('p', { text: 'Loading…' }));
   const ready = e => { if (e.origin === location.origin && e.data && e.data.qbReady) { load.remove(); window.removeEventListener('message', ready); clearTimeout(slow); } };
-  const slow = setTimeout(() => { if (!load.isConnected) return; load.textContent = ''; load.append(h('p', { text: 'This is taking longer than usual. Refresh the page to try again.' }), A().perm.isAdmin ? h('a', { class: 'btn', href: 'qbank#/qb', text: 'Open the Question Bank' }) : null); }, 30000);
+  const slow = setTimeout(() => { if (!load.isConnected) return; load.textContent = ''; load.append(h('p', { text: 'This is taking longer than usual. Refresh the page to try again.' })); }, 30000);
   if (qbPanel) window.addEventListener('message', ready); else frame.addEventListener('load', () => load.remove());
   let closed = false;
   const close = () => { if (closed) return; closed = true; window.removeEventListener('message', ready); window.removeEventListener('popstate', back); box.remove(); document.removeEventListener('keydown', key); document.body.classList.remove('dpop-on'); if (history.state && history.state.dpop) history.back(); };
@@ -491,7 +487,7 @@ async function markingOf(x) {
   const n = v => String(Number(v)), w = +t.w ? '\u2212' + n(t.w) : '0';
   return '+' + n(t.c) + ' / ' + w + (t.p ? ' (partial marks possible)' : '');
 }
-const listEnv = () => ({ D, A, h, main, stat, IC, pct, openQB, toast, marking: markingOf, content: window.AvantiContent, mathReady: () => window.AvantiBoot.katex().catch(() => {}) });
+const listEnv = () => ({ D, A, h, main, stat, IC, pct, toast, marking: markingOf, content: window.AvantiContent, mathReady: () => window.AvantiBoot.katex().catch(() => {}) });
 /* a question list inside the dashboard (dash-list.js draws it) */
 function viewList(mode, slug, ch, kind, arg) {
   const c = D.chByCode[ch], e = EX[slug], rows = scope(mode, slug, ch), idSet = new Set(rows.map(r => r.id));
@@ -613,17 +609,14 @@ function viewTopics(head, rows, mode, c, slug) {
 function plain(s) { return String(s || '').replace(/\\\(|\\\)|\\\[|\\\]/g, '').replace(/\\[a-zA-Z]+/g, ' ').replace(/[{}^_$]/g, '').replace(/\s+/g, ' ').trim(); }
 function viewBookmarks(head, rows, label) {
   const mine = new Set(D.sum.bookmarks), list = (rows ? rows.filter(r => mine.has(r.id)) : D.sum.bookmarks.map(id => D.rows.find(r => r.id === id)).filter(Boolean));
-  const box = h('div', { class: 'd-bm' });
-  const draw = () => { box.textContent = ''; const cur = list.filter(r => D.sum.bookmarks.includes(r.id));
-    if (!cur.length) { box.append(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'No bookmarked questions yet' }), h('p', { text: 'Tap the bookmark on any question to keep it here.' }), h('a', { class: 'btn', href: '#d/pyq', text: 'Open PYQs' }))); return; }
-    if (A().perm.isAdmin) box.append(h('div', { class: 'd-row-actions' }, h('button', { type: 'button', class: 'btn pri', text: 'Practise these ' + cur.length + ' in the Question Bank', onclick: () => openQB(cur.map(r => r.id), (label || 'Bookmarked') + ' · bookmarked') })));
-    cur.forEach(r => { const x = D.raw.get(r.id) || {}, ex = r.P ? ((EX[r.ex] || {}).name || '') + (r.y ? ' ' + r.y : '') : (x.publisher || 'Practice');
-      box.append(h('div', { class: 'd-bmq' }, h('div', { class: 'd-bmq-m' }, h('span', { class: 'd-code', text: r.id }), h('small', { text: ex + ' · ' + ((D.chByCode[r.ch] || {}).chapter || r.ch) })),
-        h('p', { class: 'd-bmq-t', text: plain(x.question).slice(0, 220) }),
-        h('button', { type: 'button', class: 'btn', text: 'Remove', onclick: async () => { try { const t = await A().sb.rpc('toggle_bookmark', { p_qid: r.id }); if (!t.error) { D.sum.bookmarks = D.sum.bookmarks.filter(i => i !== r.id); draw(); } } catch (e) { /* offline */ } } }))); }); };
-  draw(); main(head, h('section', { class: 'd-card' }, box));
+  const chs = chaptersOf(list);
+  /* the same list screen as every other question list: filters, export, worksheet, test, open a question to check it */
+  window.DashList.render(listEnv(), { rows: list, title: label ? label + ' · Bookmarked' : 'Bookmarked Questions', head, testLabel: 'Take test',
+    emptyText: 'No bookmarked questions yet. Tap the bookmark on any question to keep it here.',
+    filters: [{ key: 'ch', label: 'Chapter', values: chs.map(c => [c.chapter_code, c.chapter]), get: r => r.ch }],
+    startTest: l => launchTestFrom(l, { chapter: label || 'Bookmarked', chapter_code: 'pick' }, 'pyq', null, 20, 'practice test') });
 }
-function viewBookmarksPage() { side({ back: '', title: 'Bookmarked Qs', sub: 'Your important questions', items: homeItems('bookmarks') }); viewBookmarks(h('div', { class: 'd-head' }, h('h2', { text: 'Bookmarked questions' }), h('p', { text: 'Questions you marked as important, across all chapters.' })), null, ''); }
+function viewBookmarksPage() { side({ back: '', title: 'Bookmarked Qs', sub: 'Your important questions', items: homeItems('bookmarks') }); viewBookmarks(h('div', { class: 'd-head' }, crumb('Dashboard', 'Bookmarked Qs')), null, ''); }
 
 /* ---------- test history ---------- */
 function viewHistory(head, rows) {

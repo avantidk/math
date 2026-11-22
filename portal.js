@@ -46,6 +46,7 @@ const normGender = v => { const t = String(v || '').toLowerCase().replace(/[^a-z
 const normStream = v => { const t = String(v || '').toLowerCase().replace(/[^a-z]/g, ''); return /^(jee|pcm|pcmb|jeemain|jeemains|jeeadvanced|engineering|iit|iitjee)$/.test(t) ? 'JEE' : /^(neet|pcb|medical|neetug)$/.test(t) ? 'NEET' : /^(kcetpcm|kcet|cetpcm|kcetengineering)$/.test(t) ? 'KCET (PCM)' : /^(kcetpcb|cetpcb|kcetmedical)$/.test(t) ? 'KCET (PCB)' : String(v || '').trim(); };
 const CATEGORIES = ['General', 'Gen-EWS', 'OBC-NCL', 'SC', 'ST'];
 const GENDERS = ['Male', 'Female', 'Other'];
+const HEARD = ['Discord/Reddit', 'Friend/Teacher', 'Google/Bing', 'Other'];   /* "From where did you get to know about us?" */
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
 /* ---------- maths ---------- */
@@ -66,7 +67,7 @@ function mathIn(node) {
     try { window.renderMathInElement(node, { delimiters: [{ left: '\\[', right: '\\]', display: true }, { left: '\\(', right: '\\)', display: false }], throwOnError: false }); } catch (e) { /* raw text stays */ }
   });
 }
-const qBase = t => esc(t).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1').replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');   /* **bold** in question text */
+const qBase = t => esc(String(t == null ? '' : t).replace(/[ \t]*\{\{figure\}\}[ \t]*/g, ' ')).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1').replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');   /* **bold** in question text */
 /* Layout of the four options: 1 row when all are short, 2 rows (2 columns) when they fit comfortably, otherwise 4 rows. Never 3 + 1. */
 const optCls = arr => { const w = x => String(x == null ? '' : x).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length, m = Math.max(0, ...(arr || []).map(w)); return (arr || []).length === 4 ? (m <= 14 ? 'c4' : m <= 48 ? 'c2' : 'c1') : 'c1'; };
 /* Match the following: List-I and List-II are shown side by side as a table (P to 1, Q to 2, ...) */
@@ -283,7 +284,7 @@ function schoolMulti(id, initial) {
 function profileForm(p, o) {
   const student = p.role === 'student', avanti = !!p.avanti_id, admin = !!(AU().perm && AU().perm.isAdmin);
   /* the school is chosen once and approved by the admin; after that it changes only by request (the admin excepted) */
-  const locked = k => ((student || avanti) && !!p[k]) || (k === 'school' && !!p.school && !admin);
+  const locked = k => k === 'heard_from' ? !!p.heard_from : ((student || avanti) && !!p[k]) || (k === 'school' && !!p.school && !admin);
   const msg = h('p', { class: 'pt-msg', role: 'status' });
   const ro = (label, value) => h('div', { class: 'pt-fld' }, h('span', { text: label }), h('div', { class: 'pt-ro', text: value || '—' }));
   const fld = (label, input, hint) => h(input.focusId ? 'div' : 'label', { class: 'pt-fld', for: input.focusId ? null : input.id }, h('span', {}, label, h('b', { class: 'pt-req', text: ' *' })), input, hint ? h('small', { text: hint }) : null);
@@ -292,20 +293,27 @@ function profileForm(p, o) {
     full_name: h('input', { id: 'pfName', class: 'pt-in', type: 'text', maxlength: 120, value: p.full_name || '', autocomplete: 'name' }),
     school: schoolSelect('pfSchool', p.school || (student ? NO_SCHOOL : ''), 'Choose your school…', !student, { notWorking: !student, noSchool: student }),
     class: sel('pfClass', CLASSES, p.class), stream: sel('pfStream', STREAMS, p.stream),
-    category: sel('pfCat', CATEGORIES, p.category), gender: sel('pfGender', GENDERS, p.gender)
+    category: sel('pfCat', CATEGORIES, p.category), gender: sel('pfGender', GENDERS, p.gender), heard_from: sel('pfHeard', HEARD, p.heard_from)
   };
+  const heardOther = h('input', { id: 'pfHeardOther', class: 'pt-in', type: 'text', maxlength: 120, placeholder: 'Tell us where', value: p.heard_other || '', 'aria-label': 'Where did you hear about us' });
+  const heardOtherBox = h('label', { class: 'pt-fld', for: 'pfHeardOther' }, heardOther); heardOtherBox.hidden = (p.heard_from || '') !== 'Other';
+  F.heard_from.addEventListener('change', () => { heardOtherBox.hidden = F.heard_from.value !== 'Other'; if (F.heard_from.value === 'Other') heardOther.focus(); });
   const val = k => (locked(k) ? p[k] : k === 'school' ? F.school.value() : F[k].value.trim());
-  const LBL = { full_name: 'Full name', school: 'School', class: 'Class', stream: 'Stream', category: 'Category', gender: 'Gender' };
-  const keys = student ? ['full_name', 'school', 'class', 'stream', 'category', 'gender'] : ['full_name', 'school'];
-  const box = k => (k === 'school' && locked(k) ? schoolBox(p) : locked(k) ? ro(LBL[k], p[k]) : fld(LBL[k], F[k], k === 'school' ? (student ? 'Used for your rank within your school.' : 'Not in the list? Choose "Other" and type it.') : null));
+  const LBL = { full_name: 'Full name', school: 'School', class: 'Class', stream: 'Stream', category: 'Category', gender: 'Gender', heard_from: 'From where you got to know about us' };
+  const keys0 = student ? ['full_name', 'school', 'class', 'stream', 'category', 'gender'] : ['full_name', 'school'];
+  const newUser = keys0.some(k => !p[k]);   /* the first sign-in: the "how did you hear" question is required; accounts that are already complete may skip it */
+  const keys = newUser ? keys0.concat('heard_from') : keys0;
+  const heardBox = () => (p.heard_from ? ro('From where you got to know about us', p.heard_from + (p.heard_from === 'Other' && p.heard_other ? ': ' + p.heard_other : '')) : h('div', {}, h('label', { class: 'pt-fld', for: 'pfHeard' }, h('span', {}, 'From where did you get to know about us?', newUser ? h('b', { class: 'pt-req', text: ' *' }) : null), F.heard_from), heardOtherBox));
+  const box = k => (k === 'heard_from' ? heardBox() : k === 'school' && locked(k) ? schoolBox(p) : locked(k) ? ro(LBL[k], p[k]) : fld(LBL[k], F[k], k === 'school' ? (student ? 'Used for your rank within your school.' : 'Not in the list? Choose "Other" and type it.') : null));
   const btn = h('button', { type: 'submit', class: 'btn pri' + (o.big ? ' pt-big' : ''), text: o.submitText || 'Save profile' });
   return h('form', { class: 'pt-form', onsubmit: async e => {
     e.preventDefault(); msg.textContent = ''; msg.className = 'pt-msg';
     const miss = keys.filter(k => !val(k));
+    if (!p.heard_from && F.heard_from.value === 'Other' && !heardOther.value.trim()) { msg.textContent = 'Please type where you got to know about us.'; msg.classList.add('bad'); return; }
     if (miss.length) { msg.textContent = 'Please fill in: ' + miss.map(k => LBL[k]).join(', ') + '. All details are required.'; msg.classList.add('bad'); return; }
     btn.disabled = true; const t0 = btn.textContent; btn.textContent = 'Saving…';
     try {
-      await rpc('update_my_profile', { p_full_name: val('full_name'), p_school: val('school'), p_class: student ? val('class') : (p.class || null), p_stream: student ? val('stream') : (p.stream || null), p_category: student ? val('category') : null, p_gender: student ? val('gender') : null });
+      await rpc('update_my_profile', { p_full_name: val('full_name'), p_school: val('school'), p_class: student ? val('class') : (p.class || null), p_stream: student ? val('stream') : (p.stream || null), p_category: student ? val('category') : null, p_gender: student ? val('gender') : null, p_heard_from: p.heard_from ? null : (F.heard_from.value || null), p_heard_other: p.heard_from ? null : (F.heard_from.value === 'Other' ? heardOther.value.trim() : null) });
       schools(true); await AU().refresh(); msg.textContent = 'Saved.'; msg.classList.add('ok');
       if (o.onSaved) o.onSaved();
     } catch (x) { msg.textContent = 'Could not save: ' + x.message; msg.classList.add('bad'); }
@@ -314,6 +322,7 @@ function profileForm(p, o) {
     box('full_name'), box('school'),
     student ? h('div', { class: 'pt-row2' }, box('class'), box('stream')) : null,
     student ? h('div', { class: 'pt-row2' }, box('category'), box('gender')) : null,
+    box('heard_from'),
     student && keys.some(k => locked(k)) ? h('p', { class: 'pt-hint', text: 'Saved details cannot be changed here. To move to another school, use "Request a school change" above. For other details, ask your teacher.' }) : null,
     student && keys.some(k => !locked(k)) ? h('div', { class: 'pt-note pt-warnnote', role: 'note' }, h('b', { text: 'Please check carefully before you continue. ' }), 'Once saved, you cannot change these details yourself. Only the admin can correct them.') : null,
     keys.some(k => !locked(k)) || !student ? h('div', { class: 'pt-actions' }, btn) : null, msg);
@@ -1095,6 +1104,8 @@ async function pagePersonal(arg) {
           h('b', { text: pp.label }), h('small', { text: pp.qs.length + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }), nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null, h('span', { class: 'pp-go', text: 'Open Instructions and Start ›' })),
         h('button', { type: 'button', class: 'pp-pdf', title: 'Download or share this paper', 'aria-label': 'Download or share ' + pp.label, 'aria-haspopup': 'menu', html: IC.share, onclick: e => dropMenu(e.currentTarget, [
           { icon: IC.pdf, text: 'Download PDF', sub: 'The question paper', onclick: () => TE().exportIds(pp.qs.map(q => q.i), pp.label, 'pdf', 'Question paper', '', '', { key: false, exp: false }).catch(x => toast('Could not make the PDF: ' + ((x && x.message) || 'try again'))) },
+          can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable question paper', onclick: () => TE().exportIds(pp.qs.map(q => q.i), pp.label, 'docx', 'Question paper', '', '', { key: false, exp: false }).catch(x => toast('Could not make the Word file: ' + ((x && x.message) || 'try again'))) } : null,
+          can('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: () => TE().exportIds(pp.qs.map(q => q.i), pp.label, 'pptx', 'Question paper', '', '', { key: false, exp: false }).catch(x => toast('Could not make the PowerPoint: ' + ((x && x.message) || 'try again'))) } : null,
           can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { toast('Preparing the PDF…'); try { const r = await TE().pdfIds(pp.qs.map(q => q.i), pp.label, 'Question paper', '', ''); if (r) shareReady(r.blob, r.file, pp.label); } catch (x) { toast('Could not make the PDF: ' + ((x && x.message) || 'try again')); } } } : null,
           { icon: IC.link, text: 'Copy link to this page', sub: 'The page link, not the PDF', onclick: () => copy(location.origin + '/dashboard#/modes/pyq', 'Page link copied') }]) }))); });
   };
@@ -2102,7 +2113,7 @@ async function pageStudents() {
   const reload = () => pageStudents();
   const uniq = k => [...new Set(all.map(x => x[k]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'en', { numeric: true }));
   const tbody = h('tbody', {}), countEl = h('span', { class: 'pt-meta' }), thead = h('thead', {});
-  const COLS = [['No.', null], ['Student', 'full_name']].concat(IS_ADMIN ? [['School', 'school'], ['Approval', 'school_status']] : [], [['Date of birth', 'dob'], ['Class · Stream', 'class_stream'], ['Session', 'session'], ['Category · Gender', 'cat_gender']], IS_ADMIN ? [['Plan', 'plan_label']] : [], [['Tests', 'tests'], ['Average', 'avg_pct'], ['Last test', 'last_at'], ['', null]]);
+  const COLS = [['No.', null], ['Student', 'full_name']].concat(IS_ADMIN ? [['School', 'school'], ['Approval', 'school_status']] : [], [['Date of birth', 'dob'], ['Class · Stream', 'class_stream'], ['Session', 'session'], ['Category · Gender', 'cat_gender']], IS_ADMIN ? [['Plan', 'plan_label'], ['Heard from', 'heard_from']] : [], [['Tests', 'tests'], ['Average', 'avg_pct'], ['Last test', 'last_at'], ['', null]]);
   const drawHead = () => { thead.textContent = ''; thead.append(h('tr', {}, COLS.map(([t, k]) => !k ? h('th', { text: t }) : h('th', { 'aria-sort': SORT.key === k ? (SORT.dir > 0 ? 'ascending' : 'descending') : 'none' },
     h('button', { type: 'button', class: 'pt-sortb', title: 'Sort by ' + t, onclick: () => { if (SORT.key === k) SORT.dir *= -1; else { SORT.key = k; SORT.dir = ['tests', 'avg_pct', 'last_at'].includes(k) ? -1 : 1; } draw(); } }, t, h('span', { class: 'pt-sorti', 'aria-hidden': 'true', text: SORT.key === k ? (SORT.dir > 0 ? '▲' : '▼') : '↕' })))))); };
   const draw = () => {
@@ -2124,6 +2135,7 @@ async function pageStudents() {
       h('td', { text: [x.class && (x.class === 'Dropper' ? 'Dropper' : 'Class ' + x.class), x.stream].filter(Boolean).join(' · ') || '—' }), h('td', { text: x.session || '—' }),
       h('td', { text: [x.category, x.gender].filter(Boolean).join(' · ') || '—' }),
       IS_ADMIN ? h('td', {}, planBadge(x)) : null,
+      IS_ADMIN ? h('td', { text: x.heard_from || '—' }) : null,
       h('td', { class: 'pt-num', text: x.tests }), h('td', { class: 'pt-num pt-barcell' }, x.avg_pct == null ? '—' : [h('span', { text: pct(x.avg_pct) }), bar(x.avg_pct, x.avg_pct < 40 ? 'bad' : x.avg_pct < 70 ? 'mid' : 'ok')]),
       h('td', { class: 'pt-num', text: x.last_at ? day(x.last_at) : '—' }),
       h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, can('isAdmin') ? h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editStudent(x, reload) }) : null,
@@ -2315,12 +2327,12 @@ async function pageApprovals() {
   const row = t => h('tr', {},
     h('td', {}, h('b', { text: t.full_name || '—' }), h('div', { class: 'pt-hint', text: t.email || '' })),
     h('td', {}, t.school ? [h('b', { text: t.school }), h('div', { class: 'pt-hint', text: t.school_known ? 'On the Avanti list · ' + t.students + ' students' : 'New school (not on the Avanti list)' })] : h('span', { class: 'pt-hint', text: 'Not chosen yet' })),
-    h('td', { text: day(t.created_at) }), h('td', {}, planBadge(t)), h('td', { class: 'pt-num', text: t.tests }),
+    h('td', { text: day(t.created_at) }), h('td', { text: t.heard_from || '—' }), h('td', {}, planBadge(t)), h('td', { class: 'pt-num', text: t.tests }),
     h('td', {}, t.is_admin ? badge('Admin', 'ok') : !t.school ? badge('No school yet', 'mute') : t.approved ? badge('Approved', 'ok') : badge('Waiting', 'mid'), t.is_staff && !t.is_admin ? h('div', { class: 'pt-hint', text: 'Avanti staff' }) : null, t.approved && t.approved_by ? h('div', { class: 'pt-hint', text: 'by ' + t.approved_by.split('@')[0] + ' · ' + day(t.approved_at) }) : null),
     h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editTeacher(t) }),
       t.is_admin || !t.school ? null : t.approved ? h('button', { type: 'button', class: 'btn pt-danger', text: 'Remove approval', onclick: () => act(t, 'revoke') })
       : [h('button', { type: 'button', class: 'btn pri', text: 'Approve', onclick: () => act(t, 'approve') }), h('button', { type: 'button', class: 'btn pt-danger', text: 'Not approve', onclick: () => act(t, 'reject') })])));
-  const table = rows => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Teacher', 'School', 'Signed up', 'Plan', 'Tests', 'Status', ''].map(x => h('th', { text: x })))), h('tbody', {}, rows.map(row))));
+  const table = rows => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Teacher', 'School', 'Signed up', 'Heard from', 'Plan', 'Tests', 'Status', ''].map(x => h('th', { text: x })))), h('tbody', {}, rows.map(row))));
   const allBody = h('div', {}), allCount = h('span', { class: 'pt-meta' });
   const drawAll = q => { q = (q || '').toLowerCase(); const rows = list.filter(t => !q || [t.full_name, t.email, t.school].some(v => String(v || '').toLowerCase().includes(q)));
     allCount.textContent = rows.length + ' of ' + list.length + ' teachers'; allBody.textContent = ''; allBody.append(rows.length ? table(rows) : empty('No teachers match', 'Change the search.')); };
