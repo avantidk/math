@@ -73,7 +73,7 @@ function mathIn(node) {
 }
 const qBase = t => esc(String(t == null ? '' : t).replace(/[ \t]*\{\{figure\}\}[ \t]*/g, ' ')).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1').replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');   /* **bold** in question text */
 /* Layout of the four options: 1 row when all are short, 2 rows (2 columns) when they fit comfortably, otherwise 4 rows. Never 3 + 1. */
-const optCls = arr => { const w = x => String(x == null ? '' : x).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length, m = Math.max(0, ...(arr || []).map(w)); return (arr || []).length === 4 ? (m <= 14 ? 'c4' : m <= 48 ? 'c2' : 'c1') : 'c1'; };
+const optCls = arr => { const heavy = /\\(frac|dfrac|int|oint|sqrt|sum|prod|lim|begin|vec|overrightarrow)\b/, w = x => String(x == null ? '' : x).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length, m = Math.max(0, ...(arr || []).map(w)); return (arr || []).length === 4 && !(arr || []).some(x => heavy.test(String(x == null ? '' : x))) ? (m <= 10 ? 'c4' : m <= 16 ? 'c2' : 'c1') : 'c1'; };   /* short options sit side by side; long ones, and any option with a fraction, integral, root, sum or matrix, take one row each */
 /* Match the following: List-I and List-II are shown side by side as a table (P to 1, Q to 2, ...) */
 function matchTable(t) {
   const m = window.AvantiMatch && window.AvantiMatch.parse(t);
@@ -741,7 +741,7 @@ function qCard(q, i, o) {
   o = o || {};
   const opts = (q.o || []).map((t, k) => {
     const L = LETTERS[k], chosen = o.response && String(o.response).split(',').includes(L), right = o.answer && String(o.answer).toUpperCase().split(',').map(x => x.trim()).includes(L);
-    return h('li', { class: 'pt-opt' + (right ? ' right' : '') + (chosen ? ' chosen' : '') }, h('b', { text: L }), h('span', { html: qText(t) }));
+    return h('li', { class: 'pt-opt' + (right ? ' right' : '') + (chosen ? ' chosen' + (o.locked ? ' picked' : '') : '') }, h('b', { text: L }), h('span', { html: qText(t) }));
   });
   return h('article', { class: 'pt-q' + (o.status ? ' st-' + o.status : '') },
     h('div', { class: 'pt-qh' }, h('strong', { text: 'Q' + (i + 1) }), o.code ? h('span', { class: 'pt-code', title: 'Question code', text: o.code }) : null, badge(q.type || 'MCQ'), q.tp ? h('span', { class: 'pt-hint', text: q.tp }) : null, o.right),
@@ -1655,6 +1655,24 @@ async function pageReports() {
       h('td', { class: 'pt-num', text: a.status === 'submitted' ? mmss(a.time_taken_sec) : '—' }),
       h('td', {}, a.status === 'submitted' ? link('#/report/' + a.id, 'Open report', 'btn pri') : link('#/t/' + a.code, 'Resume', 'btn')))))))));
 }
+/* chapter-wise performance of one test: the topic rows of the report are added up per chapter; every column header sorts (click again to reverse) */
+function chapterTable(topics) {
+  const m = new Map();
+  topics.forEach(x => { const k = x.chapter || x.topic || 'Other', c = m.get(k) || { name: k, total: 0, correct: 0, wrong: 0, skipped: 0, marks: 0 }; c.total += +x.total || 0; c.correct += +x.correct || 0; c.wrong += +x.wrong || 0; c.skipped += +x.skipped || 0; c.marks += +x.marks || 0; m.set(k, c); });
+  const rows = [...m.values()].map(c => Object.assign(c, { acc: c.correct + c.wrong ? 100 * c.correct / (c.correct + c.wrong) : null }));
+  const COLS = [['name', 'Chapter'], ['total', 'Questions'], ['correct', 'Correct'], ['wrong', 'Wrong'], ['skipped', 'Not answered'], ['marks', 'Marks'], ['acc', 'Accuracy'], ['acc', 'Bar']];
+  let key = 'acc', dir = 1;
+  const body = h('tbody'), head = h('tr');
+  const draw = () => {
+    body.textContent = '';
+    rows.slice().sort((p, q) => { const x = p[key], y = q[key]; if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir || String(p.name).localeCompare(q.name); })
+      .forEach(x => body.append(h('tr', {}, h('td', {}, h('b', { text: x.name })), h('td', { class: 'pt-num', text: x.total }), h('td', { class: 'pt-num', text: x.correct }), h('td', { class: 'pt-num', text: x.wrong }), h('td', { class: 'pt-num', text: x.skipped }), h('td', { class: 'pt-num', text: num(x.marks, 2) }), h('td', { class: 'pt-num', text: pct(x.acc) }), h('td', { class: 'pt-barcell' }, bar(x.acc, x.acc == null ? '' : x.acc < 40 ? 'bad' : x.acc < 70 ? 'mid' : 'ok')))));
+    head.querySelectorAll('th').forEach((th, i) => { const on = COLS[i][0] === key && (i < 7 ? true : false); th.setAttribute('aria-sort', COLS[i][0] === key ? (dir > 0 ? 'ascending' : 'descending') : 'none'); });
+  };
+  COLS.forEach(([k, label], i) => head.append(h('th', { scope: 'col', 'aria-sort': 'none' }, h('button', { type: 'button', class: 'pt-sort', text: label, onclick: () => { if (key === k) dir = -dir; else { key = k; dir = k === 'name' ? 1 : (k === 'acc' ? 1 : -1); } draw(); } }))));
+  draw();
+  return h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, head), body));
+}
 async function pageReport(id) {
   if (!/^[0-9a-f-]{36}$/i.test(id || '')) { location.hash = '#/reports'; return; }
   show(head('Report', ''), loading('Loading the report…'));
@@ -1670,20 +1688,19 @@ async function pageReport(id) {
   if (keysAt) items.forEach(it => { it.correct_answer = null; });   /* never shown (or kept) before the full exam time is over, whatever the server sends */
   const st = { correct: ['Correct', 'ok'], partial: ['Partly correct', 'mid'], wrong: ['Wrong', 'bad'], skipped: ['Not answered', 'mute'] };
   const review = h('div', { class: 'pt-plist' }, items.map(it => qCard({ type: it.sj ? 'Subjective' : isParaText(it.q) ? 'Para' : it.type, q: it.q, o: it.o, f: it.f, tp: it.topic }, it.pos - 1, {
-    status: it.status, response: it.response, answer: it.correct_answer, code: keysAt ? null : it.qid,   /* question codes are shown only here, after the test, once the answers are open (a code would lead to the answer in the bank) */
-    right: h('span', { class: 'pt-qmeta' }, it.status ? badge(st[it.status][0], st[it.status][1]) : badge(it.response ? 'Answered' : 'Not answered', 'mute'), h('span', { class: 'pt-hint', text: (it.marks == null ? '' : (it.marks > 0 ? '+' : '') + num(it.marks, 2) + ' marks · ') + mmss(it.time_sec) })),
+    locked: !!keysAt, status: keysAt ? (it.status === 'skipped' ? 'skipped' : null) : it.status, response: it.response, answer: it.correct_answer, code: keysAt ? null : it.qid,   /* question codes are shown only here, after the test, once the answers are open (a code would lead to the answer in the bank) */
+    right: h('span', { class: 'pt-qmeta' }, it.status && !keysAt ? badge(st[it.status][0], st[it.status][1]) : badge(it.response ? 'Answered' : 'Not answered', 'mute'), h('span', { class: 'pt-hint', text: (it.marks == null || keysAt ? '' : (it.marks > 0 ? '+' : '') + num(it.marks, 2) + ' marks · ') + mmss(it.time_sec) })),
     extra: h('p', { class: 'pt-yours' }, 'Your answer: ', h('b', { text: it.response || '—' }), ' · Correct answer: ', h('b', { text: keysAt ? 'opens at ' + keysAt : (it.correct_answer || '—') })) })));
   let only = 'all';
-  const filt = h('div', { class: 'seg pt-seg' }, [['all', 'All'], ['wrong', 'Wrong'], ['skipped', 'Not answered'], ['correct', 'Correct']].map(([k, tx]) => h('button', { type: 'button', 'aria-pressed': String(k === only), text: tx, onclick: e => { only = k; filt.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === e.target))); review.querySelectorAll('.pt-q').forEach(q => { q.hidden = only !== 'all' && !q.classList.contains('st-' + only); }); } })));
+  const filt = h('div', { class: 'seg pt-seg' }, [['all', 'All'], ['wrong', 'Wrong'], ['skipped', 'Not answered'], ['correct', 'Correct']].filter(x => !keysAt || x[0] === 'all' || x[0] === 'skipped').map(([k, tx]) => h('button', { type: 'button', 'aria-pressed': String(k === only), text: tx, onclick: e => { only = k; filt.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === e.target))); review.querySelectorAll('.pt-q').forEach(q => { q.hidden = only !== 'all' && !q.classList.contains('st-' + only); }); } })));
   show(top,
-    keysAt ? h('div', { class: 'pt-note', role: 'note' }, h('b', { text: 'Correct answers open at ' + keysAt + ' (when the full exam time is over). ' }), 'So they cannot be shared while others are still writing the paper. Your score, ranks, right and wrong answers, marks and topic analysis are shown now. Open this report again after that time to see them.') : null,
+    keysAt ? h('div', { class: 'pt-note', role: 'note' }, h('b', { text: 'Correct answers open at ' + keysAt + ' (when the full exam time is over). ' }), 'So they cannot be shared while others are still writing the paper. Until then the review only shows which option you ticked. The right and wrong marks and the correct answers (green and red) appear when you open this report again after that time.') : null,
     !R.full ? h('div', { class: 'pt-upsell' }, h('span', { text: 'You see how you did within your school. Premium students also see their rank among all students who took this test.' }), link('#/membership', 'Upgrade to Premium', 'btn pt-gold')) : null,
     h('div', { class: 'pt-stats' }, stat('Score', num(a.score, 2) + ' / ' + num(a.max_score, 2), R.full && R.stats ? 'Average ' + num(R.stats.average, 2) + ' · Top ' + num(R.stats.top, 2) : 'School average ' + num(R.school_stats && R.school_stats.average, 2) + ' · Top ' + num(R.school_stats && R.school_stats.top, 2)),
       stat('Accuracy', pct(acc), a.correct + ' correct of ' + att + ' attempted'), stat('Time taken', mmss(a.time_taken_sec), 'of ' + t.duration_min + ' min'),
       R.full ? stat('Rank (all students)', rk.overall ? rk.overall + ' of ' + rk.overall_of : '—') : null, stat('Rank in school', rk.school ? rk.school + ' of ' + rk.school_of : '—', a.school || ''),
       stat('Answers', a.correct + ' / ' + a.wrong + ' / ' + a.skipped, 'correct / wrong / not answered')),
-    card(h('h2', { text: 'Topic-wise performance' }), h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Topic', 'Questions', 'Correct', 'Wrong', 'Not answered', 'Marks', 'Accuracy', ''].map(x => h('th', { text: x })))),
-      h('tbody', {}, (R.topics || []).map(x => h('tr', {}, h('td', {}, h('b', { text: x.topic }), x.chapter ? h('div', { class: 'pt-hint', text: x.chapter }) : null), h('td', { class: 'pt-num', text: x.total }), h('td', { class: 'pt-num', text: x.correct }), h('td', { class: 'pt-num', text: x.wrong }), h('td', { class: 'pt-num', text: x.skipped }), h('td', { class: 'pt-num', text: num(x.marks, 2) }), h('td', { class: 'pt-num', text: pct(x.accuracy) }), h('td', { class: 'pt-barcell' }, bar(x.accuracy, x.accuracy == null ? '' : x.accuracy < 40 ? 'bad' : x.accuracy < 70 ? 'mid' : 'ok')))))))),
+    card(h('h2', { text: 'Chapter Wise Performance in this test' }), chapterTable(R.topics || [])),
     card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Question-wise review' }), filt), review));
   mathIn(review);
 }

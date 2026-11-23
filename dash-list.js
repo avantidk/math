@@ -27,7 +27,7 @@ function richBase(t) {
   return (out + plainTxt(s.slice(last))).replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>');   /* **bold** in the question text */
 }
 /* Layout of the four options: 1 row when all are short, 2 rows (2 columns) when they fit comfortably, otherwise 4 rows. Never 3 + 1. */
-const optCls = arr => { const w = x => String(x == null ? '' : x).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length, m = Math.max(0, ...(arr || []).map(w)); return (arr || []).length === 4 ? (m <= 14 ? 'c4' : m <= 48 ? 'c2' : 'c1') : 'c1'; };
+const optCls = arr => { const heavy = /\\(frac|dfrac|int|oint|sqrt|sum|prod|lim|begin|vec|overrightarrow)\b/, w = x => String(x == null ? '' : x).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length, m = Math.max(0, ...(arr || []).map(w)); return (arr || []).length === 4 && !(arr || []).some(x => heavy.test(String(x == null ? '' : x))) ? (m <= 10 ? 'c4' : m <= 16 ? 'c2' : 'c1') : 'c1'; };   /* short options sit side by side; long ones, and any option with a fraction, integral, root, sum or matrix, take one row each */
 /* Match the following: List-I and List-II side by side in a table (P with 1, Q with 2, ...) */
 function rich(t) {
   const m = window.AvantiMatch && window.AvantiMatch.parse(t);

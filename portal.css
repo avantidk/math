@@ -171,10 +171,11 @@ html.plan-free .main :not(input):not(textarea):not(select) { -webkit-user-select
 .pt-qt { color: var(--ink); line-height: 1.6; overflow-wrap: anywhere; }
 .pt-fig { display: block; max-width: min(100%, 360px); height: auto; background: #fff; border-radius: 8px; border: 1px solid var(--rule); }
 .pt-opts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 6px; }
-.pt-opt { display: flex; gap: 8px; align-items: baseline; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--rule); color: var(--ink); overflow-x: auto; }
+.pt-opt { display: flex; gap: 8px; align-items: center; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--rule); color: var(--ink); overflow-x: auto; }
 .pt-opt b { color: var(--muted); }
 .pt-opt.right { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, transparent); }
-.pt-opt.chosen:not(.right) { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
+.pt-opt.picked { border-color: var(--accent); background: var(--accent-soft); }   /* before the answers open: only what you ticked, no right or wrong */
+.pt-opt.chosen:not(.right):not(.picked) { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
 .pt-ans, .pt-yours { margin: 0; font-size: 13.5px; color: var(--body); }
 .pt-price { margin: 0; color: var(--muted); }
 .pt-price strong { font-size: 34px; color: var(--ink); margin-right: 4px; }
@@ -231,7 +232,7 @@ body.ex-on { overflow: hidden; }
 .ex-qh strong { color: var(--ink); font-size: 16px; }
 .ex-q { font-size: 16.5px; line-height: 1.7; color: var(--ink); overflow-wrap: anywhere; }
 .ex-opts { display: flex; flex-direction: column; gap: 8px; }
-.ex-opt { display: flex; align-items: baseline; gap: 10px; padding: 12px 14px; border: 1.5px solid var(--rule); border-radius: 12px; background: var(--panel); cursor: pointer; color: var(--ink); overflow-x: auto; }
+.ex-opt { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1.5px solid var(--rule); border-radius: 12px; background: var(--panel); cursor: pointer; color: var(--ink); overflow-x: auto; }
 .ex-opt:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--rule)); }
 .ex-opt.on { border-color: var(--accent); background: var(--accent-soft); }
 .ex-opt input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; align-self: center; }
@@ -1192,3 +1193,7 @@ html body .katex .katex-html > .base { white-space: nowrap; }
 
 /* formulas in tests and lists: a little larger so that fractions, powers and indices are easy to read on a phone */
 .ex-q .katex, .ex-opt .katex, .pt-qt .katex { font-size: 1.3em; }
+
+.pt-sort { all: unset; cursor: pointer; font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit; border-bottom: 1px dashed currentColor; }
+.pt-sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+th[aria-sort="ascending"] .pt-sort::after { content: " \25B2"; font-size: .75em; } th[aria-sort="descending"] .pt-sort::after { content: " \25BC"; font-size: .75em; }

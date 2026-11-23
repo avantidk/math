@@ -158,7 +158,7 @@ a.d-tile:hover, .d-tile[onclick]:hover, .d-tile:not(.is-off):hover { transform: 
 .dl-fullq { font-size: 16px; line-height: 1.7; color: var(--ink); overflow-wrap: anywhere; }
 .dl-fig svg { max-width: 100%; height: auto; }
 .dl-opts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
-.dl-opt { display: flex; gap: 10px; align-items: baseline; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--panel); }
+.dl-opt { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--panel); }
 .dl-opt b { color: var(--accent); } .dl-opt.ok { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
 .dl-ans { padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--ok) 12%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); }
 .dl-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .dl-acts .btn { display: inline-flex; align-items: center; gap: 6px; }

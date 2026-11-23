@@ -13,8 +13,10 @@
     .replace(/\\widehat\{\s*([A-Za-z])\s*\}/g, '\\hat{$1}');
   /* an inline fraction is drawn in full size (like a displayed one) so it is easy to read; not inside a power or a subscript */
   const bigFrac = (t, o) => (typeof t === 'string' && !(o && o.displayMode) && /\\frac(?![A-Za-z])/.test(t) && !/[\^_]\{[^{}]*\\frac/.test(t) && !/[\^_]\\frac/.test(t)) ? t.replace(/\\frac(?![A-Za-z])/g, '\\dfrac') : t;
+  /* an inline integral is drawn in full size (displaystyle), the small inline integral sign was hard to see */
+  const bigInt = (t, o) => (typeof t === 'string' && !(o && o.displayMode) && /\\o?int(?![A-Za-z])/.test(t) && !/^\s*\\displaystyle/.test(t)) ? '\\displaystyle ' + t : t;
   const patchKatex = k => { if (!k || k.__avNorm) return k; try {
-      ['render', 'renderToString'].forEach(n => { const f = k[n]; if (typeof f === 'function') k[n] = function (tex, a, b) { const o = n === 'render' ? b : a; return f.call(this, bigFrac(norm(tex), o), a, b); }; });
+      ['render', 'renderToString'].forEach(n => { const f = k[n]; if (typeof f === 'function') k[n] = function (tex, a, b) { const o = n === 'render' ? b : a; return f.call(this, bigInt(bigFrac(norm(tex), o), o), a, b); }; });
       k.__avNorm = true; } catch (e) { /* keep KaTeX as it is */ } return k; };
   if (window.katex) patchKatex(window.katex);
   else { let kk; try { Object.defineProperty(window, 'katex', { configurable: true, get: () => kk, set: v => { kk = patchKatex(v); } }); } catch (e) { /* no patch */ } }

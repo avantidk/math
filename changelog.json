@@ -1,5 +1,15 @@
 [
   {
+    "v": "1059",
+    "date": "23 Nov 2026",
+    "items": [
+      "Options: a question with long options, or options with fractions, integrals, roots, sums or matrices, now shows one option per row (4 rows); only very short options sit side by side. The letter, tick circle and formula are centred on each other.",
+      "Inline integrals are drawn in full size.",
+      "Report before the answers open: the review only shows which option you ticked (no right or wrong marks, no Wrong / Correct filters). After the answers open, correct options are green and wrong ones red.",
+      "'Topic-wise performance' is now 'Chapter Wise Performance in this test' (one row per chapter) and every column sorts when you click its heading (click again to reverse)."
+    ]
+  },
+  {
     "v": "1058",
     "date": "23 Nov 2026",
     "items": [
