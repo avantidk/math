@@ -2793,7 +2793,7 @@ revoke execute on all functions in schema public from public, anon, authenticate
 grant execute on function public.ping(), public.support_contact() to anon, authenticated;
 grant execute on function public.plan_of(public.profiles), public.my_plan(), public.is_staff(), public.can_create_tests(),
   public.norm_class(text), public.norm_stream(text), public.norm_category(text), public.norm_gender(text), public.session_for(text, timestamptz),
-  public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text),
+  public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text, text, text),
   public.list_available_tests(), public.test_info(text), public.start_attempt(text),
   public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer),
   public.create_personal_test(text, integer, numeric, numeric, jsonb, text, text, text, integer), public.marking_schemes(), public.personal_overview(), public.my_rank(uuid), public.link_ranking(uuid),

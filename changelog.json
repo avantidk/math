@@ -1,5 +1,12 @@
 [
   {
+    "v": "1048",
+    "date": "23 Nov 2026",
+    "items": [
+      "Database file fixed so it can be run again after the new sign-up question was added (the permission line named the old form of the profile function)."
+    ]
+  },
+  {
     "v": "1047",
     "date": "23 Nov 2026",
     "items": [
