@@ -1,5 +1,12 @@
 [
   {
+    "v": "1055",
+    "date": "23 Nov 2026",
+    "items": [
+      "CBSE test formatting: both halves of an OR question are now shown together with OR between them (answer in one half and the other clears); the pictures now show inside tests; words like mm, LHL, Bag I, 'is divisible by' and sin x / cos x are no longer set in italic maths; plain numbers in sentences are plain text; a broken option in Q33 (A inverse) is repaired. The same clean-up is done in the CBSE explanations."
+    ]
+  },
+  {
     "v": "1054",
     "date": "23 Nov 2026",
     "items": [

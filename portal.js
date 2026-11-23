@@ -82,6 +82,8 @@ function matchTable(t) {
 const qText = t => matchTable(t) || qBase(t);
 function figure(f) {
   if (!f || !f.svg) return null;
+  const m = /^\s*<img\b[^>]*\ssrc="(data:image\/(?:webp|png|jpeg|jpg|gif);base64,[A-Za-z0-9+\/=]+)"/i.exec(f.svg);   /* board-paper pictures are stored as a ready <img> with a data address */
+  if (m) return h('img', { class: 'pt-fig', alt: 'Figure', src: m[1] });
   return h('img', { class: 'pt-fig', alt: 'Figure', src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(f.svg) });
 }
 
@@ -1807,45 +1809,52 @@ function runExam(d) {
     const q0 = qs[X.cur], a = ans[q0.id]; a.v = true;
     const q = q0.alt && a.alt === 'B' ? Object.assign({}, q0, q0.alt) : q0;   /* a question with an OR choice shows the half the student picked */
     main.textContent = '';
+    /* one half of the question (a question with an OR choice has two halves, both shown; answering in one half chooses it) */
+    const buildInput = (q, which) => {
+      const mine = !which || a.alt === which, cur = mine ? a.r : (q.type === 'MSQ' ? [] : ''), claim = () => { if (which && a.alt !== which) { a.alt = which; a.r = q.type === 'MSQ' ? [] : ''; a.ex = false; return true; } return false; };
     let input;
     if (q.type === 'Numerical') {
       input = h('div', { class: 'ex-num' }, h('label', { for: 'exNum', text: 'Your answer (a number)' }),
-        h('input', { id: 'exNum', type: 'text', inputmode: 'decimal', autocomplete: 'off', class: 'pt-in', value: a.r || '', maxlength: 20, oninput: e => { const v = e.target.value.replace(/[^0-9.\-]/g, ''); if (v !== e.target.value) e.target.value = v; a.r = v; X.dirty = true; drawPal(); } }));
+        h('input', { id: 'exNum', type: 'text', inputmode: 'decimal', autocomplete: 'off', class: 'pt-in', value: cur || '', maxlength: 20, oninput: e => { const v = e.target.value.replace(/[^0-9.\-]/g, ''); if (v !== e.target.value) e.target.value = v; claim(); a.r = v; X.dirty = true; drawPal(); } }));
     } else if (q.type === 'WRITTEN') {
       input = h('p', { class: 'pt-note', text: 'Solve this on paper. It is not auto-marked: compare with the answer and solution in the review after you submit.' });
     } else if (q.type === 'SUBJ') {
       /* board-paper written question (Sections B to E): solve on paper, then open the 8 final answers and pick the matching one */
-      const open = !!a.ex;
+      const open = !!a.ex && mine;
       input = h('div', { class: 'ex-subj' }, h('p', { class: 'pt-hint', text: 'Solve this on paper. Then expand the options and choose your final answer.' }),
-        h('button', { type: 'button', class: 'btn ex-expand', 'aria-expanded': String(open), text: open ? 'Hide options' : 'Expand Options', onclick: () => { a.ex = !a.ex; draw(); } }),
+        h('button', { type: 'button', class: 'btn ex-expand', 'aria-expanded': String(open), text: open ? 'Hide options' : 'Expand Options', onclick: () => { claim(); a.ex = !open; draw(); } }),
         h('div', { class: 'ex-opts', role: 'radiogroup', 'aria-label': 'Final answer', hidden: !open }, (q.o || []).slice(0, 8).map((t, k) => {
-          const L = LETTERS[k], on = a.r === L;
-          return h('label', { class: 'ex-opt' + (on ? ' on' : '') }, h('input', { type: 'radio', name: 'exo', value: L, checked: on, onchange: () => { a.r = L; X.dirty = true; main.querySelectorAll('.ex-opt').forEach(l => l.classList.toggle('on', l.querySelector('input').checked)); drawPal(); } }), h('b', { text: L }), h('span', { html: qText(t) }));
+          const L = LETTERS[k], on = cur === L;
+          return h('label', { class: 'ex-opt' + (on ? ' on' : '') }, h('input', { type: 'radio', name: 'exo' + (which || ''), value: L, checked: on, onchange: () => { const sw = claim(); a.r = L; X.dirty = true; if (sw) { draw(); return; } main.querySelectorAll('.ex-opt').forEach(l => l.classList.toggle('on', l.querySelector('input').checked)); drawPal(); } }), h('b', { text: L }), h('span', { html: qText(t) }));
         })));
     } else {
       const multi = q.type === 'MSQ';
       input = h('div', { class: 'ex-opts ' + optCls(q.o), role: multi ? 'group' : 'radiogroup', 'aria-label': 'Options' }, (q.o || []).map((t, k) => {
-        const L = LETTERS[k], on = multi ? a.r.includes(L) : a.r === L;
+        const L = LETTERS[k], on = multi ? cur.includes(L) : cur === L;
         return h('label', { class: 'ex-opt' + (on ? ' on' : '') },
-          h('input', { type: multi ? 'checkbox' : 'radio', name: 'exo', value: L, checked: on, onchange: e => {
+          h('input', { type: multi ? 'checkbox' : 'radio', name: 'exo' + (which || ''), value: L, checked: on, onchange: e => {
+            const sw = claim();
             if (multi) { const s = new Set(a.r); e.target.checked ? s.add(L) : s.delete(L); a.r = [...s].sort(); } else a.r = L;
-            X.dirty = true; main.querySelectorAll('.ex-opt').forEach(l => l.classList.toggle('on', l.querySelector('input').checked)); drawPal();
+            X.dirty = true; if (sw) { draw(); return; } main.querySelectorAll('.ex-opt').forEach(l => l.classList.toggle('on', l.querySelector('input').checked)); drawPal();
           } }), h('b', { text: L }), h('span', { html: qText(t) }));
       }));
     }
-    const orBar = q0.alt ? h('div', { class: 'ex-or', role: 'group', 'aria-label': 'OR: choose the question you answer' }, h('b', { text: 'OR' }), h('span', { text: 'Answer only one of the two:' }),
-      ['A', 'B'].map(v => h('button', { type: 'button', class: 'btn' + (a.alt === v ? ' pri' : ''), 'aria-pressed': String(a.alt === v), text: 'Question (' + v + ')', onclick: () => { if (a.alt === v) return; a.alt = v; const t = v === 'B' ? q0.alt.type : q0.type; a.r = t === 'MSQ' ? [] : ''; X.dirty = true; draw(); } }))) : '';
+      return input;
+    };
     main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge(q.sj ? 'Subjective' : isParaText(q.q) ? 'Para' : /^[1-4]$/.test(String(q.sec || '')) ? secName(q) : (q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'WRITTEN' ? 'Written question' : q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
       h('span', { class: 'pt-hint', text: (q.mc != null && +q.mc === 0) ? 'Not auto-marked' : '+' + num(q.mc != null ? q.mc : d.marks_correct, 2) + (() => { const w = q.mw != null ? +q.mw : (q.type === 'MCQ' ? +d.marks_wrong : 0); return w ? ' / −' + num(w, 2) : ''; })() + (q.mp ? ' · partial marks' : '') + (q0.mpp ? ' · step marks: tick every correct step, a wrong tick gives 0' : '') }),
       X.qtEl = h('span', { class: 'ex-qtime', title: 'Time spent on this question', 'aria-label': 'Time on this question' })),
-      orBar, h('div', { class: 'ex-q', html: qText(q.q) }), figure(q.f) || '', input,
+      ...(q0.alt ? [h('div', { class: 'ex-half' }, h('b', { class: 'ex-halfl', text: 'Question (A)' }), h('div', { class: 'ex-q', html: qText(q0.q) }), figure(q0.f) || '', buildInput(q0, 'A')),
+        h('div', { class: 'ex-or', role: 'separator' }, h('b', { text: 'OR' }), h('span', { text: 'Answer only one of the two. Answering one clears the other.' })),
+        h('div', { class: 'ex-half' }, h('b', { class: 'ex-halfl', text: 'Question (B)' }), h('div', { class: 'ex-q', html: qText(q0.alt.q) }), figure(q0.alt.f) || '', buildInput(Object.assign({}, q0, q0.alt), 'B'))]
+        : [h('div', { class: 'ex-q', html: qText(q.q) }), figure(q.f) || '', buildInput(q, null)]),
       h('div', { class: 'ex-nav' },
         h('button', { type: 'button', class: 'btn', text: '‹ Previous', disabled: X.cur === 0, onclick: () => go(X.cur - 1) }),
         h('button', { type: 'button', class: 'btn', text: 'Clear response', onclick: () => { a.r = q.type === 'MSQ' ? [] : ''; X.dirty = true; draw(); } }),
         h('button', { type: 'button', class: 'btn ex-mk', text: a.m ? 'Unmark review' : 'Mark for review & next', onclick: () => { a.m = !a.m; X.dirty = true; if (a.m && X.cur < qs.length - 1) go(X.cur + 1); else { draw(); save(); } } }),
         h('button', { type: 'button', class: 'btn pri', text: X.cur < qs.length - 1 ? 'Save & next ›' : 'Save', onclick: () => { X.dirty = true; if (X.cur < qs.length - 1) go(X.cur + 1); else { save(true); toast('Saved. Press Submit when you are done.'); } } })));
     drawPal(); mathIn(main); tickQ();
-    if (reading()) main.querySelectorAll('input, .ex-expand, .ex-mk, .ex-or button, .ex-nav .btn:not(.pri):not(:first-child)').forEach(el => { el.disabled = true; });   /* reading time: look, but no answering */
+    if (reading()) main.querySelectorAll('input, .ex-expand, .ex-mk, .ex-nav .btn:not(.pri):not(:first-child)').forEach(el => { el.disabled = true; });   /* reading time: look, but no answering */
   }
   /* reading time (CBSE: the first minutes of the test are only for reading, nothing can be answered); the writing time follows */
   const readSec = +d.reading_sec || 0, writeSec = d.duration_min * 60;
