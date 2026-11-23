@@ -1723,7 +1723,7 @@ async function pageTake(code) {
     h('div', { class: 'pt-stats' }, stat('Questions', info.n_questions), stat('Time', info.duration_min + ' min' + (+info.reading_min ? ' + ' + info.reading_min + ' min reading' : '')), stat('Maximum marks', num(info.max_marks != null ? info.max_marks : info.marks_correct * info.n_questions, 2))),
     schemeTable(info),
     h('h2', { text: 'Instructions' }),
-    h('ul', { class: 'pt-feats' }, (+info.reading_min ? ['Reading time: the first ' + info.reading_min + ' minutes are only for reading. You can go through all the questions, but you cannot type, tick or select any answer. After that the writing time of ' + info.duration_min + ' minutes (' + num(info.duration_min / 60, 1).replace(/\.0$/, '') + ' hours) starts and you can answer.'] : []).concat(['The timer starts when you press Start. It counts only while this page is open and online: if your internet or power goes it pauses, and when you open the test again it carries on from where it stopped, with your saved answers.', 'Your answers are saved automatically every few seconds. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Stay on the test in full screen. Switching to another tab or app, or leaving full screen, gives a warning. At 3 warnings the test is submitted automatically.', 'The test submits by itself when the time is up. The correct answers open when the full exam time is over.']).map(x => h('li', { text: x }))),
+    h('ul', { class: 'pt-feats' }, (+info.reading_min ? ['Reading time: the first ' + info.reading_min + ' minutes are only for reading. You can go through all the questions, but you cannot type, tick or select any answer. After that the writing time of ' + info.duration_min + ' minutes (' + num(info.duration_min / 60, 1).replace(/\.0$/, '') + ' hours) starts and you can answer.'] : []).concat(['The timer starts when you press Start. It counts only while this page is open and online: if your internet or power goes it pauses, and when you open the test again it carries on from where it stopped, with your saved answers.', 'Your answers are saved automatically every few seconds. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Stay on the test in full screen. Switching to another tab or app, or leaving full screen, gives a warning. At 5 warnings the test is submitted automatically.', 'The test submits by itself when the time is up. The correct answers open when the full exam time is over.']).map(x => h('li', { text: x }))),
     h('p', { class: 'pt-hint', text: 'Signed in as ' + (P().full_name || P().email || P().avanti_id) + (P().school ? ' · ' + P().school : '') }),
     startBtn)));
 }
@@ -1762,7 +1762,7 @@ function runExam(d) {
   const qs = d.questions, ans = {};
   qs.forEach(q => { const a = (d.answers || {})[q.id] || {}; ans[q.id] = { r: a.r == null ? (q.type === 'MSQ' ? [] : '') : a.r, t: +a.t || 0, m: !!a.m, v: !!a.v, alt: q.alt ? (a.alt === 'B' ? 'B' : 'A') : null }; });
   /* the clock counts the time the page is open and online: the server says how many seconds are left, this page counts down from there, and waits while the power or the internet is gone (then carries on from where it stopped).
-     X.tabs is the number of warnings (tab or app switch, leaving full screen); the server submits the test at 3. */
+     X.tabs is the number of warnings (tab or app switch, leaving full screen); the server submits the test at 5. */
   const X = EX = { d, qs, ans, cur: 0, tabs: d.tab_switches || 0, dirty: false, saving: false, enter: Date.now(), done: false, left: d.remaining_sec != null ? d.remaining_sec : Math.max(0, d.duration_min * 60 - (Date.parse(d.server_now) - Date.parse(d.started_at)) / 1000), sync: Date.now(), lastViol: 0, wasFull: !!document.fullscreenElement };
   const root = X.root = h('div', { class: 'ex', role: 'application', 'aria-label': 'Test: ' + d.title });
   document.body.classList.add('ex-on'); document.body.append(root);
@@ -1792,7 +1792,7 @@ function runExam(d) {
     X.saving = true; track(); X.dirty = false; saved.textContent = 'Saving…'; saved.className = 'ex-saved';
     try {
       const r = await rpc('save_attempt', { p_attempt: d.attempt_id, p_answers: payload(), p_tab_switches: X.tabs });
-      if (r && r.status === 'submitted') { X.saving = false; closed(r.reason === 'violations' ? 'The test was submitted after 3 warnings.' : 'This test is already submitted.'); return; }
+      if (r && r.status === 'submitted') { X.saving = false; closed(r.reason === 'violations' ? 'The test was submitted after 5 warnings.' : 'This test is already submitted.'); return; }
       if (r && r.status === 'time_up') { X.saving = false; finish(true); return; }
       if (r && r.remaining_sec != null) { X.left = r.remaining_sec; X.sync = Date.now(); X.pauseAt = 0; }
       pauseBar.hidden = true; saved.textContent = 'Saved ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
@@ -1870,7 +1870,7 @@ function runExam(d) {
   /* no connection: the timer waits; answers are saved again when the internet is back */
   X.onOffline = () => setPaused(true); X.onOnline = () => { X.dirty = true; save(true); };   /* the timer carries on once a save has gone through */
   window.addEventListener('offline', X.onOffline); window.addEventListener('online', X.onOnline);
-  /* the server has already submitted the test (3 warnings, or submitted elsewhere): straight to the report */
+  /* the server has already submitted the test (5 warnings, or submitted elsewhere): straight to the report */
   function closed(why) {
     if (X.done) return; X.done = true; clearInterval(X.tick); clearInterval(X.auto);
     exitExam(); location.replace('#/report/' + d.attempt_id); toast(why);
@@ -1896,16 +1896,16 @@ function runExam(d) {
   async function finish(timeUp, why) {
     if (X.done) return; X.done = true; track();
     clearInterval(X.tick); clearInterval(X.auto); if (X.warnClose) X.warnClose();
-    main.textContent = ''; main.append(loading(why === 'violations' ? '3 warnings: the test is being submitted automatically…' : timeUp ? 'Time is up. Submitting your answers…' : 'Submitting your answers…'));
+    main.textContent = ''; main.append(loading(why === 'violations' ? '5 warnings: the test is being submitted automatically…' : timeUp ? 'Time is up. Submitting your answers…' : 'Submitting your answers…'));
     for (let i = 0; i < 5; i++) {
-      try { const r = await rpc('submit_attempt', { p_attempt: d.attempt_id, p_answers: payload(), p_tab_switches: X.tabs }); exitExam(); location.replace('#/report/' + ((r && r.attempt_id) || d.attempt_id)); toast(why === 'violations' || (r && r.reason === 'violations') ? 'The test was submitted automatically after 3 warnings. Here is your report.' : 'Submitted. Here is your report.'); return; }
+      try { const r = await rpc('submit_attempt', { p_attempt: d.attempt_id, p_answers: payload(), p_tab_switches: X.tabs }); exitExam(); location.replace('#/report/' + ((r && r.attempt_id) || d.attempt_id)); toast(why === 'violations' || (r && r.reason === 'violations') ? 'The test was submitted automatically after 5 warnings. Here is your report.' : 'Submitted. Here is your report.'); return; }
       catch (e) { main.textContent = ''; main.append(errorBox('Could not submit yet (' + e.message + '). Trying again…')); await new Promise(r => setTimeout(r, 3000)); }
     }
     main.textContent = ''; main.append(errorBox('Your answers were saved, but the test could not be submitted. Check your internet and press Try again.', () => { X.done = false; finish(timeUp); }));
   }
   /* Warnings: switching to another tab or app, or leaving full screen. One action counts once (a tab switch often also leaves full screen).
-     Each warning is saved at once; the 3rd submits the test. */
-  const MAX_WARN = 3;
+     Each warning is saved at once; the 5th submits the test. */
+  const MAX_WARN = 5;
   function violation(what) {
     if (X.done) return;
     const now = Date.now(); if (now - X.lastViol < 2500) return; X.lastViol = now;

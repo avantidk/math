@@ -899,7 +899,7 @@ alter table public.payments                 enable row level security;
 alter table public.worksheets               enable row level security;
 alter table public.tests                    enable row level security;
 alter table public.attempts                 enable row level security;
--- Test clock: active time only (elapsed_sec); it waits while the power or internet is gone. 3 violations (leaving the test
+-- Test clock: active time only (elapsed_sec); it waits while the power or internet is gone. 5 violations (leaving the test
 -- screen or full screen) submit the attempt automatically. last_beat is only the time of the last save.
 alter table public.attempts add column if not exists elapsed_sec integer not null default 0;
 alter table public.attempts add column if not exists last_beat timestamptz;
@@ -1116,7 +1116,7 @@ end $$;
 -- The clock counts only the time the test page is really open. The page sends a heartbeat about every 25 seconds (every save is one);
 -- each beat adds the time since the last beat, at most 45 seconds. When the power or the internet is gone there are no beats, so the
 -- clock waits, and the test carries on from where it stopped when the student opens it again. Leaving the screen is not a pause:
--- it is a violation (3 violations submit the test).
+-- it is a violation (5 violations submit the test).
 create or replace function public.attempt_beat(p_id uuid) returns public.attempts
 language plpgsql security definer set search_path = public as $$
 declare a public.attempts;
@@ -1152,8 +1152,8 @@ begin
   end if;
   if a.status = 'in_progress' then
     a := public.attempt_beat(a.id);
-    if a.elapsed_sec > (t.duration_min + t.reading_min) * 60 + 120 or a.tab_switches >= 3 then
-      perform public.grade_attempt(a.id);   -- the time ran out, or 3 violations: submit what was saved
+    if a.elapsed_sec > (t.duration_min + t.reading_min) * 60 + 120 or a.tab_switches >= 5 then
+      perform public.grade_attempt(a.id);   -- the time ran out, or 5 violations: submit what was saved
       select * into a from public.attempts where id = a.id;
     end if;
   end if;
@@ -1187,7 +1187,7 @@ begin
   if jsonb_typeof(p_answers) <> 'object' or length(p_answers::text) > 200000 then raise exception 'Answers are not valid'; end if;
   update public.attempts set answers = p_answers, tab_switches = greatest(tab_switches, least(coalesce(p_tab_switches, 0), 100)), saved_at = now()
    where id = a.id returning * into a;
-  if a.tab_switches >= 3 then   -- 3 violations: the test is submitted automatically
+  if a.tab_switches >= 5 then   -- 5 violations: the test is submitted automatically
     update public.attempts set submitted_at = coalesce(submitted_at, now()) where id = a.id;
     perform public.grade_attempt(a.id);
     return json_build_object('status', 'submitted', 'reason', 'violations', 'attempt_id', a.id);
@@ -1211,7 +1211,7 @@ begin
   end if;
   update public.attempts set tab_switches = greatest(tab_switches, least(coalesce(p_tab_switches, 0), 100)) where id = a.id returning * into a;
   perform public.grade_attempt(a.id);
-  return json_build_object('attempt_id', a.id, 'status', 'submitted', 'reason', case when a.tab_switches >= 3 then 'violations' end);
+  return json_build_object('attempt_id', a.id, 'status', 'submitted', 'reason', case when a.tab_switches >= 5 then 'violations' end);
 end $$;
 
 -- -------------------------------------------------------------------------------------

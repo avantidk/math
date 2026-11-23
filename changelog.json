@@ -1,5 +1,12 @@
 [
   {
+    "v": "1056",
+    "date": "23 Nov 2026",
+    "items": [
+      "Tests now allow 5 warnings (switching tab or app, leaving full screen) instead of 3; the 5th warning submits the test automatically. The instructions and the guide say 5. (Needs the latest schema.sql to be run once.)"
+    ]
+  },
+  {
     "v": "1055",
     "date": "23 Nov 2026",
     "items": [
