@@ -1,5 +1,12 @@
 [
   {
+    "v": "1053",
+    "date": "23 Nov 2026",
+    "items": [
+      "CBSE papers now start with 5 minutes of reading time: you can go through all the questions but cannot type, tick or select any answer. Then the 3 hour writing time starts. This is written in the instructions too. (Needs the latest schema.sql to be run once.)"
+    ]
+  },
+  {
     "v": "1052",
     "date": "23 Nov 2026",
     "items": [

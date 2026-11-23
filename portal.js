@@ -1150,7 +1150,7 @@ async function pagePersonal(arg) {
     papersOf(B, exam).forEach(pp => { const nm = pp.qs.filter(q => !gradable(q)).length;
       paperBox.append(h('div', { class: 'pp-card pp-card2' },
         h('button', { type: 'button', class: 'pp-main', onclick: e => startPaper(pp, e.currentTarget) },
-          h('b', { text: pp.label }), h('small', { text: orUnits(pp.qs).length + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }), nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null, h('span', { class: 'pp-go', text: 'Open Instructions and Start ›' })),
+          h('b', { text: pp.label }), h('small', { text: orUnits(pp.qs).length + ' questions · ' + sc.duration_min + ' min' + (sc.rules && +sc.rules.reading_min ? ' + ' + sc.rules.reading_min + ' min reading' : '') + ' · ' + markText(sc) }), nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null, h('span', { class: 'pp-go', text: 'Open Instructions and Start ›' })),
         h('button', { type: 'button', class: 'pp-pdf', title: 'Download or share this paper', 'aria-label': 'Download or share ' + pp.label, 'aria-haspopup': 'menu', html: IC.share, onclick: e => dropMenu(e.currentTarget, [
           { icon: IC.pdf, text: 'Download PDF', sub: 'The question paper', onclick: () => fillQs(pp.qs, { paper: (pp.qs.find(q => q.ps) || {}).ps }).then(() => TE().exportIds(pp.qs.map(q => q.i), pp.label, 'pdf', 'Question paper', '', '', { key: false, exp: false })).catch(x => toast('Could not make the PDF: ' + ((x && x.message) || 'try again'))) },
           can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable question paper', onclick: () => fillQs(pp.qs, { paper: (pp.qs.find(q => q.ps) || {}).ps }).then(() => TE().exportIds(pp.qs.map(q => q.i), pp.label, 'docx', 'Question paper', '', '', { key: false, exp: false })).catch(x => toast('Could not make the Word file: ' + ((x && x.message) || 'try again'))) } : null,
@@ -1493,7 +1493,7 @@ async function modeFull() {
       try { const qs = []; Object.keys(cbMix).forEach(k => shuffled(unitsOf(k)).slice(0, cbMix[k]).forEach(u => { qs.push(u.a); if (u.b) qs.push(u.b); }));   /* sections stay in order A to E, the questions are shuffled only inside a section */
         await launchTest({ title: 'CBSE Class 12 full length mock', qs, exam: 'CBSE 12', mins: null, key: 'full-cbse', pairs: true });
       } catch (err) { toast(err.message); b.disabled = false; } } },
-      h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: '38 questions · ' + (cbse ? cbse.duration_min : 180) + ' min · 80 marks · no negative marking' }), h('small', { class: 'pt-hint', text: 'Sections A to E. In B to E tick every correct step; OR questions: answer either half.' }), h('span', { class: 'pp-go', text: 'Start ›' }))
+      h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: '38 questions · ' + (cbse ? cbse.duration_min : 180) + ' min + 5 min reading · 80 marks · no negative marking' }), h('small', { class: 'pt-hint', text: 'Sections A to E. In B to E tick every correct step; OR questions: answer either half.' }), h('span', { class: 'pp-go', text: 'Start ›' }))
     : h('div', { class: 'pp-card is-off', 'aria-disabled': 'true' }, h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: 'Code 041 · 3 hours · 38 questions · 80 marks · coming soon' })));
   draw();
   show(modeHead('Full Length Mock', 'Choose the source and the difficulty, then an exam.'), bar.el, note, grid);
@@ -1718,10 +1718,10 @@ async function pageTake(code) {
     catch (e) { startBtn.disabled = false; startBtn.textContent = 'Start test'; toast(e.message); }
   } });
   show(h('div', { class: 'pt-start' }, card(h('p', { class: 'pt-sub', text: info.audience === 'self' ? 'Your personal test' : 'Test by ' + info.teacher }), h('h1', { text: info.title }),
-    h('div', { class: 'pt-stats' }, stat('Questions', info.n_questions), stat('Time', info.duration_min + ' min'), stat('Maximum marks', num(info.max_marks != null ? info.max_marks : info.marks_correct * info.n_questions, 2))),
+    h('div', { class: 'pt-stats' }, stat('Questions', info.n_questions), stat('Time', info.duration_min + ' min' + (+info.reading_min ? ' + ' + info.reading_min + ' min reading' : '')), stat('Maximum marks', num(info.max_marks != null ? info.max_marks : info.marks_correct * info.n_questions, 2))),
     schemeTable(info),
     h('h2', { text: 'Instructions' }),
-    h('ul', { class: 'pt-feats' }, ['The timer starts when you press Start. It counts only while this page is open and online: if your internet or power goes it pauses, and when you open the test again it carries on from where it stopped, with your saved answers.', 'Your answers are saved automatically every few seconds. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Stay on the test in full screen. Switching to another tab or app, or leaving full screen, gives a warning. At 3 warnings the test is submitted automatically.', 'The test submits by itself when the time is up. The correct answers open when the full exam time is over.'].map(x => h('li', { text: x }))),
+    h('ul', { class: 'pt-feats' }, (+info.reading_min ? ['Reading time: the first ' + info.reading_min + ' minutes are only for reading. You can go through all the questions, but you cannot type, tick or select any answer. After that the writing time of ' + info.duration_min + ' minutes (' + num(info.duration_min / 60, 1).replace(/\.0$/, '') + ' hours) starts and you can answer.'] : []).concat(['The timer starts when you press Start. It counts only while this page is open and online: if your internet or power goes it pauses, and when you open the test again it carries on from where it stopped, with your saved answers.', 'Your answers are saved automatically every few seconds. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Stay on the test in full screen. Switching to another tab or app, or leaving full screen, gives a warning. At 3 warnings the test is submitted automatically.', 'The test submits by itself when the time is up. The correct answers open when the full exam time is over.']).map(x => h('li', { text: x }))),
     h('p', { class: 'pt-hint', text: 'Signed in as ' + (P().full_name || P().email || P().avanti_id) + (P().school ? ' · ' + P().school : '') }),
     startBtn)));
 }
@@ -1845,7 +1845,14 @@ function runExam(d) {
         h('button', { type: 'button', class: 'btn ex-mk', text: a.m ? 'Unmark review' : 'Mark for review & next', onclick: () => { a.m = !a.m; X.dirty = true; if (a.m && X.cur < qs.length - 1) go(X.cur + 1); else { draw(); save(); } } }),
         h('button', { type: 'button', class: 'btn pri', text: X.cur < qs.length - 1 ? 'Save & next ›' : 'Save', onclick: () => { X.dirty = true; if (X.cur < qs.length - 1) go(X.cur + 1); else { save(true); toast('Saved. Press Submit when you are done.'); } } })));
     drawPal(); mathIn(main); tickQ();
+    if (reading()) main.querySelectorAll('input, .ex-expand, .ex-mk, .ex-or button, .ex-nav .btn:not(.pri):not(:first-child)').forEach(el => { el.disabled = true; });   /* reading time: look, but no answering */
   }
+  /* reading time (CBSE: the first minutes of the test are only for reading, nothing can be answered); the writing time follows */
+  const readSec = +d.reading_sec || 0, writeSec = d.duration_min * 60;
+  const reading = () => readSec > 0 && !X.done && (X.left - ((X.pauseAt || Date.now()) - X.sync) / 1000) > writeSec;
+  X.rd = reading();
+  const readBar = h('div', { class: 'ex-pause ex-read', role: 'status', hidden: !X.rd, text: 'Reading time: go through all the questions. You cannot type, tick or select any answer yet. The writing time starts when this time is over.' });
+  pauseBar.after(readBar);
   function tickQ() {
     const q = qs[X.cur]; if (!q || !X.qtEl) return;
     const s2 = Math.floor(ans[q.id].t + (Date.now() - X.enter) / 1000);
@@ -1863,12 +1870,15 @@ function runExam(d) {
     tickQ();
     const left = (X.left - ((X.pauseAt || Date.now()) - X.sync) / 1000) * 1000;
     if (left <= 0) { timer.textContent = '0:00'; finish(true); return; }
-    const s = Math.max(0, Math.ceil(left / 1000)), hh = Math.floor(s / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
-    timer.textContent = (hh ? hh + ':' + String(mm).padStart(2, '0') : mm) + ':' + String(ss).padStart(2, '0');
-    timer.classList.toggle('low', s <= 300);
-    if (s === 300) toast('5 minutes left');
+    const rd = readSec > 0 && left / 1000 > writeSec;
+    if (rd !== X.rd) { X.rd = rd; readBar.hidden = !rd; if (!rd) { toast('Reading time is over. The writing time has started: you can answer now.'); draw(); } }
+    const s = Math.max(0, Math.ceil(left / 1000) - (rd ? writeSec : 0)), hh = Math.floor(s / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
+    timer.textContent = (rd ? 'Reading ' : '') + (hh ? hh + ':' + String(mm).padStart(2, '0') : mm) + ':' + String(ss).padStart(2, '0');
+    timer.classList.toggle('low', !rd && s <= 300);
+    if (s === 300 && !rd) toast('5 minutes left');
   }
   function askSubmit() {
+    if (X.rd) { toast('You can submit after the reading time is over.'); return; }
     track();
     const c = { ans: 0, na: 0, nv: 0, mk: 0, am: 0 }; qs.forEach(q => c[stateOf(ans[q.id])]++);
     modal('Submit the test?', h('div', {}, h('ul', { class: 'pt-feats' }, h('li', { text: 'Answered: ' + (c.ans + c.am) }), h('li', { text: 'Not answered: ' + (c.na + c.nv) }), h('li', { text: 'Marked for review: ' + (c.mk + c.am) })),

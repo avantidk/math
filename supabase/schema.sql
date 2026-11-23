@@ -214,7 +214,7 @@ begin
   -- writing a test right now: any unfinished attempt whose time (counted from its start, the clock never pauses) is not over
   return exists (select 1 from public.attempts a join public.tests t on t.id = a.test_id
                   where a.user_id = auth.uid() and a.status = 'in_progress'
-                    and now() <= a.started_at + make_interval(mins => t.duration_min) + interval '2 minutes');
+                    and now() <= a.started_at + make_interval(mins => t.duration_min + t.reading_min) + interval '2 minutes');
 end $$;
 
 -- Submits tests whose time is over (the clock runs from the start and never pauses), with the answers saved so far.
@@ -226,7 +226,7 @@ begin
   -- a test whose own clock (the active time) has run out, or that nobody has opened for 24 hours, is submitted with the saved answers
   for a in select x.id, x.last_beat, x.elapsed_sec, t.duration_min from public.attempts x join public.tests t on t.id = x.test_id
             where x.status = 'in_progress' and (p_user is null or x.user_id = p_user)
-              and (x.elapsed_sec > t.duration_min * 60 + 120 or coalesce(x.last_beat, x.started_at) < now() - interval '24 hours') loop
+              and (x.elapsed_sec > (t.duration_min + t.reading_min) * 60 + 120 or coalesce(x.last_beat, x.started_at) < now() - interval '24 hours') loop
     update public.attempts set submitted_at = coalesce(submitted_at, now()) where id = a.id;
     perform public.grade_attempt(a.id); n := n + 1;
   end loop;
@@ -767,6 +767,8 @@ alter table public.tests add column if not exists target_classes text[];
 alter table public.tests add column if not exists target_streams text[];
 -- tests of "Not Working" teachers: open to any (approved) student who has the link, not shown in Available tests
 alter table public.tests add column if not exists link_only boolean not null default false;
+-- reading time (CBSE: 5 minutes to read the paper before writing; no answer can be given in it): counted on top of duration_min
+alter table public.tests add column if not exists reading_min integer not null default 0;
 -- v970. Who a test is for: 'school' (made by a teacher for a class and batch of their school), 'self' (a personal test: only its owner),
 -- 'teachers_link' (a Premium teacher's personal test shared by link with other Premium teachers), 'all_teachers' / 'all_students' (admin).
 alter table public.tests add column if not exists audience text not null default 'school';
@@ -1007,7 +1009,7 @@ $$;
 -- What the start screen of a test link shows. No questions or answers.
 create or replace function public.test_info(p_code text) returns json
 language sql stable security definer set search_path = public as $$
-  select json_build_object('title', t.title, 'duration_min', t.duration_min, 'n_questions', t.n_questions,
+  select json_build_object('title', t.title, 'duration_min', t.duration_min, 'reading_min', t.reading_min, 'n_questions', t.n_questions,
            'marks_correct', t.marks_correct, 'marks_wrong', t.marks_wrong, 'is_active', t.is_active,
            'is_owner', t.owner_id = auth.uid(), 'teacher', coalesce(o.full_name, 'Teacher'),
            'attempt_id', a.id, 'attempt_status', a.status, 'school', t.school,
@@ -1107,7 +1109,7 @@ begin
   end loop;
   update public.attempts set status = 'submitted', submitted_at = coalesce(submitted_at, now()),
     score = s_score, max_score = s_max, correct = s_c, wrong = s_w, skipped = s_s,
-    time_taken_sec = least(greatest(a.elapsed_sec, 0), t.duration_min * 60)
+    time_taken_sec = least(greatest(a.elapsed_sec - t.reading_min * 60, 0), t.duration_min * 60)
   where id = a.id;
 end $$;
 
@@ -1150,7 +1152,7 @@ begin
   end if;
   if a.status = 'in_progress' then
     a := public.attempt_beat(a.id);
-    if a.elapsed_sec > t.duration_min * 60 + 120 or a.tab_switches >= 3 then
+    if a.elapsed_sec > (t.duration_min + t.reading_min) * 60 + 120 or a.tab_switches >= 3 then
       perform public.grade_attempt(a.id);   -- the time ran out, or 3 violations: submit what was saved
       select * into a from public.attempts where id = a.id;
     end if;
@@ -1161,7 +1163,7 @@ begin
   return json_build_object(
     'attempt_id', a.id, 'status', a.status, 'title', t.title, 'duration_min', t.duration_min,
     'marks_correct', t.marks_correct, 'marks_wrong', t.marks_wrong,
-    'started_at', a.started_at, 'server_now', now(), 'remaining_sec', greatest(t.duration_min * 60 - a.elapsed_sec, 0),
+    'started_at', a.started_at, 'server_now', now(), 'remaining_sec', greatest((t.duration_min + t.reading_min) * 60 - a.elapsed_sec, 0), 'reading_sec', t.reading_min * 60,
     'answers', a.answers, 'tab_switches', a.tab_switches,
     'questions', (select json_agg(json_build_object('id', 'p' || o, 'type', e->>'type', 'q', e->'q', 'o', e->'o', 'f', e->'f', 'tp', e->>'tp',
                                                     's', e->>'s', 'sec', e->>'sec', 'sj', e->>'sj', 'mc', e->'m'->'c', 'mw', e->'m'->'w', 'mp', e->'m'->'p', 'mpp', e->'m'->'pp',
@@ -1179,7 +1181,7 @@ begin
   if a.status <> 'in_progress' then return json_build_object('status', a.status); end if;
   select * into t from public.tests where id = a.test_id;
   a := public.attempt_beat(a.id);   -- every save is also a heartbeat: the clock runs only while the page is open
-  if a.elapsed_sec > t.duration_min * 60 + 120 then
+  if a.elapsed_sec > (t.duration_min + t.reading_min) * 60 + 120 then
     return json_build_object('status', 'time_up');
   end if;
   if jsonb_typeof(p_answers) <> 'object' or length(p_answers::text) > 200000 then raise exception 'Answers are not valid'; end if;
@@ -1190,7 +1192,7 @@ begin
     perform public.grade_attempt(a.id);
     return json_build_object('status', 'submitted', 'reason', 'violations', 'attempt_id', a.id);
   end if;
-  return json_build_object('status', 'saved', 'server_now', now(), 'remaining_sec', greatest(t.duration_min * 60 - a.elapsed_sec, 0), 'violations', a.tab_switches);
+  return json_build_object('status', 'saved', 'server_now', now(), 'remaining_sec', greatest((t.duration_min + t.reading_min) * 60 - a.elapsed_sec, 0), 'reading_sec', t.reading_min * 60, 'violations', a.tab_switches);
 end $$;
 
 create or replace function public.submit_attempt(p_attempt uuid, p_answers jsonb, p_tab_switches integer) returns json
@@ -1204,7 +1206,7 @@ begin
   a := public.attempt_beat(a.id);
   -- answers sent after the time (plus 2 minutes) are ignored: the last autosave counts
   if p_answers is not null and jsonb_typeof(p_answers) = 'object' and length(p_answers::text) <= 200000
-     and a.elapsed_sec <= t.duration_min * 60 + 120 then
+     and a.elapsed_sec <= (t.duration_min + t.reading_min) * 60 + 120 then
     update public.attempts set answers = p_answers, saved_at = now() where id = a.id;
   end if;
   update public.attempts set tab_switches = greatest(tab_switches, least(coalesce(p_tab_switches, 0), 100)) where id = a.id returning * into a;
@@ -1240,7 +1242,7 @@ begin
     v_mine := a.user_id = me.id;
   -- the correct answers open when the time of the paper is over (the duration of the paper, counted from the student's start, plus any time the clock was paused),
   -- also when the student submitted early; the rest of the report (score, ranks, right or wrong, marks, topic analysis) is shown at once
-  v_keys := not v_mine or now() >= a.started_at + make_interval(mins => coalesce(t.duration_min, 180));
+  v_keys := not v_mine or now() >= a.started_at + make_interval(mins => coalesce(t.duration_min, 180) + t.reading_min);
   -- Free students see their school only; Premium students, teachers and Staff also see the comparison with all students
   v_full := a.user_id <> me.id or public.plan_of(me) in ('premium', 'staff');
   if a.status <> 'submitted' then raise exception 'This test has not been submitted yet'; end if;
@@ -1258,7 +1260,7 @@ begin
     'test', json_build_object('title', t.title, 'code', t.code, 'duration_min', t.duration_min, 'n_questions', t.n_questions,
                  'marks_correct', t.marks_correct, 'marks_wrong', t.marks_wrong),
     'full', v_full,
-    'answers_at', case when not v_keys then a.started_at + make_interval(mins => coalesce(t.duration_min, 180)) end,
+    'answers_at', case when not v_keys then a.started_at + make_interval(mins => coalesce(t.duration_min, 180) + t.reading_min) end,
     'rank', (select json_build_object('overall', case when v_full then r.r_all end, 'overall_of', case when v_full then r.n_all end,
                     'school', r.r_school, 'school_of', r.n_school) from ranked r where r.id = a.id),
     'stats', case when v_full then (select json_build_object('average', round(avg(score), 2), 'top', max(score)) from public.attempts where test_id = t.id and status = 'submitted') end,
@@ -2201,7 +2203,7 @@ $$;
 create or replace function public.create_personal_test(p_title text, p_duration_min integer, p_marks_correct numeric, p_marks_wrong numeric,
   p_questions jsonb, p_paper_key text, p_audience text default 'self', p_exam text default null, p_year integer default null) returns json
 language plpgsql security definer set search_path = public as $$
-declare me public.profiles; t public.tests; sc public.marking_schemes; qs jsonb := p_questions; dur integer := p_duration_min; mc numeric := p_marks_correct; mw numeric := p_marks_wrong;
+declare me public.profiles; t public.tests; sc public.marking_schemes; qs jsonb := p_questions; dur integer := p_duration_min; mc numeric := p_marks_correct; mw numeric := p_marks_wrong; rd integer := 0;
 begin
   select * into me from public.profiles where id = auth.uid();
   if me.id is null or me.role is null then raise exception 'Please finish your profile first'; end if;
@@ -2225,12 +2227,13 @@ begin
     select coalesce(jsonb_agg(case when x.mm is null then x.e else x.e || jsonb_build_object('m', jsonb_build_object('c', (x.mm ->> 'c')::numeric, 'w', (x.mm ->> 'w')::numeric, 'p', coalesce((x.mm ->> 'p')::boolean, false))) end order by x.o), '[]'::jsonb)
       into qs from (select e, o, case when e ? 'nk' and (e ->> 'nk')::boolean then '{"c": 0, "w": 0}'::jsonb else coalesce(sc.rules -> 'sections' -> ((e ->> 'sec') || ':' || (e ->> 'type')), sc.rules -> 'sections' -> (e ->> 'sec'), sc.rules -> 'types' -> (case when e ->> 'type' = 'Matching' then 'MCQ' else e ->> 'type' end)) end as mm from jsonb_array_elements(p_questions) with ordinality z(e, o)) x;
     dur := coalesce(p_duration_min, sc.duration_min);
+    rd := coalesce((sc.rules ->> 'reading_min')::integer, 0);   -- CBSE: 5 minutes of reading time before the writing time
     mc := coalesce((sc.rules -> 'types' -> 'MCQ' ->> 'c')::numeric, mc, 4); mw := coalesce((sc.rules -> 'types' -> 'MCQ' ->> 'w')::numeric, mw, 0);
   end if;
   if dur is null or dur < 1 or dur > 600 then raise exception 'Choose a time between 1 and 600 minutes'; end if;
-  insert into public.tests (owner_id, title, duration_min, marks_correct, marks_wrong, questions, audience, personal, paper_key, is_active)
+  insert into public.tests (owner_id, title, duration_min, marks_correct, marks_wrong, questions, audience, personal, paper_key, is_active, reading_min)
   values (me.id, left(trim(p_title), 200), dur, mc, coalesce(mw, 0), qs, p_audience, true,
-          left(p_paper_key, 200), true)
+          left(p_paper_key, 200), true, rd)
   returning * into t;
   return json_build_object('id', t.id, 'code', t.code);
 end $$;
@@ -2851,5 +2854,5 @@ update public.marking_schemes set n_questions = 18, max_marks = 60,
 -- all correct options earn the full marks, and ticking any wrong option gives 0 for that question ("pp" = step marking). A question with an
 -- OR choice is one question: the student answers either half. Safe to run again.
 update public.marking_schemes set
-  rules = '{"types":{"MCQ":{"c":1,"w":0},"MSQ":{"c":1,"w":0}},"sections":{"A":{"c":1,"w":0},"B":{"c":2,"w":0,"pp":true},"C":{"c":3,"w":0,"pp":true},"D":{"c":5,"w":0,"pp":true},"E":{"c":4,"w":0,"pp":true}},"mix":{"A":20,"B":5,"C":6,"D":4,"E":3},"notes":"Sections B to E: tick all the correct steps. A share of the marks for each correct step; 0 if a wrong step is ticked. OR questions: answer either half."}'::jsonb
+  rules = '{"types":{"MCQ":{"c":1,"w":0},"MSQ":{"c":1,"w":0}},"sections":{"A":{"c":1,"w":0},"B":{"c":2,"w":0,"pp":true},"C":{"c":3,"w":0,"pp":true},"D":{"c":5,"w":0,"pp":true},"E":{"c":4,"w":0,"pp":true}},"reading_min":5,"mix":{"A":20,"B":5,"C":6,"D":4,"E":3},"notes":"Sections B to E: tick all the correct steps. A share of the marks for each correct step; 0 if a wrong step is ticked. OR questions: answer either half."}'::jsonb
  where exam = 'CBSE 12';
