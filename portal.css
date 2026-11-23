@@ -1186,3 +1186,6 @@ html body .katex .katex-html > .base { white-space: nowrap; }
 .ex-half { margin: 4px 0 10px; }
 .ex-halfl { display: inline-block; margin: 6px 0 2px; color: var(--accent); font-size: 13px; letter-spacing: .04em; }
 .ex-or[role="separator"] { justify-content: center; margin: 14px 0; }
+.ex-read { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; }
+.ex-read[hidden] { display: none; }
+.ex-skip { background: #fff; color: #7a2d10; border-color: #fff; padding: 6px 14px; }

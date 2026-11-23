@@ -1129,6 +1129,23 @@ begin
   return a;
 end $$;
 
+-- Skip the reading time (CBSE): the writing time starts at once. The clock jumps to the end of the reading time and the start moves back by the skipped part,
+-- so the time left, the time taken and the moment the answers open all stay right. Only while the reading time is still running.
+create or replace function public.skip_reading(p_attempt uuid) returns json
+language plpgsql security definer set search_path = public as $$
+declare a public.attempts; t public.tests; skipped integer;
+begin
+  select * into a from public.attempts where id = p_attempt and user_id = auth.uid();
+  if a.id is null then raise exception 'Test not found'; end if;
+  select * into t from public.tests where id = a.test_id;
+  a := public.attempt_beat(a.id);
+  if a.status = 'in_progress' and t.reading_min > 0 and a.elapsed_sec < t.reading_min * 60 then
+    skipped := t.reading_min * 60 - a.elapsed_sec;
+    update public.attempts set elapsed_sec = t.reading_min * 60, started_at = started_at - make_interval(secs => skipped) where id = a.id returning * into a;
+  end if;
+  return json_build_object('remaining_sec', greatest((t.duration_min + t.reading_min) * 60 - a.elapsed_sec, 0), 'server_now', now());
+end $$;
+
 -- Starts (or resumes) the signed-in student's attempt. Returns the questions WITHOUT answers and WITHOUT their
 -- question-bank ids (each question is called p1, p2, ...), so they cannot be looked up in the question bank.
 create or replace function public.start_attempt(p_code text) returns json
@@ -2815,7 +2832,7 @@ grant execute on function public.plan_of(public.profiles), public.my_plan(), pub
   public.norm_class(text), public.norm_stream(text), public.norm_category(text), public.norm_gender(text), public.session_for(text, timestamptz),
   public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text, text, text),
   public.list_available_tests(), public.test_info(text), public.start_attempt(text),
-  public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer),
+  public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer), public.skip_reading(uuid),
   public.create_personal_test(text, integer, numeric, numeric, jsonb, text, text, text, integer), public.marking_schemes(), public.personal_overview(), public.my_rank(uuid), public.link_ranking(uuid),
   public.school_people(), public.request_role_change(text), public.my_role_request(), public.admin_role_requests(), public.admin_role_request(uuid, text),
   public.toggle_bookmark(text), public.dash_summary(), public.dash_tests(), public.my_bookmarks(),

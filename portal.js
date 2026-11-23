@@ -1860,8 +1860,12 @@ function runExam(d) {
   const readSec = +d.reading_sec || 0, writeSec = d.duration_min * 60;
   const reading = () => readSec > 0 && !X.done && (X.left - ((X.pauseAt || Date.now()) - X.sync) / 1000) > writeSec;
   X.rd = reading();
-  const readBar = h('div', { class: 'ex-pause ex-read', role: 'status', hidden: !X.rd, text: 'Reading time: go through all the questions. You cannot type, tick or select any answer yet. The writing time starts when this time is over.' });
+  const readBar = h('div', { class: 'ex-pause ex-read', role: 'status', hidden: !X.rd }, h('span', { text: 'Reading time: go through all the questions. You cannot type, tick or select any answer yet. The writing time starts when this time is over.' }), h('button', { type: 'button', class: 'btn ex-skip', text: 'Skip reading time and start writing', onclick: () => modal('Start writing now?', h('p', { text: 'The reading time ends and the ' + d.duration_min + ' minute writing time starts at once. You cannot go back to reading time.' }), [{ text: 'Keep reading', onclick: () => {} }, { text: 'Start writing', pri: true, onclick: skipRead }]) }));
   pauseBar.after(readBar);
+  async function skipRead() {
+    try { const r = await rpc('skip_reading', { p_attempt: d.attempt_id }); if (r && r.remaining_sec != null) { X.left = r.remaining_sec; X.sync = Date.now(); X.pauseAt = 0; tickTimer(); } }
+    catch (e) { toast('Could not skip the reading time: ' + e.message); }
+  }
   function tickQ() {
     const q = qs[X.cur]; if (!q || !X.qtEl) return;
     const s2 = Math.floor(ans[q.id].t + (Date.now() - X.enter) / 1000);

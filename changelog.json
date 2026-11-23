@@ -1,5 +1,12 @@
 [
   {
+    "v": "1057",
+    "date": "23 Nov 2026",
+    "items": [
+      "During the 5 minute reading time there is now a button, Skip reading time and start writing: it asks once, then the writing time starts at once. (Needs the latest schema.sql to be run once.)"
+    ]
+  },
+  {
     "v": "1056",
     "date": "23 Nov 2026",
     "items": [
