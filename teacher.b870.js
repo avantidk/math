@@ -38,7 +38,7 @@ function applyOos() {
   window.__oosInfo = () => ({ n: BANK.qs.length, all: BANK.all.length, oo: BANK.qs.filter(q => q.oo).length, subs: SUBS.length });
 }
 let KATEX_P = null;
-let BANK = null, BYID = new Map(), CHMAP = new Map(), downloads = { save: o => new Promise(res => { const blob = o.data instanceof Blob ? o.data : new Blob([o.data]); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = o.filename || 'download'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); res(true); }, 1500); }) }; /* plain browser download until (and unless) the Claude runtime offers its own */
+let BANK = null, BYID = new Map(), CHMAP = new Map(), downloads = { save: o => new Promise(res => { const blob = o.data instanceof Blob ? o.data : new Blob([o.data]); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = o.filename || 'download'; document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); res(true); }, 1500); setTimeout(() => { URL.revokeObjectURL(a.href); }, 120000); }) };   /* the address stays alive for two minutes: a big file must not be cut off while the browser is still saving it */ /* plain browser download until (and unless) the Claude runtime offers its own */
 
 /* ---------- permissions ----------
    The plan (Free, Premium, Staff) and role come from the user's Supabase profile, read by auth.js.

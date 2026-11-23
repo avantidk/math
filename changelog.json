@@ -1,5 +1,12 @@
 [
   {
+    "v": "1067",
+    "date": "23 Nov 2026",
+    "items": [
+      "PowerPoint downloads: the file list inside the PowerPoint no longer names slide masters that are not in the file, and big downloads are no longer cut off by the browser (the download address now lives two minutes instead of 1.5 seconds). Checked with 150 IAT questions."
+    ]
+  },
+  {
     "v": "1066",
     "date": "23 Nov 2026",
     "items": [

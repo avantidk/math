@@ -1565,7 +1565,7 @@ function csv(rows) { return rows.map(r => r.map(v => { const s = v == null ? '' 
 function saveCsv(name, rows) {
   const blob = new Blob(['﻿' + csv(rows)], { type: 'text/csv;charset=utf-8' });
   const a = h('a', { href: URL.createObjectURL(blob), download: name }); document.body.append(a); a.click();
-  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  setTimeout(() => a.remove(), 1500); setTimeout(() => URL.revokeObjectURL(a.href), 120000);
 }
 async function pageResults(id) {
   if (!/^[0-9a-f-]{36}$/i.test(id || '')) { location.hash = '#/my-tests'; return; }

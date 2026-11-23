@@ -2224,7 +2224,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
   }
 
   /* ---------- export ---------- */
-  var dl = { save: function (o) { return new Promise(function (res) { var blob = o.data instanceof Blob ? o.data : new Blob([o.data]); var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = o.filename || 'download'; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); res(true); }, 1500); }); } }; /* plain browser download unless the Claude runtime offers its own */
+  var dl = { save: function (o) { return new Promise(function (res) { var blob = o.data instanceof Blob ? o.data : new Blob([o.data]); var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = o.filename || 'download'; document.body.appendChild(a); a.click(); setTimeout(function () { a.remove(); res(true); }, 1500); setTimeout(function () { URL.revokeObjectURL(a.href); }, 120000); }); } }; /* plain browser download unless the Claude runtime offers its own */
   function msg(t, bad) { var m = $('.qb-msg'); m.textContent = t || ''; m.classList.toggle('bad', !!bad); }
   function opts() {
     var ans = $('.qb-o-ans').checked;
