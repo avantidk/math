@@ -317,7 +317,12 @@ function profileForm(p, o) {
     if (miss.length) { msg.textContent = 'Please fill in: ' + miss.map(k => LBL[k]).join(', ') + '. All details are required.'; msg.classList.add('bad'); return; }
     btn.disabled = true; const t0 = btn.textContent; btn.textContent = 'Saving…';
     try {
-      await rpc('update_my_profile', { p_full_name: val('full_name'), p_school: val('school'), p_class: student ? val('class') : (p.class || null), p_stream: student ? val('stream') : (p.stream || null), p_category: student ? val('category') : null, p_gender: student ? val('gender') : null, p_heard_from: p.heard_from ? null : (F.heard_from.value || null), p_heard_other: p.heard_from ? null : (F.heard_from.value === 'Other' ? heardOther.value.trim() : null) });
+      const args = { p_full_name: val('full_name'), p_school: val('school'), p_class: student ? val('class') : (p.class || null), p_stream: student ? val('stream') : (p.stream || null), p_category: student ? val('category') : null, p_gender: student ? val('gender') : null, p_heard_from: p.heard_from ? null : (F.heard_from.value || null), p_heard_other: p.heard_from ? null : (F.heard_from.value === 'Other' ? heardOther.value.trim() : null) };
+      try { await rpc('update_my_profile', args); }
+      catch (e0) {   /* the database has not been updated with the new question yet: save the rest of the profile without it */
+        if (!/find the function|schema cache/i.test(String(e0 && e0.message))) throw e0;
+        const { p_heard_from, p_heard_other, ...old } = args; await rpc('update_my_profile', old);
+      }
       schools(true); await AU().refresh(); msg.textContent = 'Saved.'; msg.classList.add('ok');
       if (o.onSaved) o.onSaved();
     } catch (x) { msg.textContent = 'Could not save: ' + x.message; msg.classList.add('bad'); }

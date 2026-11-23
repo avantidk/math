@@ -1,5 +1,12 @@
 [
   {
+    "v": "1047",
+    "date": "23 Nov 2026",
+    "items": [
+      "Sign-up: saving the profile no longer fails while the database is not yet updated for the new 'From where did you get to know about us?' question; the rest of the profile is saved and the answer is kept once the database is updated."
+    ]
+  },
+  {
     "v": "1046",
     "date": "23 Nov 2026",
     "items": [
