@@ -1732,14 +1732,18 @@ const TYPE_NAME = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct', Num
 const secName = q => /^[1-4]$/.test(String(q.sec || '')) ? (q.sec === '4' ? (q.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 Para questions with 2 parts each') : SEC_NAME[q.sec]) : 'Section ' + q.sec;
 const SEC_NAME = { 1: 'Section 1 · Single correct (MCQ)', 2: 'Section 2 · One or more correct (MSQ)', 3: 'Section 3 · Numerical value', 4: 'Section 4 · 2 Para questions with 2 parts each', A: 'Section A · MCQ and Assertion-Reason', B: 'Section B · Very Short Answer (VSA)', C: 'Section C · Short Answer (SA)', D: 'Section D · Long Answer (LA)', E: 'Section E · Case Study / Source-Based' };
 function schemeTable(info) {
-  const secs = info.sections || []; if (!secs.length) return h('p', { class: 'pt-hint', text: 'Correct +' + num(info.marks_correct, 2) + ' · wrong −' + num(info.marks_wrong, 2) });
+  let secs = info.sections || [];
+  /* CBSE Sections A to E: one row per section (the MCQ/MSQ answer types of one section are not separate rows), in the order A to E */
+  if (secs.some(x => /^[A-E]$/.test(String(x.sec || '')))) { const m = new Map(); secs.forEach(x => { const k = /^[A-E]$/.test(String(x.sec || '')) ? x.sec : x.sec + '|' + x.type; const y = m.get(k); if (y) { y.n += x.n; y.p = y.p || x.p; } else m.set(k, Object.assign({}, x, { sj: 0 })); }); secs = [...m.values()].sort((u, v) => String(u.sec || 'Z').localeCompare(String(v.sec || 'Z'))); }
+  const noNeg = secs.every(x => +x.c === 0 || (x.w != null ? !+x.w : !+info.marks_wrong));   /* no negative marking anywhere: the Wrong column is left out */
+  if (!secs.length) return h('p', { class: 'pt-hint', text: 'Correct +' + num(info.marks_correct, 2) + ' · wrong −' + num(info.marks_wrong, 2) });
   const row = x => { const unmarked = +x.c === 0;
-    return h('tr', {}, h('th', { scope: 'row', text: x.sj ? (/^[1-4]$/.test(String(x.sec || '')) ? 'Section ' + x.sec + ' · ' : '') + 'Subjective (pick the final answer)' : x.sec === '4' ? (x.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 Para questions with 2 parts each') : x.sec && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
+    return h('tr', {}, h('th', { scope: 'row', text: x.sj ? (/^[1-4]$/.test(String(x.sec || '')) ? 'Section ' + x.sec + ' · ' : '') + 'Subjective (pick the final answer)' : /^[A-E]$/.test(String(x.sec || '')) && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : x.sec === '4' ? (x.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 Para questions with 2 parts each') : x.sec && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
       h('td', { class: 'pt-num', text: unmarked ? 'not marked' : '+' + num(x.c, 2) + (x.p ? ' (partial marks possible)' : /^[B-E]$/.test(String(x.sec || '')) ? ' (a share for each correct step; 0 if a wrong step is ticked)' : '') }),
-      h('td', { class: 'pt-num', text: unmarked ? '—' : x.w != null ? (+x.w ? '−' + num(x.w, 2) : '0') : (x.type === 'MCQ' || x.type === 'Matching') ? (+info.marks_wrong ? '−' + num(info.marks_wrong, 2) : '0') : '0' })); };
+      noNeg ? null : h('td', { class: 'pt-num', text: unmarked ? '—' : x.w != null ? (+x.w ? '−' + num(x.w, 2) : '0') : (x.type === 'MCQ' || x.type === 'Matching') ? (+info.marks_wrong ? '−' + num(info.marks_wrong, 2) : '0') : '0' })); };
   const unm = secs.filter(x => +x.c === 0).reduce((a, x) => a + x.n, 0);
   return h('div', { class: 'pt-scheme' }, h('h2', { text: 'Marking scheme' }),
-    h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Question type', 'Questions', 'Correct', 'Wrong'].map(t => h('th', { text: t })))), h('tbody', {}, secs.map(row)))),
+    h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Question type', 'Questions', 'Correct'].concat(noNeg ? [] : ['Wrong']).map(t => h('th', { text: t })))), h('tbody', {}, secs.map(row)))),
     unm ? h('p', { class: 'pt-hint', text: unm + ' question' + (unm === 1 ? ' is' : 's are') + ' not auto-marked: there is no answer key to mark them against, or they need a written answer. They are in the test for practice; the answer is shown in the review.' }) : null);
 }
 function exitExam() {
