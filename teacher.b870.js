@@ -1045,6 +1045,21 @@ window.__qbCwPptx = async function (ids, explain) {
   if (explain) d.expl = await explForQs(qs);
   return window.OfficeDoc.buildCwPptx(window.PptxGenJS, window.JSZip, d, { CHMAP, figs });
 };
+/* PowerPoint downloads from the lists, tests and papers use the black Avanti slides (same design as the PYQ ChapterWise PowerPoint); the white one-question layout stays as a fallback */
+async function exportBlackPptx(ids, title, pages, opts) {
+  if (!need('pptx')) return;
+  if (!downloads) { toast('Downloads are not available in this view'); return; }
+  const file = fname({ pages, file: title }, '.pptx');
+  toast('Preparing PPTX\u2026');
+  try {
+    const blob = await window.__qbCwPptx(ids, !!(opts && opts.exp));
+    await downloads.save({ filename: file, data: blob });
+    toast('Saved ' + file);
+  } catch (e) {
+    if (e && e.code === 'declined') { toast('Download cancelled'); return; }
+    doExport('pptx', { pages, file: title });   /* the black layout could not be made: fall back to the white one */
+  }
+}
 function markPdfRows(T) { document.querySelectorAll('#' + T + 'List .pdfrow').forEach(e => e.setAttribute('aria-current', String(e.dataset.k === PDFT[T].sel))); }
 const keySwitch = (id, act, extra) => h('label', { class: 'pick1 tgl tgl-hl' }, h('input', Object.assign({ type: 'checkbox', role: 'switch', id, 'data-act': act }, extra || {})), h('span', { class: 'tgl-track', 'aria-hidden': 'true' }), h('span', { text: 'Answer Key' }));
 const expSwitch = (id, act, extra) => h('label', { class: 'pick1 tgl tgl-hl' }, h('input', Object.assign({ type: 'checkbox', role: 'switch', id, 'data-act': act }, extra || {})), h('span', { class: 'tgl-track', 'aria-hidden': 'true' }), h('span', { text: 'Explanation' }));
@@ -1965,7 +1980,7 @@ window.AvantiTeacher = {
   bank: () => ensureDpp().then(() => ({ qs: BANK.all, byId: BYID, chapters: CHMAP })),
   /* saved worksheets: the same PDF / Word / PowerPoint export and share menu as DPPs (plan checks inside) */
   fill: (qs, o) => fillT(qs, o),   /* the text of these questions (dashboard: fetched by chapter or paper; /qbank: already there) */
-  exportIds: async (ids, title, kind, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } if (opts) pages = pages.map(p => Object.assign({}, p, { key: !!opts.key, exp: !!opts.exp })); doExport(kind, { pages, file: title }); },
+  exportIds: async (ids, title, kind, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } if (opts) pages = pages.map(p => Object.assign({}, p, { key: !!opts.key, exp: !!opts.exp })); if (kind === 'pptx') { await exportBlackPptx(ids, title, pages, opts); return; } doExport(kind, { pages, file: title }); },
   pdfIds: async (ids, title, label, info, subLine) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); const pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
   shareIds: async (btn, ids, title) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
   math: node => math(node),
