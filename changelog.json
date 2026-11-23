@@ -1,5 +1,12 @@
 [
   {
+    "v": "1064",
+    "date": "23 Nov 2026",
+    "items": [
+      "Fixed the PowerPoint and Word downloads: PowerPoint said it found a problem with the content and asked to repair the file because some text lines were written in the wrong order inside the slides; Word files had run properties in the wrong order. Both are now written in the order Office expects, for every download (lists, tests, papers, chapter-wise PowerPoint)."
+    ]
+  },
+  {
     "v": "1063",
     "date": "23 Nov 2026",
     "items": [
