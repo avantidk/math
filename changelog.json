@@ -1,5 +1,12 @@
 [
   {
+    "v": "1060",
+    "date": "23 Nov 2026",
+    "items": [
+      "Chapter Wise Performance in this test now shows the chapter number before each chapter name (for example Ch 20 · Definite Integration and AUC), and the Chapter column sorts by chapter number."
+    ]
+  },
+  {
     "v": "1059",
     "date": "23 Nov 2026",
     "items": [

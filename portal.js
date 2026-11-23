@@ -1656,20 +1656,20 @@ async function pageReports() {
       h('td', {}, a.status === 'submitted' ? link('#/report/' + a.id, 'Open report', 'btn pri') : link('#/t/' + a.code, 'Resume', 'btn')))))))));
 }
 /* chapter-wise performance of one test: the topic rows of the report are added up per chapter; every column header sorts (click again to reverse) */
-function chapterTable(topics) {
+function chapterTable(topics, nums) {
   const m = new Map();
   topics.forEach(x => { const k = x.chapter || x.topic || 'Other', c = m.get(k) || { name: k, total: 0, correct: 0, wrong: 0, skipped: 0, marks: 0 }; c.total += +x.total || 0; c.correct += +x.correct || 0; c.wrong += +x.wrong || 0; c.skipped += +x.skipped || 0; c.marks += +x.marks || 0; m.set(k, c); });
-  const rows = [...m.values()].map(c => Object.assign(c, { acc: c.correct + c.wrong ? 100 * c.correct / (c.correct + c.wrong) : null }));
-  const COLS = [['name', 'Chapter'], ['total', 'Questions'], ['correct', 'Correct'], ['wrong', 'Wrong'], ['skipped', 'Not answered'], ['marks', 'Marks'], ['acc', 'Accuracy'], ['acc', 'Bar']];
-  let key = 'acc', dir = 1;
+  const rows = [...m.values()].map(c => Object.assign(c, { no: nums && nums.get(c.name) || 999, label: (nums && nums.get(c.name) ? 'Ch ' + nums.get(c.name) + ' · ' : '') + c.name, acc: c.correct + c.wrong ? 100 * c.correct / (c.correct + c.wrong) : null }));
+  const COLS = [['no', 'Chapter'], ['total', 'Questions'], ['correct', 'Correct'], ['wrong', 'Wrong'], ['skipped', 'Not answered'], ['marks', 'Marks'], ['acc', 'Accuracy'], ['acc', 'Bar']];
+  let key = 'acc', dir = 1;   /* the Chapter column sorts by chapter number */
   const body = h('tbody'), head = h('tr');
   const draw = () => {
     body.textContent = '';
     rows.slice().sort((p, q) => { const x = p[key], y = q[key]; if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir || String(p.name).localeCompare(q.name); })
-      .forEach(x => body.append(h('tr', {}, h('td', {}, h('b', { text: x.name })), h('td', { class: 'pt-num', text: x.total }), h('td', { class: 'pt-num', text: x.correct }), h('td', { class: 'pt-num', text: x.wrong }), h('td', { class: 'pt-num', text: x.skipped }), h('td', { class: 'pt-num', text: num(x.marks, 2) }), h('td', { class: 'pt-num', text: pct(x.acc) }), h('td', { class: 'pt-barcell' }, bar(x.acc, x.acc == null ? '' : x.acc < 40 ? 'bad' : x.acc < 70 ? 'mid' : 'ok')))));
+      .forEach(x => body.append(h('tr', {}, h('td', {}, h('b', { text: x.label })), h('td', { class: 'pt-num', text: x.total }), h('td', { class: 'pt-num', text: x.correct }), h('td', { class: 'pt-num', text: x.wrong }), h('td', { class: 'pt-num', text: x.skipped }), h('td', { class: 'pt-num', text: num(x.marks, 2) }), h('td', { class: 'pt-num', text: pct(x.acc) }), h('td', { class: 'pt-barcell' }, bar(x.acc, x.acc == null ? '' : x.acc < 40 ? 'bad' : x.acc < 70 ? 'mid' : 'ok')))));
     head.querySelectorAll('th').forEach((th, i) => { const on = COLS[i][0] === key && (i < 7 ? true : false); th.setAttribute('aria-sort', COLS[i][0] === key ? (dir > 0 ? 'ascending' : 'descending') : 'none'); });
   };
-  COLS.forEach(([k, label], i) => head.append(h('th', { scope: 'col', 'aria-sort': 'none' }, h('button', { type: 'button', class: 'pt-sort', text: label, onclick: () => { if (key === k) dir = -dir; else { key = k; dir = k === 'name' ? 1 : (k === 'acc' ? 1 : -1); } draw(); } }))));
+  COLS.forEach(([k, label], i) => head.append(h('th', { scope: 'col', 'aria-sort': 'none' }, h('button', { type: 'button', class: 'pt-sort', text: label, onclick: () => { if (key === k) dir = -dir; else { key = k; dir = k === 'no' ? 1 : (k === 'acc' ? 1 : -1); } draw(); } }))));
   draw();
   return h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, head), body));
 }
@@ -1682,7 +1682,13 @@ async function pageReport(id) {
   const mine = AU().profile.id && P().role === 'student';
   const top = head(t.title, (mine ? '' : (a.student_name || 'Student') + (a.school ? ' · ' + a.school : '') + ' · ') + 'Submitted ' + when(a.submitted_at),
     ...(mine ? [link('#/reports', 'My Reports', 'btn'), h('button', { type: 'button', class: 'btn', text: 'Export', onclick: () => exportResult(id, t.title) })] : [h('button', { type: 'button', class: 'btn', text: '‹ Back to results', onclick: () => history.back() })]));
+  const chNums = new Map();   /* chapter name -> chapter number (12M20 is chapter 20) */
   const items = R.items || [];
+  try {
+    const B = await fresh(TE().bank()), num0 = code => parseInt(String(code).replace(/^\d+M/, ''), 10), cc = new Map(B.qs.map(q => [q.i, q.cc]));
+    items.forEach(it => { const n = num0(cc.get(it.qid) || ''); if (it.chapter && n) chNums.set(it.chapter, n); });
+    [...B.chapters].forEach(([code, v]) => { const n = num0(code); if (v && v.n && n && !chNums.has(v.n)) chNums.set(v.n, n); });
+  } catch (e) { if (e === STALE) throw e; }
   /* the whole report is shown at once; the correct answers open when the time of the paper is over (so they cannot be passed on to others who are still writing) */
   const keysAt = R.answers_at ? new Date(R.answers_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
   if (keysAt) items.forEach(it => { it.correct_answer = null; });   /* never shown (or kept) before the full exam time is over, whatever the server sends */
@@ -1700,7 +1706,7 @@ async function pageReport(id) {
       stat('Accuracy', pct(acc), a.correct + ' correct of ' + att + ' attempted'), stat('Time taken', mmss(a.time_taken_sec), 'of ' + t.duration_min + ' min'),
       R.full ? stat('Rank (all students)', rk.overall ? rk.overall + ' of ' + rk.overall_of : '—') : null, stat('Rank in school', rk.school ? rk.school + ' of ' + rk.school_of : '—', a.school || ''),
       stat('Answers', a.correct + ' / ' + a.wrong + ' / ' + a.skipped, 'correct / wrong / not answered')),
-    card(h('h2', { text: 'Chapter Wise Performance in this test' }), chapterTable(R.topics || [])),
+    card(h('h2', { text: 'Chapter Wise Performance in this test' }), chapterTable(R.topics || [], chNums)),
     card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Question-wise review' }), filt), review));
   mathIn(review);
 }
