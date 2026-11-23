@@ -1081,12 +1081,20 @@ const isPara = q => !!q && (q.t === 'Comprehension' || (q.pa != null ? !!q.pa : 
 const advSec = q => isPara(q) ? '4' : q.t === 'Matching' ? '4' : q.t === 'Subjective' ? (/,/.test(q.a || '') ? '2' : '1') : ({ MCQ: '1', MSQ: '2', Numerical: '3' }[q.t] || '');
 const typeKey = q => isPara(q) ? 'Comprehension' : q.t;
 const ADV_MIX = { 1: { MCQ: 4, MSQ: 4, Numerical: 4, Matching: 4 }, 2: { MCQ: 4, MSQ: 5, Numerical: 5, Comprehension: 4 } };
-const tq = (q, exam) => {
+/* CBSE questions with an OR choice are two records CBSE26-Q21A and CBSE26-Q21B: in a test they are ONE question and the student answers either half */
+const orBase = q => { const m = /^(CBSE26-Q\d+)([AB])$/.exec(String((q && q.i) || '')); return m ? [m[1], m[2]] : null; };
+function orUnits(list) {
+  const out = [], map = new Map();
+  (list || []).forEach(q => { const p = orBase(q); if (!p) { out.push({ a: q, b: null }); return; } let u = map.get(p[1]); if (!u) { u = { a: null, b: null }; map.set(p[1], u); out.push(u); } if (p[2] === 'A') u.a = q; else u.b = q; });
+  return out.map(u => (u.a ? u : { a: u.b, b: null }));
+}
+const tq = (q, exam, altRec) => {
   const x = snap(q), ok = gradable(q), written = q.t === 'Subjective' && !ok;   /* a written question with 4 options (final answer) is marked like an MCQ but keeps its Subjective tag */
   const o = { id: x.id, type: written ? 'WRITTEN' : x.type === 'Subjective' ? (/,/.test(x.a || '') ? 'MSQ' : 'MCQ') : x.type === 'Comprehension' ? (/,/.test(x.a || '') ? 'MSQ' : 'MCQ') : x.type, q: x.q, o: x.o, a: x.a || '', ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' };
   if (q.e === 'CBSE' && /^[A-E]$/i.test(String(q.sec || ''))) o.sec = String(q.sec).toUpperCase();   /* CBSE Class 12: the section decides the marks (B to E are shown as 4 options) */
   if (exam === 'JEE Advanced' && advSec(q)) o.sec = advSec(q);
   if (q.t === 'Subjective' && ok) o.sj = 1;
+  if (altRec) { const y = tq(altRec, exam); o.alt = { rid: y.id, type: y.type, q: y.q, o: y.o, f: y.f, a: y.a, tp: y.tp }; }   /* the other half of an OR question */
   if (!ok) o.nk = true;   /* no answer key we can mark (or a written answer): shown in the test, not marked, answer shown in the review */
   return o;
 };
@@ -1128,7 +1136,7 @@ async function pagePersonal(arg) {
     btn.disabled = true;
     try {
       await fillQs(paper.qs, { paper: (paper.qs.find(q => q.ps) || {}).ps });   /* only this paper's file */
-      qs = paper.qs.map(q => tq(q, ex));
+      qs = orUnits(paper.qs).map(u => tq(u.a, ex, u.b));
       if (ex === 'JEE Advanced') qs = qs.map((q, i) => [q, i]).sort((a, b) => (+a[0].sec || 9) - (+b[0].sec || 9) || a[1] - b[1]).map(x => x[0]);
       const r = await rpc('create_personal_test', { p_title: paper.label, p_duration_min: null, p_marks_correct: rule.c, p_marks_wrong: rule.w, p_questions: qs, p_paper_key: paper.key, p_audience: 'self', p_exam: ex });
       location.hash = '#/t/' + r.code;   /* the test opens on its instructions: it starts only when you press Start */
@@ -1142,7 +1150,7 @@ async function pagePersonal(arg) {
     papersOf(B, exam).forEach(pp => { const nm = pp.qs.filter(q => !gradable(q)).length;
       paperBox.append(h('div', { class: 'pp-card pp-card2' },
         h('button', { type: 'button', class: 'pp-main', onclick: e => startPaper(pp, e.currentTarget) },
-          h('b', { text: pp.label }), h('small', { text: pp.qs.length + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }), nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null, h('span', { class: 'pp-go', text: 'Open Instructions and Start ›' })),
+          h('b', { text: pp.label }), h('small', { text: orUnits(pp.qs).length + ' questions · ' + sc.duration_min + ' min · ' + markText(sc) }), nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null, h('span', { class: 'pp-go', text: 'Open Instructions and Start ›' })),
         h('button', { type: 'button', class: 'pp-pdf', title: 'Download or share this paper', 'aria-label': 'Download or share ' + pp.label, 'aria-haspopup': 'menu', html: IC.share, onclick: e => dropMenu(e.currentTarget, [
           { icon: IC.pdf, text: 'Download PDF', sub: 'The question paper', onclick: () => fillQs(pp.qs, { paper: (pp.qs.find(q => q.ps) || {}).ps }).then(() => TE().exportIds(pp.qs.map(q => q.i), pp.label, 'pdf', 'Question paper', '', '', { key: false, exp: false })).catch(x => toast('Could not make the PDF: ' + ((x && x.message) || 'try again'))) },
           can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable question paper', onclick: () => fillQs(pp.qs, { paper: (pp.qs.find(q => q.ps) || {}).ps }).then(() => TE().exportIds(pp.qs.map(q => q.i), pp.label, 'docx', 'Question paper', '', '', { key: false, exp: false })).catch(x => toast('Could not make the Word file: ' + ((x && x.message) || 'try again'))) } : null,
@@ -1185,7 +1193,7 @@ async function launchTest(o) {
   const SC = await schemes(), sc = SC[o.exam] || SC['JEE Main'], rule = mcqRule(sc);
   await fillQs(o.qs);   /* the questions were picked from the index: now only the chapters that hold them are fetched */
   const r = await rpc('create_personal_test', { p_title: o.title, p_duration_min: o.mins == null ? null : o.mins, p_marks_correct: rule.c, p_marks_wrong: rule.w,
-    p_questions: o.qs.map(q => tq(q, o.exam)), p_paper_key: o.key || null, p_audience: 'self', p_exam: o.exam });
+    p_questions: o.pairs ? orUnits(o.qs).map(u => tq(u.a, o.exam, u.b)) : o.qs.map(q => tq(q, o.exam)), p_paper_key: o.key || null, p_audience: 'self', p_exam: o.exam });
   location.hash = '#/t/' + r.code;   /* the instructions come first; the test starts when you press Start */
 }
 /* pick n questions, chapters mixed evenly when asked */
@@ -1478,14 +1486,14 @@ async function modeFull() {
     cards.forEach(c => grid.append(c));
   }
   /* CBSE Class 12 (Code 041): 38 questions, 80 marks, 3 hours. Section A is MCQ; sections B to E are written-answer questions that the bank holds as 4 options (or several correct options), made from the uploaded solutions. */
-  const cbse = SC['CBSE 12'], cbq = B.qs.filter(q => q.e === 'CBSE' && gradable(q)), bySec = k => cbq.filter(q => String(q.sec || '').toUpperCase() === k);
-  const cbMix = (cbse && cbse.rules && cbse.rules.mix) || { A: 20, B: 5, C: 6, D: 4, E: 3 }, cbReady = cbq.length >= 38 && Object.keys(cbMix).every(k => bySec(k).length >= cbMix[k]);
+  const cbse = SC['CBSE 12'], cbq = B.qs.filter(q => q.e === 'CBSE' && gradable(q)), unitsOf = k => orUnits(cbq.filter(q => String(q.sec || '').toUpperCase() === k));   /* an OR pair is one question */
+  const cbMix = (cbse && cbse.rules && cbse.rules.mix) || { A: 20, B: 5, C: 6, D: 4, E: 3 }, cbReady = Object.keys(cbMix).every(k => unitsOf(k).length >= cbMix[k]);
   cards.push(cbReady ? h('button', { type: 'button', class: 'pp-card', onclick: async e => {
       const b = e.currentTarget; b.disabled = true;
-      try { const used = new Set(), qs = []; Object.keys(cbMix).forEach(k => qs.push(...shuffled(pickN(bySec(k), cbMix[k], true, used))));
-        await launchTest({ title: 'CBSE Class 12 full length mock', qs, exam: 'CBSE 12', mins: null, key: 'full-cbse' });
+      try { const qs = []; Object.keys(cbMix).forEach(k => shuffled(unitsOf(k)).slice(0, cbMix[k]).forEach(u => { qs.push(u.a); if (u.b) qs.push(u.b); }));   /* sections stay in order A to E, the questions are shuffled only inside a section */
+        await launchTest({ title: 'CBSE Class 12 full length mock', qs, exam: 'CBSE 12', mins: null, key: 'full-cbse', pairs: true });
       } catch (err) { toast(err.message); b.disabled = false; } } },
-      h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: '38 questions · ' + (cbse ? cbse.duration_min : 180) + ' min · 80 marks · no negative marking' }), h('small', { class: 'pt-hint', text: 'Sections A to E. Written-answer sections are shown as options.' }), h('span', { class: 'pp-go', text: 'Start ›' }))
+      h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: '38 questions · ' + (cbse ? cbse.duration_min : 180) + ' min · 80 marks · no negative marking' }), h('small', { class: 'pt-hint', text: 'Sections A to E. In B to E tick every correct step; OR questions: answer either half.' }), h('span', { class: 'pp-go', text: 'Start ›' }))
     : h('div', { class: 'pp-card is-off', 'aria-disabled': 'true' }, h('b', { text: 'CBSE Class 12 Boards' }), h('small', { text: 'Code 041 · 3 hours · 38 questions · 80 marks · coming soon' })));
   draw();
   show(modeHead('Full Length Mock', 'Choose the source and the difficulty, then an exam.'), bar.el, note, grid);
@@ -1713,7 +1721,7 @@ async function pageTake(code) {
     h('div', { class: 'pt-stats' }, stat('Questions', info.n_questions), stat('Time', info.duration_min + ' min'), stat('Maximum marks', num(info.max_marks != null ? info.max_marks : info.marks_correct * info.n_questions, 2))),
     schemeTable(info),
     h('h2', { text: 'Instructions' }),
-    h('ul', { class: 'pt-feats' }, ['The timer starts when you press Start and runs on the clock until the full time is over, also if you close the page or lose the internet. Open the test again to carry on with your saved answers.', 'Your answers are saved automatically every few seconds. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Stay on the test in full screen. Switching to another tab or app, or leaving full screen, gives a warning. At 3 warnings the test is submitted automatically.', 'The test submits by itself when the time is up. The correct answers open when the full exam time is over.'].map(x => h('li', { text: x }))),
+    h('ul', { class: 'pt-feats' }, ['The timer starts when you press Start. It counts only while this page is open and online: if your internet or power goes it pauses, and when you open the test again it carries on from where it stopped, with your saved answers.', 'Your answers are saved automatically every few seconds. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Stay on the test in full screen. Switching to another tab or app, or leaving full screen, gives a warning. At 3 warnings the test is submitted automatically.', 'The test submits by itself when the time is up. The correct answers open when the full exam time is over.'].map(x => h('li', { text: x }))),
     h('p', { class: 'pt-hint', text: 'Signed in as ' + (P().full_name || P().email || P().avanti_id) + (P().school ? ' · ' + P().school : '') }),
     startBtn)));
 }
@@ -1727,7 +1735,7 @@ function schemeTable(info) {
   const secs = info.sections || []; if (!secs.length) return h('p', { class: 'pt-hint', text: 'Correct +' + num(info.marks_correct, 2) + ' · wrong −' + num(info.marks_wrong, 2) });
   const row = x => { const unmarked = +x.c === 0;
     return h('tr', {}, h('th', { scope: 'row', text: x.sj ? (/^[1-4]$/.test(String(x.sec || '')) ? 'Section ' + x.sec + ' · ' : '') + 'Subjective (pick the final answer)' : x.sec === '4' ? (x.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 Para questions with 2 parts each') : x.sec && SEC_NAME[x.sec] ? SEC_NAME[x.sec] : TYPE_NAME[x.type] || x.type }), h('td', { class: 'pt-num', text: String(x.n) }),
-      h('td', { class: 'pt-num', text: unmarked ? 'not marked' : '+' + num(x.c, 2) + (x.p ? ' (partial marks possible)' : '') }),
+      h('td', { class: 'pt-num', text: unmarked ? 'not marked' : '+' + num(x.c, 2) + (x.p ? ' (partial marks possible)' : /^[B-E]$/.test(String(x.sec || '')) ? ' (a share for each correct step; 0 if a wrong step is ticked)' : '') }),
       h('td', { class: 'pt-num', text: unmarked ? '—' : x.w != null ? (+x.w ? '−' + num(x.w, 2) : '0') : (x.type === 'MCQ' || x.type === 'Matching') ? (+info.marks_wrong ? '−' + num(info.marks_wrong, 2) : '0') : '0' })); };
   const unm = secs.filter(x => +x.c === 0).reduce((a, x) => a + x.n, 0);
   return h('div', { class: 'pt-scheme' }, h('h2', { text: 'Marking scheme' }),
@@ -1746,7 +1754,7 @@ function exitExam() {
 function runExam(d) {
   exitExam();
   const qs = d.questions, ans = {};
-  qs.forEach(q => { const a = (d.answers || {})[q.id] || {}; ans[q.id] = { r: a.r == null ? (q.type === 'MSQ' ? [] : '') : a.r, t: +a.t || 0, m: !!a.m, v: !!a.v }; });
+  qs.forEach(q => { const a = (d.answers || {})[q.id] || {}; ans[q.id] = { r: a.r == null ? (q.type === 'MSQ' ? [] : '') : a.r, t: +a.t || 0, m: !!a.m, v: !!a.v, alt: q.alt ? (a.alt === 'B' ? 'B' : 'A') : null }; });
   /* the clock counts the time the page is open and online: the server says how many seconds are left, this page counts down from there, and waits while the power or the internet is gone (then carries on from where it stopped).
      X.tabs is the number of warnings (tab or app switch, leaving full screen); the server submits the test at 3. */
   const X = EX = { d, qs, ans, cur: 0, tabs: d.tab_switches || 0, dirty: false, saving: false, enter: Date.now(), done: false, left: d.remaining_sec != null ? d.remaining_sec : Math.max(0, d.duration_min * 60 - (Date.parse(d.server_now) - Date.parse(d.started_at)) / 1000), sync: Date.now(), lastViol: 0, wasFull: !!document.fullscreenElement };
@@ -1767,7 +1775,7 @@ function runExam(d) {
   const filled = a => (Array.isArray(a.r) ? a.r.length > 0 : String(a.r).trim() !== '');
   const stateOf = a => (a.m ? (filled(a) ? 'am' : 'mk') : filled(a) ? 'ans' : a.v ? 'na' : 'nv');
   function track() { const now = Date.now(), q = qs[X.cur]; if (q) ans[q.id].t += Math.round((now - X.enter) / 1000); X.enter = now; }
-  function payload() { const o = {}; qs.forEach(q => { const a = ans[q.id]; o[q.id] = { r: a.r, t: a.t, m: a.m, v: a.v }; }); return o; }
+  function payload() { const o = {}; qs.forEach(q => { const a = ans[q.id]; o[q.id] = { r: a.r, t: a.t, m: a.m, v: a.v, alt: a.alt || null }; }); return o; }
   function setPaused(on) {   /* no internet: the countdown waits; back online: it carries on from where it stopped */
     if (on && !X.pauseAt) X.pauseAt = Date.now();
     if (!on && X.pauseAt) { X.sync += Date.now() - X.pauseAt; X.pauseAt = 0; }
@@ -1792,7 +1800,8 @@ function runExam(d) {
   }
   function go(i) { track(); X.cur = Math.max(0, Math.min(qs.length - 1, i)); root.classList.remove('pal-open'); draw(); save(); }
   function draw() {
-    const q = qs[X.cur], a = ans[q.id]; a.v = true;
+    const q0 = qs[X.cur], a = ans[q0.id]; a.v = true;
+    const q = q0.alt && a.alt === 'B' ? Object.assign({}, q0, q0.alt) : q0;   /* a question with an OR choice shows the half the student picked */
     main.textContent = '';
     let input;
     if (q.type === 'Numerical') {
@@ -1820,10 +1829,12 @@ function runExam(d) {
           } }), h('b', { text: L }), h('span', { html: qText(t) }));
       }));
     }
+    const orBar = q0.alt ? h('div', { class: 'ex-or', role: 'group', 'aria-label': 'OR: choose the question you answer' }, h('b', { text: 'OR' }), h('span', { text: 'Answer only one of the two:' }),
+      ['A', 'B'].map(v => h('button', { type: 'button', class: 'btn' + (a.alt === v ? ' pri' : ''), 'aria-pressed': String(a.alt === v), text: 'Question (' + v + ')', onclick: () => { if (a.alt === v) return; a.alt = v; const t = v === 'B' ? q0.alt.type : q0.type; a.r = t === 'MSQ' ? [] : ''; X.dirty = true; draw(); } }))) : '';
     main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge(q.sj ? 'Subjective' : isParaText(q.q) ? 'Para' : /^[1-4]$/.test(String(q.sec || '')) ? secName(q) : (q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'WRITTEN' ? 'Written question' : q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
-      h('span', { class: 'pt-hint', text: (q.mc != null && +q.mc === 0) ? 'Not auto-marked' : '+' + num(q.mc != null ? q.mc : d.marks_correct, 2) + (() => { const w = q.mw != null ? +q.mw : (q.type === 'MCQ' ? +d.marks_wrong : 0); return w ? ' / −' + num(w, 2) : ''; })() + (q.mp ? ' · partial marks' : '') }),
+      h('span', { class: 'pt-hint', text: (q.mc != null && +q.mc === 0) ? 'Not auto-marked' : '+' + num(q.mc != null ? q.mc : d.marks_correct, 2) + (() => { const w = q.mw != null ? +q.mw : (q.type === 'MCQ' ? +d.marks_wrong : 0); return w ? ' / −' + num(w, 2) : ''; })() + (q.mp ? ' · partial marks' : '') + (q0.mpp ? ' · step marks: tick every correct step, a wrong tick gives 0' : '') }),
       X.qtEl = h('span', { class: 'ex-qtime', title: 'Time spent on this question', 'aria-label': 'Time on this question' })),
-      h('div', { class: 'ex-q', html: qText(q.q) }), figure(q.f) || '', input,
+      orBar, h('div', { class: 'ex-q', html: qText(q.q) }), figure(q.f) || '', input,
       h('div', { class: 'ex-nav' },
         h('button', { type: 'button', class: 'btn', text: '‹ Previous', disabled: X.cur === 0, onclick: () => go(X.cur - 1) }),
         h('button', { type: 'button', class: 'btn', text: 'Clear response', onclick: () => { a.r = q.type === 'MSQ' ? [] : ''; X.dirty = true; draw(); } }),

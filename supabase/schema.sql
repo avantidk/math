@@ -902,6 +902,8 @@ alter table public.attempts                 enable row level security;
 alter table public.attempts add column if not exists elapsed_sec integer not null default 0;
 alter table public.attempts add column if not exists last_beat timestamptz;
 update public.attempts a set last_beat = now(), elapsed_sec = least(extract(epoch from (now() - a.started_at))::integer, 86400) where a.status = 'in_progress' and a.last_beat is null;
+-- CBSE questions with an OR choice: which half the student answered ('A' or 'B')
+alter table public.attempt_items add column if not exists alt text;
 alter table public.attempt_items drop constraint if exists attempt_items_status_check;
 alter table public.attempt_items add constraint attempt_items_status_check check (status in ('correct', 'wrong', 'skipped', 'partial'));
 alter table public.attempt_items            enable row level security;
@@ -1030,7 +1032,7 @@ language plpgsql security definer set search_path = public as $$
 declare
   a public.attempts; t public.tests; q jsonb; i integer; r jsonb; v_resp text; v_key text; v_type text;
   v_status text; v_marks numeric; v_t integer; lo numeric; hi numeric; v numeric; m text[];
-  v_c numeric; v_w numeric; v_p boolean; chosen text[]; keys text[];
+  v_c numeric; v_w numeric; v_p boolean; v_pp boolean; v_alt text; v_qid text; chosen text[]; keys text[];
   s_score numeric := 0; s_max numeric := 0; s_c integer := 0; s_w integer := 0; s_s integer := 0;
 begin
   select * into a from public.attempts where id = p_attempt for update;
@@ -1041,6 +1043,7 @@ begin
     v_c := coalesce((q -> 'm' ->> 'c')::numeric, t.marks_correct);
     v_w := (q -> 'm' ->> 'w')::numeric;
     v_p := coalesce((q -> 'm' ->> 'p')::boolean, false);
+    v_pp := coalesce((q -> 'm' ->> 'pp')::boolean, false);   -- step marking (CBSE Sections B to E): marks for each correct option, 0 if a wrong one is ticked
     s_max := s_max + v_c;
     -- answers are saved under p1, p2, ... (the position); older attempts used the question id
     r := coalesce(a.answers -> ('p' || i) -> 'r', a.answers -> (q->>'id') -> 'r');
@@ -1048,6 +1051,12 @@ begin
     v_t := case when v_resp ~ '^\d{1,6}(\.\d+)?$' then least(v_resp::numeric, 86400)::integer else 0 end;
     v_type := coalesce(q->>'type', 'MCQ');
     v_key := upper(trim(coalesce(q->>'a', '')));
+    v_qid := q->>'id'; v_alt := null;
+    -- a question with an OR choice carries the other half in q.alt; the student's pick is saved with the answer
+    if q ? 'alt' then
+      v_alt := case when coalesce(a.answers -> ('p' || i) ->> 'alt', a.answers -> (q->>'id') ->> 'alt') = 'B' then 'B' else 'A' end;
+      if v_alt = 'B' then v_key := upper(trim(coalesce(q->'alt'->>'a', ''))); v_type := coalesce(q->'alt'->>'type', v_type); v_qid := coalesce(q->'alt'->>'rid', v_qid); end if;
+    end if;
     v_resp := case jsonb_typeof(r)
                 when 'array'  then (select string_agg(upper(trim(x)), ',' order by upper(trim(x))) from jsonb_array_elements_text(r) x where trim(x) <> '')
                 when 'string' then nullif(upper(trim(r #>> '{}')), '')
@@ -1071,7 +1080,12 @@ begin
       else v_status := 'wrong'; v_marks := -coalesce(v_w, 0); end if;
     elsif v_type = 'MSQ' then
       keys := string_to_array(replace(v_key, ' ', ''), ','); chosen := string_to_array(v_resp, ',');
-      if v_p then
+      if v_pp then
+        -- step marking: ticking any wrong option = 0; all correct options = full marks; otherwise an equal share for each correct option ticked
+        if exists (select 1 from unnest(chosen) c where c <> all (keys)) then v_status := 'wrong'; v_marks := 0;
+        elsif chosen @> keys and keys @> chosen then v_status := 'correct'; v_marks := v_c;
+        else v_status := 'partial'; v_marks := round(v_c * array_length(chosen, 1)::numeric / array_length(keys, 1), 2); end if;
+      elsif v_p then
         -- partial marking (JEE Advanced "one or more correct"): any wrong option chosen = negative; all correct options = full marks;
         -- otherwise one mark per correct option chosen (3 of 4, 2 of 3 or more, 1 of 2 or more)
         if exists (select 1 from unnest(chosen) c where c <> all (keys)) then v_status := 'wrong'; v_marks := -coalesce(v_w, 0);
@@ -1086,8 +1100,8 @@ begin
       if v_resp = v_key then v_status := 'correct'; v_marks := v_c;
       else v_status := 'wrong'; v_marks := -coalesce(v_w, t.marks_wrong); end if;
     end if;
-    insert into public.attempt_items (attempt_id, pos, qid, qtype, response, correct_answer, status, marks, time_sec, chapter, topic)
-    values (a.id, i, q->>'id', v_type, v_resp, q->>'a', v_status, v_marks, v_t, q->>'chn', q->>'tp');
+    insert into public.attempt_items (attempt_id, pos, qid, qtype, response, correct_answer, status, marks, time_sec, chapter, topic, alt)
+    values (a.id, i, v_qid, v_type, v_resp, case when v_alt = 'B' then q->'alt'->>'a' else q->>'a' end, v_status, v_marks, v_t, q->>'chn', q->>'tp', v_alt);
     s_score := s_score + v_marks;
     if v_status in ('correct', 'partial') then s_c := s_c + 1; elsif v_status = 'wrong' then s_w := s_w + 1; else s_s := s_s + 1; end if;
   end loop;
@@ -1150,7 +1164,8 @@ begin
     'started_at', a.started_at, 'server_now', now(), 'remaining_sec', greatest(t.duration_min * 60 - a.elapsed_sec, 0),
     'answers', a.answers, 'tab_switches', a.tab_switches,
     'questions', (select json_agg(json_build_object('id', 'p' || o, 'type', e->>'type', 'q', e->'q', 'o', e->'o', 'f', e->'f', 'tp', e->>'tp',
-                                                    's', e->>'s', 'sec', e->>'sec', 'sj', e->>'sj', 'mc', e->'m'->'c', 'mw', e->'m'->'w', 'mp', e->'m'->'p')
+                                                    's', e->>'s', 'sec', e->>'sec', 'sj', e->>'sj', 'mc', e->'m'->'c', 'mw', e->'m'->'w', 'mp', e->'m'->'p', 'mpp', e->'m'->'pp',
+                                                    'alt', case when e ? 'alt' then json_build_object('type', e->'alt'->>'type', 'q', e->'alt'->'q', 'o', e->'alt'->'o', 'f', e->'alt'->'f') end)
                                   order by o) from jsonb_array_elements(t.questions) with ordinality as x(e, o)));
 end $$;
 
@@ -1251,7 +1266,9 @@ begin
                       where test_id = t.id and status = 'submitted' and lower(coalesce(school, '')) = lower(coalesce(a.school, ''))),
     'items', (select json_agg(json_build_object('pos', it.pos, 'qid', it.qid, 'max', coalesce((q.e->'m'->>'c')::numeric, t.marks_correct), 'sec', q.e->>'sec', 'sj', q.e->>'sj', 'type', it.qtype, 'response', it.response,
                  'correct_answer', case when v_keys then it.correct_answer end, 'status', it.status, 'marks', it.marks, 'time_sec', it.time_sec,
-                 'chapter', it.chapter, 'topic', it.topic, 'q', q.e->'q', 'o', q.e->'o', 'f', q.e->'f') order by it.pos)
+                 'chapter', it.chapter, 'topic', it.topic, 'alt', it.alt,
+                 'q', case when it.alt = 'B' then q.e->'alt'->'q' else q.e->'q' end, 'o', case when it.alt = 'B' then q.e->'alt'->'o' else q.e->'o' end,
+                 'f', case when it.alt = 'B' then q.e->'alt'->'f' else q.e->'f' end) order by it.pos)
                 from public.attempt_items it
                 left join lateral (select e from jsonb_array_elements(t.questions) with ordinality z(e, o) where z.o = it.pos) q on true
                where it.attempt_id = a.id),
@@ -2828,3 +2845,11 @@ grant execute on function public.avanti_verify(text, text, text), public.grant_p
 update public.marking_schemes set n_questions = 18, max_marks = 60,
   rules = '{"types":{"MCQ":{"c":3,"w":1},"MSQ":{"c":4,"w":1,"p":true},"Numerical":{"c":4,"w":0}},"sections":{"4":{"c":2,"w":0},"4:Matching":{"c":3,"w":1}},"mix":{"MCQ":4,"MSQ":5,"Numerical":5,"Comprehension":4},"notes":"Paper 1: Section 4 is matching (+3/-1). Paper 2: Section 4 is 2 Para questions with 2 parts each (+2, no negative marking)."}'::jsonb
  where exam = 'JEE Advanced';
+
+-- CBSE Class 12 Mathematics (2026 pattern). Section A: single correct (MCQ, no negative marking). Sections B to E (written-answer sections) are
+-- multi-select step questions: 2 or 3 of the 4 options are correct steps; each correct option ticked earns an equal share of the marks,
+-- all correct options earn the full marks, and ticking any wrong option gives 0 for that question ("pp" = step marking). A question with an
+-- OR choice is one question: the student answers either half. Safe to run again.
+update public.marking_schemes set
+  rules = '{"types":{"MCQ":{"c":1,"w":0},"MSQ":{"c":1,"w":0}},"sections":{"A":{"c":1,"w":0},"B":{"c":2,"w":0,"pp":true},"C":{"c":3,"w":0,"pp":true},"D":{"c":5,"w":0,"pp":true},"E":{"c":4,"w":0,"pp":true}},"mix":{"A":20,"B":5,"C":6,"D":4,"E":3},"notes":"Sections B to E: tick all the correct steps. A share of the marks for each correct step; 0 if a wrong step is ticked. OR questions: answer either half."}'::jsonb
+ where exam = 'CBSE 12';

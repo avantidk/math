@@ -63,7 +63,7 @@ function sheetOf(book, id, paper) {
 /* The dashboard starts from the small index (every question without its text: index/questions.json, boot.js) and fetches the
    full records (text, options, answer) only for what is on the screen: the chapter of a list page, a past paper, the questions
    picked for a test. The admin's account reads the two whole files instead (boot.js decides). */
-const TESTABLE = { MCQ: 1, MSQ: 1, Numerical: 1 };   /* the types a test made here can mark (with an answer key: g) */
+const TESTABLE = { MCQ: 1, MSQ: 1, Numerical: 1, Matching: 1, Comprehension: 1, Subjective: 1 };   /* the types a test made here can mark (with an answer key: g) */
 function load() {
   if (D.ready) return D.ready;
   const C = window.AvantiContent;
