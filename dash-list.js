@@ -39,6 +39,7 @@ const srcLine = x => {
     const ex = m ? (book === 'Ln Ex' ? 'O' : 'E') + (+m[1]) : '', chap = book === 'Ln DY' ? (x.chapter || '') : (String(x.paper || '').split(' · ')[1] || x.chapter || '');
     return [book === 'BB Ex' ? 'BB' : book.replace(/\s+/g, '.'), ex, x.qno ? 'Q' + x.qno : '', chap].filter(Boolean).join('.');
   }
+  if (x.exam === 'CBSE' && x.paper) return String(x.paper);   /* CBSE.12.2026.65/1/1 is the whole label */
   const name = EXAM_NAME[x.exam] || x.exam || '', p = String(x.paper || '').replace(String(x.year || ''), '').replace(/\s*\(([^)]*)\)/g, ' · $1').replace(/\s+/g, ' ').replace(/^[\s,.\-–·]+|[\s,.\-–·]+$/g, '');
   return name + (x.year ? ' ' + x.year : '') + (p ? ' (' + p + ')' : '');
 };
@@ -292,7 +293,10 @@ function solution(env, id, pane) {
   env.content.sols([id]).then(m => {
     const sv = m && m[id]; pane.textContent = '';
     if (!sv) { pane.append(h('p', { class: 'dl-soft', text: 'Full explanation not added yet.' })); return; }
-    const t = typeof sv === 'string' ? sv : sv.t; pane.append(h('div', { class: 'dl-sol', html: rich(t) }));
+    const t = typeof sv === 'string' ? sv : sv.t, box = h('div', { class: 'dl-sol', html: rich(t) }); pane.append(box);
+    if (/\{\{solfig\}\}/.test(box.innerHTML)) {   /* a picture that belongs to the explanation (for example the graph of a linear programming problem) */
+      Promise.resolve(env.content.figures ? env.content.figures() : {}).then(f => { const v = f && f[id + '#sol']; box.innerHTML = box.innerHTML.replace(/\{\{solfig\}\}/g, v && v.svg ? v.svg : ''); }).catch(() => { box.innerHTML = box.innerHTML.replace(/\{\{solfig\}\}/g, ''); });
+    }
   }).catch(() => { pane.textContent = ''; pane.append(h('p', { class: 'dl-soft bad', text: 'Could not load the explanation. Check your connection.' })); });
 }
 /* ---------- other people's solutions (each person: at most 2 images per question in all) ---------- */

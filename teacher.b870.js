@@ -180,7 +180,7 @@ const scriptFrac = s => { s = String(s); let out = '', i = 0; while (i < s.lengt
 const smallFrac = x => x.replace(/\\frac\{([^{}\\]{1,3})\}\{([^{}\\]{1,3}|[^{}\\]{1,2}\^\{[^{}]{1,2}\})\}/g, '\\tfrac{$1}{$2}');
 function tallToDisplay(s) {
   /* a line break next to a display formula (\[ ... \]) only adds an empty line: the formula already stands on its own line */
-  s = String(s).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1');
+  s = String(s).replace(/\{\{solfig\}\}/g, '').replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1');
   return spaceCases(scriptFrac(s)).replace(/\\\(([\s\S]+?)\\\)/g, (m, x0, off, whole) => {
     /* a lettered part such as "(ii) formula" keeps its formula on the same line as its label (like parts (i) and (iii)) */
     const part = /^[ \t]*\(([ivxlcdm]{1,5}|[a-z]|\d{1,2})\)[ \t]*$/i.test(whole.slice(whole.lastIndexOf('\n', off - 1) + 1, off)) && !/\\begin\{/.test(x0); const x = x0.replace(/\\begin\{([bp])matrix\}([\s\S]*?)\\end\{\1matrix\}/g, (mm, k, body) => { const r = body.split('\\\\').length, big = r >= 3 ? '\\Bigg' : r === 2 ? '\\Big' : ''; return big ? big + 'l' + (k === 'b' ? '[' : '(') + '\\begin{matrix}' + body + '\\end{matrix}' + big + 'r' + (k === 'b' ? ']' : ')') : mm; }); const tall = (x.match(/\\d?frac/g) || []).length >= 2 && x.length > 24;
