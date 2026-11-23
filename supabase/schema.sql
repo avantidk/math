@@ -1133,15 +1133,15 @@ end $$;
 -- so the time left, the time taken and the moment the answers open all stay right. Only while the reading time is still running.
 create or replace function public.skip_reading(p_attempt uuid) returns json
 language plpgsql security definer set search_path = public as $$
-declare a public.attempts; t public.tests; skipped integer;
+declare a public.attempts; t public.tests; v_skip integer;
 begin
   select * into a from public.attempts where id = p_attempt and user_id = auth.uid();
   if a.id is null then raise exception 'Test not found'; end if;
   select * into t from public.tests where id = a.test_id;
   a := public.attempt_beat(a.id);
   if a.status = 'in_progress' and t.reading_min > 0 and a.elapsed_sec < t.reading_min * 60 then
-    skipped := t.reading_min * 60 - a.elapsed_sec;
-    update public.attempts set elapsed_sec = t.reading_min * 60, started_at = started_at - make_interval(secs => skipped) where id = a.id returning * into a;
+    v_skip := t.reading_min * 60 - a.elapsed_sec;
+    update public.attempts set elapsed_sec = t.reading_min * 60, started_at = started_at - make_interval(secs => v_skip) where id = a.id returning * into a;
   end if;
   return json_build_object('remaining_sec', greatest((t.duration_min + t.reading_min) * 60 - a.elapsed_sec, 0), 'server_now', now());
 end $$;

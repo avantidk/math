@@ -226,7 +226,7 @@ body.ex-on { overflow: hidden; }
 .ex-top .btn { min-height: 38px; }
 .ex-palbtn { display: none; }
 .ex-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 300px; min-height: 0; }
-.ex-main { overflow-y: auto; padding: clamp(14px, 2.5vw, 28px); display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.ex-main { overflow-y: auto; padding: clamp(14px, 2.5vw, 28px) clamp(14px, 2.5vw, 28px) 0; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .ex-qh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
 .ex-qh strong { color: var(--ink); font-size: 16px; }
 .ex-q { font-size: 16.5px; line-height: 1.7; color: var(--ink); overflow-wrap: anywhere; }
@@ -239,7 +239,7 @@ body.ex-on { overflow: hidden; }
 .ex-num { display: flex; flex-direction: column; gap: 6px; max-width: 320px; }
 .ex-num label { font-weight: 600; font-size: 13.5px; }
 .ex-num input { font-size: 18px; }
-.ex-nav { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 1px solid var(--rule); margin-top: auto; }
+.ex-nav { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--rule); margin-top: auto; position: sticky; bottom: 0; z-index: 3; background: var(--bg); }   /* the Previous / Save & next row always stays at the bottom; only the question scrolls */
 .ex-nav .btn.pri { margin-left: auto; }
 .ex-mk { border-color: #7a3fd1 !important; color: #7a3fd1 !important; }
 :root[data-theme="dark"] .ex-mk { color: #c4a3ff !important; border-color: #8f63d9 !important; }
@@ -1189,3 +1189,6 @@ html body .katex .katex-html > .base { white-space: nowrap; }
 .ex-read { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; }
 .ex-read[hidden] { display: none; }
 .ex-skip { background: #fff; color: #7a2d10; border-color: #fff; padding: 6px 14px; }
+
+/* formulas in tests and lists: a little larger so that fractions, powers and indices are easy to read on a phone */
+.ex-q .katex, .ex-opt .katex, .pt-qt .katex { font-size: 1.3em; }

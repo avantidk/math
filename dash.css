@@ -650,3 +650,6 @@ html body .katex-display > .katex > .katex-html { display: block; }
 html body .katex-display { overflow: visible; max-width: 100%; }
 html body .katex .katex-html > .base { white-space: nowrap; }
 .pt-qt, .ex-q, .pt-opt, .ex-opt, .dl-fullq, .dl-ot { overflow-x: visible; }
+
+/* formulas a little larger so that fractions, powers and indices are easy to read on a phone */
+.dl-fullq .katex, .dl-ot .katex, .dl-sol .katex { font-size: 1.3em; }

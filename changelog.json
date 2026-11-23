@@ -1,5 +1,14 @@
 [
   {
+    "v": "1058",
+    "date": "23 Nov 2026",
+    "items": [
+      "Tests: the Previous / Clear / Mark for review / Save & next buttons now stay fixed at the bottom of the screen for every question; only the question scrolls.",
+      "Formulas: A′ and B′ (transpose, derivatives) are drawn as proper small primes, vector hats (î, ĵ, k̂) as neat hats, inline fractions in full size, and formulas a little larger so they are easy to read on a phone. This applies to every question on the site.",
+      "Fixed the error on the Skip reading time button (run the latest schema.sql once). A stray > after one CBSE question is removed."
+    ]
+  },
+  {
     "v": "1057",
     "date": "23 Nov 2026",
     "items": [

@@ -4,6 +4,20 @@
    3) If something is still too wide, the formula is shrunk to fit. */
 (function () {
   'use strict';
+
+  /* Notation clean-up, for every formula on the site: A\prime B\prime is drawn as the usual A' B' (a small raised prime, not a lone slanted stroke),
+     and \widehat{i}, \widehat{j} become the neat unit-vector hats on the dotless i and j. Done by wrapping KaTeX itself, so every page gets it. */
+  const norm = t => typeof t !== 'string' ? t : t
+    .replace(/(\w|[)\]}])\s*\\prime(?![A-Za-z])/g, "$1'")
+    .replace(/\\(?:wide)?hat\{\s*i\s*\}/g, '\\hat{\\imath}').replace(/\\(?:wide)?hat\{\s*j\s*\}/g, '\\hat{\\jmath}')
+    .replace(/\\widehat\{\s*([A-Za-z])\s*\}/g, '\\hat{$1}');
+  /* an inline fraction is drawn in full size (like a displayed one) so it is easy to read; not inside a power or a subscript */
+  const bigFrac = (t, o) => (typeof t === 'string' && !(o && o.displayMode) && /\\frac(?![A-Za-z])/.test(t) && !/[\^_]\{[^{}]*\\frac/.test(t) && !/[\^_]\\frac/.test(t)) ? t.replace(/\\frac(?![A-Za-z])/g, '\\dfrac') : t;
+  const patchKatex = k => { if (!k || k.__avNorm) return k; try {
+      ['render', 'renderToString'].forEach(n => { const f = k[n]; if (typeof f === 'function') k[n] = function (tex, a, b) { const o = n === 'render' ? b : a; return f.call(this, bigFrac(norm(tex), o), a, b); }; });
+      k.__avNorm = true; } catch (e) { /* keep KaTeX as it is */ } return k; };
+  if (window.katex) patchKatex(window.katex);
+  else { let kk; try { Object.defineProperty(window, 'katex', { configurable: true, get: () => kk, set: v => { kk = patchKatex(v); } }); } catch (e) { /* no patch */ } }
   const top = el => !el.parentElement || !el.parentElement.closest('.katex');
   const box = el => el.closest('.dl-fullq, .ex-q, .pt-qt, .ex-opt, .pt-opt, .dl-ot, .dl-sol, .dl-pane, td, li, p, div') || el.parentElement;
   const avail = c => { const s = getComputedStyle(c); return c.clientWidth - (parseFloat(s.paddingLeft) || 0) - (parseFloat(s.paddingRight) || 0); };
