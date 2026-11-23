@@ -1682,7 +1682,7 @@ async function pageReport(id) {
   const att = a.correct + a.wrong, acc = att ? 100 * a.correct / att : null;
   const mine = AU().profile.id && P().role === 'student';
   const top = head(t.title, (mine ? '' : (a.student_name || 'Student') + (a.school ? ' · ' + a.school : '') + ' · ') + 'Submitted ' + when(a.submitted_at),
-    ...(mine ? [link('#/reports', 'My Reports', 'btn'), h('button', { type: 'button', class: 'btn', text: 'Export', onclick: () => exportResult(id, t.title) })] : [h('button', { type: 'button', class: 'btn', text: '‹ Back to results', onclick: () => history.back() })]));
+    ...(mine ? [link('#/reports', 'My Reports', 'btn'), h('button', { type: 'button', class: 'btn', text: 'Export', onclick: () => exportResult(id, t.title) })] : [link('#/personal', '‹ Back to results', 'btn')]));
   const chNums = new Map();   /* chapter name -> chapter number (12M20 is chapter 20) */
   const items = R.items || [];
   try {

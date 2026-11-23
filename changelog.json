@@ -1,5 +1,13 @@
 [
   {
+    "v": "1063",
+    "date": "23 Nov 2026",
+    "items": [
+      "JEE Advanced Paper 1: Match the following is now +4 for correct and −1 for incorrect (it was +3 / −1), in the marking scheme, tests, the guide and the instructions. Run the latest schema.sql once.",
+      "The Back to results button on a report goes to My Performance, and Back on My Performance goes to your Tests."
+    ]
+  },
+  {
     "v": "1062",
     "date": "23 Nov 2026",
     "items": [

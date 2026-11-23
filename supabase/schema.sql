@@ -2863,7 +2863,7 @@ grant execute on function public.avanti_verify(text, text, text), public.grant_p
 -- Paper 1: Sections 1 to 4 = MCQ, MSQ, Numerical, Matching (4 each, 16 questions). Paper 2: MCQ 4, MSQ 5, Numerical 5, Section 4 Para questions 4 (18).
 -- A paragraph question starts with "Para:". The marks of a section can also be set for one type with the key "<section>:<type>". Safe to run again.
 update public.marking_schemes set n_questions = 18, max_marks = 60,
-  rules = '{"types":{"MCQ":{"c":3,"w":1},"MSQ":{"c":4,"w":1,"p":true},"Numerical":{"c":4,"w":0}},"sections":{"4":{"c":2,"w":0},"4:Matching":{"c":3,"w":1}},"mix":{"MCQ":4,"MSQ":5,"Numerical":5,"Comprehension":4},"notes":"Paper 1: Section 4 is matching (+3/-1). Paper 2: Section 4 is 2 Para questions with 2 parts each (+2, no negative marking)."}'::jsonb
+  rules = '{"types":{"MCQ":{"c":3,"w":1},"MSQ":{"c":4,"w":1,"p":true},"Numerical":{"c":4,"w":0}},"sections":{"4":{"c":2,"w":0},"4:Matching":{"c":4,"w":1}},"mix":{"MCQ":4,"MSQ":5,"Numerical":5,"Comprehension":4},"notes":"Paper 1: Section 4 is matching (+4/-1). Paper 2: Section 4 is 2 Para questions with 2 parts each (+2, no negative marking)."}'::jsonb
  where exam = 'JEE Advanced';
 
 -- CBSE Class 12 Mathematics (2026 pattern). Section A: single correct (MCQ, no negative marking). Sections B to E (written-answer sections) are
