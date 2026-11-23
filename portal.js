@@ -1085,7 +1085,7 @@ const ADV_MIX = { 1: { MCQ: 4, MSQ: 4, Numerical: 4, Matching: 4 }, 2: { MCQ: 4,
 const orBase = q => { const m = /^(CBSE26-Q\d+)([AB])$/.exec(String((q && q.i) || '')); return m ? [m[1], m[2]] : null; };
 function orUnits(list) {
   const out = [], map = new Map();
-  (list || []).forEach(q => { const p = orBase(q); if (!p) { out.push({ a: q, b: null }); return; } let u = map.get(p[1]); if (!u) { u = { a: null, b: null }; map.set(p[1], u); out.push(u); } if (p[2] === 'A') u.a = q; else u.b = q; });
+  (list || []).forEach(q => { const p = orBase(q); if (!p) { out.push({ a: q, b: null }); return; } let u = map.get(p[0]); if (!u) { u = { a: null, b: null }; map.set(p[0], u); out.push(u); } if (p[1] === 'A') u.a = q; else u.b = q; });
   return out.map(u => (u.a ? u : { a: u.b, b: null }));
 }
 const tq = (q, exam, altRec) => {
@@ -1138,7 +1138,7 @@ async function pagePersonal(arg) {
       await fillQs(paper.qs, { paper: (paper.qs.find(q => q.ps) || {}).ps });   /* only this paper's file */
       qs = orUnits(paper.qs).map(u => tq(u.a, ex, u.b));
       if (ex === 'JEE Advanced') qs = qs.map((q, i) => [q, i]).sort((a, b) => (+a[0].sec || 9) - (+b[0].sec || 9) || a[1] - b[1]).map(x => x[0]);
-      const r = await rpc('create_personal_test', { p_title: paper.label, p_duration_min: null, p_marks_correct: rule.c, p_marks_wrong: rule.w, p_questions: qs, p_paper_key: paper.key, p_audience: 'self', p_exam: ex });
+      const r = await rpc('create_personal_test', { p_title: ex === 'CBSE 12' ? 'Class 12 CBSE Math Exam ' + (paper.qs[0].y || '') + ' (' + paper.qs[0].p + ')' : paper.label, p_duration_min: null, p_marks_correct: rule.c, p_marks_wrong: rule.w, p_questions: qs, p_paper_key: paper.key, p_audience: 'self', p_exam: ex });
       location.hash = '#/t/' + r.code;   /* the test opens on its instructions: it starts only when you press Start */
     } catch (e) { toast(e.message); btn.disabled = false; }
   };

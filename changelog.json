@@ -1,5 +1,12 @@
 [
   {
+    "v": "1052",
+    "date": "23 Nov 2026",
+    "items": [
+      "CBSE paper test fixed: the OR questions were being merged wrongly, so the 2026 paper had 33 questions and 67 marks. It now has all 38 questions and 80 marks (A 20, B 5, C 6, D 4, E 3), also in the CBSE full-length mock. The test is titled \"Class 12 CBSE Math Exam 2026 (65/1/1)\"."
+    ]
+  },
+  {
     "v": "1051",
     "date": "23 Nov 2026",
     "items": [
