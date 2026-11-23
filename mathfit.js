@@ -12,11 +12,46 @@
     .replace(/\\(?:wide)?hat\{\s*i\s*\}/g, '\\hat{\\imath}').replace(/\\(?:wide)?hat\{\s*j\s*\}/g, '\\hat{\\jmath}')
     .replace(/\\widehat\{\s*([A-Za-z])\s*\}/g, '\\hat{$1}');
   /* an inline fraction is drawn in full size (like a displayed one) so it is easy to read; not inside a power or a subscript */
-  const bigFrac = (t, o) => (typeof t === 'string' && !(o && o.displayMode) && /\\frac(?![A-Za-z])/.test(t) && !/[\^_]\{[^{}]*\\frac/.test(t) && !/[\^_]\\frac/.test(t)) ? t.replace(/\\frac(?![A-Za-z])/g, '\\dfrac') : t;
+  const bigFrac = (t, o) => {
+    if (typeof t !== 'string' || (o && o.displayMode) || !/\\frac(?![A-Za-z])/.test(t)) return t;
+    /* only a fraction that is not inside a power, an index or \text: find those groups first */
+    const skip = []; for (let i = 0; i < t.length; i++) { const c = t[i];
+      if ((c === '^' || c === '_') && i + 1 < t.length) { let k = i + 1; while (t[k] === ' ') k++; if (t[k] === '{') { let d = 0, e = k; for (; e < t.length; e++) { if (t[e] === '{') d++; else if (t[e] === '}' && --d === 0) break; } skip.push([k, e]); } else skip.push([k, k + 1]); } }
+    return t.replace(/\\frac(?![A-Za-z])/g, (mm, off) => skip.some(r => off >= r[0] && off <= r[1]) ? mm : '\\dfrac');
+  };
+  /* a power that holds an integral or a fraction (e^{\int \frac{P}{Q}dy}) is drawn at text size instead of the tiny script size */
+  const bigPow = t => {
+    if (typeof t !== 'string' || !/\^\s*\{/.test(t) || !/\\(?:int|frac|dfrac)(?![A-Za-z])/.test(t)) return t;
+    let out = '', i = 0;
+    while (i < t.length) {
+      const mm = /\^\s*\{/.exec(t.slice(i)); if (!mm) { out += t.slice(i); break; }
+      const start = i + mm.index, open = start + mm[0].length - 1; let d = 0, e = open;
+      for (; e < t.length; e++) { if (t[e] === '{') d++; else if (t[e] === '}' && --d === 0) break; }
+      const inner = t.slice(open + 1, e);
+      out += t.slice(i, open + 1) + (/\\(?:int|frac|dfrac)(?![A-Za-z])/.test(inner) && !/\\textstyle/.test(inner) ? '\\textstyle ' : '') + inner;
+      i = e;   // the closing brace is copied by the next round
+      if (e >= t.length) break; out += '}'; i = e + 1;
+    }
+    return out;
+  };
   /* an inline integral is drawn in full size (displaystyle), the small inline integral sign was hard to see */
   const bigInt = (t, o) => (typeof t === 'string' && !(o && o.displayMode) && /\\o?int(?![A-Za-z])/.test(t) && !/^\s*\\displaystyle/.test(t)) ? '\\displaystyle ' + t : t;
+
+  /* Question text: (i) (ii) (iii) (iv) and (a) (b) markers, "Assertion (A):" and "Reason (R):" are made bold (**...**); in a question the numbered parts each start on a new line.
+     Only the sentences are touched, never the formulas. */
+  const ROM = '(?:viii|vii|vi|iv|v|iii|ii|i|ix)';
+  function prose(raw, stem) {
+    const s = String(raw == null ? '' : raw); if (!s) return s;
+    const parts = s.split(/(\\\(.+?\\\)|\\\[[\s\S]+?\\\])/), many = stem && (s.match(new RegExp('(?:^|\\s)\\(' + ROM + '\\)(?=[\\s,.;:]|$)', 'g')) || []).length >= 2;
+    return parts.map((p, n) => {
+      if (n % 2) return p;
+      p = p.replace(/\b(Assertion|Reason)\s*\((A|R)\)\s*:/g, '**$1 ($2):**');
+      p = p.replace(new RegExp('(^|\\s+)\\((' + ROM + ')\\)(?=[\\s,.;:]|$)(\\s+\\(([a-d])\\)(?=\\s))?', 'g'), (mm, pre, r, lt, l, off) => (many && (n > 0 || off > 0 && p.slice(0, off).trim()) ? '\n' : pre) + '**(' + r + ')**' + (lt ? ' **(' + l + ')**' : ''));
+      return p;
+    }).join('').replace(/\n{2,}/g, '\n');
+  }
   const patchKatex = k => { if (!k || k.__avNorm) return k; try {
-      ['render', 'renderToString'].forEach(n => { const f = k[n]; if (typeof f === 'function') k[n] = function (tex, a, b) { const o = n === 'render' ? b : a; return f.call(this, bigInt(bigFrac(norm(tex), o), o), a, b); }; });
+      ['render', 'renderToString'].forEach(n => { const f = k[n]; if (typeof f === 'function') k[n] = function (tex, a, b) { const o = n === 'render' ? b : a; return f.call(this, bigInt(bigPow(bigFrac(norm(tex), o)), o), a, b); }; });
       k.__avNorm = true; } catch (e) { /* keep KaTeX as it is */ } return k; };
   if (window.katex) patchKatex(window.katex);
   else { let kk; try { Object.defineProperty(window, 'katex', { configurable: true, get: () => kk, set: v => { kk = patchKatex(v); } }); } catch (e) { /* no patch */ } }
@@ -47,5 +82,5 @@
     });
   }
   let t = null; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { const ex = document.querySelector('.ex, .dl, #viewPortal, main'); if (ex) fit(document.body); }, 250); });
-  window.AvantiMathFit = Object.freeze({ fit });
+  window.AvantiMathFit = Object.freeze({ fit, prose });
 })();

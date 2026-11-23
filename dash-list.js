@@ -15,9 +15,10 @@ const ICON = { bm: svg('<path d="M6 3.5h12v17l-6-4.2-6 4.2z"/>'), warn: svg('<pa
 
 /* ---------- maths in text: \( inline \) and \[ display \], line breaks kept ---------- */
 const plainTxt = x => esc(x).replace(/\n/g, '<br>');
-function richBase(t) {
+const prose = (t, stem) => window.AvantiMathFit && window.AvantiMathFit.prose ? window.AvantiMathFit.prose(t, stem) : t;
+function richBase(t, stem) {
   /* a display formula stands on its own line: no extra empty line before or after it */
-  const K = window.katex, s = String(t == null ? '' : t).replace(/[ \t]*\{\{figure\}\}[ \t]*/g, ' ').replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1'), re = /\\\((.+?)\\\)|\\\[([\s\S]+?)\\\]/g; let out = '', last = 0, m;
+  const K = window.katex, s = prose(String(t == null ? '' : t), stem).replace(/[ \t]*\{\{figure\}\}[ \t]*/g, ' ').replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1'), re = /\\\((.+?)\\\)|\\\[([\s\S]+?)\\\]/g; let out = '', last = 0, m;
   while ((m = re.exec(s))) {
     out += plainTxt(s.slice(last, m.index));
     const tex = m[1] != null ? m[1] : m[2];
@@ -29,9 +30,9 @@ function richBase(t) {
 /* Layout of the four options: 1 row when all are short, 2 rows (2 columns) when they fit comfortably, otherwise 4 rows. Never 3 + 1. */
 const optCls = arr => { const heavy = /\\(frac|dfrac|int|oint|sqrt|sum|prod|lim|begin|vec|overrightarrow)\b/, w = x => String(x == null ? '' : x).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length, m = Math.max(0, ...(arr || []).map(w)); return (arr || []).length === 4 && !(arr || []).some(x => heavy.test(String(x == null ? '' : x))) ? (m <= 10 ? 'c4' : m <= 16 ? 'c2' : 'c1') : 'c1'; };   /* short options sit side by side; long ones, and any option with a fraction, integral, root, sum or matrix, take one row each */
 /* Match the following: List-I and List-II side by side in a table (P with 1, Q with 2, ...) */
-function rich(t) {
+function rich(t, stem) {
   const m = window.AvantiMatch && window.AvantiMatch.parse(t);
-  return m ? richBase(m.pre) + window.AvantiMatch.table(m, richBase, ['dl-mtw', 'dl-mt', 'dl-mtk']) : richBase(t);
+  return m ? richBase(m.pre, stem) + window.AvantiMatch.table(m, richBase, ['dl-mtw', 'dl-mt', 'dl-mtk']) : richBase(t, stem);
 }
 const srcLine = x => {
   if (x.source && x.source !== 'PYQ') {   /* practice questions: Ln.Ex.O1.Q16.Chapter name (book, exercise, question number, chapter of the book) */
@@ -217,12 +218,12 @@ function render(env, o) {
     };
     /* {{figure}} marks where the picture belongs: the text before it, the figure, then the rest of the text */
     const qParts = String(x.question == null ? '' : x.question).split('{{figure}}'), qHead = qParts[0], qTail = qParts.slice(1).join(' ').trim();
-    const q = h('div', { class: 'dl-fullq', html: rich(qHead) }), qAfter = qTail ? h('div', { class: 'dl-fullq', html: rich(qTail) }) : null;
+    const q = h('div', { class: 'dl-fullq', html: rich(qHead, true) }), qAfter = qTail ? h('div', { class: 'dl-fullq', html: rich(qTail, true) }) : null;
     const kids = [q, fig, qAfter,
       optEls.length ? h('div', { class: 'dl-opts ' + optCls(opts) }, optEls) : null, numBox,
       rep, h('div', { class: 'dl-tabrow' }, tabs, nav), body].filter(Boolean);
     box.append(...kids);
-    env.mathReady().then(() => { q.innerHTML = rich(qHead); if (qAfter) qAfter.innerHTML = rich(qTail); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); if (window.AvantiMathFit) window.AvantiMathFit.fit(box); });
+    env.mathReady().then(() => { q.innerHTML = rich(qHead, true); if (qAfter) qAfter.innerHTML = rich(qTail, true); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); if (window.AvantiMathFit) window.AvantiMathFit.fit(box); });
     return box;
   }
   const step = async i => { if (i < 0 || i >= list.length) return; const pg = Math.floor(i / PAGE); if (pg !== page) { page = pg; await draw(); } const li = ul.querySelector('.dl-row[data-id="' + list[i].id + '"]'); if (li) toggle(li, list[i]); };

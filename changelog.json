@@ -1,5 +1,14 @@
 [
   {
+    "v": "1061",
+    "date": "23 Nov 2026",
+    "items": [
+      "Back from a test or a report now goes to the Tests section, not to the dashboard home.",
+      "Question text: the part markers (i) (ii) (iii) (iv) and (a) (b), and the words Assertion (A) and Reason (R), are bold; the numbered parts of a question each start on their own line.",
+      "Formulas: a power that holds an integral or a fraction (like e to the power of the integral of P/Q dy) is drawn at readable size; a fraction in a power is no longer drawn too big. Options that are plain numbers (0,1 / 1,1 / 2,1 / 1, not defined) are now written as maths."
+    ]
+  },
+  {
     "v": "1060",
     "date": "23 Nov 2026",
     "items": [

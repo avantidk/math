@@ -71,7 +71,8 @@ function mathIn(node) {
     try { if (window.AvantiMathFit) window.AvantiMathFit.fit(node); } catch (e) { /* wrapping is only a polish */ }
   });
 }
-const qBase = t => esc(String(t == null ? '' : t).replace(/[ \t]*\{\{figure\}\}[ \t]*/g, ' ')).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1').replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');   /* **bold** in question text */
+const prose = (t, stem) => window.AvantiMathFit && window.AvantiMathFit.prose ? window.AvantiMathFit.prose(t, stem) : t;
+const qBase = (t, stem) => esc(prose(String(t == null ? '' : t), stem).replace(/[ \t]*\{\{figure\}\}[ \t]*/g, ' ')).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1').replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');   /* **bold** in question text */
 /* Layout of the four options: 1 row when all are short, 2 rows (2 columns) when they fit comfortably, otherwise 4 rows. Never 3 + 1. */
 const optCls = arr => { const heavy = /\\(frac|dfrac|int|oint|sqrt|sum|prod|lim|begin|vec|overrightarrow)\b/, w = x => String(x == null ? '' : x).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length, m = Math.max(0, ...(arr || []).map(w)); return (arr || []).length === 4 && !(arr || []).some(x => heavy.test(String(x == null ? '' : x))) ? (m <= 10 ? 'c4' : m <= 16 ? 'c2' : 'c1') : 'c1'; };   /* short options sit side by side; long ones, and any option with a fraction, integral, root, sum or matrix, take one row each */
 /* Match the following: List-I and List-II are shown side by side as a table (P to 1, Q to 2, ...) */
@@ -79,7 +80,7 @@ function matchTable(t) {
   const m = window.AvantiMatch && window.AvantiMatch.parse(t);
   return m ? qBase(m.pre) + window.AvantiMatch.table(m, qBase, ['mt-wrap', 'mt', 'mt-k']) : null;
 }
-const qText = t => matchTable(t) || qBase(t);
+const qText = (t, stem) => matchTable(t) || qBase(t, stem);
 function figure(f) {
   if (!f || !f.svg) return null;
   const m = /^\s*<img\b[^>]*\ssrc="(data:image\/(?:webp|png|jpeg|jpg|gif);base64,[A-Za-z0-9+\/=]+)"/i.exec(f.svg);   /* board-paper pictures are stored as a ready <img> with a data address */
@@ -745,7 +746,7 @@ function qCard(q, i, o) {
   });
   return h('article', { class: 'pt-q' + (o.status ? ' st-' + o.status : '') },
     h('div', { class: 'pt-qh' }, h('strong', { text: 'Q' + (i + 1) }), o.code ? h('span', { class: 'pt-code', title: 'Question code', text: o.code }) : null, badge(q.type || 'MCQ'), q.tp ? h('span', { class: 'pt-hint', text: q.tp }) : null, o.right),
-    h('div', { class: 'pt-qt', html: qText(q.q) }), figure(q.f),
+    h('div', { class: 'pt-qt', html: qText(q.q, true) }), figure(q.f),
     opts.length ? h('ol', { class: 'pt-opts ' + optCls(q.o) }, opts) : null,
     o.answer != null && !(q.o || []).length ? h('p', { class: 'pt-ans' }, 'Answer: ', h('b', { text: o.answer })) : null,
     o.extra);
@@ -1867,10 +1868,10 @@ function runExam(d) {
     main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge(q.sj ? 'Subjective' : isParaText(q.q) ? 'Para' : /^[1-4]$/.test(String(q.sec || '')) ? secName(q) : (q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'WRITTEN' ? 'Written question' : q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
       h('span', { class: 'pt-hint', text: (q.mc != null && +q.mc === 0) ? 'Not auto-marked' : '+' + num(q.mc != null ? q.mc : d.marks_correct, 2) + (() => { const w = q.mw != null ? +q.mw : (q.type === 'MCQ' ? +d.marks_wrong : 0); return w ? ' / −' + num(w, 2) : ''; })() + (q.mp ? ' · partial marks' : '') + (q0.mpp ? ' · step marks: tick every correct step, a wrong tick gives 0' : '') }),
       X.qtEl = h('span', { class: 'ex-qtime', title: 'Time spent on this question', 'aria-label': 'Time on this question' })),
-      ...(q0.alt ? [h('div', { class: 'ex-half' }, h('b', { class: 'ex-halfl', text: 'Question (A)' }), h('div', { class: 'ex-q', html: qText(q0.q) }), figure(q0.f) || '', buildInput(q0, 'A')),
+      ...(q0.alt ? [h('div', { class: 'ex-half' }, h('b', { class: 'ex-halfl', text: 'Question (A)' }), h('div', { class: 'ex-q', html: qText(q0.q, true) }), figure(q0.f) || '', buildInput(q0, 'A')),
         h('div', { class: 'ex-or', role: 'separator' }, h('b', { text: 'OR' }), h('span', { text: 'Answer only one of the two. Answering one clears the other.' })),
-        h('div', { class: 'ex-half' }, h('b', { class: 'ex-halfl', text: 'Question (B)' }), h('div', { class: 'ex-q', html: qText(q0.alt.q) }), figure(q0.alt.f) || '', buildInput(Object.assign({}, q0, q0.alt), 'B'))]
-        : [h('div', { class: 'ex-q', html: qText(q.q) }), figure(q.f) || '', buildInput(q, null)]),
+        h('div', { class: 'ex-half' }, h('b', { class: 'ex-halfl', text: 'Question (B)' }), h('div', { class: 'ex-q', html: qText(q0.alt.q, true) }), figure(q0.alt.f) || '', buildInput(Object.assign({}, q0, q0.alt), 'B'))]
+        : [h('div', { class: 'ex-q', html: qText(q.q, true) }), figure(q.f) || '', buildInput(q, null)]),
       h('div', { class: 'ex-nav' },
         h('button', { type: 'button', class: 'btn', text: '‹ Previous', disabled: X.cur === 0, onclick: () => go(X.cur - 1) }),
         h('button', { type: 'button', class: 'btn', text: 'Clear response', onclick: () => { a.r = q.type === 'MSQ' ? [] : ''; X.dirty = true; draw(); } }),
