@@ -1,5 +1,12 @@
 [
   {
+    "v": "1046",
+    "date": "23 Nov 2026",
+    "items": [
+      "Long formulas in questions and options (lists and tests, phone and PC) now continue on the next line instead of being cut off or scrolling sideways. A bracket that cannot break is redrawn so that it can, and anything still too wide is made a little smaller; there is no scroll bar."
+    ]
+  },
+  {
     "v": "1045",
     "date": "22 Nov 2026",
     "items": [

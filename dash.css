@@ -642,3 +642,11 @@ body.dpop-on { overflow: hidden; }
 .dl-bar .dl-pager-top { padding: 0; gap: 4px; margin: 0 auto; }
 .dl-bar .dl-pager-top .dl-pg { min-width: 34px; height: 34px; }
 @media (max-width: 700px) { .dl-bar .dl-pager-top { margin: 0; justify-content: flex-start; } }
+
+/* v1046: formulas wrap onto the next line (never a scroll bar): KaTeX may break after + - = ; parts that cannot break are handled by mathfit.js */
+html body .katex { white-space: normal; }
+html body .katex-display > .katex { white-space: normal; display: block; }
+html body .katex-display > .katex > .katex-html { display: block; }
+html body .katex-display { overflow: visible; max-width: 100%; }
+html body .katex .katex-html > .base { white-space: nowrap; }
+.pt-qt, .ex-q, .pt-opt, .ex-opt, .dl-fullq, .dl-ot { overflow-x: visible; }

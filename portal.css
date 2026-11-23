@@ -168,7 +168,7 @@ html.plan-free .main :not(input):not(textarea):not(select) { -webkit-user-select
 .pt-qh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .pt-qh strong { color: var(--ink); }
 .pt-qmeta { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.pt-qt { color: var(--ink); line-height: 1.6; overflow-wrap: anywhere; overflow-x: auto; }
+.pt-qt { color: var(--ink); line-height: 1.6; overflow-wrap: anywhere; }
 .pt-fig { display: block; max-width: min(100%, 360px); height: auto; background: #fff; border-radius: 8px; border: 1px solid var(--rule); }
 .pt-opts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 6px; }
 .pt-opt { display: flex; gap: 8px; align-items: baseline; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--rule); color: var(--ink); overflow-x: auto; }
@@ -229,7 +229,7 @@ body.ex-on { overflow: hidden; }
 .ex-main { overflow-y: auto; padding: clamp(14px, 2.5vw, 28px); display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .ex-qh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
 .ex-qh strong { color: var(--ink); font-size: 16px; }
-.ex-q { font-size: 16.5px; line-height: 1.7; color: var(--ink); overflow-wrap: anywhere; overflow-x: auto; }
+.ex-q { font-size: 16.5px; line-height: 1.7; color: var(--ink); overflow-wrap: anywhere; }
 .ex-opts { display: flex; flex-direction: column; gap: 8px; }
 .ex-opt { display: flex; align-items: baseline; gap: 10px; padding: 12px 14px; border: 1.5px solid var(--rule); border-radius: 12px; background: var(--panel); cursor: pointer; color: var(--ink); overflow-x: auto; }
 .ex-opt:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--rule)); }
@@ -1169,3 +1169,11 @@ html body .tb-menu a.tb.tb-dash { text-decoration: none; display: inline-flex; a
 @media (max-width: 760px) { .pt-opts.c4, .ex-opts.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pt-opts.c2, .ex-opts.c2 { grid-template-columns: minmax(0, 1fr); } }
 
 .mt .katex-display { margin: 4px 0; text-align: left; }
+
+/* v1046: formulas wrap onto the next line (never a scroll bar): KaTeX may break after + - = ; parts that cannot break are handled by mathfit.js */
+html body .katex { white-space: normal; }
+html body .katex-display > .katex { white-space: normal; display: block; }
+html body .katex-display > .katex > .katex-html { display: block; }
+html body .katex-display { overflow: visible; max-width: 100%; }
+html body .katex .katex-html > .base { white-space: nowrap; }
+.pt-qt, .ex-q, .pt-opt, .ex-opt, .dl-fullq, .dl-ot { overflow-x: visible; }

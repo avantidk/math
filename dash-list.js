@@ -221,7 +221,7 @@ function render(env, o) {
       optEls.length ? h('div', { class: 'dl-opts ' + optCls(opts) }, optEls) : null, numBox,
       rep, h('div', { class: 'dl-tabrow' }, tabs, nav), body].filter(Boolean);
     box.append(...kids);
-    env.mathReady().then(() => { q.innerHTML = rich(qHead); if (qAfter) qAfter.innerHTML = rich(qTail); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); });
+    env.mathReady().then(() => { q.innerHTML = rich(qHead); if (qAfter) qAfter.innerHTML = rich(qTail); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); if (window.AvantiMathFit) window.AvantiMathFit.fit(box); });
     return box;
   }
   const step = async i => { if (i < 0 || i >= list.length) return; const pg = Math.floor(i / PAGE); if (pg !== page) { page = pg; await draw(); } const li = ul.querySelector('.dl-row[data-id="' + list[i].id + '"]'); if (li) toggle(li, list[i]); };

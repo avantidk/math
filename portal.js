@@ -68,6 +68,7 @@ function mathIn(node) {
   return ensureKatex().then(() => {
     if (!window.renderMathInElement) return;
     try { window.renderMathInElement(node, { delimiters: [{ left: '\\[', right: '\\]', display: true }, { left: '\\(', right: '\\)', display: false }], throwOnError: false }); } catch (e) { /* raw text stays */ }
+    try { if (window.AvantiMathFit) window.AvantiMathFit.fit(node); } catch (e) { /* wrapping is only a polish */ }
   });
 }
 const qBase = t => esc(String(t == null ? '' : t).replace(/[ \t]*\{\{figure\}\}[ \t]*/g, ' ')).replace(/[ \t]*\n[ \t]*(\\\[)/g, '$1').replace(/(\\\])[ \t]*\n[ \t]*/g, '$1').replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');   /* **bold** in question text */
