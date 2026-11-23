@@ -1138,7 +1138,7 @@ async function pagePersonal(arg) {
       await fillQs(paper.qs, { paper: (paper.qs.find(q => q.ps) || {}).ps });   /* only this paper's file */
       qs = orUnits(paper.qs).map(u => tq(u.a, ex, u.b));
       if (ex === 'JEE Advanced') qs = qs.map((q, i) => [q, i]).sort((a, b) => (+a[0].sec || 9) - (+b[0].sec || 9) || a[1] - b[1]).map(x => x[0]);
-      const r = await rpc('create_personal_test', { p_title: ex === 'CBSE 12' ? 'Class 12 CBSE Math Exam ' + (paper.qs[0].y || '') + ' (' + paper.qs[0].p + ')' : paper.label, p_duration_min: null, p_marks_correct: rule.c, p_marks_wrong: rule.w, p_questions: qs, p_paper_key: paper.key, p_audience: 'self', p_exam: ex });
+      const r = await rpc('create_personal_test', { p_title: ex === 'CBSE 12' ? 'Class 12 CBSE Math Exam ' + (paper.qs[0].y || '') + ' (' + String(paper.qs[0].p).replace(/^CBSE\.12\.\d{4}\./, '') + ')' : paper.label, p_duration_min: null, p_marks_correct: rule.c, p_marks_wrong: rule.w, p_questions: qs, p_paper_key: paper.key, p_audience: 'self', p_exam: ex });
       location.hash = '#/t/' + r.code;   /* the test opens on its instructions: it starts only when you press Start */
     } catch (e) { toast(e.message); btn.disabled = false; }
   };
