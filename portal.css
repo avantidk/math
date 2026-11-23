@@ -273,7 +273,11 @@ body.ex-on { overflow: hidden; }
   .ex-side { position: fixed; right: 0; top: 0; bottom: 0; width: min(320px, 88vw); z-index: 950; transform: translateX(100%); transition: transform .2s ease; box-shadow: -10px 0 30px rgba(0,0,0,.25); }
   .ex.pal-open .ex-side { transform: none; }
   .ex-palbtn { display: inline-flex; }
-  .ex-title { flex-basis: 100%; order: -1; }
+  .ex-title { flex: 1 1 0; min-width: 0; order: -1; }
+  .ex-saved { order: -1; flex: none; font-size: 11px; }
+  .ex-ctl { flex: 1 1 100%; display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+  .ex-ctl .ex-timer { flex: 1 1 auto; text-align: center; font-size: 17px; padding: 8px 8px; white-space: nowrap; }
+  .ex-ctl .btn { flex: none; padding: 8px 12px; }
   .ex-nav .btn { flex: 1 1 45%; }
   .ex-nav .btn.pri { margin-left: 0; }
 }
@@ -1197,3 +1201,8 @@ html body .katex .katex-html > .base { white-space: nowrap; }
 .pt-sort { all: unset; cursor: pointer; font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit; border-bottom: 1px dashed currentColor; }
 .pt-sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 th[aria-sort="ascending"] .pt-sort::after { content: " \25B2"; font-size: .75em; } th[aria-sort="descending"] .pt-sort::after { content: " \25BC"; font-size: .75em; }
+
+.ex-ctl { display: contents; }
+@media (max-width: 760px) { .ex-ctl { display: flex; } }
+.ex-submit { background: #c62828 !important; border-color: #c62828 !important; color: #fff !important; }
+.ex-submit:hover { background: #a91f1f !important; }

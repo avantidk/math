@@ -1,5 +1,13 @@
 [
   {
+    "v": "1062",
+    "date": "23 Nov 2026",
+    "items": [
+      "Test screen: the Submit buttons are red; on a phone the timer, Questions and Submit sit in one line under the title; the question palette closes when you tap anywhere.",
+      "Back from a test type page (for example JEE Main) now goes to the Tests home, not the dashboard."
+    ]
+  },
+  {
     "v": "1061",
     "date": "23 Nov 2026",
     "items": [

@@ -1797,10 +1797,11 @@ function runExam(d) {
   const side = h('aside', { class: 'ex-side', 'aria-label': 'Question palette' },
     h('div', { class: 'ex-who' }, h('b', { text: P().full_name || P().avanti_id || 'Student' }), h('span', { text: qs.length + ' questions' })), pal,
     h('ul', { class: 'ex-legend' }, [['ans', 'Answered'], ['na', 'Not answered'], ['nv', 'Not visited'], ['mk', 'Marked for review'], ['am', 'Answered and marked']].map(([k, t]) => h('li', {}, h('i', { class: 'ex-p ' + k }), t))),
-    h('button', { type: 'button', class: 'btn pri ex-submit2', text: 'Submit test', onclick: () => askSubmit() }));
-  root.append(h('header', { class: 'ex-top' }, h('strong', { class: 'ex-title', text: d.title }), saved, timer,
-    h('button', { type: 'button', class: 'btn ex-palbtn', text: 'Questions', 'aria-expanded': 'false', onclick: e => { const o = root.classList.toggle('pal-open'); e.target.setAttribute('aria-expanded', String(o)); } }),
-    h('button', { type: 'button', class: 'btn pri', text: 'Submit', onclick: () => askSubmit() })), pauseBar, h('div', { class: 'ex-body' }, main, side));
+    h('button', { type: 'button', class: 'btn pri ex-submit ex-submit2', text: 'Submit test', onclick: () => askSubmit() }));
+  const palBtn = h('button', { type: 'button', class: 'btn ex-palbtn', text: 'Questions', 'aria-expanded': 'false', onclick: e => { const o = root.classList.toggle('pal-open'); e.target.setAttribute('aria-expanded', String(o)); } });
+  root.addEventListener('click', e => { if (root.classList.contains('pal-open') && !e.target.closest('.ex-palbtn')) { root.classList.remove('pal-open'); palBtn.setAttribute('aria-expanded', 'false'); } });   /* the question palette closes on a click anywhere */
+  root.append(h('header', { class: 'ex-top' }, h('strong', { class: 'ex-title', text: d.title }), saved,
+    h('div', { class: 'ex-ctl' }, timer, palBtn, h('button', { type: 'button', class: 'btn pri ex-submit', text: 'Submit', onclick: () => askSubmit() }))), pauseBar, h('div', { class: 'ex-body' }, main, side));
 
   const filled = a => (Array.isArray(a.r) ? a.r.length > 0 : String(a.r).trim() !== '');
   const stateOf = a => (a.m ? (filled(a) ? 'am' : 'mk') : filled(a) ? 'ans' : a.v ? 'na' : 'nv');

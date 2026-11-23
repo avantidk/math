@@ -376,7 +376,7 @@ function viewPortalPage(hs, r) {
   const tests = r === 'modes' || r === 'personal' || sub;
   document.querySelectorAll('.tb-menu .tb').forEach(x => x.setAttribute('aria-pressed', String(tests && x.dataset.k === 'tests')));
   const on = p => hs === p || hs.startsWith(p + '/');
-  if (tests) side({ back: sub ? '/modes' : '', title: 'Tests', sub: 'Mock tests and your results', items: homeItems('tests') });
+  if (tests) side({ back: sub || /^#\/modes\/./.test(hs) ? '/modes' : '', title: 'Tests', sub: 'Mock tests and your results', items: homeItems('tests') });
   else side({ back: '', title: 'My account', sub: 'Profile, plan and results', items: [
     { label: 'Edit profile', icon: IC.grid, hash: '/profile', active: on('#/profile') },
     { label: 'Membership', icon: IC.mark, hash: '/membership', active: on('#/membership') },
