@@ -145,6 +145,7 @@ function pyqLabel(q) {
   if (q.e === 'Main') { if (exOf(q) !== 'JEE Main') return 'AIEEE' + (y ? ' ' + y : ''); const m = /(\d{1,2} [A-Za-z]{3} \d{4})(.*)$/.exec(p); return m ? ('JEE Main ' + m[1] + (m[2] || '').replace(/\s+/g, ' ').trimEnd()) : 'JEE Main' + (y ? ' ' + y : ''); }
   if (q.e === 'Adv') { const m = /Paper\s*(\d)/i.exec(p); return (exOf(q) === 'IIT' ? 'IIT-JEE' : 'JEE ADV') + (m ? ' P' + m[1] : '') + (y ? ' ' + y : ''); }
   if (q.e === 'NDA') { const m = /\((NDA[^)]*)\)/.exec(p); return (m ? m[1] : 'NDA') + (y ? ' ' + y : ''); }
+  if (q.e === 'CBSE') return 'CBSE Class 12 ' + (y || '') + (p ? ' (' + p.replace(/^CBSE\.12\.\d{4}\./, '') + ')' : '');
   return q.e + (y ? ' ' + y : '');
 }
 function tagText(q) { if (q._lvOnly) return '[L' + practiceLevel(q) + ']';   /* PYQ question paper: every question is from the same paper, so only the level is shown */
@@ -911,7 +912,7 @@ function exportLib(kind) {
 }
 /* ---------- "PYQ ChapterWise PDF" and "Shift Wise PDF" tabs ---------- */
 const PDFT = { cw: { bucket: 'Main', sel: null, page: 0, v: 0, years: [], key: false }, sw: { bucket: 'Main', sel: null, page: 0, v: 0, year: 'all', key: false } };
-const BUCKET_NAME = { Main: 'JEE Main', Adv: 'JEE Advanced', KCET: 'KCET', IAT: 'IAT', NDA: 'NDA' };
+const BUCKET_NAME = { Main: 'JEE Main', Adv: 'JEE Advanced', KCET: 'KCET', IAT: 'IAT', NDA: 'NDA', CBSE: 'CBSE Class 12' };
 const chOrder = cc => { const c = CHMAP.get(cc); return c.cl * 100 + c.o; };
 function pyqOf(bucket) { return BANK.qs.filter(q => q.s === 'P' && q.e === bucket); }
 const cwYearOk = q => !PDFT.cw.years.length || PDFT.cw.years.includes(String(q.y));
@@ -1916,6 +1917,7 @@ function ensureDpp() {
     const [bank, css] = await Promise.all([loadBank(), document.getElementById('kcss') ? Promise.resolve(null) : fetch('katex.css').then(r => r.text())]);
     if (css) { const st = h('style', { text: css }); st.id = 'kcss'; document.head.append(st); }
     BANK = bank; BANK.all = bank.qs.slice(); bank.qs.forEach(q => BYID.set(q.i, q)); bank.chapters.forEach(c => CHMAP.set(c.c, c));
+    (bank.extra || []).forEach(q => BYID.set(q.i, q));   /* CBSE board-paper questions can be exported, though they are not in the engine's lists */
     initPubs(); applyOos();
     KATEX_P = window.AvantiBoot.katex().then(() => loadScript(CDN.auto)).then(() => { if (LS.shown) showLibPrev(); PDFT.cw.v++; PDFT.sw.v++; ['cw', 'sw'].forEach(t => { if ($('#' + t + 'List') && !$('#view' + (t === 'cw' ? 'Cw' : 'Sw')).hidden) renderPdfTab(t); }); }).catch(() => {});
     const lib = $('#viewLib'); const wasLib = lib.hidden;

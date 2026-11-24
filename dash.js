@@ -721,6 +721,7 @@ const dashBank = () => BANKP || (BANKP = (async () => {
   BANKQ = qs;
   /* the Question Bank engine (Own DPP Maker, PDF / Word / PowerPoint) uses the same light questions */
   window.__BANK = { chapters: meta.chapters, syl: meta.syl, qs: qs.filter(q => TE_EXAMS[q.e]) };
+  window.__BANK.extra = qs.filter(q => q.e === 'CBSE');   /* board-paper questions: not in the engine's own lists, but exports (PDF, Word, PowerPoint) must find them */
   return { qs, byId, chapters };
 })().catch(e => { BANKP = null; throw e; }));
 /* PDF / Word / PowerPoint exports are made by the Question Bank engine: it is loaded here, in the background, the first time a download is asked for */
