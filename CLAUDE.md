@@ -43,3 +43,12 @@ tests and results. It replaced an older Claude artifact.
   publish when it fails.
 - On every release: bump `BUILD` and `RELEASED` in `boot.js` and the `?v=` numbers in `qbank.html`, `dashboard.html` and `login.js` (and run `build_seo.py` with `SEO_VER`), and add an entry at the top of
   `changelog.json` (plain-language list of what changed). The footer shows "Website vBUILD · RELEASED"; clicking it shows the changelog.
+
+## Strict display rules (owner's orders: follow on every page)
+- Options of a question (dashboard lists, test screen, reports, previews, everywhere): 4 short options = ONE line (4 in a row);
+  two medium pairs = 2 lines (2x2); if any option is very long (even with 3 short ones) = 4 lines (one per row). NEVER 3 lines.
+  Use one shared layout function for all pages.
+- Never underline clickable things.
+- Never shuffle the questions, numbering or sections of an actual exam paper (test screen, downloads, shares). Shuffling only inside a
+  section when creating tests; never shuffle sections.
+- Grade every past paper by the official marking scheme of its own year (stored with the paper); personal tests use the latest year's scheme.
