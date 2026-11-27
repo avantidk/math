@@ -95,7 +95,7 @@ function show(...nodes) {
   if (TE()) TE().hideViews();
   document.querySelectorAll('[data-act="tab"]').forEach(b => b.setAttribute('aria-pressed', 'false'));
   v.hidden = false; v.textContent = ''; v.append(...nodes.filter(Boolean));
-  v.classList.toggle('pt-full', /^#\/students?\b/.test(location.hash));   /* My Students: wide tables use the whole width */
+  v.classList.toggle('pt-full', /^#\/students?\b/.test(location.hash));   /* Students/Teachers: wide tables use the whole width */
   window.scrollTo(0, 0);
   return v;
 }
@@ -168,6 +168,8 @@ function leave(keepTab) {
   const v = view(); if (v) { v.hidden = true; v.textContent = ''; }
   if (keepTab === true && TE()) TE().setTab('qb');
 }
+let P_STEPS = 0;   /* in-app page changes, so Back can return to exactly the previous page */
+window.addEventListener('hashchange', () => { P_STEPS++; });
 window.addEventListener('hashchange', route);
 
 /* ---------- Edit profile ---------- */
@@ -191,12 +193,12 @@ function schoolSelect(id, val, first, allowOther, opt) {
   const find = h('input', { type: 'search', class: 'pt-in pt-combo-find', placeholder: 'Search schools…', 'aria-label': 'Search schools', autocomplete: 'off' });
   const listEl = h('ul', { class: 'pt-combo-list', role: 'listbox', id: id + 'List' });
   const pop = h('div', { class: 'pt-combo-pop', hidden: true }, find, listEl);
-  const other = allowOther ? h('input', { type: 'text', class: 'pt-in', id: id + 'Other', maxlength: 160, placeholder: 'Type your school name', hidden: true, 'aria-label': 'Your school name' }) : null;
+  const other = allowOther ? h('input', { type: 'text', class: 'pt-in', id: id + 'Other', maxlength: 160, placeholder: 'Write your school name', hidden: true, 'aria-label': 'Your school name' }) : null;
   let ALL = [], active = -1;
   const setValue = (v, silent) => {
     if (![...s.options].some(o => o.value === v)) s.append(h('option', { value: v, text: v }));
     s.value = v;
-    label.textContent = v === OTHER ? 'Other (my school is not in the list)' : (v || first); btn.classList.toggle('empty', !v);
+    label.textContent = v === OTHER ? 'Other — write your own school name' : (v || first); btn.classList.toggle('empty', !v);
     if (other) { other.hidden = v !== OTHER; if (!other.hidden) setTimeout(() => other.focus(), 0); }
     if (!silent) s.dispatchEvent(new Event('change'));
   };
@@ -207,7 +209,7 @@ function schoolSelect(id, val, first, allowOther, opt) {
     const shown = t ? base.filter(x => x.toLowerCase().includes(t) || isBuiltin(x)) : base;   /* the built-in schools always stay visible, at the end */
     listEl.textContent = '';
     if (!shown.length) listEl.append(h('li', { class: 'pt-combo-none', text: ALL.length ? 'No school matches "' + find.value.trim() + '"' : 'No schools in the database yet' }));
-    shown.concat(allowOther ? [OTHER] : []).forEach(v => listEl.append(h('li', { role: 'option', class: 'pt-combo-opt' + (v === OTHER ? ' other' : '') + (isBuiltin(v) ? ' nw' : ''), 'aria-selected': String(v === s.value), text: v === OTHER ? 'Other (my school is not in the list)…' : v,
+    shown.concat(allowOther ? [OTHER] : []).forEach(v => listEl.append(h('li', { role: 'option', class: 'pt-combo-opt' + (v === OTHER ? ' other' : '') + (isBuiltin(v) ? ' nw' : ''), 'aria-selected': String(v === s.value), text: v === OTHER ? 'Other — write your own school name…' : v,
       onmousedown: e => e.preventDefault(), onclick: e => { e.preventDefault(); e.stopPropagation(); setValue(v); close(); if (v !== OTHER) btn.focus(); } })));
     mark(0);
   };
@@ -298,7 +300,7 @@ function profileForm(p, o) {
   const sel = (id, list, val) => { const x = h('select', { id, class: 'pt-in' }, h('option', { value: '', text: 'Choose…' }), list.map(v => h('option', { value: v, text: v }))); x.value = val || ''; return x; };
   const F = {
     full_name: h('input', { id: 'pfName', class: 'pt-in', type: 'text', maxlength: 120, value: p.full_name || '', autocomplete: 'name' }),
-    school: schoolSelect('pfSchool', p.school || (student ? NO_SCHOOL : ''), 'Choose your school…', !student, { notWorking: !student, noSchool: student }),
+    school: schoolSelect('pfSchool', p.school || (student ? NO_SCHOOL : ''), 'Choose your school…', true, { notWorking: !student, noSchool: student }),   /* "Other — write your own school name" for students and teachers */
     class: sel('pfClass', CLASSES, p.class), stream: sel('pfStream', STREAMS, p.stream),
     category: sel('pfCat', CATEGORIES, p.category), gender: sel('pfGender', GENDERS, p.gender), heard_from: sel('pfHeard', HEARD, p.heard_from)
   };
@@ -306,12 +308,16 @@ function profileForm(p, o) {
   const heardOtherBox = h('label', { class: 'pt-fld', for: 'pfHeardOther' }, heardOther); heardOtherBox.hidden = (p.heard_from || '') !== 'Other';
   F.heard_from.addEventListener('change', () => { heardOtherBox.hidden = F.heard_from.value !== 'Other'; if (F.heard_from.value === 'Other') heardOther.focus(); });
   const val = k => (locked(k) ? p[k] : k === 'school' ? F.school.value() : F[k].value.trim());
+  /* optional date of birth (students who sign in with Google; an Avanti student's date of birth is on the Avanti list): read-only once saved */
+  const today = new Date().toISOString().slice(0, 10), withDob = student && !avanti;
+  const dobIn = withDob && !p.dob ? h('input', { id: 'pfDob', class: 'pt-in', type: 'date', min: '1950-01-01', max: today, autocomplete: 'bday' }) : null;
+  const dobBox = !withDob ? null : p.dob ? ro('Date of birth', String(p.dob).slice(0, 10).split('-').reverse().join('-')) : h('label', { class: 'pt-fld', for: 'pfDob' }, h('span', {}, 'Date of birth ', h('small', { class: 'pt-opt-l', text: '(optional)' })), dobIn);
   const LBL = { full_name: 'Full name', school: 'School', class: 'Class', stream: 'Stream', category: 'Category', gender: 'Gender', heard_from: 'From where you got to know about us' };
   const keys0 = student ? ['full_name', 'school', 'class', 'stream', 'category', 'gender'] : ['full_name', 'school'];
   const newUser = keys0.some(k => !p[k]);   /* the first sign-in: the "how did you hear" question is required; accounts that are already complete may skip it */
   const keys = newUser ? keys0.concat('heard_from') : keys0;
   const heardBox = () => (p.heard_from ? ro('From where you got to know about us', p.heard_from + (p.heard_from === 'Other' && p.heard_other ? ': ' + p.heard_other : '')) : h('div', {}, h('label', { class: 'pt-fld', for: 'pfHeard' }, h('span', {}, 'From where did you get to know about us?', newUser ? h('b', { class: 'pt-req', text: ' *' }) : null), F.heard_from), heardOtherBox));
-  const box = k => (k === 'heard_from' ? heardBox() : k === 'school' && locked(k) ? schoolBox(p) : locked(k) ? ro(LBL[k], p[k]) : fld(LBL[k], F[k], k === 'school' ? (student ? 'Used for your rank within your school.' : 'Not in the list? Choose "Other" and type it.') : null));
+  const box = k => (k === 'heard_from' ? heardBox() : k === 'school' && locked(k) ? schoolBox(p) : locked(k) ? ro(LBL[k], p[k]) : fld(LBL[k], F[k], k === 'school' ? (student ? 'Used for your rank within your school. Not in the list? Choose "Other" and write it.' : 'Not in the list? Choose "Other" and write it.') : null));
   const btn = h('button', { type: 'submit', class: 'btn pri' + (o.big ? ' pt-big' : ''), text: o.submitText || 'Save profile' });
   return h('form', { class: 'pt-form', onsubmit: async e => {
     e.preventDefault(); msg.textContent = ''; msg.className = 'pt-msg';
@@ -320,11 +326,17 @@ function profileForm(p, o) {
     if (miss.length) { msg.textContent = 'Please fill in: ' + miss.map(k => LBL[k]).join(', ') + '. All details are required.'; msg.classList.add('bad'); return; }
     btn.disabled = true; const t0 = btn.textContent; btn.textContent = 'Saving…';
     try {
+      const dob = dobIn && dobIn.value ? dobIn.value : null;
+      if (dob && (dob > today || dob < '1950-01-01')) { msg.textContent = 'Please check the date of birth.'; msg.classList.add('bad'); btn.disabled = false; btn.textContent = t0; return; }
       const args = { p_full_name: val('full_name'), p_school: val('school'), p_class: student ? val('class') : (p.class || null), p_stream: student ? val('stream') : (p.stream || null), p_category: student ? val('category') : null, p_gender: student ? val('gender') : null, p_heard_from: p.heard_from ? null : (F.heard_from.value || null), p_heard_other: p.heard_from ? null : (F.heard_from.value === 'Other' ? heardOther.value.trim() : null) };
+      if (dob) args.p_dob = dob;   /* sent only when filled */
+      const oldDb = e => /find the function|schema cache/i.test(String(e && e.message));
       try { await rpc('update_my_profile', args); }
-      catch (e0) {   /* the database has not been updated with the new question yet: save the rest of the profile without it */
-        if (!/find the function|schema cache/i.test(String(e0 && e0.message))) throw e0;
-        const { p_heard_from, p_heard_other, ...old } = args; await rpc('update_my_profile', old);
+      catch (e0) {   /* the database has not been updated with the newest fields yet: save the rest of the profile without them */
+        if (!oldDb(e0)) throw e0;
+        const { p_dob, ...noDob } = args; let saved = false;
+        if (p_dob) { try { await rpc('update_my_profile', noDob); saved = true; } catch (e1) { if (!oldDb(e1)) throw e1; } }
+        if (!saved) { const { p_heard_from, p_heard_other, ...old } = noDob; await rpc('update_my_profile', old); }
       }
       schools(true); await AU().refresh(); msg.textContent = 'Saved.'; msg.classList.add('ok');
       if (o.onSaved) o.onSaved();
@@ -334,10 +346,11 @@ function profileForm(p, o) {
     box('full_name'), box('school'),
     student ? h('div', { class: 'pt-row2' }, box('class'), box('stream')) : null,
     student ? h('div', { class: 'pt-row2' }, box('category'), box('gender')) : null,
+    dobBox,
     box('heard_from'),
     student && keys.some(k => locked(k)) ? h('p', { class: 'pt-hint', text: 'Saved details cannot be changed here. To move to another school, use "Request a school change" above. For other details, ask your teacher.' }) : null,
     student && keys.some(k => !locked(k)) ? h('div', { class: 'pt-note pt-warnnote', role: 'note' }, h('b', { text: 'Please check carefully before you continue. ' }), 'Once saved, you cannot change these details yourself. Only the admin can correct them.') : null,
-    keys.some(k => !locked(k)) || !student ? h('div', { class: 'pt-actions' }, btn) : null, msg);
+    keys.some(k => !locked(k)) || !student || dobIn ? h('div', { class: 'pt-actions' }, btn) : null, msg);
 }
 /* School once chosen: read-only, with a request to change it (approved by the admin). Only the admin changes their own directly. */
 function schoolBox(p) {
@@ -453,12 +466,12 @@ function membershipContent(teacher) {
       ['pdf', 'Every PDF, print-ready', 'DPPs, chapterwise and shift-wise PYQ papers and handouts, with answer keys and full explanations.'],
       ['folder', 'Non-PYQs, DPPs and the Own DPP Maker', 'All practice questions from books and sheets, ready-made DPPs, and a maker to build your own practice sheet.'],
       ['share', 'Unlimited test links', 'Make tests for your class, batch or school and share one link with your students.'],
-      ['users', 'My Students', 'Every student of your school by class, stream and session, with sign-in status, tests taken, average and last test.'],
+      ['users', 'Students/Teachers', 'Every student of your school by class, stream and session, with sign-in status, tests taken, average and last test.'],
       ['chart', 'Deeper results', 'Open any student\'s test history and report, and export your results to CSV.'],
       ['copy', 'Saved worksheets', 'Keep the question sets you build and reuse them for tests or downloads whenever you need them.']
     ],
     rows: [['All previous year questions with answers and solutions', 1, 1], ['PDF download of previous year questions', 1, 1], ['Past papers, mocks and your own tests', 1, 1], ['First Class 11 and Class 12 handouts to view', 1, 1], ['Create online tests for your school (one test link as a trial)', 1, 1], ['Results of your own tests', 1, 1],
-      ['Non-PYQ practice questions (books and sheets)', 0, 1], ['DPPs and the Own DPP Maker', 0, 1], ['All handouts to view and download', 0, 1], ['Download and print every PDF', 0, 1], ['Saved worksheets', 0, 1], ['My Students with performance', 0, 1],
+      ['Non-PYQ practice questions (books and sheets)', 0, 1], ['DPPs and the Own DPP Maker', 0, 1], ['All handouts to view and download', 0, 1], ['Download and print every PDF', 0, 1], ['Saved worksheets', 0, 1], ['Students/Teachers with performance', 0, 1],
       ['Unlimited test links for your school', 0, 1], ['Student-wise test history', 0, 1], ['Export results to CSV', 0, 1]],
     faq: [['Do my students need Premium to take my tests?', 'Yes. Only Premium students of your school, class and batch can take tests made by teachers. Free students can take past papers and mocks from the Tests page.'], ['Can I use it on my phone?', 'Yes. Everything works on phones, and PDFs open in any PDF app.'], ['Is the payment refundable?', 'No. A payment is final once it goes through, so try the Free plan first.']]
   } : {
@@ -566,7 +579,7 @@ async function myWorksheets() {
 function dropMenu(btn, items) {
   const old = document.querySelector('.pt-dmenu'); if (old) { const same = old.owner === btn; old.remove(); if (same) return; }
   const m = h('div', { class: 'pt-dmenu', role: 'menu' }, items.filter(Boolean).map(it => it === '-' ? h('div', { class: 'pt-dsep', role: 'separator' })
-    : h('button', { type: 'button', role: 'menuitem', class: 'pt-ditem' + (it.bad ? ' bad' : '') + (it.good ? ' good' : '') + (it.red ? ' red' : ''), onclick: () => { close(); it.onclick(); } }, it.icon ? h('span', { class: 'pt-dic', html: it.icon }) : null, h('span', { class: 'pt-dtx' }, h('b', { text: it.text }), it.sub ? h('small', { text: it.sub }) : null))));
+    : h('button', { type: 'button', role: it.keep ? 'menuitemcheckbox' : 'menuitem', 'aria-checked': it.keep ? String(!!(it.check && it.check())) : null, class: 'pt-ditem' + (it.keep ? ' pt-dtog' : '') + (it.bad ? ' bad' : '') + (it.good ? ' good' : '') + (it.red ? ' red' : ''), onclick: e => { if (it.keep) { it.onclick(e.currentTarget); return; } close(); it.onclick(); } }, it.icon ? h('span', { class: 'pt-dic', html: it.icon }) : null, h('span', { class: 'pt-dtx' }, h('b', { text: it.text }), it.sub ? h('small', { text: it.sub }) : null))));
   m.owner = btn; document.body.append(m);
   const r = btn.getBoundingClientRect(), w = m.offsetWidth;
   m.style.top = Math.min(window.innerHeight - m.offsetHeight - 8, r.bottom + 6) + 'px';
@@ -592,7 +605,7 @@ const IC = {
 async function shareWorksheet(w) {
   if (!can('share')) { toast('Sharing needs a Premium membership.'); return; }
   toast('Preparing the PDF…');
-  let r; try { r = await TE().pdfIds(w.question_ids, w.title, w.label, w.info, w.subLine); } catch (e) { toast('Could not make the PDF: ' + (e && e.message ? e.message : 'try again')); return; }
+  let r; try { r = await TE().pdfIds(w.question_ids, w.title, w.label, w.info, w.subLine, w.opts); } catch (e) { toast('Could not make the PDF: ' + (e && e.message ? e.message : 'try again')); return; }
   if (r) shareReady(r.blob, r.file, w.title);
 }
 /* "PDF ready" box used by every share button on the site. The share sheet needs a fresh click, so it opens from here. */
@@ -1026,13 +1039,18 @@ async function pageMyTests() {
   const infoOf = t => { const n = +t.n_questions || 0, pos = +t.marks_correct || 0, neg = +t.marks_wrong || 0; return ['Questions: ' + n, 'Time: ' + t.duration_min + ' min', 'Maximum marks: ' + num(n * pos, 2), 'Marking: +' + num(pos, 2) + ' / \u2212' + num(neg, 2), 'Date: ' + day(t.created_at)]; };
   /* under the title: class, batch and school, e.g. "11 · JEE · All schools" */
   const subOf = t => [(t.target_classes || []).join(', '), (t.target_streams || []).join(', '), [t.school].concat(t.schools || []).filter(Boolean).join(', ') || 'All schools'].filter(Boolean).join(' \u00b7 ');
-  const exp = (t, kind) => async () => { const ids = await idsOf(t); if (ids) TE().exportIds(ids, t.title, kind, 'Test paper', infoOf(t), subOf(t)); };
+  /* "Solutions / explanations" (the same switch as the past-paper menu): adds the answer key and the full solutions to the export */
+  const xo = () => (PP_EXPLAIN ? { key: true, exp: true, explain: true } : undefined), xl = () => PP_EXPLAIN ? 'Test paper with solutions' : 'Test paper';
+  const xsub = () => PP_EXPLAIN ? 'On: answer key and full solutions are added' : 'Off: only the questions';
+  const exp = (t, kind) => async () => { const ids = await idsOf(t); if (ids) TE().exportIds(ids, t.title, kind, xl(), infoOf(t), subOf(t), xo()); };
   const exportBtn = t => can('pdf') ? h('button', { type: 'button', class: 'btn pt-split', 'aria-haspopup': 'menu', 'aria-expanded': 'false', onclick: e => dropMenu(e.currentTarget, [
+      { keep: true, check: () => PP_EXPLAIN, icon: IC.eye, text: 'Solutions / explanations', sub: xsub(), onclick: el => { PP_EXPLAIN = !PP_EXPLAIN; el.setAttribute('aria-checked', String(PP_EXPLAIN)); el.querySelector('small').textContent = xsub(); } },
+      '-',
       { icon: IC.pdf, text: 'Download PDF', sub: 'Print-ready', onclick: exp(t, 'pdf') },
       can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable document', onclick: exp(t, 'docx') } : null,
       can('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: exp(t, 'pptx') } : null,
       can('share') ? '-' : null,
-      can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { const ids = await idsOf(t); if (ids) shareWorksheet({ title: t.title, question_ids: ids, label: 'Test paper', info: infoOf(t), subLine: subOf(t) }); } } : null]) },
+      can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { const ids = await idsOf(t); if (ids) shareWorksheet({ title: t.title, question_ids: ids, label: xl(), info: infoOf(t), subLine: subOf(t), opts: xo() }); } } : null]) },
     h('span', { html: IC.down }), 'Export', h('span', { class: 'pt-caret', 'aria-hidden': 'true', text: '▾' })) : null;
   const moreBtn = t => h('button', { type: 'button', class: 'btn pt-iconbtn pt-ctmore', title: 'More', 'aria-label': 'More actions for ' + t.title, 'aria-haspopup': 'menu', 'aria-expanded': 'false', html: IC.more,
     onclick: e => dropMenu(e.currentTarget, t.mine === false ? [{ icon: IC.eye, text: 'Preview', onclick: () => preview(t) }]
@@ -1050,9 +1068,14 @@ async function pageMyTests() {
 }
 
 /* ---------- My Performance: every account takes past papers for itself ---------- */
-const PAPER_EXAMS = ['JEE Main', 'JEE Advanced', 'IIT-JEE', 'AIEEE', 'KCET', 'NDA', 'IAT', 'CBSE 12'];
-const PAPER_LABEL = { 'JEE Main': 'JEE Main', 'JEE Advanced': 'JEE Advanced', 'IIT-JEE': 'IIT-JEE (2000–2012)', 'AIEEE': 'AIEEE (2002–2012)', 'KCET': 'Karnataka CET (KCET)', 'NDA': 'NDA (UPSC)', 'IAT': 'IISER Aptitude Test (IAT)', 'CBSE 12': 'CBSE Class 12 Boards' };
-const examOfQ = x => x.e === 'CBSE' ? 'CBSE 12' : x.e === 'KCET' ? 'KCET' : x.e === 'IAT' ? 'IAT' : x.e === 'NDA' ? 'NDA' : x.e === 'Adv' ? (x.y < 2013 ? 'IIT-JEE' : 'JEE Advanced') : (x.y < 2013 ? 'AIEEE' : 'JEE Main');
+const PAPER_EXAMS = ['JEE Main', 'JEE Advanced', 'IIT-JEE', 'AIEEE', 'KCET', 'NDA', 'IAT', 'CBSE 12', 'CUET UG'];
+const PAPER_LABEL = { 'JEE Main': 'JEE Main', 'JEE Advanced': 'JEE Advanced', 'IIT-JEE': 'IIT-JEE (2000–2012)', 'AIEEE': 'AIEEE (2002–2012)', 'KCET': 'KCET', 'NDA': 'NDA', 'IAT': 'IAT', 'CBSE 12': 'CBSE Class 12', 'CUET UG': 'CUET UG' };
+/* the exam logos of the paper picker (img/exams/<name>.webp); a missing logo falls back to the exam's initials */
+const PAPER_LOGO = { 'JEE Main': 'jee-main', 'JEE Advanced': 'jee-advanced', 'IIT-JEE': 'iit-jee', 'AIEEE': 'aieee', 'KCET': 'kcet', 'NDA': 'nda', 'IAT': 'iat', 'CBSE 12': 'cbse', 'CUET UG': 'cuet-ug' };
+const examOfQ = x => x.e === 'CBSE' ? 'CBSE 12' : /^CUET/.test(x.e || '') ? 'CUET UG' : x.e === 'KCET' ? 'KCET' : x.e === 'IAT' ? 'IAT' : x.e === 'NDA' ? 'NDA' : x.e === 'Adv' ? (x.y < 2013 ? 'IIT-JEE' : 'JEE Advanced') : (x.y < 2013 ? 'AIEEE' : 'JEE Main');
+/* a past paper in its real order: by the printed question number when every question has one (the bank order otherwise). Never shuffled. */
+const qnoOf = q => { const m = /^\s*(\d+)/.exec(String(q && q.n != null ? q.n : '')); return m ? +m[1] : null; };
+const paperOrder = list => { const l = (list || []).map((q, i) => [q, i, qnoOf(q)]); return (l.every(x => x[2] != null) ? l.sort((a, b) => a[2] - b[2] || a[1] - b[1]) : l).map(x => x[0]); };
 /* Time and marking of every exam come from the database (table marking_schemes, one row per exam and effective year, so a yearly change never
    touches old results). These are used only if that table cannot be read. */
 const SCHEME_FALLBACK = {
@@ -1061,7 +1084,8 @@ const SCHEME_FALLBACK = {
   'KCET': { duration_min: 80, n_questions: 60, rules: { types: { MCQ: { c: 1, w: 0 } }, mix: { MCQ: 60 } } },
   'NDA': { duration_min: 150, n_questions: 120, rules: { types: { MCQ: { c: 2.5, w: 0.83 } }, mix: { MCQ: 120 } } },
   'IAT': { duration_min: 50, n_questions: 15, rules: { types: { MCQ: { c: 4, w: 1 } }, mix: { MCQ: 15 } } },
-  'CUET': { duration_min: 60, n_questions: 50, rules: { types: { MCQ: { c: 5, w: 1 } }, mix: { MCQ: 50 } } } };
+  'CUET': { duration_min: 60, n_questions: 50, rules: { types: { MCQ: { c: 5, w: 1 } }, mix: { MCQ: 50 } } },
+  'CBSE 12': { duration_min: 180, n_questions: 38, rules: { types: { MCQ: { c: 1, w: 0 }, MSQ: { c: 1, w: 0 } }, sections: { A: { c: 1, w: 0 }, B: { c: 2, w: 0, pp: true }, C: { c: 3, w: 0, pp: true }, D: { c: 5, w: 0, pp: true }, E: { c: 4, w: 0, pp: true } }, reading_min: 5, mix: { A: 20, B: 5, C: 6, D: 4, E: 3 } } } };
 let SCHEMES = null;
 async function schemes() {
   if (SCHEMES) return SCHEMES;
@@ -1069,7 +1093,7 @@ async function schemes() {
   try { (await rpc('marking_schemes') || []).forEach(r => { if (!SCHEMES[r.exam] || SCHEMES[r.exam].fb !== false || r.effective_year >= (SCHEMES[r.exam].effective_year || 0)) SCHEMES[r.exam] = Object.assign({ fb: false }, r); }); } catch (e) { /* the built-in values stay */ }
   return SCHEMES;
 }
-const schemeExam = e => ({ 'IIT-JEE': 'JEE Advanced', 'AIEEE': 'JEE Main' }[e] || e);
+const schemeExam = e => ({ 'IIT-JEE': 'JEE Advanced', 'AIEEE': 'JEE Main', 'CUET UG': 'CUET' }[e] || e);
 const mcqRule = sc => (sc.rules && sc.rules.types && sc.rules.types.MCQ) || { c: 4, w: 1 };
 const markText = sc => {
   const t = (sc.rules && sc.rules.types) || {}, ks = Object.keys(t), sig = k => (t[k].c || 0) + '/' + (t[k].w || 0) + '/' + (t[k].p ? 1 : 0);
@@ -1091,11 +1115,13 @@ function orUnits(list) {
   (list || []).forEach(q => { const p = orBase(q); if (!p) { out.push({ a: q, b: null }); return; } let u = map.get(p[0]); if (!u) { u = { a: null, b: null }; map.set(p[0], u); out.push(u); } if (p[1] === 'A') u.a = q; else u.b = q; });
   return out.map(u => (u.a ? u : { a: u.b, b: null }));
 }
-const tq = (q, exam, altRec) => {
+const tq = (q, exam, altRec, opt) => {
   const x = snap(q), ok = gradable(q), written = q.t === 'Subjective' && !ok;   /* a written question with 4 options (final answer) is marked like an MCQ but keeps its Subjective tag */
   const o = { id: x.id, type: written ? 'WRITTEN' : x.type === 'Subjective' ? (/,/.test(x.a || '') ? 'MSQ' : 'MCQ') : x.type === 'Comprehension' ? (/,/.test(x.a || '') ? 'MSQ' : 'MCQ') : x.type, q: x.q, o: x.o, a: x.a || '', ch: x.ch, chn: x.chn, tp: x.tp, f: x.f || null, s: q.s === 'P' ? 'P' : 'N' };
   if (q.e === 'CBSE' && /^[A-E]$/i.test(String(q.sec || ''))) o.sec = String(q.sec).toUpperCase();   /* CBSE Class 12: the section decides the marks (B to E are shown as 4 options) */
   if (exam === 'JEE Advanced' && advSec(q)) o.sec = advSec(q);
+  if (opt && opt.sec && !o.sec) o.sec = opt.sec;   /* a section given by the test maker (CBSE Section A filled with one-mark MCQs) */
+  if (opt && opt.paper && !o.sec && exam !== 'JEE Advanced' && exam !== 'CBSE 12' && q.sec && !/^Exercise/i.test(q.sec)) o.sec = /^section\b/i.test(q.sec) ? String(q.sec) : 'Section ' + q.sec;   /* a past paper's own section, shown as a heading (no marks depend on it) */
   if (q.t === 'Subjective' && ok) o.sj = 1;
   if (altRec) { const y = tq(altRec, exam); o.alt = { rid: y.id, type: y.type, q: y.q, o: y.o, f: y.f, a: y.a, tp: y.tp }; }   /* the other half of an OR question */
   if (!ok) o.nk = true;   /* no answer key we can mark (or a written answer): shown in the test, not marked, answer shown in the review */
@@ -1125,67 +1151,83 @@ async function showLinkRanking(testId, title) {
       [{ text: 'Close', pri: true, onclick: () => {} }]);
   } catch (e) { toast(e.message); }
 }
+let PP_EXPLAIN = false;   /* the "Solutions / explanations" switch of the past-paper download menu */
 async function pagePersonal(arg) {
   const onlyPicker = arg === 'pyq';   /* #/modes/pyq: the paper picker alone (Previous Year Papers) */
+  if (!onlyPicker && P().role === 'student') { location.replace('#/reports'); return; }   /* students have one results page: My Reports */
   show(head(onlyPicker ? 'Previous Year Papers' : 'My Performance', onlyPicker ? 'Every question of the real paper, with the real time and marking.' : 'Your tests and results stay in your own account.'), loading('Loading the question papers…'));
   const [ov, B] = await Promise.all([rpc('personal_overview'), fresh(TE().bank())]);
   CHN = B.chapters;
   let exam = PAPER_EXAMS.find(e => papersOf(B, e).length) || PAPER_EXAMS[0];
-  const paperBox = h('div', { class: 'pp-papers' }), examBar = h('div', { class: 'pp-exams', role: 'group', 'aria-label': 'Exam' });
+  const paperBox = h('div', { class: 'pp-rows' }), examBar = h('div', { class: 'pp-exgrid', role: 'group', 'aria-label': 'Exam' });
   const SC = await schemes();
   const startPaper = async (paper, btn) => {
     const ex = schemeExam(paper.exam), sc = SC[ex] || SC['JEE Main'], rule = mcqRule(sc);
-    let qs = [];   /* 2026 JEE Advanced sections: the paper's own order only inside a section (the sections moved between years) */
+    let qs = [];   /* the real paper: its own numbering, sections and order, never shuffled or regrouped */
     btn.disabled = true;
     try {
       await fillQs(paper.qs, { paper: (paper.qs.find(q => q.ps) || {}).ps });   /* only this paper's file */
-      qs = orUnits(paper.qs).map(u => tq(u.a, ex, u.b));
-      if (ex === 'JEE Advanced') qs = qs.map((q, i) => [q, i]).sort((a, b) => (+a[0].sec || 9) - (+b[0].sec || 9) || a[1] - b[1]).map(x => x[0]);
+      qs = orUnits(paperOrder(paper.qs)).map(u => tq(u.a, ex, u.b, { paper: true }));
       const r = await rpc('create_personal_test', { p_title: ex === 'CBSE 12' ? 'Class 12 CBSE Math Exam ' + (paper.qs[0].y || '') + ' (' + String(paper.qs[0].p).replace(/^CBSE\.12\.\d{4}\./, '') + ')' : paper.label, p_duration_min: null, p_marks_correct: rule.c, p_marks_wrong: rule.w, p_questions: qs, p_paper_key: paper.key, p_audience: 'self', p_exam: ex });
       location.hash = '#/t/' + r.code;   /* the test opens on its instructions: it starts only when you press Start */
     } catch (e) { toast(e.message); btn.disabled = false; }
   };
+  /* Download / share of a past paper, always in the paper's own order; "Solutions / explanations" adds the answer key and the full solutions */
+  const paperMenu = (btn, pp) => {
+    const ids = () => paperOrder(pp.qs).map(q => q.i), load = () => fillQs(pp.qs, { paper: (pp.qs.find(q => q.ps) || {}).ps });
+    const opts = () => ({ key: PP_EXPLAIN, exp: PP_EXPLAIN, explain: PP_EXPLAIN }), lbl = () => PP_EXPLAIN ? 'Question paper with solutions' : 'Question paper';
+    const fail = what => x => toast('Could not make the ' + what + ': ' + ((x && x.message) || 'try again'));
+    const sub = () => PP_EXPLAIN ? 'On: answer key and full solutions are added' : 'Off: only the questions';
+    dropMenu(btn, [
+      { keep: true, check: () => PP_EXPLAIN, icon: IC.eye, text: 'Solutions / explanations', sub: sub(), onclick: el => { PP_EXPLAIN = !PP_EXPLAIN; el.setAttribute('aria-checked', String(PP_EXPLAIN)); el.querySelector('small').textContent = sub(); } },
+      '-',
+      { icon: IC.pdf, text: 'Download PDF', sub: 'The paper in its real order', onclick: () => load().then(() => TE().exportIds(ids(), pp.label, 'pdf', lbl(), '', '', opts())).catch(fail('PDF')) },
+      can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable question paper', onclick: () => load().then(() => TE().exportIds(ids(), pp.label, 'docx', lbl(), '', '', opts())).catch(fail('Word file')) } : null,
+      can('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: () => load().then(() => TE().exportIds(ids(), pp.label, 'pptx', lbl(), '', '', opts())).catch(fail('PowerPoint')) } : null,
+      can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { toast('Preparing the PDF…'); try { await load(); const r = await TE().pdfIds(ids(), pp.label, lbl(), '', '', opts()); if (r) shareReady(r.blob, r.file, pp.label); } catch (x) { fail('PDF')(x); } } } : null,
+      { icon: IC.link, text: 'Copy link to this page', sub: 'The page link, not the PDF', onclick: () => copy(location.origin + '/dashboard#/modes/pyq', 'Page link copied') }]);
+  };
+  const exLogo = e => { const ini = h('span', { class: 'pp-exini', text: (PAPER_LABEL[e] || e).replace(/\(.*\)/, '').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 4).toUpperCase(), hidden: true });
+    const img = h('img', { src: 'img/exams/' + (PAPER_LOGO[e] || 'x') + '.webp', alt: '', width: 40, height: 40, loading: 'lazy', decoding: 'async' });
+    img.addEventListener('error', () => { img.remove(); ini.hidden = false; });
+    return h('span', { class: 'pp-exlogo', 'aria-hidden': 'true' }, img, ini); };
   const drawPapers = () => {
     examBar.textContent = '';
-    PAPER_EXAMS.forEach(e => { const n = papersOf(B, e).length; if (n) examBar.append(h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(e === exam), text: PAPER_LABEL[e] || e, 'data-n': n, onclick: () => { exam = e; drawPapers(); } })); });
+    PAPER_EXAMS.forEach(e => { const n = papersOf(B, e).length;
+      examBar.append(h('button', { type: 'button', class: 'pp-ex', 'aria-pressed': String(e === exam), disabled: !n, title: n ? '' : 'Papers coming soon', onclick: () => { exam = e; drawPapers(); } },
+        exLogo(e), h('span', { class: 'pp-exn', text: PAPER_LABEL[e] || e }), h('span', { class: 'pp-exc', text: n ? n + (n === 1 ? ' paper' : ' papers') : 'Coming soon' }))); });
     paperBox.textContent = '';
     const sc = SC[schemeExam(exam)] || SC['JEE Main'];
     papersOf(B, exam).forEach(pp => { const nm = pp.qs.filter(q => !gradable(q)).length;
-      paperBox.append(h('div', { class: 'pp-card pp-card2' },
-        h('button', { type: 'button', class: 'pp-main', onclick: e => startPaper(pp, e.currentTarget) },
-          h('b', { text: pp.label }), h('small', { text: orUnits(pp.qs).length + ' questions · ' + sc.duration_min + ' min' + (sc.rules && +sc.rules.reading_min ? ' + ' + sc.rules.reading_min + ' min reading' : '') + ' · ' + markText(sc) }), nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null, h('span', { class: 'pp-go', text: 'Open Instructions and Start ›' })),
-        h('button', { type: 'button', class: 'pp-pdf', title: 'Download or share this paper', 'aria-label': 'Download or share ' + pp.label, 'aria-haspopup': 'menu', html: IC.share, onclick: e => dropMenu(e.currentTarget, [
-          { icon: IC.pdf, text: 'Download PDF', sub: 'The question paper', onclick: () => fillQs(pp.qs, { paper: (pp.qs.find(q => q.ps) || {}).ps }).then(() => TE().exportIds(pp.qs.map(q => q.i), pp.label, 'pdf', 'Question paper', '', '', { key: false, exp: false })).catch(x => toast('Could not make the PDF: ' + ((x && x.message) || 'try again'))) },
-          can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable question paper', onclick: () => fillQs(pp.qs, { paper: (pp.qs.find(q => q.ps) || {}).ps }).then(() => TE().exportIds(pp.qs.map(q => q.i), pp.label, 'docx', 'Question paper', '', '', { key: false, exp: false })).catch(x => toast('Could not make the Word file: ' + ((x && x.message) || 'try again'))) } : null,
-          can('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: () => fillQs(pp.qs, { paper: (pp.qs.find(q => q.ps) || {}).ps }).then(() => TE().exportIds(pp.qs.map(q => q.i), pp.label, 'pptx', 'Question paper', '', '', { key: false, exp: false })).catch(x => toast('Could not make the PowerPoint: ' + ((x && x.message) || 'try again'))) } : null,
-          can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { toast('Preparing the PDF…'); try { await fillQs(pp.qs, { paper: (pp.qs.find(q => q.ps) || {}).ps }); const r = await TE().pdfIds(pp.qs.map(q => q.i), pp.label, 'Question paper', '', ''); if (r) shareReady(r.blob, r.file, pp.label); } catch (x) { toast('Could not make the PDF: ' + ((x && x.message) || 'try again')); } } } : null,
-          { icon: IC.link, text: 'Copy link to this page', sub: 'The page link, not the PDF', onclick: () => copy(location.origin + '/dashboard#/modes/pyq', 'Page link copied') }]) }))); });
+      paperBox.append(h('div', { class: 'pp-row' },
+        h('div', { class: 'pp-rinfo' }, h('b', { text: pp.label }),
+          h('small', { text: orUnits(pp.qs).length + ' questions · ' + sc.duration_min + ' min' + (sc.rules && +sc.rules.reading_min ? ' + ' + sc.rules.reading_min + ' min reading' : '') + ' · ' + markText(sc) }), nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null),
+        h('div', { class: 'pp-ract' },
+          h('button', { type: 'button', class: 'pp-pdf', title: 'Download or share this paper', 'aria-label': 'Download or share ' + pp.label, 'aria-haspopup': 'menu', html: IC.share, onclick: e => paperMenu(e.currentTarget, pp) }),
+          h('button', { type: 'button', class: 'btn pri pp-att', title: 'Opens the instructions first; the timer starts when you press Start', onclick: e => startPaper(pp, e.currentTarget) }, 'Attempt Now')))); });
   };
   const status = x => !x.attempt_id ? badge('Not started', 'mute') : x.attempt_status === 'submitted' ? badge('Submitted', 'ok') : badge('In progress', 'mid');
   ov.mine = ov.mine.filter(x => x.audience !== 'self' || x.attempt_id);   /* a test you never started is not a test: only started or submitted ones are listed */
-  const mineRows = ov.mine.map(x => h('tr', {},
-    h('td', {}, h('b', { text: x.title }), h('div', { class: 'pt-hint', text: day(x.created_at) + ' · ' + x.n_questions + ' questions · ' + x.duration_min + ' min' })),
+  const mineRow = (x, m) => h('tr', {},
+    h('td', {}, h('b', { text: x.title }), h('div', { class: 'pt-hint', text: day(x.created_at) + ' · ' + x.n_questions + ' questions · ' + x.duration_min + ' min' }), resTags(m)),
     h('td', {}, status(x)), h('td', { class: 'pt-num', text: x.attempt_status === 'submitted' ? num(x.score, 2) + ' / ' + num(x.max_score, 2) : '—' }),
     h('td', {}, h('div', { class: 'pt-actions pt-nowrap' },
       x.attempt_status === 'submitted' ? [link('#/report/' + x.attempt_id, 'Report', 'btn'), h('button', { type: 'button', class: 'btn', text: 'Export', onclick: () => exportResult(x.attempt_id, x.title) })] : ['self', 'teachers_link'].includes(x.audience) ? h('button', { type: 'button', class: 'btn pri', text: x.attempt_id ? 'Resume' : 'Open', onclick: () => { location.hash = '#/t/' + x.code; } }) : null,
       x.audience === 'teachers_link' ? h('button', { type: 'button', class: 'btn', text: 'Copy link', onclick: () => copy(testLink(x.code), 'Link copied') }) : null,
       x.audience === 'teachers_link' ? h('button', { type: 'button', class: 'btn', text: 'Ranking', onclick: () => showLinkRanking(x.id, x.title) }) : null,
-      x.audience === 'all_teachers' || x.audience === 'all_students' ? link('#/results/' + x.id, 'Results', 'btn') : null))));
-  const takenRows = ov.taken.map(x => h('tr', {},
-    h('td', {}, h('b', { text: x.title }), h('div', { class: 'pt-hint', text: AUD_NAME[x.audience] || '' })), h('td', {}, status(x)),
+      x.audience === 'all_teachers' || x.audience === 'all_students' ? link('#/results/' + x.id, 'Results', 'btn') : null)));
+  const takenRow = (x, m) => h('tr', {},
+    h('td', {}, h('b', { text: x.title }), h('div', { class: 'pt-hint', text: AUD_NAME[x.audience] || '' }), resTags(m)), h('td', {}, status(x)),
     h('td', { class: 'pt-num', text: x.attempt_status === 'submitted' ? num(x.score, 2) + ' / ' + num(x.max_score, 2) : '—' }),
     h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, x.attempt_status === 'submitted' ? link('#/report/' + x.attempt_id, 'Report', 'btn') : h('button', { type: 'button', class: 'btn pri', text: 'Resume', onclick: () => { location.hash = '#/t/' + x.code; } }),
-      x.attempt_status === 'submitted' && ['teachers_link', 'all_teachers'].includes(x.audience) ? h('button', { type: 'button', class: 'btn', text: 'My rank', onclick: () => showMyRank(x.test_id) }) : null))));
-  const table = (rows, cols) => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, cols.map(x => h('th', { text: x })))), h('tbody', {}, rows)));
+      x.attempt_status === 'submitted' && ['teachers_link', 'all_teachers'].includes(x.audience) ? h('button', { type: 'button', class: 'btn', text: 'My rank', onclick: () => showMyRank(x.test_id) }) : null)));
   drawPapers();
   const startCard = card(h('h2', { text: 'Choose a paper' }), h('p', { class: 'pt-hint', text: 'Pick the exam, then the paper. You see the instructions and the marking scheme first; the timer starts only when you press Start.' }), examBar, paperBox);
   if (onlyPicker) { show(modeBanner('PYP', 'Previous Year Papers', 'Every question of the real paper, with the real time and marking.'), startCard); return; }
   show(head('My Performance', 'Your tests and results stay in your own account.', link('#/modes', 'Start a new test', 'btn pri')),
-    ov.offered.length ? card(h('h2', { text: 'Tests for you' }), h('p', { class: 'pt-hint', text: 'Made by अंक-IT for ' + (P().role === 'student' ? 'students' : 'teachers') + '. Teachers see their own rank only.' }),
-      h('div', { class: 'pp-papers' }, ov.offered.map(x => h('button', { type: 'button', class: 'pp-card', onclick: () => { location.hash = '#/t/' + x.code; } },
-        h('b', { text: x.title }), h('small', { text: x.n_questions + ' questions · ' + x.duration_min + ' min' }), h('span', { class: 'pp-go', text: 'Open instructions ›' }))))) : null,
-    card(h('h2', { text: 'My tests and results' }), ov.mine.length ? table(mineRows, ['Test', 'Status', 'Score', '']) : empty('No tests yet', 'Open Tests to start your first one.', link('#/modes', 'Tests', 'btn pri'))),
-    ov.taken.length ? card(h('h2', { text: 'Tests I took by link' }), table(takenRows, ['Test', 'Status', 'Score', ''])) : null);
+    offeredCard(ov.offered),
+    card(h('h2', { text: 'My tests and results' }), ov.mine.length ? resTable(ov.mine, ['Test', 'Status', 'Score', ''], mineRow, { label: 'My tests and results' }) : empty('No tests yet', 'Open Tests to start your first one.', link('#/modes', 'Tests', 'btn pri'))),
+    ov.taken.length ? card(h('h2', { text: 'Tests I took by link' }), resTable(ov.taken, ['Test', 'Status', 'Score', ''], takenRow, { label: 'Tests I took by link' })) : null);
 }
 /* ---------- Tests: five ways to start a test (v975) ----------
    1 Create Your Personal Test · 2 Previous Year Actual Exam · 3 Chapterwise Mock Test · 4 Repeated & Sure-Shot Questions · 5 Full-Length Mock.
@@ -1196,7 +1238,7 @@ async function launchTest(o) {
   const SC = await schemes(), sc = SC[o.exam] || SC['JEE Main'], rule = mcqRule(sc);
   await fillQs(o.qs);   /* the questions were picked from the index: now only the chapters that hold them are fetched */
   const r = await rpc('create_personal_test', { p_title: o.title, p_duration_min: o.mins == null ? null : o.mins, p_marks_correct: rule.c, p_marks_wrong: rule.w,
-    p_questions: o.pairs ? orUnits(o.qs).map(u => tq(u.a, o.exam, u.b)) : o.qs.map(q => tq(q, o.exam)), p_paper_key: o.key || null, p_audience: 'self', p_exam: o.exam });
+    p_questions: o.pairs ? orUnits(o.qs).map(u => tq(u.a, o.exam, u.b, o.secs && o.secs[u.a.i] ? { sec: o.secs[u.a.i] } : null)) : o.qs.map(q => tq(q, o.exam, null, o.secs && o.secs[q.i] ? { sec: o.secs[q.i] } : null)), p_paper_key: o.key || null, p_audience: 'self', p_exam: o.exam });
   location.hash = '#/t/' + r.code;   /* the instructions come first; the test starts when you press Start */
 }
 /* pick n questions, chapters mixed evenly when asked */
@@ -1262,8 +1304,8 @@ function mockBar(onChange, o) {
   const hint = h('p', { class: 'mk-hint', role: 'status' }), slider = h('input', { type: 'range', class: 'mk-range', min: 0, max: 4, step: 1, value: 2, 'aria-label': 'Difficulty of the questions' });
   const drawSeg = () => { seg.textContent = ''; [['P', 'PYQ', 'Previous year questions'], ['N', 'Non-PYQ', 'Practice questions'], ['M', 'Mix', 'Both']].forEach(([k, t, sub]) => {
     const off = free && k !== 'P';
-    seg.append(h('button', { type: 'button', class: 'mk-sb' + (off ? ' is-off' : ''), 'aria-pressed': String(st.src === k), title: off ? 'Non-PYQ and Mix questions are part of Premium' : sub, onclick: () => { if (off) { location.hash = '#/membership'; return; } st.src = k; drawSeg(); onChange(); } },
-      h('b', { text: t }), off ? h('span', { class: 'mk-lock', html: lockIc }) : h('small', { text: sub })));
+    seg.append(h('button', { type: 'button', class: 'mk-sb' + (off ? ' is-off' : ''), 'aria-pressed': String(st.src === k), disabled: off, 'aria-disabled': off ? 'true' : null, title: off ? 'Non-PYQ and Mix questions are part of Premium' : sub, onclick: () => { if (off) return; st.src = k; drawSeg(); onChange(); } },
+      h('b', { text: t }), off ? h('span', { class: 'mk-lock', html: lockIc + ' Premium' }) : h('small', { text: sub })));
   }); };
   const drawHint = () => { hint.textContent = TOUGH_NAME[st.tough] + ': ' + TOUGH_HINT[st.tough]; };
   slider.addEventListener('input', () => { st.tough = +slider.value; drawHint(); onChange(); });
@@ -1284,8 +1326,8 @@ const TXI = {
   custom: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1.5 14h5M9.5 8h5M17.5 16h5"/></svg>',
   full: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4.5l3 1.8M9.5 2.5h5"/></svg>' };
 const MODES = [
-  { k: 'pyq', t: 'Previous Year Papers', d: 'Sit a real paper, shift by shift: every question, the real time and the real marking.', tags: ['JEE · KCET · NDA · IAT', 'Real marking'], tone: 'blue' },
-  { k: 'chapter', t: 'Chapter Wise Mock', d: 'Pick one chapter and get a timed test of its questions, with the source and difficulty you choose.', tags: ['25 questions', 'Any chapter'], tone: 'green' },
+  { k: 'pyq', t: 'Previous Year Papers', d: 'Sit a real paper, shift by shift: every question in its real order, the real time and the real marking.', tags: ['JEE · KCET · NDA · IAT · CBSE', 'Real marking'], tone: 'blue' },
+  { k: 'chapter', t: 'Chapter Wise Mock', d: 'Pick one chapter and get a timed test of its questions, sized for the exam you aim at.', tags: ['JEE · CBSE · KCET · NDA · IAT', 'Any chapter'], tone: 'green' },
   { k: 'sure', t: 'Must Solve / Repeated Questions', d: 'Only the questions that came again and again in JEE, plus the sure-shot ones.', tags: ['High yield', 'All chapters or one'], tone: 'gold' },
   { k: 'custom', t: 'Create Your Practice Test', d: 'You decide the chapters, the source, the difficulty, the number of questions and the time.', tags: ['Your own mix', 'Any chapter'], tone: 'violet' },
   { k: 'full', t: 'Full Length Mock', d: 'A whole exam: chapters mixed, with the official duration, question count and marking.', tags: ['Official timing', 'All chapters'], tone: 'rose' }];
@@ -1299,7 +1341,7 @@ async function pageModes(arg) {
   /* every kind of test is open to every plan; only the choice of Non-PYQ or Mix questions inside a test is part of Premium */
   const free = isFree();
   let n = null; try { const c = await rpc('menu_counts'); n = c && c.personal; } catch (e) { n = null; }
-  show(head('Tests', 'Choose how you want to be tested. Every result stays in your own account.', link('#/personal', 'My Performance' + (n != null ? ' (' + n + ')' : ''), 'btn pri')),
+  show(head('Tests', 'Choose how you want to be tested. Every result stays in your own account.', P().role === 'student' ? link('#/reports', 'My Reports', 'btn pri') : link('#/personal', 'My Performance' + (n != null ? ' (' + n + ')' : ''), 'btn pri')),
     free ? h('p', { class: 'pt-hint', html: 'Every test is free. Free accounts use previous year questions (PYQ); <a href="#/membership">Premium</a> adds Non-PYQ and Mix questions.' }) : null,
     h('div', { class: 'tx-grid' }, MODES.map((m, i) => h('a', { class: 'tx-card tx-' + m.tone + (i < 3 ? ' tx-top' : ' tx-low'), href: '#/modes/' + m.k, 'aria-label': m.t },
         h('span', { class: 'tx-ic', html: TXI[m.k] }), h('h2', { text: m.t }), h('p', { text: m.d }),
@@ -1343,101 +1385,163 @@ function dd(label, groups, set, onChange, o) {   /* groups: [{ h, items: [[value
   box.append(btn, panel); paint(); box.paint = paint;
   return box;
 }
+/* the official section structure a practice test can follow strictly (latest papers): JEE Advanced 2026 Paper 1 / Paper 2 (sections 1 to 4), CBSE Class 12 (Sections A to E) */
+const CBSE_MIX = { A: 20, B: 5, C: 6, D: 4, E: 3 };
+const STRUCTS = { adv1: { exam: 'JEE Advanced', label: 'JEE Advanced Paper 1', mix: ADV_MIX[1] }, adv2: { exam: 'JEE Advanced', label: 'JEE Advanced Paper 2', mix: ADV_MIX[2] }, cbse: { exam: 'CBSE 12', label: 'CBSE Class 12', mix: CBSE_MIX } };
+const ADV_SEC_NAME = { MCQ: 'Section 1 · Single correct', MSQ: 'Section 2 · One or more correct', Numerical: 'Section 3 · Numerical value', Matching: 'Section 4 · Matching', Comprehension: 'Section 4 · Para questions' };
 async function modeCustom() {
   show(modeHead('Create Your Practice Test', 'Choose what to practise.'), loading('Loading the question bank…'));
   const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
   let done = {}; try { const d = await rpc('dash_summary'); done = (d && d.results) || {}; } catch (e) { done = {}; }
   const free = isFree(), all = B.qs.filter(gradable);
-  const EXN = { Main: 'JEE Main', Adv: 'JEE Advanced', KCET: 'KCET', NDA: 'NDA', IAT: 'IAT' };
+  const EXN = { Main: 'JEE Main', Adv: 'JEE Advanced', KCET: 'KCET', NDA: 'NDA', IAT: 'IAT', CBSE: 'CBSE Class 12' };
   const exOf = q => q.s === 'P' ? q.e : null, bookOf = q => q.s === 'N' ? (q.pb || 'Practice') : null;
   const years = all.filter(q => q.y).map(q => q.y), yMin = Math.min(...years), yMax = Math.max(...years);
   const count = (f) => all.filter(f).length;
-  const exams = Object.keys(EXN).filter(k => count(q => exOf(q) === k)), books = [...new Set(all.map(bookOf).filter(Boolean))].sort();
+  const exams = Object.keys(EXN).filter(k => k === 'CBSE' || count(q => exOf(q) === k)), books = [...new Set(all.map(bookOf).filter(Boolean))].sort();
   const TYPE_NICE = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct (MSQ)', Numerical: 'Numerical value', Matching: 'Match the following', Comprehension: 'Para (passage based)' };
   const types = Object.keys(TYPE_NICE).filter(t => count(q => q.t === t)).concat([...new Set(all.map(q => q.t))].filter(t => !TYPE_NICE[t] && t !== 'Subjective'));
-  const S = { src: 'P', ex: new Set(['Main']), bk: new Set(), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), tough: 2, ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 25, mins: 75, auto: true, per: 3, scheme: 'JEE Main', advp: 0, title: '' };
-  const schemeNames = Object.keys(SC).filter(k => SC[k] && SC[k].rules);
-  const pool = () => all.filter(q => (q.s === 'P' ? S.src !== 'N' && S.ex.has(q.e) && (!q.y || (q.y >= S.y1 && q.y <= S.y2)) : S.src !== 'P' && S.bk.has(bookOf(q)) && !free) && (!S.ch.size || S.ch.has(q.cc)) && (diff.st.tough === 0 ? q.d === 'L1' : diff.st.tough === 4 ? q.d === 'L3' : true) && (S.advp || S.ty.has(q.t)) && (!S.skip || done[q.i] !== 'c'));
+  const src0 = free ? 'P' : 'M';   /* the admin and Premium accounts start with Mix; Free accounts have PYQ only */
+  const S = { src: src0, ex: new Set(['Main']), bk: new Set(src0 === 'P' ? [] : books), ch: new Set(), lv: new Set(['L1', 'L2', 'L3']), tough: 2, ty: new Set(types), y1: yMin, y2: yMax, skip: true, order: 'random', n: 25, mins: 75, auto: true, per: 3, scheme: 'JEE Main', st: '', title: '' };
+  const schemeNames = Object.keys(SC).filter(k => SC[k] && SC[k].rules && k !== 'JEE Advanced' && k !== 'CBSE 12');
+  const struct = () => STRUCTS[S.st] || null;
+  const pool = () => all.filter(q => (q.s === 'P' ? S.src !== 'N' && S.ex.has(q.e) && (!q.y || (q.y >= S.y1 && q.y <= S.y2)) : S.src !== 'P' && S.bk.has(bookOf(q)) && !free) && (!S.ch.size || S.ch.has(q.cc)) && (diff.st.tough === 0 ? q.d === 'L1' : diff.st.tough === 4 ? q.d === 'L3' : true) && (S.st || S.ty.has(q.t)) && (!S.skip || done[q.i] !== 'c'));
+  /* CBSE Class 12: Sections B to E come from the board questions of that section (an OR pair is one question); Section A also takes one-mark MCQs of Class 12 */
+  const cbseSec = (pl, k) => orUnits(pl.filter(q => q.e === 'CBSE' && String(q.sec || '').toUpperCase() === k));
+  const cbseFillA = pl => pl.filter(q => q.e !== 'CBSE' && q.t === 'MCQ' && String(q.cc).startsWith('12'));
+  const structHave = pl => { const x = struct(); if (!x) return null;
+    return Object.entries(x.mix).map(([k, need]) => { const have = S.st === 'cbse' ? cbseSec(pl, k).length + (k === 'A' ? cbseFillA(pl).length : 0) : pl.filter(q => typeKey(q) === k).length;
+      return { k, need, have, name: S.st === 'cbse' ? SEC_NAME[k] : ADV_SEC_NAME[k] || k }; }); };
   const chip = (text, on, fn, small, dis) => h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(!!on), disabled: !!dis, onclick: fn }, text, small != null ? h('em', { class: 'cp-n', text: String(small) }) : null);
   const sect = (n, t, sub, ...kids) => h('section', { class: 'cp-sec' }, h('div', { class: 'cp-sh' }, h('b', { class: 'cp-no', text: String(n) }), h('div', {}, h('h2', { text: t }), sub ? h('p', { text: sub }) : null)), ...kids);
   const sumBox = h('aside', { class: 'cp-sum' }), again = () => draw();
   const diff = mockBar(() => draw(), { noSrc: true });
-  const srcBar = mockBar(() => { S.src = srcBar.st.src; if (S.src !== 'P' && !S.bk.size) books.forEach(b => S.bk.add(b)); bkBox.paint && bkBox.paint(); exBox.classList.toggle('is-dim', S.src === 'N'); bkBox.classList.toggle('is-dim', S.src === 'P'); draw(); }, { noTough: true, src: 'P' });
+  const dims = () => { exBox.classList.toggle('is-dim', S.src === 'N'); bkBox.classList.toggle('is-dim', S.src === 'P'); tyBox.classList.toggle('is-dim', !!S.st); };
+  const srcBar = mockBar(() => { S.src = srcBar.st.src; if (S.src !== 'P' && !S.bk.size) books.forEach(b => S.bk.add(b)); bkBox.paint && bkBox.paint(); dims(); draw(); }, { noTough: true, src: src0 });
   const exBox = dd('Exams', [{ items: exams.map(k => [k, EXN[k], count(q => exOf(q) === k)]) }], S.ex, again, { none: 'No exam picked', min: 0 });
-  const bkBox = dd('Practice books', [{ items: books.map(b => [b, b, count(q => bookOf(q) === b)]) }], S.bk, again, { none: free ? '🔒 Premium' : 'No practice questions', lock: free ? () => { location.hash = '#/membership'; } : null });
+  const bkBox = dd('Practice books', [{ items: books.map(b => [b, b, count(q => bookOf(q) === b)]) }], S.bk, again, { none: free ? '🔒 Premium' : 'No practice questions', lock: free ? () => {} : null });
   const tyBox = dd('Question types', [{ items: types.map(t => [t, TYPE_NICE[t] || t, count(q => q.t === t)]) }], S.ty, again, { min: 1 });
+  const tyLock = tyBox.querySelector('.dl-fbtn');
+  if (tyLock) tyLock.addEventListener('click', e => { if (S.st) { e.stopImmediatePropagation(); toast('The question types follow the ' + struct().label + ' sections.'); } }, true);
   const chBox = dd('Chapters', [['11', 'Class 11'], ['12', 'Class 12']].map(([c, t]) => ({ h: t, items: [...CHN.values()].filter(x => String(x.c).startsWith(c) && count(q => q.cc === x.c)).map(x => [x.c, x.n, count(q => q.cc === x.c)]) })).filter(g => g.items.length), S.ch, again, { none: 'All chapters' });
   const yr1 = h('select', { class: 'pt-in', 'aria-label': 'From year', onchange: e => { S.y1 = +e.target.value; if (S.y1 > S.y2) { S.y2 = S.y1; yr2.value = S.y2; } draw(); } }), yr2 = h('select', { class: 'pt-in', 'aria-label': 'To year', onchange: e => { S.y2 = +e.target.value; if (S.y2 < S.y1) { S.y1 = S.y2; yr1.value = S.y1; } draw(); } });
   for (let y = yMax; y >= yMin; y--) { yr1.append(h('option', { value: y, text: y })); yr2.append(h('option', { value: y, text: y })); } yr1.value = S.y1; yr2.value = S.y2;
   const nIn = h('input', { type: 'number', class: 'pt-in', min: 5, max: 100, value: S.n, 'aria-label': 'Number of questions', oninput: e => { S.n = Math.max(5, Math.min(100, +e.target.value || 5)); if (S.auto) { S.mins = S.n * S.per; minIn.value = S.mins; } draw(true); } });
   const minIn = h('input', { type: 'number', class: 'pt-in', min: 5, max: 360, value: S.mins, 'aria-label': 'Time in minutes', oninput: e => { S.auto = false; S.mins = Math.max(5, Math.min(360, +e.target.value || 5)); draw(true); } });
-  const advOK = !!(SC['JEE Advanced'] && SC['JEE Advanced'].rules.sections && SC['JEE Advanced'].rules.sections['4:Matching']);   /* the 2026 two-paper rule is in the database */
-  const advN = p => Object.values(ADV_MIX[p]).reduce((a, x) => a + x, 0), advMin = p => SC['JEE Advanced'].duration_min;   /* 65 minutes for both papers */
-  const scOpts = []; schemeNames.forEach(k => { scOpts.push([k, k, k + ' (' + markText(SC[k]) + ')']); if (k === 'JEE Advanced' && advOK) [1, 2].forEach(p => scOpts.push([k + '|' + p, k, 'JEE Advanced · Paper ' + p + ' (' + advN(p) + ' questions, 2026 sections 1 to 4)'])); });
+  const fixNote = h('p', { class: 'pt-hint cp-fix', role: 'status', hidden: true });
+  const scOpts = schemeNames.map(k => [k, k + ' (' + markText(SC[k]) + ')']).concat(Object.entries(STRUCTS).map(([k, x]) => ['#' + k, x.label + ' (marks differ by question type)']));
   const scSel = h('select', { class: 'pt-in', 'aria-label': 'Marking scheme', onchange: e => {
-    const [k, p] = e.target.value.split('|'); S.scheme = k; S.advp = +p || 0;
-    if (S.advp) { S.n = advN(S.advp); S.mins = advMin(S.advp); S.auto = false; nIn.value = S.n; minIn.value = S.mins; }
-    nIn.disabled = !!S.advp; draw(true); } }, scOpts.map(([v, k, t]) => h('option', { value: v, text: t, selected: k === S.scheme && !S.advp && v === k })));
+    const v = e.target.value, was = S.st; S.st = v[0] === '#' ? v.slice(1) : ''; const x = struct();
+    if (x) { S.scheme = x.exam; S.n = Object.values(x.mix).reduce((a, n) => a + n, 0); const sc = SC[x.exam] || {}; S.mins = sc.duration_min || (x.exam === 'CBSE 12' ? 180 : 65); S.auto = false; nIn.value = S.n; minIn.value = S.mins;
+      if (S.st === 'cbse' && exams.includes('CBSE') && !S.ex.has('CBSE')) { S.ex.add('CBSE'); exBox.paint && exBox.paint(); }
+      if (/^adv/.test(S.st) && exams.includes('Adv') && !S.ex.has('Adv')) { S.ex.add('Adv'); exBox.paint && exBox.paint(); }
+      fixNote.hidden = false; fixNote.textContent = 'Follows the latest ' + x.label + ' paper strictly: ' + S.n + ' questions in its official sections, ' + S.mins + ' minutes' + (x.exam === 'CBSE 12' && SC['CBSE 12'] && SC['CBSE 12'].rules && +SC['CBSE 12'].rules.reading_min ? ' + ' + SC['CBSE 12'].rules.reading_min + ' min reading' : '') + '. "Random" shuffles only inside a section.';
+    } else { S.scheme = v; if (was) { S.auto = true; S.n = 25; S.mins = S.n * S.per; nIn.value = S.n; minIn.value = S.mins; } fixNote.hidden = true; }
+    nIn.disabled = minIn.disabled = !!x; dims(); draw(true); } }, scOpts.map(([v, t]) => h('option', { value: v, text: t, selected: v === S.scheme })));
   const ordSel = h('select', { class: 'pt-in', 'aria-label': 'Order of questions', onchange: e => { S.order = e.target.value; } }, [['random', 'Random'], ['even', 'Chapters mixed evenly'], ['easy', 'Easy to hard']].map(([v, t]) => h('option', { value: v, text: t })));
   const titleIn = h('input', { type: 'text', class: 'pt-in', maxlength: 80, placeholder: 'Practice test: chapters you pick', 'aria-label': 'Test name', oninput: e => { S.title = e.target.value.trim(); } });
   const skipBox = h('label', { class: 'cp-check' }, h('input', { type: 'checkbox', checked: true, onchange: e => { S.skip = e.target.checked; draw(); } }), h('span', {}, h('b', { text: 'Skip questions I have already solved correctly' }), h('small', { text: 'Keeps the test fresh. Uses your own results.' })));
+  const byLevel = l => l.slice().sort((a, b) => (a.d || 'L2').localeCompare(b.d || 'L2'));   /* stable: easy to hard */
+  /* the order inside one section (sections themselves never move): random, chapters mixed evenly, or easy to hard */
+  const inSection = (l, key) => S.order === 'easy' ? byLevel(l.map(key)).map(q => l.find(u => key(u) === q)) : S.order === 'even' ? (() => { const m = new Map(l.map(u => [key(u), u])); return takeEven(l.map(key), l.length).map(q => m.get(q)); })() : shuffled(l);
   const go = h('button', { type: 'button', class: 'btn pri pt-big', text: 'Start test', onclick: async () => {
     go.disabled = true;
     try {
-      const qs0 = pickN(pool(), S.n, S.order === 'even', new Set(), diff.st.tough); let qs = qs0;
-      await fillQs(qs0);   /* the section order below reads the answer of written questions */
-      if (S.order === 'easy') qs = qs.slice().sort((a, b) => (a.d || 'L2').localeCompare(b.d || 'L2'));
-      if (S.scheme === 'NDA') qs = ndaOrder(qs);   /* chapter wise, 4 to 5 questions of a chapter in a row */
-      else if (S.scheme === 'JEE Advanced' || S.scheme === 'CBSE 12') {   /* sections first (shuffle only inside a section) */
-        const rank = q => S.scheme === 'CBSE 12' ? 'ABCDE'.indexOf(String(q.sec || '').toUpperCase()) : (+advSec(q) || 0) - 1;
-        qs = shuffled(qs).sort((a, b) => (rank(a) < 0 ? 9 : rank(a)) - (rank(b) < 0 ? 9 : rank(b)));
+      const chName = S.ch.size === 1 ? ((CHN.get([...S.ch][0]) || {}).n || '') : S.ch.size ? S.ch.size + ' chapters' : 'All chapters', x = struct();
+      if (S.st === 'cbse') {   /* Sections A to E in order; the questions are picked and ordered only inside their section */
+        const pl = pool(), qs = [], secs = {};
+        Object.entries(CBSE_MIX).forEach(([k, need]) => {
+          let units = inSection(shuffled(cbseSec(pl, k)).slice(0, need), u => u.a);
+          if (k === 'A' && units.length < need) units = units.concat(inSection(shuffled(cbseFillA(pl)).slice(0, need - units.length).map(q => ({ a: q, b: null })), u => u.a));
+          units.forEach(u => { qs.push(u.a); secs[u.a.i] = k; if (u.b) qs.push(u.b); });
+        });
+        if (qs.length < 3) throw new Error('Not enough CBSE questions for this choice. Pick CBSE Class 12 under Exams and widen the chapters.');
+        await launchTest({ title: S.title || 'CBSE Class 12 practice: ' + chName, qs, exam: 'CBSE 12', mins: null, key: 'custom', pairs: true, secs });
+        return;
       }
-      if (S.advp) { const pl = pool(); qs = compose(pl.filter(q => q.s === 'P'), pl.filter(q => q.s !== 'P'), ADV_MIX[S.advp], S.src === 'P' ? 1 : S.src === 'N' ? 0 : 0.5, S.order === 'even', diff.st.tough, 'JEE Advanced'); }   /* Paper 1 or 2 of 2026: sections 1 to 4, shuffled only inside a section */
-      const chName = S.ch.size === 1 ? ((CHN.get([...S.ch][0]) || {}).n || '') : S.ch.size ? S.ch.size + ' chapters' : 'All chapters';
-      await launchTest({ title: S.title || (S.advp ? 'JEE Advanced Paper ' + S.advp + ' practice' : 'Practice test: ' + chName + mockTag({ src: S.src, tough: diff.st.tough })), qs, exam: S.scheme, mins: S.mins, key: 'custom' });
+      if (x) {   /* JEE Advanced Paper 1 or 2 (2026): sections 1 to 4 in order, the questions picked and ordered only inside a section */
+        const pl = pool(), ratio = S.src === 'P' ? 1 : S.src === 'N' ? 0 : 0.5;
+        let qs = compose(pl.filter(q => q.s === 'P'), pl.filter(q => q.s !== 'P'), x.mix, ratio, S.order === 'even', diff.st.tough, 'JEE Advanced');
+        if (S.order === 'easy') { const sec = q => Object.keys(x.mix).indexOf(typeKey(q)); qs = qs.map((q, i) => [q, i]).sort((a, b) => sec(a[0]) - sec(b[0]) || (typeKey(a[0]) === 'Comprehension' ? a[1] - b[1] : (a[0].d || 'L2').localeCompare(b[0].d || 'L2') || a[1] - b[1])).map(z => z[0]); }
+        if (qs.length < 3) throw new Error('Not enough questions for this choice. Widen the exams, years or chapters.');
+        await launchTest({ title: S.title || x.label + ' practice: ' + chName, qs, exam: 'JEE Advanced', mins: null, key: 'custom' });
+        return;
+      }
+      const qs0 = pickN(pool(), S.n, S.order === 'even', new Set(), diff.st.tough); let qs = qs0;
+      await fillQs(qs0);
+      if (S.order === 'easy') qs = byLevel(qs);
+      if (S.scheme === 'NDA') qs = ndaOrder(qs);   /* chapter wise, 4 to 5 questions of a chapter in a row */
+      await launchTest({ title: S.title || 'Practice test: ' + chName + mockTag({ src: S.src, tough: diff.st.tough }), qs, exam: S.scheme, mins: S.mins, key: 'custom' });
     } catch (e) { toast(e.message); go.disabled = false; } } });
   function draw(light) {
-    const avail = pool().length, n = Math.min(S.n, avail);
+    const pl = pool(), avail = pl.length, sh = structHave(pl), n = sh ? sh.reduce((a, x) => a + Math.min(x.have, x.need), 0) : Math.min(S.n, avail);
     sumBox.textContent = '';
     const sc = SC[S.scheme] || SC['JEE Main'];
     sumBox.append(h('h3', { text: 'Your test' }),
-      h('div', { class: 'cp-big' }, h('strong', { text: String(n) }), h('span', { text: ' of ' + avail + ' matching questions' })),
-      h('ul', { class: 'cp-facts' }, [['Questions', String(n)], ['Time', S.mins + ' min'], ['Marking', markText(sc)], ['Chapters', S.ch.size ? S.ch.size + ' chosen' : 'All'], ['Difficulty', TOUGH_NAME[diff.st.tough]], ['Sources', [...(S.src === 'N' ? [] : [...S.ex].map(k => EXN[k])), ...(S.src === 'P' ? [] : [...S.bk])].join(', ') || '—']].map(([a, b]) => h('li', {}, h('span', { text: a }), h('b', { text: b })))),
-      avail < S.n ? h('p', { class: 'pt-hint', text: 'Only ' + avail + ' questions match, so the test will have ' + avail + '. Widen the choices to get more.' }) : '', go);
-    go.disabled = avail < 3;
+      h('div', { class: 'cp-big' }, h('strong', { text: String(n) }), h('span', { text: sh ? ' of ' + S.n + ' questions (' + struct().label + ')' : ' of ' + avail + ' matching questions' })),
+      h('ul', { class: 'cp-facts' }, [['Questions', String(n)], ['Time', S.mins + ' min'], ['Marking', sh ? 'marks differ by question type' : markText(sc)], ['Chapters', S.ch.size ? S.ch.size + ' chosen' : 'All'], ['Difficulty', TOUGH_NAME[diff.st.tough]], ['Sources', [...(S.src === 'N' ? [] : [...S.ex].map(k => EXN[k])), ...(S.src === 'P' ? [] : [...S.bk])].join(', ') || '—']].map(([a, b]) => h('li', {}, h('span', { text: a }), h('b', { text: b })))),
+      sh ? h('ul', { class: 'cp-secs' }, sh.map(x => h('li', { class: x.have < x.need ? 'short' : '' }, h('span', { text: x.name }), h('b', { text: Math.min(x.have, x.need) + ' / ' + x.need })))) : null,
+      sh ? (n < S.n ? h('p', { class: 'pt-hint', text: 'Some sections have too few matching questions, so the test will have ' + n + '. Widen the exams, years or chapters to get the full paper.' }) : '')
+        : avail < S.n ? h('p', { class: 'pt-hint', text: 'Only ' + avail + ' questions match, so the test will have ' + avail + '. Widen the choices to get more.' }) : '', go);
+    go.disabled = n < 3;
   }
-  draw();
+  dims(); draw();
   show(modeHead('Create Your Practice Test', 'Build exactly the test you need. The marks and the instructions are shown before you start.'),
     h('div', { class: 'cp-wrap' }, h('div', { class: 'cp-main' },
       sect(1, 'Source', 'Previous year questions and practice questions.', srcBar.el, h('div', { class: 'cp-pills' }, exBox, bkBox), h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'From year (previous year questions)' }), yr1), h('label', { class: 'pt-fld' }, h('span', { text: 'To year' }), yr2))),
       sect(2, 'Chapters', 'Pick one or more chapters. Leave it as it is for every chapter.', h('div', { class: 'cp-pills' }, chBox)),
       sect(3, 'Difficulty and question type', null, diff.el, h('div', { class: 'cp-pills' }, tyBox), skipBox),
-      sect(4, 'Size, time and marking', null, h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Number of questions' }), nIn), h('label', { class: 'pt-fld' }, h('span', { text: 'Time you want (minutes)' }), minIn)),
-        h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Marking scheme' }), scSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Order of questions' }), ordSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Test name' }), titleIn)))),
+      sect(4, 'Size, time and marking', 'Personal tests use the latest official marking scheme of the exam you choose.', h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Marking scheme' }), scSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Order of questions' }), ordSel), h('label', { class: 'pt-fld' }, h('span', { text: 'Test name' }), titleIn)),
+        h('div', { class: 'cp-row' }, h('label', { class: 'pt-fld' }, h('span', { text: 'Number of questions' }), nIn), h('label', { class: 'pt-fld' }, h('span', { text: 'Time you want (minutes)' }), minIn)), fixNote)),
       sumBox));
 }
+/* Chapter test: a fixed size and time for each exam (latest marking scheme of that exam); the exam sets the level and the question types */
+const CH_EXAMS = [
+  { k: 'JEE Main', e: 'Main', n: 25, m: 70, tough: null, mix: { MCQ: 20, Numerical: 5 } },
+  { k: 'JEE Advanced', e: 'Adv', n: 18, m: 70, tough: 3, mix: { MCQ: 6, MSQ: 6, Numerical: 6 } },
+  { k: 'CBSE 12', label: 'CBSE', e: 'CBSE', n: 20, m: 40, tough: 1, mix: { MCQ: 20 } },
+  { k: 'KCET', e: 'KCET', n: 20, m: 30, tough: 1, mix: { MCQ: 20 } },
+  { k: 'NDA', e: 'NDA', n: 30, m: 40, tough: 1, mix: { MCQ: 30 } },
+  { k: 'IAT', e: 'IAT', n: 15, m: 50, tough: null, mix: { MCQ: 15 } }];
 async function modeChapter() {
-  show(modeHead('Chapter Wise Mock', 'Choose the source and the difficulty, then a chapter.'), loading('Loading the question bank…'));
+  show(modeHead('Chapter Wise Mock', 'Choose the source and the exam, then a chapter.'), loading('Loading the question bank…'));
   const [B, SC] = await Promise.all([fresh(TE().bank()), schemes()]); CHN = B.chapters;
-  const all = B.qs.filter(gradable), sc = SC['JEE Main'], free = isFree();
-  const grid = h('div', { class: 'pp-papers' }), bar = mockBar(() => draw()), st = bar.st;
-  const info = h('p', { class: 'pt-hint', role: 'status' });
+  const all = B.qs.filter(gradable), exList = CH_EXAMS.filter(x => SC[x.k]);
+  const grid = h('div', { class: 'pp-papers' }), bar = mockBar(() => draw(), { noTough: true }), st = bar.st;
+  let E = exList[0];
+  const info = h('p', { class: 'pt-hint', role: 'status' }), exSeg = h('div', { class: 'cx-ex', role: 'group', 'aria-label': 'Exam' });
+  /* the types the exam's paper uses (a CBSE written question of Sections B to E is not a one-mark MCQ) */
+  const fits = q => !!E.mix[typeKey(q)] && !(q.e === 'CBSE' && /^[B-E]$/i.test(String(q.sec || ''))) && (E.k !== 'CBSE 12' || String(q.cc).startsWith('12') || q.e === 'CBSE');
+  const drawEx = () => { exSeg.textContent = ''; exList.forEach(x => exSeg.append(h('button', { type: 'button', class: 'pp-chip', 'aria-pressed': String(x === E), onclick: () => { E = x; drawEx(); draw(); } }, x.label || x.k))); };
+  bar.el.classList.remove('mk-one');
+  bar.el.append(h('div', { class: 'mk-col' }, h('span', { class: 'mk-l', text: 'Exam' }), exSeg, h('small', { class: 'mk-fine', text: 'The exam only tells us your target level, so we pick PYQs and practice questions to match.' })));
+  /* the questions: PYQs of the chosen exam first, then other PYQs of the same type, and practice questions as the source allows; grouped by type in the order of the paper */
+  const pick = p => {
+    const ratio = st.src === 'P' ? 1 : st.src === 'N' ? 0 : 0.5, mine = p.filter(q => q.s === 'P' && q.e === E.e), other = p.filter(q => q.s === 'P' && q.e !== E.e), np = p.filter(q => q.s === 'N');
+    let qs = compose(mine, np, E.mix, ratio, false, E.tough, E.k);
+    const used = new Set(qs.map(q => q.i)), want = {};
+    Object.entries(E.mix).forEach(([t, n]) => { const got = qs.filter(q => typeKey(q) === t).length; if (got < n) want[t] = n - got; });
+    if (Object.keys(want).length) { const more = compose(other.filter(q => !used.has(q.i)), np.filter(q => !used.has(q.i)), want, ratio, false, E.tough, E.k); qs = qs.concat(more); }
+    if (qs.length < E.n) { const got = new Set(qs.map(q => q.i)), rest = p.filter(q => !got.has(q.i) && typeKey(q) !== 'Comprehension'); qs = qs.concat(pickN(rest.filter(q => q.s === 'P' && q.e === E.e), E.n - qs.length, false, got, E.tough)); if (qs.length < E.n) qs = qs.concat(pickN(rest, E.n - qs.length, false, got, E.tough)); }   /* a type ran short: the other types of the paper fill the test up to its fixed size */
+    const ord = Object.keys(E.mix); return E.k === 'NDA' ? qs : qs.map((q, i) => [q, i]).sort((a, b) => ord.indexOf(typeKey(a[0])) - ord.indexOf(typeKey(b[0])) || a[1] - b[1]).map(z => z[0]);
+  };
   function draw() {
     grid.textContent = '';
-    const cards = [...CHN.values()].map(c => ({ c, all: all.filter(q => q.cc === c.c) })).map(x => Object.assign(x, { match: mockPool(x.all, st) })).filter(x => x.all.length >= 10);
-    info.textContent = 'You get up to ' + sc.n_questions + ' questions: ' + (st.src === 'P' ? 'previous year questions' : st.src === 'N' ? 'practice questions' : 'previous year and practice questions mixed') + '. ' + sc.duration_min + ' minutes, ' + markText(sc) + '. Each start picks new random questions.';
+    const cards = [...CHN.values()].map(c => ({ c, all: all.filter(q => q.cc === c.c) })).map(x => Object.assign(x, { match: mockPool(x.all, st).filter(fits) })).filter(x => x.all.length >= 10 && (E.k !== 'CBSE 12' || String(x.c.c).startsWith('12')));
+    const sc = SC[E.k];
+    info.textContent = (E.label || E.k) + ' chapter test: ' + E.n + ' questions in ' + E.m + ' minutes, ' + markText(sc) + ' (latest ' + (E.label || E.k) + ' marking). ' + (st.src === 'P' ? 'Previous year questions' : st.src === 'N' ? 'Practice questions' : 'Previous year and practice questions mixed') + '. Each start picks new random questions.';
     cards.forEach(x => { const need = 5, off = x.match.length < need;
       grid.append(h('button', { type: 'button', class: 'pp-card' + (off ? ' is-off' : ''), disabled: off, onclick: async e => {
         const b = e.currentTarget; b.disabled = true;
         try {
-          const p = x.match, ratio = st.src === 'P' ? 1 : st.src === 'N' ? 0 : 0.5, qs = compose(p.filter(q => q.s === 'P'), p.filter(q => q.s === 'N'), sc.rules.mix, ratio, false, st.tough), n = qs.length;
-          if (n < need) throw new Error('Not enough questions for this choice. Widen the difficulty or the source.');
-          await launchTest({ title: 'Chapter test: ' + x.c.n + mockTag(st), qs, exam: 'JEE Main', mins: Math.max(10, Math.round(sc.duration_min * n / sc.n_questions)), key: 'chapter-' + x.c.c });
+          const qs = pick(x.match), n = qs.length;
+          if (n < need) throw new Error('Not enough questions for this choice. Try another source or exam.');
+          await launchTest({ title: 'Chapter test (' + (E.label || E.k) + '): ' + x.c.n + mockTag(st), qs, exam: E.k, mins: E.m, key: 'chapter-' + x.c.c });
         } catch (err) { toast(err.message); b.disabled = false; } } },
-        h('b', { text: x.c.n }), h('small', { text: off ? 'Too few questions for this choice' : Math.min(x.match.length, sc.n_questions) + ' of ' + x.match.length + ' matching questions' }), h('span', { class: 'pp-go', text: off ? '' : 'Start ›' }))); });
+        h('b', { text: x.c.n }), h('small', { text: off ? 'Too few questions for this choice' : Math.min(x.match.length, E.n) + ' of ' + E.n + ' questions · ' + E.m + ' min' }), h('span', { class: 'pp-go', text: off ? '' : 'Start ›' }))); });
   }
-  draw();
-  show(modeHead('Chapter Wise Mock', 'Choose the source and the difficulty, then a chapter.'), bar.el, info, grid);
+  drawEx(); draw();
+  show(modeHead('Chapter Wise Mock', 'Choose the source and the exam, then a chapter.'), bar.el, info, grid);
 }
 async function modeSure() {
   show(modeHead('Must Solve / Repeated Questions', 'Only the questions that came again and again, and the ones sure to come.'), loading('Loading…'));
@@ -1644,36 +1748,228 @@ function pastTable(list) {
       h('td', { class: 'pt-num', text: a.status === 'submitted' ? mmss(a.time_taken_sec) : '—' }),
       h('td', {}, a.status === 'submitted' ? link('#/report/' + a.id, 'Open report', 'btn pri') : link('#/t/' + a.code, 'Resume', 'btn')))))));
 }
+/* ---------- Results lists (My Reports for students, My Performance for teachers): filters PYQ / Non-PYQ, exam, class and test type; 20 per page ---------- */
+const RES_PAGE = 20;
+const KEY_EXAM = { Main: 'JEE Main', Adv: 'JEE Advanced', KCET: 'KCET', NDA: 'NDA', IAT: 'IAT', CBSE: 'CBSE 12', CUET: 'CUET' };
+const EXAM_RE = [[/jee\s*adv|advanced/i, 'JEE Advanced'], [/iit-?jee/i, 'IIT-JEE'], [/aieee/i, 'AIEEE'], [/jee\s*main/i, 'JEE Main'], [/kcet|karnataka cet/i, 'KCET'], [/\bnda\b/i, 'NDA'], [/\biat\b|iiser/i, 'IAT'], [/cbse/i, 'CBSE 12'], [/cuet/i, 'CUET']];
+const SRC_NAME = { P: 'PYQ', PYQ: 'PYQ', N: 'Non-PYQ', 'Non-PYQ': 'Non-PYQ', Practice: 'Non-PYQ', M: 'Mixed', Mix: 'Mixed', Mixed: 'Mixed' };
+/* what kind of test a result is: the database's own fields when it sends them (test_type, source, exam, class), otherwise read from the paper key and the title */
+function resMeta(x) {
+  const k = String(x.paper_key || ''), t = String(x.title || '');
+  const kind = x.test_type || (/^chapter-/.test(k) || /^chapter test/i.test(t) ? 'Chapter test' : /^sure-/.test(k) || /^must solve/i.test(t) ? 'Must Solve / Repeated' : /^full-/.test(k) || /full length mock/i.test(t) ? 'Full length mock'
+    : k === 'custom' || /^practice test|paper \d practice$/i.test(t) ? 'Practice test' : k.includes('|') || (/\b(19|20)\d{2}\b/.test(t) && EXAM_RE.some(([re]) => re.test(t))) ? 'Previous year paper'
+    : ['teachers_link', 'all_teachers', 'all_students'].includes(x.audience) ? 'Shared test' : x.audience === 'school' || x.teacher ? 'School test' : 'Other');
+  const src = SRC_NAME[x.source] || (kind === 'Previous year paper' ? 'PYQ' : /·\s*PYQ\b/.test(t) ? 'PYQ' : /·\s*Practice\b/.test(t) ? 'Non-PYQ' : /·\s*Mixed\b/.test(t) ? 'Mixed' : '');
+  const fk = /^full-(.+?)(-p\d+)?$/.exec(k);
+  const exam = x.exam || KEY_EXAM[k.split('|')[0]] || (fk ? (fk[1] === 'cbse' ? 'CBSE 12' : fk[1]) : '') || (EXAM_RE.find(([re]) => re.test(t)) || [])[1] || '';
+  const ck = /^chapter-(\d+)M/.exec(k), ct = /class\s*(11|12)\b/i.exec(t);
+  const cls = x.class ? String(x.class) : ck ? ck[1] : ct ? ct[1] : exam === 'CBSE 12' ? '12' : '';
+  return { kind, src, exam, cls };
+}
+const resTags = m => h('div', { class: 'pt-rtags' }, [[m.kind, 'k'], [m.exam, 'e'], [m.cls ? 'Class ' + m.cls : '', 'c'], [m.src, m.src === 'PYQ' ? 'p' : 'n']].filter(x => x[0] && x[0] !== 'Other').map(([tx, c]) => h('span', { class: 'pt-rtag pt-rtag-' + c, text: tx })));
+/* page buttons: ‹ Prev 1 … 4 5 6 … 12 Next › */
+function pagerNav(nav, page, pages, go) {
+  nav.textContent = ''; nav.hidden = pages <= 1; if (pages <= 1) return;
+  const b = (label, p, aria) => { const cur = p === page && !aria; return h('button', { type: 'button', class: 'pt-pg' + (cur ? ' on' : ''), text: label, disabled: cur || p < 0 || p >= pages ? true : null, 'aria-current': cur ? 'page' : null, 'aria-label': aria || 'Page ' + (p + 1), onclick: () => go(p) }); };
+  nav.append(b('‹ Prev', page - 1, 'Previous page'));
+  let last = -1;
+  [...new Set([0, pages - 1, page - 1, page, page + 1])].filter(p => p >= 0 && p < pages).sort((x, y) => x - y).forEach(p => { if (p - last > 1) nav.append(h('span', { class: 'pt-pg-gap', text: '…' })); nav.append(b(String(p + 1), p)); last = p; });
+  nav.append(b('Next ›', page + 1, 'Next page'));
+}
+/* a results table with its filters (only the ones the results have) and 20 rows per page */
+function resTable(rows, cols, rowFn, o) {
+  o = o || {};
+  const M = new Map(rows.map(x => [x, resMeta(x)]));
+  const F = { src: '', exam: '', cls: '', kind: '', q: '' }; let page = 0;
+  const vals = k => [...new Set(rows.map(x => M.get(x)[k]).filter(v => v && v !== 'Other'))].sort((a, b) => String(a).localeCompare(String(b), 'en', { numeric: true }));
+  const tbody = h('tbody'), nav = h('nav', { class: 'pt-pager', 'aria-label': (o.label || 'Results') + ': pages' }), count = h('span', { class: 'pt-meta', role: 'status' });
+  const sel = (label, all, key, list, name) => list.length ? h('select', { class: 'pt-in', 'aria-label': label, onchange: e => { F[key] = e.target.value; page = 0; draw(); } }, h('option', { value: '', text: all }), list.map(v => h('option', { value: v, text: name ? name(v) : v }))) : null;
+  const wrap = h('div', { class: 'pt-reslist' });
+  const draw = () => {
+    const q = F.q.toLowerCase();
+    const list = rows.filter(x => { const m = M.get(x); return (!F.src || m.src === F.src) && (!F.exam || m.exam === F.exam) && (!F.cls || m.cls === F.cls) && (!F.kind || m.kind === F.kind) && (!q || String(x.title || '').toLowerCase().includes(q)); });
+    const pages = Math.max(1, Math.ceil(list.length / RES_PAGE)); page = Math.max(0, Math.min(page, pages - 1));
+    tbody.textContent = '';
+    if (!list.length) tbody.append(h('tr', {}, h('td', { colspan: cols.length }, empty('No results match', 'Change the filters above.'))));
+    list.slice(page * RES_PAGE, page * RES_PAGE + RES_PAGE).forEach(x => tbody.append(rowFn(x, M.get(x))));
+    count.textContent = (list.length === rows.length ? rows.length + ' result' + (rows.length === 1 ? '' : 's') : list.length + ' of ' + rows.length + ' results') + (pages > 1 ? ' · page ' + (page + 1) + ' of ' + pages : '');
+    pagerNav(nav, page, pages, p => { page = p; draw(); if (wrap.getBoundingClientRect().top < 0) wrap.scrollIntoView({ block: 'start' }); });
+  };
+  const filters = [sel('PYQ or Non-PYQ', 'PYQ and Non-PYQ', 'src', vals('src')), sel('Exam', 'All exams', 'exam', vals('exam')), sel('Class', 'All classes', 'cls', vals('cls'), v => (v === 'Dropper' ? v : 'Class ' + v)), sel('Test type', 'All test types', 'kind', vals('kind'))].filter(Boolean);
+  wrap.append(filters.length || rows.length > 5 ? h('div', { class: 'pt-frow pt-resf' }, filters, rows.length > 5 ? h('input', { type: 'search', class: 'pt-in', placeholder: 'Search tests', 'aria-label': 'Search tests', oninput: e => { F.q = e.target.value.trim(); page = 0; draw(); } }) : null) : null,
+    count, h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, cols.map(c => h('th', { text: c })))), tbody)), nav);
+  draw();
+  return wrap;
+}
+/* "Tests for you": tests made by अंक-IT for every student (or every teacher) that this account has not taken yet */
+const offeredCard = list => (list && list.length ? card(h('h2', { text: 'Tests for you' }), h('p', { class: 'pt-hint', text: 'Made by अंक-IT for ' + (P().role === 'student' ? 'students' : 'teachers') + '. ' + (P().role === 'student' ? 'Your report opens when you submit.' : 'Teachers see their own rank only.') }),
+  h('div', { class: 'pp-papers' }, list.map(x => h('button', { type: 'button', class: 'pp-card', onclick: () => { location.hash = '#/t/' + x.code; } },
+    h('b', { text: x.title }), h('small', { text: x.n_questions + ' questions · ' + x.duration_min + ' min' }), h('span', { class: 'pp-go', text: 'Open instructions ›' }))))) : null);
+const scorePct = a => (a && a.max_score > 0 && a.score != null ? 100 * a.score / a.max_score : null);
+const tone = v => (v == null ? '' : v < 40 ? 'bad' : v < 70 ? 'mid' : 'ok');
+/* My Reports: the one results page of a student (teachers keep My Performance as well) */
 async function pageReports() {
   show(head('My Reports', ''), loading());
-  const list = await rpc('my_attempts');
-  const top = head('My Reports', 'Every test you have taken', link('#/tests', 'Available tests', 'btn'));
-  if (!list.length) { show(top, card(empty('No tests taken yet', 'Your reports appear here after you submit a test.', link('#/tests', 'See available tests', 'btn pri')))); return; }
-  show(top, card(h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Test', 'Date', 'Score', 'Correct / Wrong / Skipped', 'Time', ''].map(x => h('th', { text: x })))),
-    h('tbody', {}, list.map(a => h('tr', {}, h('td', {}, h('b', { text: a.title })), h('td', { text: when(a.submitted_at || a.started_at) }),
-      h('td', { class: 'pt-num', text: a.status === 'submitted' ? num(a.score, 2) + ' / ' + num(a.max_score, 2) : '—' }),
-      h('td', { class: 'pt-num', text: a.status === 'submitted' ? a.correct + ' / ' + a.wrong + ' / ' + a.skipped : '—' }),
-      h('td', { class: 'pt-num', text: a.status === 'submitted' ? mmss(a.time_taken_sec) : '—' }),
-      h('td', {}, a.status === 'submitted' ? link('#/report/' + a.id, 'Open report', 'btn pri') : link('#/t/' + a.code, 'Resume', 'btn')))))))));
+  const [list0, ov] = await Promise.all([rpc('my_attempts'), rpc('personal_overview').catch(e => { if (e === STALE) throw e; return null; })]);
+  const O = ov || { mine: [], taken: [], offered: [] }, byAtt = new Map();
+  (O.mine || []).concat(O.taken || []).forEach(x => { if (x.attempt_id) byAtt.set(x.attempt_id, x); });
+  const rows = (list0 || []).map(a => { const x = byAtt.get(a.id) || {}; return Object.assign({}, a, { paper_key: a.paper_key || x.paper_key, audience: a.audience || x.audience, test_id: a.test_id || x.test_id || (x.audience ? x.id : null) }); });
+  const top = head('My Reports', 'Every test you have taken, with its report', link('#/tests', 'Available tests', 'btn'), link('#/modes', '+ Create a new test', 'btn pri'));
+  if (!rows.length) { show(top, offeredCard(O.offered), card(empty('No tests taken yet', 'Your reports appear here after you submit a test.', link('#/modes', 'Create a new test', 'btn pri'), link('#/tests', 'See available tests', 'btn')))); return; }
+  const done = rows.filter(a => a.status === 'submitted' && a.max_score > 0), ps = done.map(scorePct);
+  const C = done.reduce((s, a) => s + (+a.correct || 0), 0), W = done.reduce((s, a) => s + (+a.wrong || 0), 0);
+  const avg = ps.length ? ps.reduce((s, v) => s + v, 0) / ps.length : null, best = ps.length ? Math.max(...ps) : null;
+  const rowFn = (a, m) => h('tr', {}, h('td', {}, h('b', { text: a.title }), resTags(m)), h('td', { text: when(a.submitted_at || a.started_at) }),
+    h('td', { class: 'pt-num' }, a.status === 'submitted' ? [h('b', { text: num(a.score, 2) }), ' / ' + num(a.max_score, 2), scorePct(a) != null ? h('div', { class: 'pt-hint', text: num(scorePct(a), 1) + '%' }) : null] : '—'),
+    h('td', { class: 'pt-num', text: a.status === 'submitted' ? a.correct + ' / ' + a.wrong + ' / ' + a.skipped : '—' }),
+    h('td', { class: 'pt-num', text: a.status === 'submitted' ? mmss(a.time_taken_sec) : '—' }),
+    h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, a.status === 'submitted' ? [link('#/report/' + a.id, 'Open report', 'btn pri'), h('button', { type: 'button', class: 'btn', text: 'Export', onclick: () => exportResult(a.id, a.title) }),
+      ['teachers_link', 'all_teachers'].includes(a.audience) && a.test_id ? h('button', { type: 'button', class: 'btn', text: 'My rank', onclick: () => showMyRank(a.test_id) }) : null] : link('#/t/' + a.code, 'Resume', 'btn'))));
+  show(top, offeredCard(O.offered),
+    done.length ? h('div', { class: 'pt-stats pt-stats-c' }, stat('Tests taken', done.length, rows.length > done.length ? (rows.length - done.length) + ' not submitted' : 'all submitted'), stat('Average score', pct(avg), 'of the maximum marks'),
+      stat('Best score', pct(best)), stat('Accuracy', pct(C + W ? 100 * C / (C + W) : null), C + ' correct of ' + (C + W) + ' attempted')) : null,
+    card(h('h2', { text: 'My results' }), resTable(rows, ['Test', 'Date', 'Score', 'Correct / Wrong / Skipped', 'Time', ''], rowFn, { label: 'My results' })));
 }
-/* chapter-wise performance of one test: the topic rows of the report are added up per chapter; every column header sorts (click again to reverse) */
-function chapterTable(topics, nums) {
+/* ---------- Charts of the report (inline SVG, no outside library) ---------- */
+const SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, at, ...kids) { const e = document.createElementNS(SVGNS, tag); Object.entries(at || {}).forEach(([k, v]) => { if (v != null) e.setAttribute(k, v); }); kids.flat().forEach(c => { if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(c)); }); return e; }
+/* half-circle gauge: p is 0 to 100 */
+function gaugeSvg(p, big, small, cls, label) {
+  const v = Math.max(0, Math.min(100, p || 0)), d = 'M16 104 A84 84 0 0 1 184 104';
+  return svgEl('svg', { viewBox: '0 0 200 116', class: 'pt-gauge', role: 'img', 'aria-label': label },
+    svgEl('path', { d, class: 'pt-g-track', pathLength: 100 }), v > 0 ? svgEl('path', { d, class: 'pt-g-val ' + (cls || ''), pathLength: 100, 'stroke-dasharray': v + ' 100' }) : null,
+    svgEl('text', { x: 100, y: 84, class: 'pt-g-big', 'text-anchor': 'middle' }, big), svgEl('text', { x: 100, y: 106, class: 'pt-g-small', 'text-anchor': 'middle' }, small));
+}
+/* ring (donut): parts [{ v, cls, label }] */
+function donutSvg(parts, center, sub, label) {
+  const tot = parts.reduce((s, x) => s + (x.v > 0 ? x.v : 0), 0); let off = 0;
+  const svg = svgEl('svg', { viewBox: '0 0 42 42', class: 'pt-donut', role: 'img', 'aria-label': label || parts.map(x => x.label + ' ' + x.v).join(', ') }, svgEl('circle', { cx: 21, cy: 21, r: 15.915, class: 'pt-d-track' }));
+  if (tot) parts.forEach(x => { if (!(x.v > 0)) return; const len = 100 * x.v / tot; svg.append(svgEl('circle', { cx: 21, cy: 21, r: 15.915, class: 'pt-d-seg ' + x.cls, 'stroke-dasharray': len + ' ' + (100 - len), 'stroke-dashoffset': 25 - off }, svgEl('title', {}, x.label + ': ' + x.v))); off += len; });
+  svg.append(svgEl('text', { x: 21, y: sub ? 22.5 : 23.5, class: 'pt-d-big', 'text-anchor': 'middle' }, center), sub ? svgEl('text', { x: 21, y: 27.6, class: 'pt-d-small', 'text-anchor': 'middle' }, sub) : null);
+  return svg;
+}
+const legend = parts => h('ul', { class: 'pt-lgd' }, parts.map(x => h('li', {}, h('span', { class: 'pt-lgd-dot ' + x.cls }), h('span', { text: x.label }), h('b', { text: String(x.v) }))));
+/* one labelled horizontal bar: value of max */
+const hbar = (label, v, max, cls, valText, sub) => h('div', { class: 'pt-hbr' }, h('span', { class: 'pt-hbr-l' }, label, sub ? h('small', { text: sub }) : null),
+  h('span', { class: 'pt-hbr-t' }, h('span', { class: 'pt-hbr-f ' + (cls || ''), style: 'width:' + Math.max(0, Math.min(100, max > 0 ? 100 * v / max : 0)) + '%' })), h('b', { class: 'pt-hbr-v', text: valText }));
+const stack = (c, p, w, s) => { const t = c + p + w + s || 1, seg = (v, k, l) => (v ? h('span', { class: 'pt-stk-' + k, style: 'width:' + (100 * v / t) + '%', title: l + ': ' + v }) : null);
+  return h('span', { class: 'pt-stk' }, seg(c, 'c', 'Correct'), seg(p, 'p', 'Partly correct'), seg(w, 'w', 'Wrong'), seg(s, 's', 'Not answered')); };
+/* chapter-wise performance of one test: the topic rows of the report are added up per chapter; every column header sorts (click again to reverse).
+   With onPick, a click on a chapter shows only its questions in the review below. */
+function chapterTable(topics, nums, onPick) {
   const m = new Map();
   topics.forEach(x => { const k = x.chapter || x.topic || 'Other', c = m.get(k) || { name: k, total: 0, correct: 0, wrong: 0, skipped: 0, marks: 0 }; c.total += +x.total || 0; c.correct += +x.correct || 0; c.wrong += +x.wrong || 0; c.skipped += +x.skipped || 0; c.marks += +x.marks || 0; m.set(k, c); });
   const rows = [...m.values()].map(c => Object.assign(c, { no: nums && nums.get(c.name) || 999, label: (nums && nums.get(c.name) ? 'Ch ' + nums.get(c.name) + ' · ' : '') + c.name, acc: c.correct + c.wrong ? 100 * c.correct / (c.correct + c.wrong) : null }));
-  const COLS = [['no', 'Chapter'], ['total', 'Questions'], ['correct', 'Correct'], ['wrong', 'Wrong'], ['skipped', 'Not answered'], ['marks', 'Marks'], ['acc', 'Accuracy'], ['acc', 'Bar']];
-  let key = 'acc', dir = 1;   /* the Chapter column sorts by chapter number */
+  const COLS = [['no', 'Chapter'], ['total', 'Questions'], ['correct', 'Correct'], ['wrong', 'Wrong'], ['skipped', 'Not answered'], ['marks', 'Marks'], ['acc', 'Accuracy']];
+  let key = 'acc', dir = 1, picked = '';   /* the Chapter column sorts by chapter number */
   const body = h('tbody'), head = h('tr');
   const draw = () => {
     body.textContent = '';
     rows.slice().sort((p, q) => { const x = p[key], y = q[key]; if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir || String(p.name).localeCompare(q.name); })
-      .forEach(x => body.append(h('tr', {}, h('td', {}, h('b', { text: x.label })), h('td', { class: 'pt-num', text: x.total }), h('td', { class: 'pt-num', text: x.correct }), h('td', { class: 'pt-num', text: x.wrong }), h('td', { class: 'pt-num', text: x.skipped }), h('td', { class: 'pt-num', text: num(x.marks, 2) }), h('td', { class: 'pt-num', text: pct(x.acc) }), h('td', { class: 'pt-barcell' }, bar(x.acc, x.acc == null ? '' : x.acc < 40 ? 'bad' : x.acc < 70 ? 'mid' : 'ok')))));
-    head.querySelectorAll('th').forEach((th, i) => { const on = COLS[i][0] === key && (i < 7 ? true : false); th.setAttribute('aria-sort', COLS[i][0] === key ? (dir > 0 ? 'ascending' : 'descending') : 'none'); });
+      .forEach(x => body.append(h('tr', { class: (onPick ? 'pt-click' : '') + (picked === x.name ? ' on' : '') },
+        h('td', {}, onPick ? h('button', { type: 'button', class: 'pt-chpick-b', title: 'Show only the questions of this chapter', 'aria-pressed': String(picked === x.name), text: x.label, onclick: () => { picked = picked === x.name ? '' : x.name; draw(); onPick(picked); } }) : h('b', { text: x.label })),
+        h('td', { class: 'pt-num', text: x.total }), h('td', { class: 'pt-num', text: x.correct }), h('td', { class: 'pt-num', text: x.wrong }), h('td', { class: 'pt-num', text: x.skipped }), h('td', { class: 'pt-num', text: num(x.marks, 2) }),
+        h('td', { class: 'pt-barcell pt-accell' }, h('span', { class: 'pt-num', text: pct(x.acc) }), stack(x.correct, 0, x.wrong, x.skipped)))));
+    head.querySelectorAll('th').forEach((th, i) => { th.setAttribute('aria-sort', COLS[i][0] === key ? (dir > 0 ? 'ascending' : 'descending') : 'none'); });
   };
-  COLS.forEach(([k, label], i) => head.append(h('th', { scope: 'col', 'aria-sort': 'none' }, h('button', { type: 'button', class: 'pt-sort', text: label, onclick: () => { if (key === k) dir = -dir; else { key = k; dir = k === 'no' ? 1 : (k === 'acc' ? 1 : -1); } draw(); } }))));
+  COLS.forEach(([k, label]) => head.append(h('th', { scope: 'col', 'aria-sort': 'none' }, h('button', { type: 'button', class: 'pt-sort', text: label, onclick: () => { if (key === k) dir = -dir; else { key = k; dir = k === 'no' || k === 'acc' ? 1 : -1; } draw(); } }))));
   draw();
-  return h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, head), body));
+  const wrap = h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t pt-chtab' }, h('thead', {}, head), body));
+  wrap.pick = name => { picked = name || ''; draw(); };
+  return wrap;
 }
+/* ---------- under each question of the review: Full explanation, Others' solutions, Comments (the same database calls as the dashboard) ---------- */
+const RVI = (d) => '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
+const RV_IC = { sol: RVI('<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H20v14H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M9 9h6M9 13h4"/>'), oth: RVI('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 19a5 5 0 0 0-2.5-4.3"/>'),
+  com: RVI('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/>'), print: RVI('<path d="M7 9V3.5h10V9"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v6.5H7z"/>'),
+  share: RVI('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>'), pdf: RVI('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6m0 0-2.5-2.5M12 17l2.5-2.5"/>') };
+const rvSoft = (t, bad) => h('p', { class: 'pt-hint' + (bad ? ' pt-warnc' : ''), text: t });
+const rvWho = (a, at) => h('div', { class: 'pt-rv-who' }, h('b', { text: (a && a.name) || 'Member' }), a && a.role ? h('span', { class: 'pt-rv-role', text: a.role }) : null, h('span', { class: 'pt-hint', text: day(at) }));
+const dashList = () => { const d = window.DashList; return d && document.documentElement.getAttribute('data-page') === 'dash' && typeof d.solution === 'function' && typeof d.others === 'function' && typeof d.comments === 'function' ? d : null; };
+const dashEnv = () => ({ A: () => AU(), h, toast, content: window.AvantiContent, pct: (x, y) => (y ? Math.round(100 * x / y) : 0) });
+async function rpcData(n, a) { const r = await sb().rpc(n, a); if (r.error) throw new Error(r.error.message); return r.data; }
+function rvSolution(id, pane, isP) {
+  pane.textContent = ''; pane.append(rvSoft('Loading…'));
+  const C = window.AvantiContent;
+  if (!C || !C.sols) { pane.textContent = ''; pane.append(rvSoft('Full explanations are not available here.')); return; }
+  C.sols([id]).then(m => {
+    const sv = m && m[id]; pane.textContent = '';
+    if (!sv) { pane.append(rvSoft(!isP && isFree() ? 'Full explanations of practice (Non-PYQ) questions are part of Premium.' : 'Full explanation not added yet.')); return; }
+    const box = h('div', { class: 'pt-rv-sol', html: qText(typeof sv === 'string' ? sv : sv.t) }); pane.append(box);
+    if (!/\{\{solfig\}\}/.test(box.innerHTML)) { mathIn(box); return; }
+    Promise.resolve(C.figures ? C.figures() : {}).catch(() => ({})).then(f => { const v = f && f[id + '#sol']; box.innerHTML = box.innerHTML.replace(/\{\{solfig\}\}/g, v && v.svg ? v.svg : ''); mathIn(box); });
+  }).catch(() => { pane.textContent = ''; pane.append(rvSoft('Could not load the explanation. Check your connection.', true)); });
+}
+function rvShrink(file) {
+  return new Promise((res, rej) => {
+    const u = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { const k = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k)); const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); c.toBlob(b => (b ? res(b) : rej(new Error('Could not read the image'))), 'image/jpeg', 0.82); };
+    img.onerror = () => { URL.revokeObjectURL(u); rej(new Error('That file is not an image')); }; img.src = u;
+  });
+}
+function rvOthers(id, pane, count) {
+  pane.textContent = '';
+  let used = 0; const left = () => Math.max(0, 2 - used);
+  const msg = h('span', { class: 'pt-hint' }), pick = h('input', { type: 'file', accept: 'image/*', multiple: true, 'aria-label': 'Choose up to 2 images' }), note = h('textarea', { class: 'pt-in', rows: 2, maxlength: 500, placeholder: 'Optional note (for example: shorter method)' });
+  const form = h('div', { class: 'pt-rv-form', hidden: true }), list = h('div', { class: 'pt-rv-list' }, rvSoft('Loading…'));
+  const send = h('button', { type: 'button', class: 'btn pri', text: 'Post solution', onclick: async () => {
+    const files = Array.from(pick.files || []).slice(0, left());
+    if (!left()) { msg.textContent = 'You have already added 2 images for this question, the most allowed.'; return; }
+    if (!files.length) { msg.textContent = 'Choose at least one image.'; return; }
+    const uid = (P() || {}).id; if (!uid) { msg.textContent = 'Please sign in again.'; return; }
+    send.disabled = true; msg.textContent = 'Uploading…';
+    try {
+      const paths = await Promise.all(files.map((f, i) => rvShrink(f).then(async b => { const path = uid + '/' + Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 8) + '.jpg'; const r = await sb().storage.from('user-solutions').upload(path, b, { contentType: 'image/jpeg' }); if (r.error) throw r.error; return path; })));
+      await rpcData('add_qb_solution', { p_qid: id, p_images: paths, p_note: note.value.trim() || null });
+      rvOthers(id, pane, count);
+    } catch (e) { send.disabled = false; msg.textContent = 'Could not post: ' + (e.message || 'try again') + '.'; }
+  } });
+  form.append(pick, note, h('div', { class: 'pt-rv-row' }, send, msg));
+  pane.append(h('button', { type: 'button', class: 'btn', text: '+ Add your solution', onclick: () => { form.hidden = !form.hidden; } }), form, list);
+  rpcData('qb_solutions_for', { p_qid: id }).then(async rows => {
+    rows = rows || []; count(rows.length);
+    used = rows.filter(x => x.mine).reduce((s, x) => s + (x.images || []).length, 0); msg.textContent = left() ? 'Up to ' + left() + ' image' + (left() === 1 ? '' : 's') + ', handwritten or typed (2 per question in all).' : 'You have added the 2 images allowed for this question.'; pick.disabled = !left();
+    const paths = rows.flatMap(x => x.images || []), urls = {};
+    if (paths.length) { const s = await sb().storage.from('user-solutions').createSignedUrls(paths, 3600); ((s && s.data) || []).forEach(z => { if (z.signedUrl) urls[z.path] = z.signedUrl; }); }
+    list.textContent = '';
+    if (!rows.length) { list.append(rvSoft('No one has added a solution yet. Be the first.')); return; }
+    rows.forEach(x => { const w = rvWho(x.author, x.at);
+      if (x.mine || can('isAdmin')) w.append(h('button', { type: 'button', class: 'pt-rv-del', text: 'Delete', onclick: () => { if (window.confirm('Delete this solution?')) rpcData('delete_qb_solution', { p_id: x.id }).then(() => rvOthers(id, pane, count)).catch(e => toast(e.message)); } }));
+      list.append(h('div', { class: 'pt-rv-item' }, w, x.note ? h('p', { class: 'pt-rv-text', text: x.note }) : null,
+        h('div', { class: 'pt-rv-imgs' }, (x.images || []).map((p, i) => (urls[p] ? h('img', { src: urls[p], alt: 'Solution image ' + (i + 1), loading: 'lazy', onclick: () => window.open(urls[p], '_blank', 'noopener') }) : null))))); });
+  }).catch(() => { list.textContent = ''; list.append(rvSoft('Could not load solutions. Check your connection.', true)); });
+}
+function rvComments(id, pane, count) {
+  pane.textContent = ''; let n = 0;
+  const ta = h('textarea', { class: 'pt-in', rows: 2, maxlength: 1000, placeholder: 'Write a comment, a doubt or a shorter method', 'aria-label': 'Your comment' }), msg = h('span', { class: 'pt-hint' }), list = h('div', { class: 'pt-rv-list' }, rvSoft('Loading…'));
+  const draw = r => { const it = h('div', { class: 'pt-rv-item' }), w = rvWho(r.author, r.at);
+    if (r.mine || can('isAdmin')) w.append(h('button', { type: 'button', class: 'pt-rv-del', text: 'Delete', onclick: () => rpcData('delete_qb_comment', { p_id: r.id }).then(() => { it.remove(); n--; count(n); }).catch(e => toast(e.message)) }));
+    it.append(w, h('p', { class: 'pt-rv-text', text: r.body })); return it; };
+  const post = h('button', { type: 'button', class: 'btn pri', text: 'Post comment', onclick: async () => {
+    const t = ta.value.trim(); if (!t) { msg.textContent = 'Write something first.'; return; } post.disabled = true; msg.textContent = 'Posting…';
+    try { const r = await rpcData('add_qb_comment', { p_qid: id, p_body: t }); ta.value = ''; msg.textContent = ''; if (!n) list.textContent = ''; n++; count(n); if (r) list.insertBefore(draw(r), list.firstChild); }
+    catch (e) { msg.textContent = e.message + '.'; }
+    post.disabled = false;
+  } });
+  pane.append(h('div', { class: 'pt-rv-form' }, ta, h('div', { class: 'pt-rv-row' }, post, msg)), list);
+  rpcData('qb_comments_for', { p_qid: id }).then(rows => { rows = (rows || []).slice().reverse(); n = rows.length; count(n); list.textContent = ''; if (!rows.length) { list.append(rvSoft('No comments yet.')); return; } rows.forEach(x => list.append(draw(x))); })
+    .catch(() => { list.textContent = ''; list.append(rvSoft('Could not load comments. Check your connection.', true)); });
+}
+function rvTools(id, isP) {
+  const pane = h('div', { class: 'pt-rv-pane', hidden: true }), cnt = {}; let cur = '';
+  const DL = dashList();
+  const run = k => { const setN = v => { cnt[k].textContent = v ? ' (' + v + ')' : ''; };
+    if (DL) { const env = dashEnv(); if (k === 'sol') DL.solution(env, id, pane); else if (k === 'oth') DL.others(env, id, pane, setN); else DL.comments(env, id, pane, setN); return; }
+    if (k === 'sol') rvSolution(id, pane, isP); else if (k === 'oth') rvOthers(id, pane, setN); else rvComments(id, pane, setN); };
+  const btn = (k, label) => { cnt[k] = h('span', { class: 'pt-rv-n' }); return h('button', { type: 'button', class: 'pt-rv-b', 'aria-expanded': 'false', onclick: e => {
+    const same = cur === k && !pane.hidden; bar.querySelectorAll('.pt-rv-b').forEach(x => x.setAttribute('aria-expanded', 'false'));
+    if (same) { pane.hidden = true; cur = ''; return; }
+    cur = k; pane.hidden = false; e.currentTarget.setAttribute('aria-expanded', 'true'); run(k); } }, h('span', { class: 'pt-rv-ic', html: RV_IC[k] }), h('span', { text: label }), cnt[k]); };
+  const bar = h('div', { class: 'pt-rv-acts' }, btn('sol', 'Full explanation'), btn('oth', 'Others’ solutions'), btn('com', 'Comments'));
+  return h('div', { class: 'pt-rv-tools' }, bar, pane);
+}
+/* ---------- The report of one finished test ---------- */
+const LV_NAME = { L1: 'Level 1 (easy)', L2: 'Level 2 (moderate)', L3: 'Level 3 (tough)' };
 async function pageReport(id) {
   if (!/^[0-9a-f-]{36}$/i.test(id || '')) { location.hash = '#/reports'; return; }
   show(head('Report', ''), loading('Loading the report…'));
@@ -1681,35 +1977,136 @@ async function pageReport(id) {
   const a = R.attempt, t = R.test, rk = R.rank || {};
   const att = a.correct + a.wrong, acc = att ? 100 * a.correct / att : null;
   const mine = AU().profile.id && P().role === 'student';
-  const top = head(t.title, (mine ? '' : (a.student_name || 'Student') + (a.school ? ' · ' + a.school : '') + ' · ') + 'Submitted ' + when(a.submitted_at),
-    ...(mine ? [link('#/reports', 'My Reports', 'btn'), h('button', { type: 'button', class: 'btn', text: 'Export', onclick: () => exportResult(id, t.title) })] : [link('#/personal', '‹ Back to results', 'btn')]));
-  const chNums = new Map();   /* chapter name -> chapter number (12M20 is chapter 20) */
+  const chNums = new Map(), QM = new Map();   /* chapter name -> chapter number (12M20 is chapter 20); question id -> its index entry (class, level, PYQ or not) */
   const items = R.items || [];
   try {
-    const B = await fresh(TE().bank()), num0 = code => parseInt(String(code).replace(/^\d+M/, ''), 10), cc = new Map(B.qs.map(q => [q.i, q.cc]));
-    items.forEach(it => { const n = num0(cc.get(it.qid) || ''); if (it.chapter && n) chNums.set(it.chapter, n); });
+    const B = await fresh(TE().bank()), num0 = code => parseInt(String(code).replace(/^\d+M/, ''), 10), byId = new Map(B.qs.map(q => [q.i, q]));
+    items.forEach(it => { const q = byId.get(it.qid); if (!q) return; QM.set(it.qid, q); const n = num0(q.cc || ''); if (it.chapter && n) chNums.set(it.chapter, n); });
     [...B.chapters].forEach(([code, v]) => { const n = num0(code); if (v && v.n && n && !chNums.has(v.n)) chNums.set(v.n, n); });
   } catch (e) { if (e === STALE) throw e; }
   /* the whole report is shown at once; the correct answers open when the time of the paper is over (so they cannot be passed on to others who are still writing) */
   const keysAt = R.answers_at ? new Date(R.answers_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
   if (keysAt) items.forEach(it => { it.correct_answer = null; });   /* never shown (or kept) before the full exam time is over, whatever the server sends */
-  const st = { correct: ['Correct', 'ok'], partial: ['Partly correct', 'mid'], wrong: ['Wrong', 'bad'], skipped: ['Not answered', 'mute'] };
-  const review = h('div', { class: 'pt-plist' }, items.map(it => qCard({ type: it.sj ? 'Subjective' : isParaText(it.q) ? 'Para' : it.type, q: it.q, o: it.o, f: it.f, tp: it.topic }, it.pos - 1, {
-    locked: !!keysAt, status: keysAt ? (it.status === 'skipped' ? 'skipped' : null) : it.status, response: it.response, answer: it.correct_answer, code: keysAt ? null : it.qid,   /* question codes are shown only here, after the test, once the answers are open (a code would lead to the answer in the bank) */
-    right: h('span', { class: 'pt-qmeta' }, it.status && !keysAt ? badge(st[it.status][0], st[it.status][1]) : badge(it.response ? 'Answered' : 'Not answered', 'mute'), h('span', { class: 'pt-hint', text: (it.marks == null || keysAt ? '' : (it.marks > 0 ? '+' : '') + num(it.marks, 2) + ' marks · ') + mmss(it.time_sec) })),
-    extra: h('p', { class: 'pt-yours' }, 'Your answer: ', h('b', { text: it.response || '—' }), ' · Correct answer: ', h('b', { text: keysAt ? 'opens at ' + keysAt : (it.correct_answer || '—') })) })));
-  let only = 'all';
-  const filt = h('div', { class: 'seg pt-seg' }, [['all', 'All'], ['wrong', 'Wrong'], ['skipped', 'Not answered'], ['correct', 'Correct']].filter(x => !keysAt || x[0] === 'all' || x[0] === 'skipped').map(([k, tx]) => h('button', { type: 'button', 'aria-pressed': String(k === only), text: tx, onclick: e => { only = k; filt.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === e.target))); review.querySelectorAll('.pt-q').forEach(q => { q.hidden = only !== 'all' && !q.classList.contains('st-' + only); }); } })));
+  const ST = { correct: ['Correct', 'ok'], partial: ['Partly correct', 'mid'], wrong: ['Wrong', 'bad'], skipped: ['Not answered', 'mute'] };
+  const kindOf = it => (it.sj ? 'Subjective' : isParaText(it.q) ? 'Para' : it.type === 'WRITTEN' ? 'Written' : it.type || 'MCQ');
+  const clsOf = it => { const q = QM.get(it.qid), m = q && /^(\d+)M/.exec(q.cc || ''); return m ? m[1] : ''; };
+  const lvOf = it => { const q = QM.get(it.qid); return (q && q.d) || ''; };
+  const secOf = it => (it.sec != null && it.sec !== '' ? String(it.sec) : '');
+  const stOf = it => (keysAt ? (it.status === 'skipped' || !it.response ? 'skipped' : 'answered') : it.status || 'skipped');
+  const cnt = k => items.filter(it => it.status === k).length;
+  const nC = items.length ? cnt('correct') : a.correct, nP = cnt('partial'), nW = items.length ? cnt('wrong') : a.wrong, nS = items.length ? cnt('skipped') : a.skipped;
+  const sp = scorePct(a), stats = R.full && R.stats ? R.stats : null, sstats = R.school_stats || null;
+  const usedSec = +a.time_taken_sec || 0, totSec = (+t.duration_min || 0) * 60;
+  /* ----- actions: Print, Share, PDF ----- */
+  const doPrint = () => {
+    if (document.documentElement.classList.contains('plan-free')) { toast('Printing is part of Premium. Use PDF to download the paper.'); return; }
+    const root = document.documentElement, done = () => { root.classList.remove('pt-printing'); window.removeEventListener('afterprint', done); };
+    root.classList.add('pt-printing'); window.addEventListener('afterprint', done); window.print(); setTimeout(done, 1500);
+  };
+  const doShare = async () => {
+    const url = location.origin + location.pathname + '#/report/' + id, text = t.title + ': ' + num(a.score, 2) + ' / ' + num(a.max_score, 2) + (acc != null ? ' · accuracy ' + pct(acc) : '');
+    if (navigator.share) { try { await navigator.share({ title: t.title + ' · report', text, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+    copy(text + '\n' + url, 'Report link copied');
+  };
+  const actBtn = (k, label, fn) => h('button', { type: 'button', class: 'btn pt-rep-b', onclick: fn }, h('span', { class: 'pt-rv-ic', html: RV_IC[k] }), label);
+  const top = h('div', { class: 'pt-rep-top' }, h('a', { class: 'pt-back', href: mine ? '#/reports' : '#/personal', text: mine ? '‹ My Reports' : '‹ Back', onclick: e => { if (P_STEPS > 0 && history.length > 1) { e.preventDefault(); P_STEPS -= 2; history.back(); } } }),
+    head(t.title, (mine ? '' : (a.student_name || 'Student') + (a.school ? ' · ' + a.school : '') + ' · ') + 'Submitted ' + when(a.submitted_at),
+      h('div', { class: 'pt-rep-act' }, actBtn('print', 'Print', doPrint), actBtn('share', 'Share', doShare), actBtn('pdf', 'PDF', () => exportResult(id, t.title)))));
+  /* ----- the hero: score gauge, answers donut, accuracy, time and rank ----- */
+  const ansParts = [{ v: nC, cls: 'ok', label: 'Correct' }].concat(nP ? [{ v: nP, cls: 'mid', label: 'Partly correct' }] : [], [{ v: nW, cls: 'bad', label: 'Wrong' }, { v: nS, cls: 'mute', label: 'Not answered' }]);
+  const hero = h('section', { class: 'pt-rep-hero' },
+    h('div', { class: 'pt-rep-tile pt-rep-score' }, h('span', { class: 'pt-stat-l', text: 'Score' }), gaugeSvg(sp, num(a.score, 2), 'of ' + num(a.max_score, 2) + ' marks', tone(sp), 'Score ' + num(a.score, 2) + ' of ' + num(a.max_score, 2)),
+      h('span', { class: 'pt-rep-pct ' + tone(sp), text: sp == null ? '' : num(sp, 1) + '% of the maximum' })),
+    h('div', { class: 'pt-rep-tile' }, h('span', { class: 'pt-stat-l', text: 'Answers' }), h('div', { class: 'pt-rep-donut' }, donutSvg(ansParts, String(items.length || t.n_questions || ''), 'questions'), legend(ansParts))),
+    h('div', { class: 'pt-rep-tile' }, h('span', { class: 'pt-stat-l', text: 'Accuracy' }), h('div', { class: 'pt-rep-donut' }, donutSvg([{ v: acc || 0, cls: tone(acc) || 'mute', label: 'Correct' }, { v: 100 - (acc || 0), cls: 'none', label: 'Wrong' }], acc == null ? '—' : num(acc, 0) + '%', 'accuracy', 'Accuracy ' + pct(acc)),
+      h('div', { class: 'pt-rep-kv' }, h('b', { text: a.correct + ' of ' + att }), h('span', { text: 'attempted were correct' }), h('b', { text: att + ' of ' + (a.correct + a.wrong + a.skipped) }), h('span', { text: 'questions attempted' })))),
+    h('div', { class: 'pt-rep-tile' }, h('span', { class: 'pt-stat-l', text: 'Time and rank' }),
+      hbar('Time used', usedSec, totSec || usedSec, usedSec > totSec * 0.95 ? 'bad' : 'acc', mmss(usedSec), totSec ? 'of ' + t.duration_min + ' min' : ''),
+      items.length ? hbar('Per question', usedSec / items.length, Math.max(1, totSec / items.length), 'acc2', mmss(usedSec / items.length), totSec ? 'allowed ' + mmss(totSec / items.length) : '') : null,
+      h('div', { class: 'pt-rep-ranks' }, R.full ? h('div', {}, h('b', { text: rk.overall ? '#' + rk.overall : '—' }), h('span', { text: rk.overall ? 'of ' + rk.overall_of + ' (all students)' : 'All students' })) : null,
+        h('div', {}, h('b', { text: rk.school ? '#' + rk.school : '—' }), h('span', { text: rk.school ? 'of ' + rk.school_of + ' in ' + (a.school ? 'school' : 'your group') : 'Rank in school' })))));
+  /* ----- you compared with the average and the top score ----- */
+  const cmpMax = Math.max(+a.max_score || 0, +(stats && stats.top) || 0, +(sstats && sstats.top) || 0, +a.score || 0) || 1;
+  const cmpRows = [hbar('You', +a.score || 0, cmpMax, 'you', num(a.score, 2))];
+  if (stats) cmpRows.push(hbar('Average', +stats.average || 0, cmpMax, 'avg', num(stats.average, 2), 'all students'), hbar('Top score', +stats.top || 0, cmpMax, 'top', num(stats.top, 2), 'all students'));
+  if (sstats && sstats.average != null) cmpRows.push(hbar('School average', +sstats.average || 0, cmpMax, 'avg2', num(sstats.average, 2), a.school || ''), hbar('School top', +sstats.top || 0, cmpMax, 'top2', num(sstats.top, 2), a.school || ''));
+  const cmpCard = card(h('h2', { text: 'You compared with others' }), h('div', { class: 'pt-hbrs' }, cmpRows), h('p', { class: 'pt-hint', text: 'Marks out of ' + num(a.max_score, 2) + '.' + (R.full ? '' : ' Premium students also see the average and the top score of all students.') }));
+  /* ----- time on each question (a column per question; tap one to jump to it) ----- */
+  let timeCard = null;
+  const jump = { fn: null };
+  if (items.length) {
+    const n = items.length, mx = Math.max(30, ...items.map(it => +it.time_sec || 0)), W0 = Math.max(320, n * 14 + 40), H0 = 150, L = 34, B0 = 22, bw = (W0 - L - 6) / n;
+    const svg = svgEl('svg', { viewBox: '0 0 ' + W0 + ' ' + H0, class: 'pt-tq', role: 'img', 'aria-label': 'Time spent on each question' });
+    [0, 0.5, 1].forEach(f => { const y = 8 + (H0 - B0 - 8) * (1 - f); svg.append(svgEl('line', { x1: L, x2: W0 - 4, y1: y, y2: y, class: 'pt-cg' }), svgEl('text', { x: L - 4, y: y + 3.5, class: 'pt-ct-l', 'text-anchor': 'end' }, mmss(mx * f))); });
+    items.forEach((it, i) => { const v = +it.time_sec || 0, hh = (H0 - B0 - 8) * v / mx, x = L + i * bw + bw * 0.15, s = stOf(it);
+      const r = svgEl('rect', { x, y: H0 - B0 - hh, width: Math.max(2, bw * 0.7), height: Math.max(1, hh), rx: 2, class: 'pt-tq-b ' + (ST[s] ? ST[s][1] : 'acc'), tabindex: 0, role: 'button', 'aria-label': 'Question ' + it.pos + ', ' + mmss(v) },
+        svgEl('title', {}, 'Q' + it.pos + ' · ' + mmss(v) + (ST[s] ? ' · ' + ST[s][0] : '')));
+      r.addEventListener('click', () => jump.fn && jump.fn(it.pos)); r.addEventListener('keydown', e => { if (e.key === 'Enter') jump.fn && jump.fn(it.pos); }); svg.append(r);
+      if (n <= 30 || i % 5 === 4 || i === 0) svg.append(svgEl('text', { x: x + bw * 0.35, y: H0 - 7, class: 'pt-ct-l', 'text-anchor': 'middle' }, String(it.pos))); });
+    timeCard = card(h('h2', { text: 'Time on each question' }), h('div', { class: 'pt-chartwrap' }, svg), keysAt ? h('p', { class: 'pt-hint', text: 'Tap a column to open that question.' }) : legend([{ cls: 'ok', label: 'Correct', v: nC }, { cls: 'bad', label: 'Wrong', v: nW }, { cls: 'mute', label: 'Not answered', v: nS }]));
+  }
+  /* ----- the question review: filters (only those this test has) and the questions ----- */
+  const F = { ch: '', tp: '', cls: '', sec: '', st: '', ty: '', lv: '' };
+  const distinct = fn => [...new Set(items.map(fn).filter(Boolean))].sort((x, y) => String(x).localeCompare(String(y), 'en', { numeric: true }));
+  const chs = distinct(it => it.chapter).sort((x, y) => (chNums.get(x) || 999) - (chNums.get(y) || 999)), clss = distinct(clsOf), secs = distinct(secOf), tys = distinct(kindOf), lvs = distinct(lvOf);
+  const cards = items.map(it => {
+    const s = stOf(it), isP = (QM.get(it.qid) || {}).s === 'P';
+    const el = qCard({ type: kindOf(it), q: it.q, o: it.o, f: it.f, tp: [it.chapter, it.topic].filter(Boolean).join(' · ') }, it.pos - 1, {
+      locked: !!keysAt, status: keysAt ? (s === 'skipped' ? 'skipped' : null) : it.status, response: it.response, answer: it.correct_answer, code: keysAt ? null : it.qid,   /* question codes are shown only here, after the test, once the answers are open (a code would lead to the answer in the bank) */
+      right: h('span', { class: 'pt-qmeta' }, !keysAt && ST[it.status] ? badge(ST[it.status][0], ST[it.status][1]) : badge(it.response ? 'Answered' : 'Not answered', 'mute'), secOf(it) ? badge('Section ' + secOf(it)) : null, lvOf(it) ? badge(lvOf(it)) : null,
+        h('span', { class: 'pt-hint', text: (it.marks == null || keysAt ? '' : (it.marks > 0 ? '+' : '') + num(it.marks, 2) + ' marks · ') + mmss(it.time_sec) })),
+      extra: h('div', { class: 'pt-rv-foot' }, h('p', { class: 'pt-yours' }, 'Your answer: ', h('b', { text: it.response || '—' }), ' · Correct answer: ', h('b', { text: keysAt ? 'opens at ' + keysAt : (it.correct_answer || '—') })),
+        keysAt ? null : it.qid ? rvTools(it.qid, isP) : null) });
+    el.classList.add('pt-rv-q'); el.id = 'rvq' + it.pos;
+    return { it, el, s };
+  });
+  const review = h('div', { class: 'pt-plist pt-rv-list0' }, cards.map(c => c.el));
+  const showing = h('p', { class: 'pt-meta', role: 'status' });
+  const chipBox = h('div', { class: 'pt-rv-chips' });
+  const applyF = () => {
+    let n = 0;
+    cards.forEach(c => { const it = c.it, ok = (!F.ch || it.chapter === F.ch) && (!F.tp || it.topic === F.tp) && (!F.cls || clsOf(it) === F.cls) && (!F.sec || secOf(it) === F.sec) && (!F.ty || kindOf(it) === F.ty) && (!F.lv || lvOf(it) === F.lv) && (!F.st || c.s === F.st); c.el.hidden = !ok; if (ok) n++; });
+    showing.textContent = n === cards.length ? 'Showing all ' + n + ' questions' : 'Showing ' + n + ' of ' + cards.length + ' questions';
+    chipBox.textContent = '';
+    [['ch', 'Chapter'], ['tp', 'Topic']].forEach(([k, l]) => { if (F[k]) chipBox.append(h('button', { type: 'button', class: 'pt-rv-chip', title: 'Show every question', onclick: () => setF(k, '') }, l + ': ' + F[k] + ' ', h('b', { 'aria-hidden': 'true', text: '✕' }))); });
+    selEls.forEach(s => { s.value = F[s.dataset.k] || ''; });
+    segEl.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.k || '') === F.st)));
+  };
+  const setF = (k, v) => { F[k] = v; if (k === 'ch' && chTab.pick) chTab.pick(v); applyF(); };
+  const selEls = [];
+  const sel = (k, label, all, list, name) => { if (list.length < 2) return null; const s = h('select', { class: 'pt-in', 'aria-label': label, 'data-k': k, onchange: e => setF(k, e.target.value) }, h('option', { value: '', text: all }), list.map(v => h('option', { value: v, text: name ? name(v) : v }))); selEls.push(s); return s; };
+  const stCounts = k => cards.filter(c => c.s === k).length;
+  const segList = (keysAt ? [['', 'All'], ['answered', 'Answered'], ['skipped', 'Not answered']] : [['', 'All'], ['correct', 'Correct'], ['partial', 'Partly correct'], ['wrong', 'Wrong'], ['skipped', 'Not answered']]).filter(([k]) => !k || stCounts(k));
+  const segEl = h('div', { class: 'seg pt-seg pt-rv-seg', role: 'group', 'aria-label': 'Show questions' }, segList.map(([k, tx]) => h('button', { type: 'button', 'data-k': k, 'aria-pressed': String(!k), class: k ? 'st-' + k : '', onclick: () => setF('st', k) }, tx, k ? h('small', { text: ' ' + stCounts(k) }) : h('small', { text: ' ' + cards.length }))));
+  const filterRow = h('div', { class: 'pt-frow pt-rvf' }, sel('ch', 'Chapter', 'All chapters', chs, v => (chNums.get(v) ? 'Ch ' + chNums.get(v) + ' · ' : '') + v), sel('cls', 'Class', 'All classes', clss, v => 'Class ' + v), sel('sec', 'Section', 'All sections', secs, v => 'Section ' + v),
+    sel('ty', 'Question type', 'All types', tys), sel('lv', 'Difficulty', 'All levels', lvs, v => LV_NAME[v] || v));
+  jump.fn = pos => { const c = cards.find(x => x.it.pos === pos); if (!c) return; if (c.el.hidden) { Object.keys(F).forEach(k => { F[k] = ''; }); if (chTab.pick) chTab.pick(''); applyF(); } c.el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  const reviewCard = card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Question-wise review' }), showing), segEl, filterRow.children.length ? filterRow : null, chipBox,
+    keysAt ? null : h('p', { class: 'pt-hint', text: 'Under each question: the full explanation, solutions shared by others and comments.' }), review);
+  const toReview = () => { if (reviewCard.getBoundingClientRect().top > window.innerHeight * 0.6 || reviewCard.getBoundingClientRect().top < 0) reviewCard.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  const chTab = chapterTable(R.topics || [], chNums, name => { F.ch = name; F.tp = ''; applyF(); if (name) toReview(); });
+  /* ----- topic-wise (weakest first; tap a topic to see its questions) and section-wise bars ----- */
+  const tps = (R.topics || []).filter(x => x.topic).map(x => Object.assign({}, x, { acc: +x.correct + +x.wrong ? 100 * x.correct / (+x.correct + +x.wrong) : null })).sort((x, y) => (x.acc == null) - (y.acc == null) || x.acc - y.acc || y.total - x.total);
+  const topicCard = tps.length > 1 ? card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Topic-wise performance' }), h('span', { class: 'pt-meta', text: 'weakest first' })),
+    h('div', { class: 'pt-hbrs' }, tps.slice(0, 10).map(x => h('button', { type: 'button', class: 'pt-hbr-btn', title: 'Show the questions of this topic', onclick: () => { F.tp = x.topic; F.ch = ''; if (chTab.pick) chTab.pick(''); applyF(); toReview(); } },
+      hbar(x.topic, x.acc || 0, 100, tone(x.acc) || 'mute', pct(x.acc), x.correct + ' of ' + x.total + ' correct' + (x.chapter ? ' · ' + x.chapter : ''))))),
+    tps.length > 10 ? h('p', { class: 'pt-hint', text: (tps.length - 10) + ' more topics are in the chapter table above.' }) : null) : null;
+  const secRows = secs.map(s => { const its = items.filter(it => secOf(it) === s), c = its.filter(it => it.status === 'correct').length, p = its.filter(it => it.status === 'partial').length, w = its.filter(it => it.status === 'wrong').length, k = its.filter(it => it.status === 'skipped').length;
+    const mk = its.reduce((x, it) => x + (+it.marks || 0), 0), mx = its.reduce((x, it) => x + (+it.max || 0), 0);
+    return h('div', { class: 'pt-secrow' }, h('b', { text: 'Section ' + s }), stack(c, p, w, k), h('span', { class: 'pt-num', text: num(mk, 2) + (mx ? ' / ' + num(mx, 2) : '') + ' marks' }), h('small', { class: 'pt-hint', text: its.length + ' questions · ' + c + ' correct' + (p ? ', ' + p + ' partly' : '') + ', ' + w + ' wrong, ' + k + ' not answered' })); });
+  const secCard = secs.length > 1 ? card(h('h2', { text: 'Section-wise performance' }), h('div', { class: 'pt-secs' }, secRows)) : null;
   show(top,
-    keysAt ? h('div', { class: 'pt-note', role: 'note' }, h('b', { text: 'Correct answers open at ' + keysAt + ' (when the full exam time is over). ' }), 'So they cannot be shared while others are still writing the paper. Until then the review only shows which option you ticked. The right and wrong marks and the correct answers (green and red) appear when you open this report again after that time.') : null,
+    keysAt ? h('div', { class: 'pt-note', role: 'note' }, h('b', { text: 'Correct answers open at ' + keysAt + ' (when the full exam time is over). ' }), 'So they cannot be shared while others are still writing the paper. Until then the review only shows which option you ticked. The right and wrong marks, the correct answers (green and red) and the full explanations appear when you open this report again after that time.') : null,
     !R.full ? h('div', { class: 'pt-upsell' }, h('span', { text: 'You see how you did within your school. Premium students also see their rank among all students who took this test.' }), link('#/membership', 'Upgrade to Premium', 'btn pt-gold')) : null,
-    h('div', { class: 'pt-stats' }, stat('Score', num(a.score, 2) + ' / ' + num(a.max_score, 2), R.full && R.stats ? 'Average ' + num(R.stats.average, 2) + ' · Top ' + num(R.stats.top, 2) : 'School average ' + num(R.school_stats && R.school_stats.average, 2) + ' · Top ' + num(R.school_stats && R.school_stats.top, 2)),
-      stat('Accuracy', pct(acc), a.correct + ' correct of ' + att + ' attempted'), stat('Time taken', mmss(a.time_taken_sec), 'of ' + t.duration_min + ' min'),
-      R.full ? stat('Rank (all students)', rk.overall ? rk.overall + ' of ' + rk.overall_of : '—') : null, stat('Rank in school', rk.school ? rk.school + ' of ' + rk.school_of : '—', a.school || ''),
-      stat('Answers', a.correct + ' / ' + a.wrong + ' / ' + a.skipped, 'correct / wrong / not answered')),
-    card(h('h2', { text: 'Chapter Wise Performance in this test' }), chapterTable(R.topics || [], chNums)),
-    card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Question-wise review' }), filt), review));
-  mathIn(review);
+    hero,
+    h('div', { class: 'pt-grid2' }, cmpCard, timeCard),
+    card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Chapter-wise performance' }), h('span', { class: 'pt-meta', text: 'tap a chapter to see its questions' })), chTab),
+    topicCard || secCard ? h('div', { class: topicCard && secCard ? 'pt-grid2' : '' }, topicCard, secCard) : null,
+    reviewCard);
+  applyF();
+  /* the shared option layout (4 in a row, 2x2 or one per row): once now and again after KaTeX has drawn the maths */
+  const optsLayout = () => { const O = window.AvantiOpts; if (!O || typeof O.layout !== 'function') return; review.querySelectorAll('.pt-opts').forEach(box => { try { O.layout(box); } catch (e) { /* the built-in layout stays */ } }); };
+  optsLayout(); mathIn(review).then(optsLayout);
 }
 
 /* ---------- Taking a test ---------- */
@@ -1724,7 +2121,7 @@ async function pageTake(code) {
   if (info.school_pending && !info.attempt_id) { show(card(empty(info.title, 'Your school (' + (P().school || 'not chosen') + ') is waiting for approval by the admin. Tests open after it is approved. Edit profile shows the status.', link('#/profile', 'Edit profile', 'btn')))); return; }
   if (!info.for_me && !info.attempt_id && info.blocked) {
     const prem = /Premium/.test(info.blocked) && AU().perm.plan === 'free';
-    show(card(empty(info.title, info.blocked, prem ? link('#/membership', '★ Get Premium', 'btn pri') : link('#/personal', 'My Performance', 'btn')))); return;
+    show(card(empty(info.title, info.blocked, prem ? link('#/membership', '★ Get Premium', 'btn pri') : (P().role === 'student' ? link('#/reports', 'My Reports', 'btn') : link('#/personal', 'My Performance', 'btn'))))); return;
   }
   if (!info.for_me && !info.attempt_id) {
     const me = P(), otherSchool = info.school && String(info.school).toLowerCase() !== String(me.school || '').toLowerCase();
@@ -1747,7 +2144,7 @@ async function pageTake(code) {
     h('div', { class: 'pt-stats' }, stat('Questions', info.n_questions), stat('Time', info.duration_min + ' min' + (+info.reading_min ? ' + ' + info.reading_min + ' min reading' : '')), stat('Maximum marks', num(info.max_marks != null ? info.max_marks : info.marks_correct * info.n_questions, 2))),
     schemeTable(info),
     h('h2', { text: 'Instructions' }),
-    h('ul', { class: 'pt-feats' }, (+info.reading_min ? ['Reading time: the first ' + info.reading_min + ' minutes are only for reading. You can go through all the questions, but you cannot type, tick or select any answer. After that the writing time of ' + info.duration_min + ' minutes (' + num(info.duration_min / 60, 1).replace(/\.0$/, '') + ' hours) starts and you can answer.'] : []).concat(['The timer starts when you press Start. It counts only while this page is open and online: if your internet or power goes it pauses, and when you open the test again it carries on from where it stopped, with your saved answers.', 'Your answers are saved automatically every few seconds. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Stay on the test in full screen. Switching to another tab or app, or leaving full screen, gives a warning. At 5 warnings the test is submitted automatically.', 'The test submits by itself when the time is up. The correct answers open when the full exam time is over.']).map(x => h('li', { text: x }))),
+    h('ul', { class: 'pt-feats' }, (+info.reading_min ? ['Reading time: the first ' + info.reading_min + ' minutes are only for reading. You can go through all the questions, but you cannot type, tick or select any answer. After that the writing time of ' + info.duration_min + ' minutes (' + num(info.duration_min / 60, 1).replace(/\.0$/, '') + ' hours) starts and you can answer.'] : []).concat(['The timer starts when you press Start. It counts only while this page is open and online: if your internet or power goes it pauses, and when you open the test again it carries on from where it stopped, with your saved answers.', 'Your answers are saved automatically every few seconds. If your internet drops, keep going: they are saved again when it returns.', 'Use "Mark for review" to come back to a question. Marked questions with an answer are still marked.', 'Stay on the test in full screen. Switching to another tab or app, or leaving full screen, gives a warning. At 5 warnings the test is submitted automatically.', 'The test submits by itself when the time is up, and also if it is not finished within twice its time after you start. The correct answers open when the full exam time is over.']).map(x => h('li', { text: x }))),
     h('p', { class: 'pt-hint', text: 'Signed in as ' + (P().full_name || P().email || P().avanti_id) + (P().school ? ' · ' + P().school : '') }),
     startBtn)));
 }
@@ -1755,7 +2152,7 @@ async function pageTake(code) {
 let EX = null;
 const TYPE_NAME = { MCQ: 'Single correct (MCQ)', MSQ: 'One or more correct', Numerical: 'Numerical value', Matching: 'Matching (single correct)', SUBJ: 'Written question: pick the final answer', WRITTEN: 'Written question (not auto-marked)' };
 /* the marking scheme by question type, shown before the test starts */
-const secName = q => /^[1-4]$/.test(String(q.sec || '')) ? (q.sec === '4' ? (q.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 Para questions with 2 parts each') : SEC_NAME[q.sec]) : 'Section ' + q.sec;
+const secName = q => { const s = String(q.sec || ''); return /^[1-4]$/.test(s) ? (s === '4' ? (q.type === 'Matching' ? 'Section 4 · Matching' : 'Section 4 · 2 Para questions with 2 parts each') : SEC_NAME[s]) : /^[A-E]$/.test(s) && SEC_NAME[s] ? SEC_NAME[s] : /^section\b/i.test(s) ? s : 'Section ' + s; };
 const SEC_NAME = { 1: 'Section 1 · Single correct (MCQ)', 2: 'Section 2 · One or more correct (MSQ)', 3: 'Section 3 · Numerical value', 4: 'Section 4 · 2 Para questions with 2 parts each', A: 'Section A · MCQ and Assertion-Reason', B: 'Section B · Very Short Answer (VSA)', C: 'Section C · Short Answer (SA)', D: 'Section D · Long Answer (LA)', E: 'Section E · Case Study / Source-Based' };
 function schemeTable(info) {
   let secs = info.sections || [];
@@ -1784,14 +2181,18 @@ function exitExam() {
 function runExam(d) {
   exitExam();
   const qs = d.questions, ans = {};
-  qs.forEach(q => { const a = (d.answers || {})[q.id] || {}; ans[q.id] = { r: a.r == null ? (q.type === 'MSQ' ? [] : '') : a.r, t: +a.t || 0, m: !!a.m, v: !!a.v, alt: q.alt ? (a.alt === 'B' ? 'B' : 'A') : null }; });
+  const msqArr = r => (Array.isArray(r) ? r : String(r == null ? '' : r).split(/[^A-Ha-h]+/)).map(x => String(x).trim().toUpperCase()).filter(x => /^[A-H]$/.test(x));   /* an MSQ answer is always a list of letters: any number of options, all four (or five) included */
+  qs.forEach(q => { const a = (d.answers || {})[q.id] || {}; ans[q.id] = { r: a.r == null ? (q.type === 'MSQ' ? [] : '') : q.type === 'MSQ' || (q.alt && q.alt.type === 'MSQ' && a.alt === 'B') ? msqArr(a.r) : a.r, t: +a.t || 0, m: !!a.m, v: !!a.v, alt: q.alt ? (a.alt === 'B' ? 'B' : 'A') : null }; });
+  /* section headings: the numbered names (Section 1 to 4) only when the sections come in that order; a past paper whose sections were in another order shows the question type alone */
+  const secNums = qs.map(q => +q.sec).filter(n => n >= 1 && n <= 4), secOrdered = secNums.every((n, i) => !i || n >= secNums[i - 1]);
+  const secLabel = q => { const t = secName(q); return secOrdered ? t : t.replace(/^Section [1-4] · /, ''); };
   /* the clock counts the time the page is open and online: the server says how many seconds are left, this page counts down from there, and waits while the power or the internet is gone (then carries on from where it stopped).
      X.tabs is the number of warnings (tab or app switch, leaving full screen); the server submits the test at 5. */
   const X = EX = { d, qs, ans, cur: 0, tabs: d.tab_switches || 0, dirty: false, saving: false, enter: Date.now(), done: false, left: d.remaining_sec != null ? d.remaining_sec : Math.max(0, d.duration_min * 60 - (Date.parse(d.server_now) - Date.parse(d.started_at)) / 1000), sync: Date.now(), lastViol: 0, wasFull: !!document.fullscreenElement };
   const root = X.root = h('div', { class: 'ex', role: 'application', 'aria-label': 'Test: ' + d.title });
   document.body.classList.add('ex-on'); document.body.append(root);
   const timer = h('span', { class: 'ex-timer', role: 'timer', 'aria-live': 'off' });
-  const pauseBar = h('div', { class: 'ex-pause', role: 'alert', hidden: navigator.onLine, text: 'No connection. The timer is paused and carries on from where it stopped when you are back online. Your answers are kept on this page.' });
+  const pauseBar = h('div', { class: 'ex-pause', role: 'alert', hidden: navigator.onLine, text: 'No connection. The timer waits while you are offline and carries on from where it stopped when you are back online. Your answers are kept on this page.' });
   const saved = h('span', { class: 'ex-saved', role: 'status' });
   const main = h('main', { class: 'ex-main' }), pal = h('div', { class: 'ex-grid' });
   const side = h('aside', { class: 'ex-side', 'aria-label': 'Question palette' },
@@ -1827,7 +2228,7 @@ function runExam(d) {
   }
   function drawPal() {
     pal.textContent = '';
-    qs.forEach((q, i) => { if (q.sec && (i === 0 || qs[i - 1].sec !== q.sec)) pal.append(h('div', { class: 'ex-psec', text: secName(q) })); pal.append(h('button', { type: 'button', class: 'ex-p ' + stateOf(ans[q.id]) + (i === X.cur ? ' cur' : ''), text: i + 1, 'aria-label': 'Question ' + (i + 1) + ': ' + { ans: 'answered', na: 'not answered', nv: 'not visited', mk: 'marked for review', am: 'answered and marked' }[stateOf(ans[q.id])], onclick: () => go(i) })); });
+    qs.forEach((q, i) => { if (q.sec && (i === 0 || qs[i - 1].sec !== q.sec)) pal.append(h('div', { class: 'ex-psec', text: secLabel(q) })); pal.append(h('button', { type: 'button', class: 'ex-p ' + stateOf(ans[q.id]) + (i === X.cur ? ' cur' : ''), text: i + 1, 'aria-label': 'Question ' + (i + 1) + ': ' + { ans: 'answered', na: 'not answered', nv: 'not visited', mk: 'marked for review', am: 'answered and marked' }[stateOf(ans[q.id])], onclick: () => go(i) })); });
   }
   function go(i) { track(); X.cur = Math.max(0, Math.min(qs.length - 1, i)); root.classList.remove('pal-open'); draw(); save(); }
   function draw() {
@@ -1855,18 +2256,21 @@ function runExam(d) {
     } else {
       const multi = q.type === 'MSQ';
       input = h('div', { class: 'ex-opts ' + optCls(q.o), role: multi ? 'group' : 'radiogroup', 'aria-label': 'Options' }, (q.o || []).map((t, k) => {
-        const L = LETTERS[k], on = multi ? cur.includes(L) : cur === L;
+        const L = LETTERS[k], on = multi ? msqArr(cur).includes(L) : cur === L;
         return h('label', { class: 'ex-opt' + (on ? ' on' : '') },
           h('input', { type: multi ? 'checkbox' : 'radio', name: 'exo' + (which || ''), value: L, checked: on, onchange: e => {
             const sw = claim();
-            if (multi) { const s = new Set(a.r); e.target.checked ? s.add(L) : s.delete(L); a.r = [...s].sort(); } else a.r = L;
+            if (multi) { const s = new Set(msqArr(a.r)); if (e.target.checked) s.add(L); else s.delete(L); a.r = [...s].sort(); } else a.r = L;   /* no limit: every option can be ticked */
             X.dirty = true; if (sw) { draw(); return; } main.querySelectorAll('.ex-opt').forEach(l => l.classList.toggle('on', l.querySelector('input').checked)); drawPal();
           } }), h('b', { text: L }), h('span', { html: qText(t) }));
       }));
     }
+      if (window.AvantiOpts && input.classList && input.classList.contains('ex-opts')) { const el = input; requestAnimationFrame(() => { try { window.AvantiOpts.layout(el); } catch (e) { /* the built-in layout stays */ } }); }   /* the shared option layout (4 in a row, 2x2 or one per row) */
       return input;
     };
-    main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge(q.sj ? 'Subjective' : isParaText(q.q) ? 'Para' : /^[1-4]$/.test(String(q.sec || '')) ? secName(q) : (q.sec ? 'Section ' + q.sec + ' · ' : '') + (q.type === 'WRITTEN' ? 'Written question' : q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
+    if (q0.sec) { const inSec = qs.filter(z => z.sec === q0.sec), k = inSec.indexOf(q0) + 1;
+      main.append(h('div', { class: 'ex-sech', role: 'heading', 'aria-level': '2' }, h('b', { text: secLabel(q0) }), h('span', { text: 'Question ' + k + ' of ' + inSec.length + ' in this section' }))); }
+    main.append(h('div', { class: 'ex-qh' }, h('strong', { text: 'Question ' + (X.cur + 1) + ' of ' + qs.length }), badge(q.sj ? 'Subjective' : isParaText(q.q) ? 'Para' : /^[1-4]$/.test(String(q.sec || '')) ? secLabel(q) : (q.sec ? (/^section\b/i.test(String(q.sec)) ? q.sec : 'Section ' + q.sec) + ' · ' : '') + (q.type === 'WRITTEN' ? 'Written question' : q.type === 'MSQ' ? 'MSQ: one or more correct' : q.type === 'Numerical' ? 'Numerical answer' : q.type === 'SUBJ' ? 'Written question: pick the final answer' : 'MCQ: one correct')),
       h('span', { class: 'pt-hint', text: (q.mc != null && +q.mc === 0) ? 'Not auto-marked' : '+' + num(q.mc != null ? q.mc : d.marks_correct, 2) + (() => { const w = q.mw != null ? +q.mw : (q.type === 'MCQ' ? +d.marks_wrong : 0); return w ? ' / −' + num(w, 2) : ''; })() + (q.mp ? ' · partial marks' : '') + (q0.mpp ? ' · step marks: tick every correct step, a wrong tick gives 0' : '') }),
       X.qtEl = h('span', { class: 'ex-qtime', title: 'Time spent on this question', 'aria-label': 'Time on this question' })),
       ...(q0.alt ? [h('div', { class: 'ex-half' }, h('b', { class: 'ex-halfl', text: 'Question (A)' }), h('div', { class: 'ex-q', html: qText(q0.q, true) }), figure(q0.f) || '', buildInput(q0, 'A')),
@@ -2017,9 +2421,9 @@ async function addStudentFlow(after, defSchool) {
       return false;
     } }]);
 }
-/* Free teachers: My Students is part of the Premium teacher plan (an upgrade page, never a redirect) */
+/* Free teachers: Students/Teachers is part of the Premium teacher plan (an upgrade page, never a redirect) */
 function premiumTeacherPage() {
-  show(head('My Students', ''), card(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'My Students is part of the Premium teacher plan' }),
+  show(head('Students/Teachers', ''), card(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'Students/Teachers is part of the Premium teacher plan' }),
       h('p', { text: 'See every student of your school by class, stream and session, with sign-in status, tests taken, average score and last test, and open any student\u2019s test history.' }),
       h('p', { class: 'pt-hint', text: 'Students register by themselves and choose their school; you see them here once your school is approved.' }),
       h('div', { class: 'pt-actions' }, link('#/membership', '\u2605 Upgrade to Premium', 'btn pt-gold'), link('#/my-tests', 'School Tests & Results', 'btn')))));
@@ -2028,8 +2432,8 @@ function pageAddStudent() {
   /* only the admin adds students (the server refuses everyone else): students register by themselves and choose their school */
   if (!can('isAdmin')) {
     if (P().role === 'teacher' && !can('manageStudents')) return premiumTeacherPage();
-    return show(head('Add a student', ''), card(empty('Students register by themselves', 'Students sign in with Google (Avanti students with their Avanti ID) and choose their school. Only the admin adds students. ' + (can('manageStudents') ? 'You see them in My Students once your school is approved.' : ''),
-      can('manageStudents') ? link('#/students', 'My Students', 'btn pri') : link('#/help', 'Help & Support', 'btn'))));
+    return show(head('Add a student', ''), card(empty('Students register by themselves', 'Students sign in with Google (Avanti students with their Avanti ID) and choose their school. Only the admin adds students. ' + (can('manageStudents') ? 'You see them in Students/Teachers once your school is approved.' : ''),
+      can('manageStudents') ? link('#/students', 'Students/Teachers', 'btn pri') : link('#/help', 'Help & Support', 'btn'))));
   }
   if (can('manageStudents')) { location.replace('#/students'); return; }
   let f = studentForm(); const holder = h('div', {}, f), msg = h('p', { class: 'pt-msg', role: 'status' }), done = h('div', { class: 'pt-plist' });
@@ -2253,8 +2657,8 @@ function approvalBadge(x) {
   return k === 'approved' ? badge('Approved', 'ok') : k === 'pending' ? badge('Not Approved', 'bad') : badge('Unassigned', 'mute');
 }
 async function pageStudents() {
-  if (!can('manageStudents')) { if (P().role === 'teacher') return premiumTeacherPage(); if (P().role === 'student') return show(card(empty('My Students is for teachers', 'This page is for teachers. Your tests and reports are in the profile menu.', link('#/tests', 'Available tests', 'btn pri')))); return nope('My Students is for teachers', ''); }
-  show(head('My Students', ''), loading('Loading your students…'));
+  if (!can('manageStudents')) { if (P().role === 'teacher') return premiumTeacherPage(); if (P().role === 'student') return show(card(empty('Students/Teachers is for teachers', 'This page is for teachers. Your tests and reports are in the profile menu.', link('#/tests', 'Available tests', 'btn pri')))); return nope('Students/Teachers is for teachers', ''); }
+  show(head('Students/Teachers', ''), loading('Loading your students…'));
   const IS_ADMIN = can('isAdmin');
   let R = IS_ADMIN ? { school: 'All schools', dob_visible: true, students: await rpc('admin_all_students') } : await rpc('school_students', { p_school: STU_SCHOOL || null });
   R = R || { school: STU_SCHOOL || '', dob_visible: true, students: [] };
@@ -2263,70 +2667,83 @@ async function pageStudents() {
   const noDob = all.filter(x => x.student_id && !x.dob && (IS_ADMIN || x.source !== 'avanti')).length;
   /* The teachers of the same school (Premium teachers and the admin). If the database function is not installed yet, the list is simply left out. */
   const T = IS_ADMIN ? null : await rpc('school_teachers', { p_school: STU_SCHOOL || null }).catch(() => null);
-  const F = { school: '', cls: '', stream: '', session: '', status: '', q: '' };   /* the School filter comes first, then Class */
+  const F = { school: '', cls: '', stream: '', category: '', gender: '', session: '', status: '', q: '' };   /* the School filter comes first, then Class */
   STU_NAME = R.school || ''; STU_ROWS = new Map(all.filter(x => x.user_id).map(x => [x.user_id, x]));
-  const SORT = { key: 'full_name', dir: 1 };
+  const SORT = { key: 'full_name', dir: 1 }, STU_PAGE = 50; let page = 0;
   const reload = () => pageStudents();
   const uniq = k => [...new Set(all.map(x => x[k]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'en', { numeric: true }));
-  const tbody = h('tbody', {}), countEl = h('span', { class: 'pt-meta' }), thead = h('thead', {});
-  const COLS = [['No.', null], ['Student', 'full_name']].concat(IS_ADMIN ? [['School', 'school'], ['Approval', 'school_status']] : [], [['Date of birth', 'dob'], ['Class · Stream', 'class_stream'], ['Session', 'session'], ['Category · Gender', 'cat_gender']], IS_ADMIN ? [['Plan', 'plan_label'], ['Heard from', 'heard_from']] : [], [['Tests', 'tests'], ['Average', 'avg_pct'], ['Last test', 'last_at'], ['', null]]);
+  const tbody = h('tbody', {}), countEl = h('span', { class: 'pt-meta', role: 'status' }), thead = h('thead', {}), nav = h('nav', { class: 'pt-pager', 'aria-label': 'Students: pages' });
+  const dmy = d => (d ? String(d).slice(0, 10).split('-').reverse().join('-') : '-');
+  const regAt = x => x.registered_at || x.created_at || null;
+  /* columns by importance: who, class and stream, school, plan, dates, then the rest and the performance */
+  const COLS = [['No.', null], ['Name', 'full_name'], ['ID / Email', 'idmail'], ['Class', 'class'], ['Stream', 'stream']].concat(IS_ADMIN ? [['School', 'school'], ['Approval', 'school_status']] : [],
+    [['Plan', 'plan_label'], ['Date of Premium purchase', 'premium_since'], ['Date of Registration', 'registered'], ['Date of birth', 'dob'], ['Category', 'category'], ['Gender', 'gender'], ['Session', 'session']],
+    IS_ADMIN ? [['Heard from', 'heard_from']] : [], [['Tests', 'tests'], ['Average', 'avg_pct'], ['Last test', 'last_at'], ['', null]]);
   const drawHead = () => { thead.textContent = ''; thead.append(h('tr', {}, COLS.map(([t, k]) => !k ? h('th', { text: t }) : h('th', { 'aria-sort': SORT.key === k ? (SORT.dir > 0 ? 'ascending' : 'descending') : 'none' },
-    h('button', { type: 'button', class: 'pt-sortb', title: 'Sort by ' + t, onclick: () => { if (SORT.key === k) SORT.dir *= -1; else { SORT.key = k; SORT.dir = ['tests', 'avg_pct', 'last_at'].includes(k) ? -1 : 1; } draw(); } }, t, h('span', { class: 'pt-sorti', 'aria-hidden': 'true', text: SORT.key === k ? (SORT.dir > 0 ? '▲' : '▼') : '↕' })))))); };
+    h('button', { type: 'button', class: 'pt-sortb', title: 'Sort by ' + t, onclick: () => { if (SORT.key === k) SORT.dir *= -1; else { SORT.key = k; SORT.dir = ['tests', 'avg_pct', 'last_at', 'premium_since', 'registered'].includes(k) ? -1 : 1; } page = 0; draw(); } }, t, h('span', { class: 'pt-sorti', 'aria-hidden': 'true', text: SORT.key === k ? (SORT.dir > 0 ? '▲' : '▼') : '↕' })))))); };
   const draw = () => {
     const q = F.q.toLowerCase();
-    const rows = all.filter(x => (!F.school || (F.school === '__none__' ? x.school_status === 'unassigned' : String(x.school || '').toLowerCase() === F.school.toLowerCase())) && (!F.status || x.school_status === F.status) && (!F.cls || x.class === F.cls) && (!F.stream || x.stream === F.stream) && (!F.session || x.session === F.session) && (!q || [x.full_name, x.student_id, x.email].some(v => String(v || '').toLowerCase().includes(q))));
-    const val = x => { const k = SORT.key; return k === 'class_stream' ? [x.class, x.stream].filter(Boolean).join(' ') : k === 'cat_gender' ? [x.category, x.gender].filter(Boolean).join(' ') : x[k]; };
+    const rows = all.filter(x => (!F.school || (F.school === '__none__' ? x.school_status === 'unassigned' : String(x.school || '').toLowerCase() === F.school.toLowerCase())) && (!F.status || x.school_status === F.status) && (!F.cls || x.class === F.cls) && (!F.stream || x.stream === F.stream) && (!F.category || x.category === F.category) && (!F.gender || x.gender === F.gender) && (!F.session || x.session === F.session) && (!q || [x.full_name, x.student_id, x.email].some(v => String(v || '').toLowerCase().includes(q))));
+    const val = x => { const k = SORT.key; return k === 'idmail' ? x.student_id || x.email : k === 'registered' ? regAt(x) : x[k]; };
     rows.sort((a, b) => { const A = val(a), B = val(b), ea = A == null || A === '', eb = B == null || B === ''; if (ea || eb) return ea && eb ? 0 : ea ? 1 : -1; return (typeof A === 'number' && typeof B === 'number' ? A - B : String(A).localeCompare(String(B), 'en', { numeric: true, sensitivity: 'base' })) * SORT.dir; });
     drawHead();
-    countEl.textContent = rows.length + ' of ' + all.length + ' students';
+    const pages = Math.max(1, Math.ceil(rows.length / STU_PAGE)); page = Math.max(0, Math.min(page, pages - 1));
+    countEl.textContent = rows.length + ' of ' + all.length + ' students' + (pages > 1 ? ' · page ' + (page + 1) + ' of ' + pages + ' (' + STU_PAGE + ' per page)' : '');
     tbody.textContent = '';
-    if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: 14 }, empty('No students match', all.length ? 'Change the filters above.' : 'Add students one by one, or upload a whole class from Excel.'))));
-    rows.forEach((x, i) => tbody.append(h('tr', {},
-      h('td', { class: 'pt-num pt-serial', text: String(i + 1) }),
+    if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: COLS.length }, empty('No students match', all.length ? 'Change the filters above.' : 'Add students one by one, or upload a whole class from Excel.'))));
+    rows.slice(page * STU_PAGE, page * STU_PAGE + STU_PAGE).forEach((x, i) => tbody.append(h('tr', {},
+      h('td', { class: 'pt-num pt-serial', text: String(page * STU_PAGE + i + 1) }),
       h('td', {}, x.user_id ? h('a', { class: 'pt-sname', href: '#/student/' + x.user_id, title: 'Open the dashboard of ' + (x.full_name || 'this student'), text: x.full_name || '—' }) : h('b', { text: x.full_name || '—' }),
-        h('div', { class: 'pt-hint', text: (x.student_id ? 'ID ' + x.student_id + (x.email ? ' · ' + x.email : '') : (x.email || 'Google sign-in')) + (x.user_id ? '' : ' · not signed in yet') + (x.complete === false ? ' · profile not finished' : '') })),
-      IS_ADMIN ? h('td', { text: x.school_status === 'unassigned' ? '—' : (x.school || '—') }) : null,
+        !x.user_id || x.complete === false ? h('div', { class: 'pt-hint', text: [x.user_id ? '' : 'not signed in yet', x.complete === false ? 'profile not finished' : ''].filter(Boolean).join(' · ') }) : null),
+      h('td', { class: 'pt-idmail' }, x.student_id ? h('div', { text: 'ID ' + x.student_id }) : null, x.email ? h('div', { class: x.student_id ? 'pt-hint' : null, text: x.email }) : !x.student_id ? '-' : null),
+      h('td', { text: x.class ? (x.class === 'Dropper' ? 'Dropper' : 'Class ' + x.class) : '-' }), h('td', { text: x.stream || '-' }),
+      IS_ADMIN ? h('td', { text: x.school_status === 'unassigned' ? '-' : (x.school || '-') }) : null,
       IS_ADMIN ? h('td', {}, approvalBadge(x)) : null,
-      h('td', { class: 'pt-num' }, x.dob ? x.dob.split('-').reverse().join('-') : !x.student_id ? 'Google' : x.source === 'avanti' && !IS_ADMIN ? h('span', { class: 'pt-hint', text: 'Admin only', title: 'An Avanti student\'s date of birth is their sign-in password, so only the admin sees it.' }) : !DOB_SHOWN ? h('span', { class: 'pt-hint', text: 'Hidden', title: 'Dates of birth show once Avanti approves your school.' }) : h('span', { class: 'pt-hint', text: 'Not saved yet', title: 'Press Edit and add the date, or upload the class file again. It also fills in when the student signs in.' })),
-      h('td', { text: [x.class && (x.class === 'Dropper' ? 'Dropper' : 'Class ' + x.class), x.stream].filter(Boolean).join(' · ') || '—' }), h('td', { text: x.session || '—' }),
-      h('td', { text: [x.category, x.gender].filter(Boolean).join(' · ') || '—' }),
-      IS_ADMIN ? h('td', {}, planBadge(x)) : null,
-      IS_ADMIN ? h('td', { text: x.heard_from || '—' }) : null,
-      h('td', { class: 'pt-num', text: x.tests }), h('td', { class: 'pt-num pt-barcell' }, x.avg_pct == null ? '—' : [h('span', { text: pct(x.avg_pct) }), bar(x.avg_pct, x.avg_pct < 40 ? 'bad' : x.avg_pct < 70 ? 'mid' : 'ok')]),
-      h('td', { class: 'pt-num', text: x.last_at ? day(x.last_at) : '—' }),
+      h('td', {}, planBadge(x)),
+      h('td', { class: 'pt-num', text: x.premium_since ? day(x.premium_since) : '-' }),
+      h('td', { class: 'pt-num', text: regAt(x) ? day(regAt(x)) : '-' }),
+      h('td', { class: 'pt-num', text: dmy(x.dob) }),
+      h('td', { text: x.category || '-' }), h('td', { text: x.gender || '-' }), h('td', { text: x.session || '-' }),
+      IS_ADMIN ? h('td', { text: x.heard_from || '-' }) : null,
+      h('td', { class: 'pt-num', text: x.tests }), h('td', { class: 'pt-num pt-barcell' }, x.avg_pct == null ? '-' : [h('span', { text: pct(x.avg_pct) }), bar(x.avg_pct, x.avg_pct < 40 ? 'bad' : x.avg_pct < 70 ? 'mid' : 'ok')]),
+      h('td', { class: 'pt-num', text: x.last_at ? day(x.last_at) : '-' }),
       h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, can('isAdmin') ? h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editStudent(x, reload) }) : null,
         x.user_id && x.tests ? h('button', { type: 'button', class: 'btn', text: 'Tests', onclick: () => studentTests(x) }) : null)))));
+    pagerNav(nav, page, pages, p => { page = p; draw(); const t0 = tableCard.getBoundingClientRect().top; if (t0 < 0) tableCard.scrollIntoView({ block: 'start' }); });
   };
-  const mkSel = (label, all1, list, key) => h('select', { class: 'pt-in', 'aria-label': label, onchange: e => { F[key] = e.target.value; draw(); } }, h('option', { value: '', text: all1 }), list.map(v => h('option', { value: v, text: v })));
+  const mkSel = (label, all1, list, key, name) => h('select', { class: 'pt-in', 'aria-label': label, onchange: e => { F[key] = e.target.value; page = 0; draw(); } }, h('option', { value: '', text: all1 }), list.map(v => h('option', { value: v, text: name ? name(v) : v })));
+  const withVals = (base, k) => base.concat(uniq(k).filter(v => !base.includes(v)));   /* the usual choices, plus any other value the list holds */
   const signed = all.filter(x => x.signed_in).length, took = all.filter(x => x.tests > 0), avg = took.length ? took.reduce((a, x) => a + (+x.avg_pct || 0), 0) / took.length : null;
   let schoolPick = null;
   /* admin: the School filter (before Class) lists every school that has students, plus "Unassigned / No School" for Google sign-ins that never chose one */
   const schoolNames = [...new Set(all.map(x => x.school).filter(v => v && !isBuiltin(v)))].sort((a, b) => String(a).localeCompare(String(b), 'en', { numeric: true }));
   const teachersBox = h('div');
   const drawTeachers = async () => { teachersBox.textContent = ''; if (!IS_ADMIN || !F.school || F.school === '__none__') return; try { teachersBox.append(mkTeachers(await rpc('school_teachers', { p_school: F.school }), F.school)); } catch (e) { /* the list is optional */ } };
-  const schoolFilter = IS_ADMIN ? h('select', { class: 'pt-in', 'aria-label': 'School', onchange: e => { F.school = e.target.value; draw(); drawTeachers(); } },
+  const schoolFilter = IS_ADMIN ? h('select', { class: 'pt-in', 'aria-label': 'School', onchange: e => { F.school = e.target.value; page = 0; draw(); drawTeachers(); } },
     h('option', { value: '', text: 'All schools' }), h('option', { value: '__none__', text: 'Unassigned / No School' }), schoolNames.map(v => h('option', { value: v, text: v }))) : null;
   const mkTeachers = (T, school) => card(h('div', { class: 'pt-ct' }, h('h2', { text: 'Teachers of ' + school }), h('span', { class: 'pt-meta', text: T.length + ' teacher' + (T.length === 1 ? '' : 's') })),
-    T.length ? h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Teacher', 'Plan', 'Tests', 'Joined', 'School approval'].map(x => h('th', { text: x })))),
+    T.length ? h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Teacher', 'Plan', 'Date of Premium purchase', 'Date of Registration', 'Tests', 'School approval'].map(x => h('th', { text: x })))),
       h('tbody', {}, T.map(t => h('tr', {},
         h('td', {}, h('b', { text: t.full_name || '—' }), t.is_staff ? h('span', {}, ' ', badge('Avanti staff', 'mid')) : null, h('div', { class: 'pt-hint', text: t.email || '' })),
-        h('td', {}, planBadge(t)), h('td', { class: 'pt-num', text: t.tests }), h('td', { text: day(t.created_at) }),
+        h('td', {}, planBadge(t)), h('td', { class: 'pt-num', text: t.premium_since ? day(t.premium_since) : '-' }), h('td', { class: 'pt-num', text: regAt(t) ? day(regAt(t)) : '-' }), h('td', { class: 'pt-num', text: t.tests }),
         h('td', {}, t.approved ? badge('Approved', 'ok') : badge('Waiting', 'mid'))))))) : empty('No teachers yet', 'No teacher has chosen this school.'));
   const teachersCard = T == null ? null : mkTeachers(T, R.school);
-  show(head('My Students', R.school + ' · ' + all.length + ' student' + (all.length === 1 ? '' : 's'),
+  const tableCard = card(h('div', { class: 'pt-frow' }, IS_ADMIN ? schoolFilter : null, mkSel('Class', 'All classes', withVals(CLASSES, 'class'), 'cls', v => (v === 'Dropper' ? v : 'Class ' + v)), mkSel('Stream', 'All streams', withVals(STREAMS, 'stream'), 'stream'),
+      mkSel('Category', 'All categories', withVals(CATEGORIES, 'category'), 'category'), mkSel('Gender', 'All genders', withVals(GENDERS, 'gender'), 'gender'), mkSel('Session', 'All sessions', uniq('session'), 'session'),
+      IS_ADMIN ? h('select', { class: 'pt-in', 'aria-label': 'Approval', onchange: e => { F.status = e.target.value; page = 0; draw(); } }, h('option', { value: '', text: 'All approval states' }), h('option', { value: 'approved', text: 'Approved' }), h('option', { value: 'pending', text: 'Not Approved' }), h('option', { value: 'unassigned', text: 'Unassigned' })) : null,
+      h('input', { type: 'search', class: 'pt-in', placeholder: 'Search name, ID or email', 'aria-label': 'Search students', oninput: e => { F.q = e.target.value.trim(); page = 0; draw(); } })), countEl,
+    h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t pt-sortable pt-stutab' }, thead, tbody)), nav);
+  show(head('Students/Teachers', R.school + ' · ' + all.length + ' student' + (all.length === 1 ? '' : 's'),
       can('isAdmin') ? h('button', { type: 'button', class: 'btn', text: '+ Add a student', onclick: () => addStudentFlow(reload, F.school && F.school !== '__none__' ? F.school : '') }) : null,
       can('isAdmin') ? h('button', { type: 'button', class: 'btn pri', text: 'Bulk upload', onclick: () => bulkUpload(reload) }) : null),
     schoolPick ? card(h('div', { class: 'pt-fld' }, h('span', { text: 'School (admin: every school)' }), schoolPick)) : null,
     teachersCard,
     can('schoolApproved') ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Your school is waiting for approval by अंक-IT. ' }), 'Students register themselves and choose their school. You will see them here once your school is approved.'),
-    DOB_SHOWN && noDob ? h('div', { class: 'pt-note' }, h('b', { text: noDob + ' student' + (noDob === 1 ? ' has' : 's have') + ' no date of birth saved yet. ' }), 'Upload your Excel sheet with the date of birth column (Bulk upload), or press Edit on a student, to save it. It also fills in when the student signs in once. Dates of birth are shown only to the teachers of the student\u2019s own school and to Avanti admins.') : null,
+    DOB_SHOWN && noDob ? h('div', { class: 'pt-note' }, h('b', { text: noDob + ' student' + (noDob === 1 ? ' has' : 's have') + ' no date of birth saved yet. ' }), 'Upload your Excel sheet with the date of birth column (Bulk upload), or press Edit on a student, to save it. It also fills in when the student signs in once. Dates of birth are shown only to the teachers of the student’s own school and to Avanti admins.') : null,
     DOB_SHOWN ? null : h('div', { class: 'pt-note pt-warnnote' }, h('b', { text: 'Dates of birth are hidden until Avanti approves your school. ' }), 'Then you will see the date of birth of every student of ' + R.school + '.'),
     h('div', { class: 'pt-stats' }, stat('Students', all.length), stat('Signed in', signed), stat('Took a test', took.length), stat('Average score', avg == null ? '—' : pct(avg), 'of students who took a test')),
     teachersBox,
-    card(h('div', { class: 'pt-frow' }, IS_ADMIN ? schoolFilter : null, mkSel('Class', 'All classes', CLASSES, 'cls'), mkSel('Stream', 'All streams', STREAMS, 'stream'), mkSel('Session', 'All sessions', uniq('session'), 'session'),
-        IS_ADMIN ? h('select', { class: 'pt-in', 'aria-label': 'Approval', onchange: e => { F.status = e.target.value; draw(); } }, h('option', { value: '', text: 'All approval states' }), h('option', { value: 'approved', text: 'Approved' }), h('option', { value: 'pending', text: 'Not Approved' }), h('option', { value: 'unassigned', text: 'Unassigned' })) : null,
-        h('input', { type: 'search', class: 'pt-in', placeholder: 'Search name, ID or email', 'aria-label': 'Search students', oninput: e => { F.q = e.target.value.trim(); draw(); } })), countEl,
-      h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t pt-sortable' }, thead, tbody))));
+    tableCard);
   draw();
 }
 
@@ -2338,7 +2755,7 @@ async function pageStudent(uid) {
   show(head('Student', ''), loading('Loading the student dashboard…'));
   let st = STU_ROWS.get(uid);
   if (!st) { try { const R = can('isAdmin') ? { students: await rpc('admin_all_students') } : await rpc('school_students', { p_school: STU_SCHOOL || null }); STU_ROWS = new Map((R.students || []).filter(x => x.user_id).map(x => [x.user_id, x])); st = STU_ROWS.get(uid); } catch (e) { /* shown below */ } }
-  const back = h('a', { class: 'btn', href: '#/students', text: '‹ My Students' });
+  const back = h('a', { class: 'btn', href: '#/students', text: '‹ Students/Teachers' });
   const who = st ? [st.class && (st.class === 'Dropper' ? 'Dropper' : 'Class ' + st.class), st.stream, st.session, R_SCHOOL(st)].filter(Boolean).join(' · ') : '';
   let list;
   try { list = await rpc('student_attempts', { p_user: uid }); }
@@ -2429,7 +2846,7 @@ async function pageHelp() {
     ['My school, class or name is wrong.', 'Students: ask your teacher to correct it. Teachers: email us and we will change the school.'],
     ['A question, answer or figure is wrong.', 'Email the question ID (shown in the question menu) and what should be corrected.'],
     ['When do I see the correct answers of a test?', 'Your score, ranks and analysis show as soon as you submit. The correct answers open when the full exam time is over (3 hours after you started a 3-hour paper), even if you submitted early.'],
-    ['My internet or power went during a test.', 'The timer pauses by itself and carries on from where it stopped when you open the test again. Your saved answers are kept. Switching tabs or apps is not a pause: it is a warning, and the third warning submits the test.']];
+    ['My internet or power went during a test.', 'The timer pauses by itself and carries on from where it stopped when you open the test again. Your saved answers are kept. Switching tabs or apps is not a pause: it is a warning, and the fifth warning submits the test.']];
   show(head('Help & Support', 'Found a problem or have a question? Write to us and we will get back to you.'),
     h('div', { class: 'pt-grid2 pt-helpgrid' },
       h('div', { class: 'pt-hstack' },
@@ -2484,12 +2901,12 @@ async function pageApprovals() {
   const row = t => h('tr', {},
     h('td', {}, h('b', { text: t.full_name || '—' }), h('div', { class: 'pt-hint', text: t.email || '' })),
     h('td', {}, t.school ? [h('b', { text: t.school }), h('div', { class: 'pt-hint', text: t.school_known ? 'On the Avanti list · ' + t.students + ' students' : 'New school (not on the Avanti list)' })] : h('span', { class: 'pt-hint', text: 'Not chosen yet' })),
-    h('td', { text: day(t.created_at) }), h('td', { text: t.heard_from || '—' }), h('td', {}, planBadge(t)), h('td', { class: 'pt-num', text: t.tests }),
+    h('td', { class: 'pt-num', text: t.registered_at || t.created_at ? day(t.registered_at || t.created_at) : '-' }), h('td', { text: t.heard_from || '—' }), h('td', {}, planBadge(t)), h('td', { class: 'pt-num', text: t.premium_since ? day(t.premium_since) : '-' }), h('td', { class: 'pt-num', text: t.tests }),
     h('td', {}, t.is_admin ? badge('Admin', 'ok') : !t.school ? badge('No school yet', 'mute') : t.approved ? badge('Approved', 'ok') : badge('Waiting', 'mid'), t.is_staff && !t.is_admin ? h('div', { class: 'pt-hint', text: 'Avanti staff' }) : null, t.approved && t.approved_by ? h('div', { class: 'pt-hint', text: 'by ' + t.approved_by.split('@')[0] + ' · ' + day(t.approved_at) }) : null),
     h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editTeacher(t) }),
       t.is_admin || !t.school ? null : t.approved ? h('button', { type: 'button', class: 'btn pt-danger', text: 'Remove approval', onclick: () => act(t, 'revoke') })
       : [h('button', { type: 'button', class: 'btn pri', text: 'Approve', onclick: () => act(t, 'approve') }), h('button', { type: 'button', class: 'btn pt-danger', text: 'Not approve', onclick: () => act(t, 'reject') })])));
-  const table = rows => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Teacher', 'School', 'Signed up', 'Heard from', 'Plan', 'Tests', 'Status', ''].map(x => h('th', { text: x })))), h('tbody', {}, rows.map(row))));
+  const table = rows => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Teacher', 'School', 'Date of Registration', 'Heard from', 'Plan', 'Date of Premium purchase', 'Tests', 'Status', ''].map(x => h('th', { text: x })))), h('tbody', {}, rows.map(row))));
   const allBody = h('div', {}), allCount = h('span', { class: 'pt-meta' });
   const drawAll = q => { q = (q || '').toLowerCase(); const rows = list.filter(t => !q || [t.full_name, t.email, t.school].some(v => String(v || '').toLowerCase().includes(q)));
     allCount.textContent = rows.length + ' of ' + list.length + ' teachers'; allBody.textContent = ''; allBody.append(rows.length ? table(rows) : empty('No teachers match', 'Change the search.')); };
@@ -2558,11 +2975,11 @@ async function pageApprovals() {
         h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, h('button', { type: 'button', class: 'btn', text: 'Edit', onclick: () => editSchool(s) }),
           h('button', { type: 'button', class: 'btn pt-danger', text: 'Delete', onclick: () => delSchool(s) })))))))) : empty('No schools match', 'Change the search.')); };
   drawSch('');
-  const stuTable = rows => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Student', 'School', 'Class', 'Signed up', ''].map(x => h('th', { text: x })))),
+  const stuTable = rows => h('div', { class: 'pt-tw' }, h('table', { class: 'pt-t' }, h('thead', {}, h('tr', {}, ['Student', 'School', 'Class', 'Date of Registration', 'Date of birth', ''].map(x => h('th', { text: x })))),
     h('tbody', {}, rows.map(s => h('tr', {},
       h('td', {}, h('b', { text: s.full_name || '—' }), h('div', { class: 'pt-hint', text: s.email || '' })),
       h('td', {}, h('b', { text: s.school }), h('div', { class: 'pt-hint', text: s.school_known ? 'On the Avanti list' : 'New school (not on the Avanti list)' })),
-      h('td', { text: [s.class, s.stream].filter(Boolean).join(' · ') }), h('td', { text: day(s.created_at) }),
+      h('td', { text: [s.class, s.stream].filter(Boolean).join(' · ') || '-' }), h('td', { class: 'pt-num', text: s.registered_at || s.created_at ? day(s.registered_at || s.created_at) : '-' }), h('td', { class: 'pt-num', text: s.dob ? String(s.dob).slice(0, 10).split('-').reverse().join('-') : '-' }),
       h('td', {}, h('div', { class: 'pt-actions pt-nowrap' }, h('button', { type: 'button', class: 'btn pri', text: 'Approve', onclick: () => act(s, 'approve') }),
         h('button', { type: 'button', class: 'btn pt-danger', text: 'Not approve', onclick: () => act(s, 'reject') }))))))));
   show(head('Approvals', pend.length + ' teachers and ' + pstu.length + ' students waiting · ' + list.filter(x => x.approved).length + ' approved · ' + list.length + ' teachers' + (reqs.length ? ' · ' + reqs.length + ' school change' + (reqs.length === 1 ? '' : 's') : ''),

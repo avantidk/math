@@ -204,17 +204,37 @@ function buildQ(q, n, p) {
   stem.insertAdjacentHTML('afterbegin', boldHtml(tallToDisplay(txt)));
   const kids = [stem];
   if (mt) kids.push(matchTable(mt));
-  if (q.f) kids.push(h('img', { class: 'fig', alt: 'Figure', src: figSrc(q.f), width: q.f.w, height: q.f.h }));
+  if (hasFig(q.f)) { const fd = figDim(q); kids.push(h('img', { class: 'fig', alt: 'Figure', src: figSrc(q.f), width: fd ? fd.w : null, height: fd ? fd.h : null })); }
   if (after) { const st2 = h('div', { class: 'stem' }, ...tags); st2.insertAdjacentHTML('afterbegin', boldHtml(tallToDisplay(after))); kids.push(st2); }
   if (q.o.length) kids.push(h('div', { class: 'opts ' + cls, style: q.o.some(o => /\\d?frac/.test(o)) ? 'row-gap:.8em' : '' }, q.o.map((o, i) => h('div', { class: 'opt' }, h('b', { text: '(' + 'ABCD'[i] + ')' }), h('span', { text: scriptFrac(o) })))));
-  const node = h('div', { class: 'sq' }, q.head ? h('div', { class: 'qhead', text: q.head }) : null, h('div', { class: 'qn', text: n + '.' }), h('div', { class: 'qb' }, kids));
+  const node = h('div', { class: 'sq' }, q.head ? h('div', { class: 'qhead', text: q.head }) : null, q._or ? h('div', { class: 'qor', text: 'OR', style: 'flex:0 0 100%;text-align:center;font-weight:800;letter-spacing:.08em;margin:-.15em 0 -.1em' }) : null, h('div', { class: 'qn', text: (q._no || n) + '.' }), h('div', { class: 'qb' }, kids));
   math(node);
   return node;
 }
 var LOGO_DATA = '';
 try { fetch('img/ankit-logo-light.png?v=932').then(r => r.ok ? r.blob() : null).then(bl => { if (!bl) return; const fr = new FileReader(); fr.onload = () => { LOGO_DATA = fr.result; }; fr.readAsDataURL(bl); }).catch(() => {}); } catch (e) { /* use the file path */ }
 /* a figure that is just a picture wrapped in an SVG is drawn from the picture itself (screenshots and PDFs then never lose it) */
-function figSrc(f) { const m = /<image[^>]*?href="(data:image\/(?:png|jpeg|jpg);base64,[^"]+)"/.exec(f.svg || ''); return m ? m[1] : 'data:image/svg+xml;utf8,' + encodeURIComponent(f.svg); }
+/* figures are stored in several shapes: an SVG, an SVG that only wraps one picture, an <img> tag holding a picture (webp/png/jpeg),
+   or a bare data URL (svg / src / url / data field); every export uses this one reader, and a figure it cannot read is simply left out */
+function figSrc(f) {
+  if (!f) return '';
+  const s = String(f.svg || f.src || f.url || f.data || '').trim();
+  let m = /<img\b[^>]*?\bsrc\s*=\s*["'](data:image\/[^"']+)["']/i.exec(s); if (m) return m[1];
+  m = /<image\b[^>]*?href\s*=\s*["'](data:image\/(?:png|jpeg|jpg|webp|gif);base64,[^"']+)["']/i.exec(s); if (m) return m[1];
+  if (/^data:image\//i.test(s)) return s;
+  if (/<svg\b/i.test(s)) return 'data:image/svg+xml;utf8,' + encodeURIComponent(s);
+  return '';
+}
+const hasFig = f => !!figSrc(f);
+/* the size of a figure stored without one (a picture in an <img> tag): read once before the pages are laid out, so the page
+   breaks leave room for it (at most 300 px wide, like the stored figures) */
+const FIGDIM = new Map();
+const figDim = q => (+q.f.w && +q.f.h ? { w: +q.f.w, h: +q.f.h } : FIGDIM.get(q.i)) || null;
+function figDims(qs) {
+  return Promise.all(qs.filter(q => q && hasFig(q.f) && !(+q.f.w && +q.f.h) && !FIGDIM.has(q.i)).map(q => new Promise(res => {
+    const im = new Image(); im.onload = () => { const nw = im.naturalWidth || 300, nh = im.naturalHeight || 200, k = nw > 300 ? 300 / nw : 1; FIGDIM.set(q.i, { w: Math.round(nw * k), h: Math.round(nh * k) }); res(); };
+    im.onerror = () => res(); im.src = figSrc(q.f); })));
+}
 function skeleton(p, keyMode) {
   const test = p.mode === 'test', sub = keyMode ? (keyMode === 'exp' ? 'Explanations' : 'Answer key') : (p.sub || 'Maths');
   const info = h('div', { class: 'sh-info' },
@@ -229,7 +249,7 @@ function skeleton(p, keyMode) {
   const logo = h('img', { class: 'sh-logo', src: LOGO_DATA || 'img/ankit-logo-light.png?v=932', alt: 'अंक-IT', style: 'height:40px;width:auto;display:block' });
   return h('div', { class: 'sheet' },
     h('div', { class: 'sh-head' },
-      h('div', { class: 'sh-brand' }, logo),
+      h('div', { class: 'sh-brand', style: p.examLogo && !keyMode ? 'display:flex;align-items:center;gap:10px' : null }, logo, p.examLogo && !keyMode ? h('img', { class: 'sh-exam', src: p.examLogo, alt: '', style: 'height:40px;width:40px;display:block;object-fit:contain' }) : null),
       h('div', { class: 'sh-title', style: 'font-size:18px;font-weight:700;line-height:1.2' }, headTitle, !headSub ? null : h('small', { text: headSub, style: 'font-size:14px;font-weight:600;margin-top:3px;letter-spacing:0;color:var(--sheet-muted)' })),
       h('div', { class: 'sh-meta' }, h('div', { text: 'Mathematics', style: 'font-weight:700;font-size:12px' }), p.pyq ? h('div', { class: 'sh-badge', text: 'PYQ' }) : p.badge ? h('div', { class: 'sh-badge', text: p.badge }) : (dt ? h('div', { text: dt }) : null), p.batch ? h('div', { text: p.batch }) : null)),
     p.infoLine && !keyMode ? h('div', { class: 'sh-info2' }, [].concat(p.infoLine).map(x => h('span', { text: x }))) : null,
@@ -283,7 +303,7 @@ function layoutSheet(p, host, minFs) {
 function keySheets(pp, host) {
   const base = pp[0], groups = [];
   pp.forEach(p => {
-    const lab = String(p.badge || p.title).replace(/\s*\u00b7\s*Page \d+ of \d+$/, ''), g = groups[groups.length - 1], items = p.qs.map((q, i) => ({ n: i + 1 + (p.start || 0), a: q.a || '\u2014' }));
+    const lab = String(p.badge || p.title).replace(/\s*\u00b7\s*Page \d+ of \d+$/, ''), g = groups[groups.length - 1], items = p.qs.map((q, i) => ({ n: q._no || i + 1 + (p.start || 0), a: q.a || '\u2014' }));
     if (g && g.lab === lab) g.items.push(...items); else groups.push({ lab, items });
   });
   const labelled = groups.length > 1, sheets = [];
@@ -532,10 +552,39 @@ function paginate(qs, base) {
   const use = even.every(r => ok(r[0], r[1])) ? even : greedy;
   return use.map(r => qs.slice(r[0], r[1]));
 }
+/* ---------- exported papers (tests, past papers): the same rules in the PDF, Word and PowerPoint ----------
+   - "Assertion (A):" and "Reason (R):" labels in bold (the ** marks are what every export draws in bold)
+   - a heading at the start of every section of a past paper (Section A, B, ... or the paper's own section names), in the paper's order
+   - CBSE papers: Sections B to E are written answers; their "options" exist only for the online test, so they are not printed
+   - one whole past paper keeps its own question numbers (an internal choice repeats a number: printed with "OR" between)
+   The question objects of the bank are never changed: the exports get copies. */
+const arBold = s => String(s == null ? '' : s).replace(/(^|[^*])\b((?:Assertion|Reason)\s*\((?:A|R)\)\s*:)/g, '$1**$2**');
+const secLabel = sc => /^[A-Z]$/.test(String(sc).trim()) ? 'Section ' + String(sc).trim() : String(sc).trim();
+const recOf = id => (window.AvantiContent && window.AvantiContent.record ? window.AvantiContent.record(id) : null) || null;
+function paperQs(list) {
+  const qs = list.filter(Boolean), paperSec = qs.some(q => q.s === 'P' && q.sec);
+  const ps = new Set(qs.map(q => q.ps || '')), nos = qs.map(q => { const r = recOf(q.i); const v = r && r.qno != null ? String(r.qno).trim() : ''; return /^\d{1,3}$/.test(v) ? +v : NaN; });
+  const own = qs.length > 1 && ps.size === 1 && !ps.has('') && nos.every((v, k) => v > 0 && (!k || v >= nos[k - 1]));
+  let lastSec = null;
+  return qs.map((q, k) => {
+    const c = Object.assign({}, q, { q: arBold(q.q) });
+    if (paperSec && q.s === 'P' && q.sec) { if (q.sec !== lastSec) c.head = secLabel(q.sec); lastSec = q.sec; }
+    if (q.e === 'CBSE' && /^[B-E]$/.test(String(q.sec || '').trim())) { c.o = []; c.a = ''; }   /* their "answers" are letters of those steps */
+    if (own) { c._no = nos[k]; if (k && nos[k] === nos[k - 1]) c._or = 1; }
+    return c;
+  });
+}
+/* the exam's logo for the paper header, when every question is from one exam (img/exams/<exam>.webp) */
+function examLogoOf(qs) {
+  const ex = new Set(qs.filter(Boolean).map(q => q.e === 'Main' ? (q.y && q.y < 2013 ? 'aieee' : 'jee-main') : q.e === 'Adv' ? (q.y && q.y < 2013 ? 'iit-jee' : 'jee-advanced') : q.e === 'CBSE' ? 'cbse' : /^CUET/i.test(q.e || '') ? 'cuet-ug' : q.e === 'KCET' ? 'kcet' : q.e === 'IAT' ? 'iat' : q.e === 'NDA' ? 'nda' : ''));
+  return ex.size === 1 && !ex.has('') ? 'img/exams/' + [...ex][0] + '.webp' : '';
+}
+const imgData = async src => { const rs = await fetch(src); if (!rs.ok) throw new Error(src); const bl = await rs.blob(), bm = await createImageBitmap(bl), c = document.createElement('canvas'); c.width = bm.width; c.height = bm.height; c.getContext('2d').drawImage(bm, 0, 0);
+  const dataUrl = c.toDataURL('image/png'), data = await new Promise(r => c.toBlob(b => b.arrayBuffer().then(x => r(new Uint8Array(x))), 'image/png')); return { data, dataUrl, w: bm.width, h: bm.height }; };   /* PNG: Word and PowerPoint cannot hold webp */
 function idPages(ids, title, label, info, subLine) {
   label = label || 'Worksheet';
-  const qs = ids.map(i => BYID.get(i)).filter(Boolean);
-  return qs.length ? packPages(qs, (g, i, n) => ({ title, sub: label, tag: label === 'Worksheet' /* a test paper shows no question codes or exam names after the questions */, infoLine: info || '', subLine: subLine || '', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : label })) : [];
+  const qs = paperQs(ids.map(i => BYID.get(i))), examLogo = examLogoOf(qs);
+  return qs.length ? packPages(qs, (g, i, n) => ({ title, sub: label, tag: label === 'Worksheet' /* a test paper shows no question codes or exam names after the questions */, infoLine: info || '', subLine: subLine || '', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : label, examLogo })) : [];
 }
 function packPages(qs, mk) {
   const pg = paginate(qs, BASE), out = []; let start = 0;
@@ -961,7 +1010,7 @@ async function cwPptxData(r) {
   const inScope = q => q.e === bucket && cwYearOk(q);
   const flat = pc ? [].concat(...pc.topics.map(t => t.qs.filter(inScope).map(q => Object.assign({}, q, { _t: t.name, _lab: pyqLabel(q) }))), pc.other.filter(inScope).map(q => Object.assign({}, q, { _t: 'Other topics', _lab: pyqLabel(q) }))) : r.qs.map(q => Object.assign({}, q, { _t: r.name, _lab: pyqLabel(q) }));
   const topics = pc ? pc.topics.map(t => ({ name: t.name, n: t.qs.filter(inScope).length })).concat(pc.other.filter(inScope).length ? [{ name: 'Other topics', n: pc.other.filter(inScope).length }] : []) : [];
-  const figs = {}; for (const q of flat) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
+  const figs = {}; for (const q of flat) if (hasFig(q.f) && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
   let logo = null; try { const rs = await fetch('img/ankit-logo-dark.png?v=922'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
   return { logo, chapter: c.n, cl: c.cl, cc, bucket, bucketName: BUCKET_NAME[bucket], bucketLabel: bucket, year: cwYrText(), count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
 }
@@ -1021,12 +1070,14 @@ function loadBank() {
   return bankP;
 }
 /* ---------- Question Bank tab "Export PPT": same black Avanti slides as the PYQ ChapterWise PPT, for any selection ---------- */
-window.__qbCwPptx = async function (ids, explain) {
+window.__qbCwPptx = async function (ids, explain, opt) {
+  opt = opt || {};
   if (!need('pptx')) throw new Error('Your plan includes PDF downloads only');
   if (!BANK) { const bank = await loadBank(); BANK = bank; BANK.all = bank.qs.slice(); bank.qs.forEach(q => BYID.set(q.i, q)); bank.chapters.forEach(c => CHMAP.set(c.c, c)); }
   /* KCET questions are kept out of the main bank (a separate exam), so look any id that is not there up in the raw PYQ file */
   let xtra = null; if (ids.some(i => !BYID.has(i))) { xtra = new Map(); (await qbJson('pyq')).forEach(r => { if (r.exam === 'KCET' || r.exam === 'IAT' || r.exam === 'NDA') { const q = qbCompact(r, true); if (q) xtra.set(q.i, q); } }); }
-  const qs = ids.map(i => BYID.get(i) || (xtra && xtra.get(String(i)))).filter(Boolean); if (!qs.length) throw new Error('no questions found');
+  /* the same paper rules as the PDF and Word (section headings, CBSE written-answer sections without options, bold Assertion / Reason, the paper's numbers) */
+  const qs = paperQs(ids.map(i => BYID.get(i) || (xtra && xtra.get(String(i))))); if (!qs.length) throw new Error('no questions found');
   const ccs = [...new Set(qs.map(q => q.cc))].sort((a, b) => chOrder(a) - chOrder(b)), one = ccs.length === 1, c0 = CHMAP.get(ccs[0]);
   const cls = [...new Set(ccs.map(cc => CHMAP.get(cc).cl))].sort();
   const synIdx = (cc, tp) => { const s = (BANK.syl || {})[cc] || []; const k = s.findIndex(t => norm(t[1]) === norm(tp)); return k < 0 ? 999 : k; };
@@ -1037,10 +1088,11 @@ window.__qbCwPptx = async function (ids, explain) {
   const years = {}; qs.filter(q => q.s === 'P' && q.y).forEach(q => { years[q.y] = (years[q.y] || 0) + 1; });
   const nP = qs.filter(q => q.s === 'P').length, nN = qs.length - nP, ex = [...new Set(qs.filter(q => q.s === 'P').map(q => q.e))];
   const kindLabel = nN && nP ? 'PYQs + practice' : nN ? 'Practice questions' : ex.length === 1 ? BUCKET_NAME[ex[0]] + ' PYQs' : 'JEE Main + Advanced PYQs';
-  const figs = {}; for (const q of flat) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
+  const figs = {}; for (const q of flat) if (hasFig(q.f) && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
   let logo = null; try { const rs = await fetch('img/ankit-logo-dark.png?v=922'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl), dataUrl = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }); logo = { dataUrl, w: bm.width, h: bm.height }; } } catch (e) { /* no logo file: skip */ }
   const yl = Object.keys(years).map(Number).sort((a, b) => a - b);
-  const d = { logo, chapter: one ? c0.n : 'Selected Questions', cl: cls[0], cc: one ? ccs[0] : '', clLabel: 'CLASS ' + cls.join(' & '), chLabel: one ? 'CHAPTER ' + ccs[0].split('M')[1] : ccs.length + ' CHAPTERS',
+  let examLogo = null; const exl = examLogoOf(qs); if (exl) { try { examLogo = await imgData(exl); } catch (e) { /* no exam logo: skip */ } }
+  const d = { logo, examLogo, chapter: opt.paper && opt.title ? opt.title : one ? c0.n : opt.title || 'Selected Questions', cl: cls[0], cc: one ? ccs[0] : '', clLabel: 'CLASS ' + cls.join(' & '), chLabel: one ? 'CHAPTER ' + ccs[0].split('M')[1] : ccs.length + ' CHAPTERS',
     bucket: ex.length === 1 ? ex[0] : 'Main', bucketName: kindLabel, kindLabel, perQ: true, noFront: true, noTopic: true, year: yl.length ? (yl.length === 1 ? String(yl[0]) : 'all') : '\u2014', count: flat.length, years, topics, qs: flat, figs, meta: await pyqMeta() };
   await Promise.all([officeCode(), loadScript(CDN.zip), loadScript(CDN.pptx)]);
   if (explain) d.expl = await explForQs(qs);
@@ -1445,8 +1497,30 @@ async function copyText(txt) {
 function exportHost() { const hst = h('div', { 'data-exphost': '', style: 'position:absolute;left:-10000px;top:0;width:794px;background:#fff' }); document.body.append(hst); return hst; }
 async function shot(node, scale) {
   await document.fonts.ready;
+  katexSvgToImg(node);
   await Promise.all([...node.querySelectorAll('img')].map(im => (im.decode ? im.decode().catch(() => {}) : Promise.resolve())));
   return window.html2canvas(node, { scale, backgroundColor: '#ffffff', logging: false, useCORS: true, onclone: d => { try { const ks = d.createElement('style'); ks.textContent = '.katex-mathml{display:none!important}'; d.head.appendChild(ks); } catch (e) { /* ignore */ } const x = d.querySelector('[data-exphost]'); if (x) { x.style.left = '0px'; x.style.top = '0px'; x.style.zIndex = '-1'; } } });
+}
+/* KaTeX draws tall delimiters (the bars of a determinant |...|, tall brackets and braces) and stretchy arrows as small SVGs sized in em
+   inside its own boxes; the screenshot library draws them cut short (stray half bars). Before a sheet is photographed each such SVG
+   is replaced by a picture of exactly its size and place, in the text colour (the sheet is a temporary copy, removed afterwards). */
+function katexSvgToImg(root) {
+  try {
+    const d = root.ownerDocument || document, todo = [];
+    root.querySelectorAll('.katex-html .delimsizing svg, .katex-html .stretchy svg').forEach(svg => {
+      const r = svg.parentNode.getBoundingClientRect();
+      if (r.width && r.height) todo.push({ svg, w: r.width, h: r.height, col: getComputedStyle(svg).color || '#000' });
+    });
+    todo.forEach(({ svg, w, h: hh, col }) => {
+      /* the picture has the size of the SVG's own box; a wide SVG that the box crops (arrows) keeps its crop through its viewBox */
+      const cl = svg.cloneNode(true), img = d.createElement('img');
+      cl.setAttribute('width', w + 'px'); cl.setAttribute('height', hh + 'px'); cl.setAttribute('fill', col); cl.removeAttribute('style');
+      cl.querySelectorAll('path').forEach(p => { p.setAttribute('fill', col); p.setAttribute('stroke', 'none'); });
+      img.alt = ''; img.style.cssText = 'display:block;position:static;max-width:none;width:' + w + 'px;height:' + hh + 'px';
+      img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(new XMLSerializer().serializeToString(cl));
+      svg.replaceWith(img);
+    });
+  } catch (e) { /* keep the SVGs as they are */ }
 }
 const ansText = q => (q.a || '\u2014').replace(/\\[()\[\]]/g, '');
 const fname = (p, ext) => (p.file || p.title || 'sheet').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') + ext;
@@ -1512,7 +1586,7 @@ async function doExport(kind, p0) {
       /* every PowerPoint download, wherever it starts, is the black Avanti design (cover, black slides, coloured equations); the white layout is only a fallback */
       let blob = null;
       if (kind === 'pptx' && window.__qbCwPptx) {
-        try { blob = await window.__qbCwPptx([...new Set([].concat(...pages.map(p => (p.qs || []).map(q => q && q.i))).filter(Boolean))], pages.some(p => p.exp)); }
+        try { blob = await window.__qbCwPptx([...new Set([].concat(...pages.map(p => (p.qs || []).map(q => q && q.i))).filter(Boolean))], pages.some(p => p.exp), { title: (p0.pages && p0.title) || '', paper: !!(p0.pages && p0.title) }); }
         catch (e) { if (e && e.code === 'declined') throw e; blob = null; }
       }
       if (!blob) blob = await buildEditable(kind, pages.map(p => Object.assign({}, p, { key: p.key }, kind === 'docx' ? { cols: 2 } : {})));
@@ -1554,34 +1628,38 @@ async function doExport(kind, p0) {
 function loadSolsT(ids) { return window.AvantiContent.sols(ids).catch(() => ({})); }
 async function explItems(pages) {
   const m = await loadSolsT([].concat(...pages.map(p => p.qs.map(q => q.i)))), out = [];
-  pages.forEach(p => { const lab = String(p.badge || p.title).replace(/\s*\u00b7\s*Page \d+ of \d+$/, ''); p.qs.forEach((q, i) => { const sv = m[q.i]; if (!sv) return; const t = typeof sv === 'string' ? sv : sv.t; if (!t || !String(t).trim()) return; out.push({ n: i + 1 + (p.start || 0), lab, text: String(t), f: typeof sv === 'string' ? null : (sv.f || null) }); }); });
+  pages.forEach(p => { const lab = String(p.badge || p.title).replace(/\s*\u00b7\s*Page \d+ of \d+$/, ''); p.qs.forEach((q, i) => { const sv = m[q.i]; if (!sv) return; const t = typeof sv === 'string' ? sv : sv.t; if (!t || !String(t).trim()) return; out.push({ n: q._no || i + 1 + (p.start || 0), lab, text: String(t), f: typeof sv === 'string' ? null : (sv.f || null) }); }); });
   return out;
 }
 async function explForQs(qs) {
   const m = await loadSolsT(qs.map(q => q.i)), out = [];
-  for (let k = 0; k < qs.length; k++) { const sv = m[qs[k].i]; if (!sv) continue; const t = typeof sv === 'string' ? sv : sv.t; if (!t || !String(t).trim()) continue; let fig = null; const f = typeof sv === 'string' ? null : sv.f; if (f && f.svg) { try { fig = await figPng(f); } catch (e) { /* skip the picture */ } } out.push({ n: k + 1, text: String(t), fig }); }
+  for (let k = 0; k < qs.length; k++) { const sv = m[qs[k].i]; if (!sv) continue; const t = typeof sv === 'string' ? sv : sv.t; if (!t || !String(t).trim()) continue; let fig = null; const f = typeof sv === 'string' ? null : sv.f; if (hasFig(f)) { try { fig = await figPng(f); } catch (e) { /* skip the picture */ } } out.push({ n: qs[k]._no || k + 1, text: String(t), fig }); }
   return out;
 }
 (function () { const st = document.createElement('style'); st.textContent = '.tglrow{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;margin:4px 0 14px}.tglrow .tgl-hl{margin:0!important;padding:0 0 0 0!important;background:transparent!important;border:0!important;box-shadow:none!important;min-height:0!important;border-radius:0!important;font-weight:600}.tglrow .tgl-hl input{left:0!important}.gd-note{border-left:4px solid var(--accent,#0e6b84);background:var(--accent-soft,#dbeef3);padding:10px 14px;border-radius:8px;margin:0 0 14px;font-weight:600}'; document.head.append(st); })();
-const keyLine = p => p.qs.map((q, i) => (i + 1 + (p.start || 0)) + '-' + (window.MathDoc ? window.MathDoc.plainText(q.a || '\u2014') : ansText(q))).join('    ');
+const keyLine = p => p.qs.map((q, i) => (q._no || i + 1 + (p.start || 0)) + '-' + (window.MathDoc ? window.MathDoc.plainText(q.a || '\u2014') : ansText(q))).join('    ');
 /* figures: SVG -> PNG so Word and PowerPoint can hold them */
 async function figPng(f) {
-  const img = new Image(); img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(f.svg);
+  const src = figSrc(f); if (!src) throw new Error('no figure');
+  const img = new Image(); img.src = src;
   await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
-  const w = f.w || img.width || 300, hh = f.h || img.height || 200, c = document.createElement('canvas'); c.width = w * 2; c.height = hh * 2;
+  /* the size stored with the figure, else the picture's own size scaled to at most 300 px wide (Word and PowerPoint size it again) */
+  const nw = img.naturalWidth || img.width || 300, nh = img.naturalHeight || img.height || 200, k = nw > 300 ? 300 / nw : 1;
+  const w = +f.w || Math.round(nw * k), hh = +f.h || Math.round(nh * k), sc = Math.max(2, Math.min(4, nw / w)), c = document.createElement('canvas'); c.width = Math.round(w * sc); c.height = Math.round(hh * sc);
   const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
   const dataUrl = c.toDataURL('image/png'), data = await new Promise(r => c.toBlob(b => b.arrayBuffer().then(x => r(new Uint8Array(x))), 'image/png'));
   return { w, h: hh, data, dataUrl };
 }
 async function buildEditable(kind, pages) {
   const ep0 = pages.filter(p => p.exp), eItems = ep0.length ? await explItems(ep0) : [], eLab = new Set(eItems.map(x => x.lab)).size > 1;
-  for (const e of eItems) { e.lab = eLab ? e.lab : ''; e.fig = null; if (e.f && e.f.svg) { try { e.fig = await figPng(e.f); } catch (x) { /* skip the picture */ } } }
+  for (const e of eItems) { e.lab = eLab ? e.lab : ''; e.fig = null; if (hasFig(e.f)) { try { e.fig = await figPng(e.f); } catch (x) { /* skip the picture */ } } }
   if (pages.length > 1 && pages[0].kind === 'test') pages = [Object.assign({}, pages[0], { qs: [].concat(...pages.map(p => p.qs)), start: 0, pageOf: '' })];
   await Promise.all([officeCode(), loadScript(CDN.zip), kind === 'docx' ? loadScript(CDN.docx) : loadScript(CDN.pptx)]);
   const figs = {};
-  for (const p of pages) for (const q of p.qs) if (q.f && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
+  for (const p of pages) for (const q of p.qs) if (hasFig(q.f) && !figs[q.i]) { try { figs[q.i] = await figPng(q.f); } catch (e) { /* skip the picture */ } }
   let logo = null; try { const rs = await fetch('img/ankit-logo-light.png?v=932'); if (rs.ok) { const bl = await rs.blob(), bm = await createImageBitmap(bl); logo = { data: new Uint8Array(await bl.arrayBuffer()), w: bm.width, h: bm.height, dataUrl: await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(bl); }) }; } } catch (e) { /* no logo file: skip */ }
-  const H = { CHMAP, DIFF, tagText, keyLine, figs, matchParts, expl: eItems, logo };
+  let examLogo = null; if (pages[0].examLogo) { try { examLogo = await imgData(pages[0].examLogo); } catch (e) { /* no exam logo: skip */ } }
+  const H = { CHMAP, DIFF, tagText, keyLine, figs, matchParts, expl: eItems, logo, examLogo };
   return kind === 'docx' ? window.OfficeDoc.buildDocx(window.docx, window.JSZip, pages, H) : window.OfficeDoc.buildPptx(window.PptxGenJS, window.JSZip, pages, H);
 }
 
@@ -1966,6 +2044,7 @@ async function mountMaker(host) {
   await ensureDpp(); await KATEX_P;
   const v = MK_NODE || (MK_NODE = $('#viewLib')); host.append(v); v.hidden = false; renderLib(); setTimeout(rescale, 60); setTimeout(rescale, 400);
 }
+const keyExp = o => { const exp = !!(o.exp || o.explain); return { key: !!o.key || exp, exp }; };
 window.AvantiTeacher = {
   start: o => { OPTS = o; boot(); },
   setTab: t => setTab(t), hideViews: () => hideViews(), toast: m => toast(m), guide: () => guideOpen(),
@@ -1973,9 +2052,10 @@ window.AvantiTeacher = {
   bank: () => ensureDpp().then(() => ({ qs: BANK.all, byId: BYID, chapters: CHMAP })),
   /* saved worksheets: the same PDF / Word / PowerPoint export and share menu as DPPs (plan checks inside) */
   fill: (qs, o) => fillT(qs, o),   /* the text of these questions (dashboard: fetched by chapter or paper; /qbank: already there) */
-  exportIds: async (ids, title, kind, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } if (opts) pages = pages.map(p => Object.assign({}, p, { key: !!opts.key, exp: !!opts.exp })); doExport(kind, { pages, file: title }); },
-  pdfIds: async (ids, title, label, info, subLine) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); const pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } return pdfBlobOf({ pages, file: title }); },
-  shareIds: async (btn, ids, title) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
+  /* opts: { key, exp } or { explain }: explain (solutions / explanations) adds the answer key and then the explanations after it */
+  exportIds: async (ids, title, kind, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); await figDims(ids.map(i => BYID.get(i))); let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } if (opts) pages = pages.map(p => Object.assign({}, p, keyExp(opts))); doExport(kind, { pages, file: title, title }); },
+  pdfIds: async (ids, title, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); await figDims(ids.map(i => BYID.get(i))); let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } if (opts) pages = pages.map(p => Object.assign({}, p, keyExp(opts))); return pdfBlobOf({ pages, file: title }); },
+  shareIds: async (btn, ids, title) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); await figDims(ids.map(i => BYID.get(i))); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
   math: node => math(node),
   viewHandout: (x, url) => viewHandout(x, url),
   mountMaker: host => mountMaker(host)

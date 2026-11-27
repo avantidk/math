@@ -16,8 +16,8 @@ const EXAMS = [
   { slug: 'kcet', name: 'KCET', short: 'KCET', tone: '#059669', banks: ['KCET'], logo: 'img/exams/kcet.webp' },
   { slug: 'nda', name: 'NDA', short: 'NDA', tone: '#b45309', banks: ['NDA'], logo: 'img/exams/nda.webp' },
   { slug: 'iat', name: 'IAT', short: 'IAT', tone: '#db2777', banks: ['IAT'], logo: 'img/exams/iat.webp' },
-  { slug: 'cuet', name: 'CUET', short: 'CUET', tone: '#0891b2', banks: [] },
-  { slug: 'cbse-12', name: 'CBSE Class 12 Boards', short: 'CBSE', tone: '#dc2626', banks: ['CBSE', 'CBSE 12'], note: 'Code 041' }
+  { slug: 'cuet', name: 'CUET UG', short: 'CUET UG', tone: '#0891b2', banks: ['CUET', 'CUET UG'], logo: 'img/exams/cuet-ug.webp' },
+  { slug: 'cbse-12', name: 'CBSE Class 12 Boards', short: 'CBSE', tone: '#dc2626', banks: ['CBSE', 'CBSE 12'], logo: 'img/exams/cbse.webp', note: 'Code 041' }
 ];
 const EX = Object.fromEntries(EXAMS.map(e => [e.slug, e]));
 const EXAM_OF_BANK = {}; EXAMS.forEach(e => e.banks.forEach(b => { EXAM_OF_BANK[b] = e.slug; }));
@@ -46,7 +46,7 @@ const IC = {
 };
 
 /* ---------- data ---------- */
-const D = { ready: null, rows: [], raw: new Map(), byId: new Map(), chapters: [], chByCode: {}, topics: {}, must: {}, mustK: {}, maxYear: 2026, sum: { bookmarks: [], results: {} }, tests: null };
+const D = { ready: null, rows: [], raw: new Map(), byId: new Map(), chapters: [], chByCode: {}, topics: {}, must: {}, mustK: {}, mustM: {}, maxYear: 2026, sum: { bookmarks: [], results: {} }, tests: null };
 /* DPP sources and their exercise (sheet) numbers, read from the question ids */
 const SOURCES = [
   { k: 'bb', name: 'BB Ex', sub: 'Exercise sheets, chapter by chapter', tone: '#2563eb' }, { k: 'dy', name: 'Ln DY', sub: 'Do Yourself sheets after every class', tone: '#059669' },
@@ -60,6 +60,13 @@ function sheetOf(book, id, paper) {
   const src = book === 'Ln Ex' ? (String(paper || '').split(' · ')[1] || '') : '';
   return { no: +m[1], src, label: (src ? src + ' · ' : '') + (book === 'Ln DY' ? 'DY-' : book === 'Ln Ex' ? 'O-' : 'Ex-') + (+m[1]) };
 }
+/* the date of a past paper as yyyymmdd (from the question id, else from the paper name "9 Apr 2024 Shift 1"): papers sort newest first */
+const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+function dateKey(x) {
+  const m = /^[A-Z]+(\d{8})/.exec(String(x.i || '')); if (m && +m[1].slice(4, 6) >= 1) return +m[1];
+  const p = /(\d{1,2})\s+([A-Za-z]{3})[a-z]*\.?\s+(\d{4})/.exec(String(x.p || '')); if (p && MON[p[2].toLowerCase()]) return +p[3] * 1e4 + MON[p[2].toLowerCase()] * 100 + +p[1];
+  return m ? +m[1] : (x.y || 0) * 1e4;
+}
 /* The dashboard starts from the small index (every question without its text: index/questions.json, boot.js) and fetches the
    full records (text, options, answer) only for what is on the screen: the chapter of a list page, a past paper, the questions
    picked for a test. The admin's account reads the two whole files instead (boot.js decides). */
@@ -70,14 +77,15 @@ function load() {
   D.ready = Promise.all([C.index(), C.get('qb/data/chapters.json'), C.get('qb/data/topics.json').catch(() => []), C.get('must.json').catch(() => [])]).then(([ix, chs, tops, must]) => {
     D.chapters = (chs || []).slice().sort((a, b) => a.order - b.order); D.chapters.forEach(c => { D.chByCode[c.chapter_code] = c; });
     (tops || []).forEach(t => { (D.topics[t.chapter_code] = D.topics[t.chapter_code] || []).push(t); });
-    (must || []).forEach(m => { D.must[m.c] = (m.i || []).map(x => x.r); (m.i || []).forEach(x => { D.mustK[x.r] = x.k; }); });
+    (must || []).forEach(m => { D.must[m.c] = (m.i || []).map(x => x.r); (m.i || []).forEach(x => { D.mustK[x.r] = x.k;
+      (x.m || []).forEach(o => { (D.mustM[x.r] = D.mustM[x.r] || []).push(o); (D.mustM[o] = D.mustM[o] || []).push(x.r); }); }); });   /* "repeated in": both ways */
     const prem = !!A().perm.premium;   /* practice questions are listed for Premium only (as before) */
-    D.rows = []; D.ix = ix;
-    ix.rows.forEach(x => {
+    D.rows = []; D.ix = ix; const srcAt = new Map();
+    ix.rows.forEach((x, at) => {
       const isP = x.s === 'P'; if (!isP && !prem) return;
-      const bk = isP ? '' : x.bk, sh = isP ? null : sheetOf(bk, x.i, x.p);
+      const bk = isP ? '' : x.bk, sh = isP ? null : sheetOf(bk, x.i, x.p), sk = x.cc + '|' + bk + '|' + (sh ? sh.src : ''); if (!isP && !srcAt.has(sk)) srcAt.set(sk, at);
       D.rows.push({ id: x.i, P: isP, ex: isP ? (EXAM_OF_BANK[x.ex] || null) : null, y: isP ? x.y || null : null, ch: x.cc, tp: x.tp || '', tc: x.tc || '', d: x.d, ok: !!x.g && !!TESTABLE[x.t], bk, shl: sh ? sh.label : '', src: sh ? sh.src || '' : '', shn: sh ? sh.no : 0,
-        ty: x.t || 'MCQ', qn: +x.n || 0, pa: !!x.pa, mx: !!x.mx });
+        ty: x.t || 'MCQ', qn: +x.n || 0, pa: !!x.pa, mx: !!x.mx, ps: isP ? x.ps || '' : '', sec: x.sec || '', dk: isP ? dateKey(x) : 0, so: isP ? 0 : srcAt.get(sk) });
     });
     D.byId = new Map(D.rows.map(r => [r.id, r]));
     D.rows.forEach(r => { if (r.y && r.y > D.maxYear) D.maxYear = r.y; });
@@ -91,6 +99,7 @@ async function need(rows, o) {
   if (!miss.length) return;
   const m = await window.AvantiContent.records(miss.map(r => r.id), o);
   miss.forEach(r => { const x = m.get(r.id); if (x) D.raw.set(r.id, x); });
+  if (window.DashList && window.DashList.noteRecords) window.DashList.noteRecords(m);   /* repeated questions across papers, from what is loaded */
 }
 /* a test starts (or the account signs out): boot.js empties its copies, and the dashboard lets go of its own */
 window.addEventListener('avanti-content-cleared', () => { D.raw.clear(); (BANKQ || []).forEach(q => { delete q.q; delete q.o; delete q.a; delete q.f; }); });
@@ -151,10 +160,14 @@ const PANELS = { heroov: ['Mathematics Bank: Question Counts', 'question-counts/
 let COLL = false; try { COLL = localStorage.getItem('d-side-collapsed') === '1'; } catch (e) { /* default open */ }
 const PANEL_IC = svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/>');
 function applyColl() { const b = $('.d-body'); if (b) b.classList.toggle('d-collapsed', COLL); document.querySelectorAll('.d-colbtn').forEach(x => { x.setAttribute('aria-pressed', String(COLL)); x.title = COLL ? 'Show the menu' : 'Hide the menu'; x.setAttribute('aria-label', x.title); }); }
+/* Back = exactly the previous page the visitor was on (falls back to the parent page when this page was opened directly) */
+let NAV_STEPS = 0;
+window.addEventListener('hashchange', () => { NAV_STEPS++; });
+function goBack(e) { if (NAV_STEPS > 0 && history.length > 1) { e.preventDefault(); NAV_STEPS -= 2; history.back(); } }
 function side(o) {   /* o: { back: hash|null, title, sub, items:[{label, icon, hash|href|onclick, active, badge, off}] } */
   SIDE.textContent = '';
   const col = h('button', { type: 'button', class: 'd-colbtn', html: PANEL_IC, 'aria-pressed': String(COLL), onclick: () => { COLL = !COLL; try { localStorage.setItem('d-side-collapsed', COLL ? '1' : '0'); } catch (e) { /* optional */ } applyColl(); } });
-  SIDE.append(h('div', { class: 'd-side-top' }, o.back != null ? h('a', { class: 'd-back', href: o.back === '' ? '#d/' : '#' + o.back, 'aria-label': 'Back', html: IC.back }) : h('span', { class: 'd-back-sp' }), col));
+  SIDE.append(h('div', { class: 'd-side-top' }, o.back != null ? h('a', { class: 'd-back', href: o.back === '' ? '#d/' : '#' + o.back, 'aria-label': 'Back', html: IC.back, onclick: goBack }) : h('span', { class: 'd-back-sp' }), col));
   if (o.title) SIDE.append(h('div', { class: 'd-side-h' }, h('b', { text: o.title }), o.sub ? h('small', { text: o.sub }) : null));
   SIDE.append(h('nav', { class: 'd-nav' }, o.items.map(it => h('a', { class: 'd-nav-i' + (it.active ? ' on' : '') + (it.off ? ' off' : ''), href: it.href || (it.hash != null ? '#' + it.hash : '#'), 'aria-current': it.active ? 'page' : null, title: it.label,
     onclick: it.onclick ? (e => { e.preventDefault(); it.onclick(); }) : null },
@@ -167,7 +180,7 @@ const homeItems = active => [
   { label: 'Home', icon: IC.grid, hash: 'd/', active: active === 'home' },
   { label: 'PYQs', icon: IC.clock, hash: 'd/pyq', active: active === 'pyq' },
   { label: 'Non-PYQs', icon: IC.list, hash: 'd/np', active: active === 'np', off: false },
-  { label: 'DPPs', icon: IC.test, hash: 'd/dpp', active: active === 'dpp' },
+  { label: 'DPPs/Exercises', icon: IC.test, hash: 'd/dpp', active: active === 'dpp' },
   { label: 'Tests', icon: IC.grid, hash: '/modes', active: active === 'tests' },
   { label: 'Handouts', icon: IC.list, hash: 'd/handouts', active: active === 'ho' },
   { label: 'Bookmarked Qs', icon: IC.mark, hash: 'd/bookmarks', active: active === 'bookmarks' },
@@ -177,11 +190,11 @@ const homeItems = active => [
 /* ---------- DPPs: sources, then the exercise, then the questions ---------- */
 const dppCount = name => D.rows.filter(r => !r.P && r.bk === name).length;
 function dppLocked() {
-  side({ back: '', title: 'DPPs', items: homeItems('dpp') });
-  main(h('section', { class: 'd-lockcard' }, h('span', { html: IC.lock }), h('h2', { text: 'DPPs are part of Premium' }), h('p', { text: 'The practice sheets of BB Ex, Ln DY, Ln Ex and more open with a Premium plan. PYQs stay free.' }), h('a', { class: 'btn pri', href: '#/membership', text: '★ Get Premium' })));
+  side({ back: '', title: 'DPPs/Exercises', items: homeItems('dpp') });
+  main(h('section', { class: 'd-lockcard' }, h('span', { html: IC.lock }), h('h2', { text: 'DPPs/Exercises are part of Premium' }), h('p', { text: 'The practice sheets of BB Ex, Ln DY, Ln Ex and more open with a Premium plan. PYQs stay free.' }), h('a', { class: 'btn pri', href: '#/membership', text: '★ Get Premium' })));
 }
 function viewDpp() {
-  side({ back: '', title: 'DPPs', sub: 'Practice sheets by source', items: homeItems('dpp') });
+  side({ back: '', title: 'DPPs/Exercises', sub: 'Practice sheets by source', items: homeItems('dpp') });
   const free = locked(), lockIc = svg('<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>').replace('width="20" height="20"', 'width="16" height="16"');
   const cards = SOURCES.map(x => {
     const n = dppCount(x.name), sheets = new Set(D.rows.filter(r => !r.P && r.bk === x.name && r.shl).map(r => r.ch + r.shl)).size, none = !n, off = free || none;
@@ -191,24 +204,29 @@ function viewDpp() {
       free ? h('span', { class: 'dpp-lock', html: lockIc + ' Premium' }) : h('span', { class: 'dpp-go', text: none ? '' : 'Open questions ›' }));
   });
   const penIc = svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>');
+  /* two small blocks: the maker, already set to PYQs or to Non-PYQs (Non-PYQs are Premium) */
+  const quick = (k, tone, icon, title, sub, lock) => h('a', { class: 'dpp-q' + (lock ? ' is-off' : ''), href: lock ? '#/membership' : '#d/dpp/maker/' + k, style: '--tone:' + tone },
+    h('span', { class: 'dpp-q-ic', html: icon }), h('span', { class: 'dpp-q-t' }, h('b', { text: title }), h('small', { text: sub })),
+    lock ? h('span', { class: 'dpp-lock', html: lockIc + ' Premium' }) : h('span', { class: 'dpp-q-go', html: IC.chev }));
+  const quick2 = h('div', { class: 'dpp-qs' },
+    quick('pyq', '#2450c8', IC.clock, 'Create PYQs DPPs chapterwise', 'Previous year questions only', false),
+    quick('np', '#d9961a', IC.list, 'Create Non-PYQs DPPs chapterwise', 'Practice questions from books and sheets', free));
   const maker = h('a', { class: 'dpp-mk', href: free ? '#/membership' : '#d/dpp/maker' },
     h('span', { class: 'dpp-mk-ic', html: penIc }),
     h('span', { class: 'dpp-mk-t' }, h('b', { text: 'Own DPP Maker' }), h('small', { text: 'Build a practice sheet of your own: pick chapters and subtopics, choose BB Ex, Ln DY, Ln Ex and PYQs, set the toughness, and get a ready A4 sheet with a live preview.' }), h('small', { text: 'Download it as PDF, Word or PowerPoint, print it or share it, with the answer key and explanations if you want them.' })),
     free ? h('span', { class: 'dpp-lock', html: lockIc + ' Premium' }) : h('span', { class: 'dpp-mk-go' }, 'Open the maker ', h('i', { html: IC.chev })));
-  main(h('div', { class: 'dpp-head' }, h('h2', { text: 'DPPs' }), h('p', { text: 'Pick a source, then the chapter and the exercise, and practise its questions.' })), maker,
-    h('h3', { class: 'dpp-h' }, 'Source Wise DPPs ', h('small', { text: '(Exercises, Do Yourself, Practice Problems)' })), h('div', { class: 'dpp-grid' }, cards),
-    h('h3', { class: 'dpp-h' }, 'Chapterwise DPPs ', h('small', { text: '(PYQs)' })),
-    h('a', { class: 'dpp-lk', href: '#d/pyq' }, h('span', { class: 'dpp-lk-ic', html: IC.clock }), h('span', { class: 'dpp-lk-t' }, h('b', { text: 'Chapterwise PYQ sets' }), h('small', { text: 'Pick an exam, then a chapter, and practise its previous year questions, with Confidence Booster, Balanced and Rank Booster sets.' })), h('span', { class: 'dpp-lk-go', html: IC.chev })),
-    h('h3', { class: 'dpp-h' }, 'Chapterwise DPPs ', h('small', { text: '(Non-PYQs)' })),
-    h('a', { class: 'dpp-lk', href: free ? '#/membership' : '#d/np' }, h('span', { class: 'dpp-lk-ic', html: IC.list }), h('span', { class: 'dpp-lk-t' }, h('b', { text: 'Chapterwise practice sets' }), h('small', { text: 'Practice questions from books and sheets, chapter by chapter, by level and by topic.' })), free ? h('span', { class: 'dpp-lock', html: lockIc + ' Premium' }) : h('span', { class: 'dpp-lk-go', html: IC.chev })));
+  main(h('div', { class: 'dpp-head' }, h('h2', { text: 'DPPs/Exercises' }), h('p', { text: 'Pick a source, then the chapter and the exercise, and practise its questions.' })), quick2, maker,
+    h('h3', { class: 'dpp-h' }, 'Source Wise DPPs/Exercises ', h('small', { text: '(Exercises, Do Yourself, Practice Problems)' })), h('div', { class: 'dpp-grid' }, cards));
 }
 /* A source (BB Ex, Ln DY, ...) is drilled down in the left menu: source -> chapters -> exercises -> questions */
 const srcRows = src => D.rows.filter(r => !r.P && r.bk === src.name);
 const chaptersOf = rows => [...new Set(rows.map(r => r.ch))].map(c => D.chByCode[c]).filter(Boolean).sort((a, b) => a.order - b.order);
 function exercisesOf(rows) {
   const idn = r => { const k = /(\d+)$/.exec(String(r.id)); return k ? +k[1] : 0; };
-  const m = new Map(); rows.forEach(r => { const t = r.shl || 'Questions', o = m.get(t) || m.set(t, { t, n: r.shn || 0, c: 0, m: 1e9 }).get(t); o.c++; o.m = Math.min(o.m, idn(r)); });
-  return [...m.values()].sort((a, b) => a.n - b.n || a.m - b.m || a.t.localeCompare(b.t));   /* by exercise number, then in the order of the book */
+  const m = new Map(); rows.forEach(r => { const t = r.shl || 'Questions', o = m.get(t) || m.set(t, { t, n: r.shn || 0, c: 0, m: 1e9, src: r.src || '' }).get(t); o.c++; o.m = Math.min(o.m, idn(r)); });
+  /* one chapter of the book after the other (where one list holds two, e.g. Fundamentals of Algebra then Logarithm), each in exercise order */
+  const so = new Map(); rows.forEach(r => { const k = r.src || ''; so.set(k, Math.min(so.has(k) ? so.get(k) : 1e9, r.so || 0)); });   /* so: where the book's chapter first appears in the bank */
+  return [...m.values()].sort((a, b) => (a.src === b.src ? 0 : (so.get(a.src) - so.get(b.src)) || a.src.localeCompare(b.src)) || a.n - b.n || a.m - b.m || a.t.localeCompare(b.t));
 }
 function viewDppSrc(k, ch, ex) {
   if (locked()) return dppLocked();
@@ -216,7 +234,7 @@ function viewDppSrc(k, ch, ex) {
   const rows = srcRows(src), base = 'd/dpp/' + k;
   if (!rows.length) {   /* a source with no questions yet */
     side({ back: 'd/dpp', title: src.name, sub: 'Coming soon', items: homeItems('dpp') });
-    main(h('div', { class: 'd-head' }, crumb('DPPs', src.name), h('h2', { text: src.name })),
+    main(h('div', { class: 'd-head' }, crumb('DPPs/Exercises', src.name), h('h2', { text: src.name })),
       h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: src.name + ' questions are coming soon' }), h('p', { text: 'There are no questions in ' + src.name + ' yet. Try another source, or make a sheet of your own with the Own DPP Maker.' }),
         h('div', { class: 'pt-actions' }, h('a', { class: 'btn pri', href: '#d/dpp', text: '‹ All DPP sources' }), h('a', { class: 'btn', href: '#d/dpp/maker', text: 'Own DPP Maker' }))));
     return;
@@ -224,15 +242,15 @@ function viewDppSrc(k, ch, ex) {
   if (!ch) {   /* level 1: the chapters of the source */
     const chs = chaptersOf(rows);
     side({ back: 'd/dpp', title: src.name, sub: 'Choose a chapter', items: [{ label: 'All questions', icon: IC.all, hash: base + '/all', badge: String(rows.length) }].concat(chs.map(c => ({ label: c.chapter_code + ' · ' + c.chapter, icon: IC.list, hash: base + '/' + c.chapter_code, badge: String(rows.filter(r => r.ch === c.chapter_code).length) }))) });
-    main(h('div', { class: 'd-head' }, crumb('DPPs', src.name), h('h2', { text: src.name })),
+    main(h('div', { class: 'd-head' }, crumb('DPPs/Exercises', src.name), h('h2', { text: src.name })),
       h('div', { class: 'dpp-chgrid' }, chs.map(c => { const cr = rows.filter(r => r.ch === c.chapter_code), exs = exercisesOf(cr).length;
         return h('a', { class: 'dpp-chc', href: '#' + base + '/' + c.chapter_code, style: '--tone:' + src.tone }, h('span', { class: 'd-code', text: c.chapter_code }), h('b', { text: c.chapter }), h('small', { text: num(cr.length) + ' Qs' + (exs > 1 || cr[0].shl ? ' · ' + exs + ' exercise' + (exs === 1 ? '' : 's') : '') })); })));
     return;
   }
   if (ch === 'all') {   /* every question of the source, with chapter and exercise filters */
     side({ back: base, title: src.name, sub: 'All questions', items: [{ label: 'All questions', icon: IC.all, hash: base + '/all', active: true, badge: String(rows.length) }, { label: 'Chapters', icon: IC.list, hash: base }] });
-    const chs = chaptersOf(rows), shs = new Map(); rows.forEach(r => { if (r.shl) shs.set(r.shl, r.shn); });
-    window.DashList.render(listEnv(), { rows, title: src.name, head: h('div', { class: 'd-head' }, crumb('DPPs', src.name, 'All questions')), compact: true, seqOrder: true, testLabel: 'Take test',
+    const chs = chaptersOf(rows), shs = new Map(); exercisesOf(rows.filter(r => r.shl)).forEach((o, i) => shs.set(o.t, i));
+    window.DashList.render(listEnv(), { rows, title: src.name, head: h('div', { class: 'd-head' }, crumb('DPPs/Exercises', src.name, 'All questions')), compact: true, seqOrder: true, testLabel: 'Take test',
       filters: [{ key: 'ch', label: 'Chapter', values: chs.map(c => [c.chapter_code, c.chapter_code + ' ' + c.chapter]), get: r => r.ch }].concat(shs.size ? [{ key: 'ex', label: 'Exercise', values: [...shs.entries()].sort((a, b) => a[1] - b[1]).map(([t]) => [t, t]), get: r => r.shl }] : []),
       emptyText: src.name + ' questions are coming soon.', startTest: list => launchTestFrom(list, { chapter: src.name + ' DPP', chapter_code: 'dpp' }, 'np', null, 20, 'DPP test') });
     return;
@@ -242,21 +260,27 @@ function viewDppSrc(k, ch, ex) {
   const items = [{ label: 'All exercises', icon: IC.all, hash: base + '/' + ch + '/all', active: ex === 'all', badge: String(crow.length) }].concat(exs.map(o => ({ label: o.t, icon: IC.list, hash: base + '/' + ch + '/' + encodeURIComponent(o.t), active: ex === o.t, badge: String(o.c) })));
   side({ back: base, title: c.chapter, sub: src.name + ' · choose an exercise', items });
   if (!ex) {   /* level 2: the exercises of the chapter */
-    main(h('div', { class: 'd-head' }, crumb('DPPs', src.name, c.chapter), h('h2', { text: c.chapter })),
-      h('div', { class: 'dpp-exgrid dpp-exgrid-l' }, [h('a', { class: 'dpp-ex dpp-ex-all', href: '#' + base + '/' + ch + '/all' }, h('b', { text: 'All exercises' }), h('small', { text: num(crow.length) + ' Qs' }))].concat(exs.map(o => h('a', { class: 'dpp-ex', href: '#' + base + '/' + ch + '/' + encodeURIComponent(o.t) }, h('b', { text: o.t }), h('small', { text: num(o.c) + ' Qs' }))))));
+    /* grouped by the chapter of the book: every exercise of one chapter (in exercise order), then the next chapter */
+    const groups = []; exs.forEach(o => { const g = groups[groups.length - 1]; if (g && g.src === o.src) g.items.push(o); else groups.push({ src: o.src, items: [o] }); });
+    const exCard = o => h('a', { class: 'dpp-ex', href: '#' + base + '/' + ch + '/' + encodeURIComponent(o.t) }, h('b', { text: o.src ? o.t.replace(o.src + ' · ', '') : o.t }), h('small', { text: num(o.c) + ' Qs' }));
+    main(h('div', { class: 'd-head' }, crumb('DPPs/Exercises', src.name, c.chapter), h('h2', { text: c.chapter })),
+      h('div', { class: 'dpp-exgrid dpp-exgrid-l' }, h('a', { class: 'dpp-ex dpp-ex-all', href: '#' + base + '/' + ch + '/all' }, h('b', { text: 'All exercises' }), h('small', { text: num(crow.length) + ' Qs' }))),
+      groups.length > 1 || (groups[0] && groups[0].src) ? groups.map(g => h('section', { class: 'dpp-exg' }, h('h3', { class: 'dpp-exg-h' }, h('span', { text: g.src || c.chapter }), h('small', { text: g.items.length + ' exercise' + (g.items.length === 1 ? '' : 's') + ' · ' + num(g.items.reduce((a, o) => a + o.c, 0)) + ' Qs' })), h('div', { class: 'dpp-exgrid dpp-exgrid-l' }, g.items.map(exCard))))
+        : h('div', { class: 'dpp-exgrid dpp-exgrid-l' }, exs.map(exCard)));
     return;
   }
   const pool = ex === 'all' ? crow : crow.filter(r => (r.shl || 'Questions') === ex), title = src.name + ' · ' + c.chapter_code + (ex === 'all' ? '' : ' · ' + ex);
-  window.DashList.render(listEnv(), { rows: pool, title, head: h('div', { class: 'd-head' }, crumb('DPPs', src.name, c.chapter, ex === 'all' ? 'All exercises' : ex)), compact: true, seqOrder: true, testLabel: 'Take test', filters: [],
+  window.DashList.render(listEnv(), { rows: pool, title, head: h('div', { class: 'd-head' }, crumb('DPPs/Exercises', src.name, c.chapter, ex === 'all' ? 'All exercises' : ex)), compact: true, seqOrder: true, testLabel: 'Take test', filters: [],
     emptyText: title + ' questions are coming soon.', startTest: list => launchTestFrom(list, { chapter: title + ' DPP', chapter_code: 'dpp' }, 'np', null, 20, 'DPP test') });
 }
 
 /* ---------- Own DPP Maker: the DPP builder (chapters, subtopics, sources, toughness, preview, downloads), inside the dashboard ---------- */
-async function viewDppMaker() {
-  if (locked()) return dppLocked();
-  side({ back: 'd/dpp', title: 'Own DPP Maker', sub: 'Build a sheet of your own', items: homeItems('dpp') });
+async function viewDppMaker(preset) {
+  preset = preset === 'pyq' || preset === 'np' ? preset : '';
+  if (locked() && preset !== 'pyq') return dppLocked();   /* Free accounts: the PYQ maker only (the practice questions are Premium on the server too) */
+  side({ back: 'd/dpp', title: 'Own DPP Maker', sub: preset === 'pyq' ? 'PYQs DPPs chapterwise' : preset === 'np' ? 'Non-PYQs DPPs chapterwise' : 'Build a sheet of your own', items: homeItems('dpp') });
   const host = h('div', { class: 'dmk' }), tok = NAV;
-  main(h('div', { class: 'd-head' }, crumb('DPPs', 'Own DPP Maker'), h('h2', { text: 'Own DPP Maker' }), h('p', { text: 'Choose chapters, subtopics and sources, then set the toughness. Your sheet is made below: download it as PDF, Word or PowerPoint, print it or share it.' })),
+  main(h('div', { class: 'd-head' }, crumb('DPPs/Exercises', 'Own DPP Maker'), h('h2', { text: preset === 'pyq' ? 'Create PYQs DPPs chapterwise' : preset === 'np' ? 'Create Non-PYQs DPPs chapterwise' : 'Own DPP Maker' }), h('p', { text: 'Choose chapters, subtopics and sources, then set the toughness. Your sheet is made below: download it as PDF, Word or PowerPoint, print it or share it.' })),
     h('div', { class: 'dmk-note', role: 'note' }, h('span', { class: 'dmk-note-ic', html: svg('<rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>') }), h('div', {}, h('b', { text: 'Your DPP is 2 pages (A4 size)' }), h('small', { text: 'The maker fits as many questions as will go on 2 A4 pages, at a readable 11 to 12 pt, in topic order. A short list stays on 1 page. Every question shows its level (L1, L2 or L3).' }))), loadingBox('Loading the question bank…'));
   try {
     const t = await realTE(true); if (tok !== NAV) return;
@@ -272,10 +296,18 @@ async function viewDppMaker() {
       row.append(h('label', { class: 'pick1 tgl tgl-hl dmk-oos', title: tip }, cb, h('span', { class: 'tgl-track', 'aria-hidden': 'true' }), h('span', { text: 'Out-of-syllabus questions' })));
     }
     const ld = MAIN.querySelector('.pt-state'); if (ld) ld.replaceWith(host); else MAIN.append(host);
+    if (preset) presetSources(host, preset);   /* after the maker is on the page (it looks its boxes up by id) */
     setTimeout(() => window.dispatchEvent(new Event('resize')), 80);
   } catch (e) { if (tok === NAV) MAIN.append(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'The maker did not load' }), h('p', { text: (e && e.message) || 'Check your connection and try again.' }), h('button', { type: 'button', class: 'btn', text: 'Try again', onclick: () => route() }))); }
 }
 
+/* the maker's Sources list, ticked for PYQs only (the exams) or Non-PYQs only (the books) */
+const MK_EXAMS = ['JEE Main', 'JEE Advanced', 'AIEEE', 'IIT', 'KCET', 'IAT', 'NDA'];
+function presetSources(host, preset) {
+  const ins = [...host.querySelectorAll('#libSrc .ml input[type=checkbox]')]; if (!ins.length) return;
+  ins.forEach(i => { const ex = MK_EXAMS.includes(i.value); i.checked = preset === 'pyq' ? ex : !ex; });
+  ins[ins.length - 1].dispatchEvent(new Event('change', { bubbles: true }));
+}
 /* ---------- Step 1: source ---------- */
 /* a page of the site shown in a pop-up (cross at the top right), so nobody leaves the dashboard */
 function popPage(title, path) {
@@ -301,21 +333,30 @@ const MIXF = { trig: /\\(sin|cos|tan|cot|sec|csc)\b/, log: /\\(log|ln)\b/, int: 
   conic: /parabola|ellipse|hyperbola|circle|focus|directrix|eccentric/, prob: /probabilit|dice|coin|randomly/, seq: /\ba\.?p\b|\bg\.?p\b|arithmetic|geometric|sequence|progression/, bin: /\\binom|binomial|permutation|combination|arrange|\^\{?n\}?c|\{\}\^/, set: /relation|\\cup|\\cap|bijective|injective|one-one|onto/, quad: /quadratic|discriminant/ };
 let MIXSET = null;
 const mixIds = () => MIXSET || (MIXSET = new Set(D.rows.filter(r => r.P && r.mx).map(r => r.id)));   /* mx: worked out from the question text when the index is made (the MIXF rules, in boot.js and split_content.py) */
+const PK_IC = {
+  repeated: svg('<path d="M17 2.5 20.5 6 17 9.5"/><path d="M3.5 11.5V10A4 4 0 0 1 7.5 6h13"/><path d="M7 21.5 3.5 18 7 14.5"/><path d="M20.5 12.5V14a4 4 0 0 1-4 4h-13"/>'),
+  sure: svg('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12 20 4"/><path d="M16.5 4H20v3.5"/>'),
+  mix: svg('<circle cx="9" cy="9" r="5"/><circle cx="15" cy="9" r="5"/><circle cx="12" cy="15" r="5"/>'),
+  easy: svg('<path d="M7 20.5V10"/><path d="M3.5 11h3.5v9.5H3.5z"/><path d="M7 10.5 11.2 3.8a1.7 1.7 0 0 1 3.1 1.2L13.5 9h5.3a2 2 0 0 1 2 2.4l-1.4 7.2a2.4 2.4 0 0 1-2.4 1.9H7"/>'),
+  hard: svg('<path d="m3 20 6.5-11 4 6.5 2.5-4L21 20z"/><path d="m8 11.5 1.5 1.5 1.5-1.5"/>') };
 const PICKS = [
-  { k: 'repeated', t: 'Repeated questions', s: 'Asked again and again in JEE', tone: '#e11d48', title: 'Repeated Questions', pool: () => D.rows.filter(r => r.P && (D.mustK[r.id] === 'i' || D.mustK[r.id] === 'e')) },
-  { k: 'sure', t: 'Sure-shot questions', s: 'Hand-picked for the next exam', tone: '#d9961a', title: 'Sure-shot Questions', pool: () => D.rows.filter(r => r.P && D.mustK[r.id] === 'u') },
-  { k: 'mix', t: 'Mix-breed questions', s: 'Concepts of 3 or more chapters', tone: '#7c3aed', title: 'Mix-breed Questions', pool: () => D.rows.filter(r => mixIds().has(r.id)) },
-  { k: 'adv-easy', t: 'Easiest JEE Advanced', s: 'Level 1 questions of Advanced', tone: '#16a06a', title: 'Easiest JEE Advanced Questions', pool: () => D.rows.filter(r => r.ex === 'jee-advanced' && r.d === 'L1') },
-  { k: 'main-hard', t: 'Toughest JEE Main', s: 'Level 3 questions of Main', tone: '#0891b2', title: 'Toughest JEE Main Questions', pool: () => D.rows.filter(r => r.ex === 'jee-main' && r.d === 'L3') }];
+  { k: 'repeated', t: 'Repeated questions', s: 'Asked again and again in JEE', tone: '#e11d48', icon: PK_IC.repeated, title: 'Repeated Questions', note: 'Questions that came back in a later paper: the most reliable ones to master.', pool: () => D.rows.filter(r => r.P && (D.mustK[r.id] === 'i' || D.mustK[r.id] === 'e')) },
+  { k: 'sure', t: 'Sure-shot questions', s: 'Hand-picked for the next exam', tone: '#d9961a', icon: PK_IC.sure, title: 'Sure-shot Questions', note: 'Hand-picked, high-yield questions: solve every one before the exam.', pool: () => D.rows.filter(r => r.P && D.mustK[r.id] === 'u') },
+  { k: 'mix', t: 'Mix-breed questions', s: 'Concepts of 3 or more chapters', tone: '#7c3aed', icon: PK_IC.mix, title: 'Mix-breed Questions', note: 'Each question joins ideas from three or more chapters.', pool: () => D.rows.filter(r => mixIds().has(r.id)) },
+  { k: 'adv-easy', t: 'Easiest JEE Advanced', s: 'Level 1 questions of Advanced', tone: '#16a06a', icon: PK_IC.easy, title: 'Easiest JEE Advanced Questions', note: 'Level 1 questions of JEE Advanced: a confident start.', pool: () => D.rows.filter(r => r.ex === 'jee-advanced' && r.d === 'L1') },
+  { k: 'main-hard', t: 'Toughest JEE Main', s: 'Level 3 questions of Main', tone: '#0891b2', icon: PK_IC.hard, title: 'Toughest JEE Main Questions', note: 'Level 3 questions of JEE Main: for the top ranks.', pool: () => D.rows.filter(r => r.ex === 'jee-main' && r.d === 'L3') }];
 function viewPick(k) {
   const pk = PICKS.find(x => x.k === k); if (!pk) return go('d/');
-  side({ back: '', title: 'Special picks', sub: 'Quick sets to practise', items: PICKS.map(x => ({ label: x.t, icon: IC.test, hash: 'd/pick/' + x.k, active: x.k === k, badge: String(x.pool().length) })) });
+  side({ back: '', title: 'Special picks', sub: 'Quick sets to practise', items: PICKS.map(x => ({ label: x.t, icon: x.icon, hash: 'd/pick/' + x.k, active: x.k === k, badge: String(x.pool().length) })) });
   const rows = pk.pool();
-  const chs = chaptersOf(rows);
-  window.DashList.render(listEnv(), { rows, title: pk.title, head: h('div', { class: 'd-head' }, crumb('Dashboard', pk.title)), testLabel: 'Take test', emptyText: 'Nothing here yet.',
+  const chs = chaptersOf(rows).slice().sort((a, b) => chCodeN(a.chapter_code) - chCodeN(b.chapter_code));
+  /* newest year first, then the month, then the chapter (code order); a heading for every year; chapter chips with counts */
+  window.DashList.render(listEnv(), { rows, title: pk.title, sub: pk.note, kicker: 'Special picks', tone: pk.tone, icon: pk.icon, head: h('div', { class: 'd-head' }, crumb('Dashboard', pk.title)), testLabel: 'Take test', emptyText: 'Nothing here yet.',
+    pickOrder: true, groupBy: r => (r.y ? String(r.y) : 'Year not known'), chapterChips: true,
     filters: [{ key: 'ch', label: 'Chapter', values: chs.map(c => [c.chapter_code, c.chapter]), get: r => r.ch }],
     startTest: list => launchTestFrom(list, { chapter: pk.title, chapter_code: 'pick' }, 'pyq', null, 20, 'practice test') });
 }
+const chCodeN = c => { const m = /^(\d+)M(\d+)/.exec(String(c || '')); return m ? +m[1] * 1000 + +m[2] : 1e6; };
 const UPCOMING = [['JEE Main 2027 · Session 1', '2027-01-20', 'jee-main'], ['JEE Advanced 2027', '2027-05-23', 'jee-advanced']];
 function viewHome() {
   side({ back: null, title: 'Dashboard', sub: 'Choose how you want to practise', items: homeItems('home') });
@@ -338,7 +379,7 @@ function viewHome() {
   const cards = h('div', { class: 'dh-grid' },
     card('#2450c8', IC.clock, 'PYQs', 'Real papers, chapter by chapter', num(pyq.length) + ' questions', { go: 'd/pyq' }),
     card('#d9961a', IC.list, 'Non-PYQs', 'Practice from books and sheets', num(np.length) + ' questions', { go: 'd/np', lock }),
-    card('#7c3aed', IC.test, 'DPPs', 'BB Ex, Ln DY, Ln Ex and more', 'Daily practice', { go: 'd/dpp', lock }),
+    card('#7c3aed', IC.test, 'DPPs/Exercises', 'BB Ex, Ln DY, Ln Ex and more', 'Daily practice', { go: 'd/dpp', lock }),
     card('#e11d48', IC.grid, 'Tests', 'Mock tests and your own tests', '5 test types', { href: '#/modes' }),
     card('#16a06a', IC.mark, 'Handouts', 'Handwritten revision notes', 'Class 11 and 12', { go: 'd/handouts' }),
     card('#0891b2', IC.mark, 'Bookmarks', 'Questions you marked', num(D.sum.bookmarks.length) + ' saved', { go: 'd/bookmarks' }));
@@ -352,7 +393,7 @@ function viewHome() {
       h('span', { class: 'dh-sc', text: t.score == null ? '—' : +(+t.score).toFixed(2) + ' / ' + +(+t.max_score).toFixed(2) }))))) :
       h('div', { class: 'dh-empty' }, h('p', { text: 'No tests yet. Take your first test to see your score and analysis here.' }), h('a', { class: 'btn pri', href: '#/modes', text: 'Take a test' })));
   const car = h('div', { class: 'dh-car', role: 'region', 'aria-label': 'Special picks' });
-  const track = h('div', { class: 'dh-track' }, PICKS.map(pk => h('a', { class: 'dh-pk', href: '#d/pick/' + pk.k, style: '--tone:' + pk.tone }, h('b', { text: pk.t }), h('small', { text: pk.s }), h('span', { class: 'dh-pn', text: num(pk.pool().length) + ' questions' }))));
+  const track = h('div', { class: 'dh-track' }, PICKS.map(pk => h('a', { class: 'dh-pk', href: '#d/pick/' + pk.k, style: '--tone:' + pk.tone }, h('span', { class: 'dh-pk-ic', html: pk.icon }), h('b', { text: pk.t }), h('small', { text: pk.s }), h('span', { class: 'dh-pn', text: num(pk.pool().length) + ' questions ›' }))));
   const arrow = (dir, ic) => h('button', { type: 'button', class: 'dh-ar dh-ar-' + dir, 'aria-label': dir === 'l' ? 'Previous' : 'Next', html: ic, onclick: () => track.scrollBy({ left: dir === 'l' ? -280 : 280, behavior: 'smooth' }) });
   car.append(arrow('l', IC.back), track, arrow('r', IC.chev));
   main(hero, strip, h('h3', { class: 'dh-h', text: 'Special picks' }), car, h('h3', { class: 'dh-h', text: 'Practise' }), cards, h('div', { class: 'dh-two' }, prog, rec));
@@ -371,6 +412,7 @@ function viewExams() {
     h('div', { class: 'tx-grid' }, cards));
 }
 /* ---------- Tests: the pages of portal.js, drawn inside the dashboard ---------- */
+const staffish = () => { const p = A().perm || {}, pr = A().profile || {}; return !!(p.isAdmin || p.staff || p.plan === 'staff' || p.role === 'teacher' || pr.role === 'teacher'); };
 function viewPortalPage(hs, r) {
   const sub = ['t', 'report', 'reports', 'result', 'results'].includes(r);   /* a test or a report: Back goes to the Tests section, not the dashboard home */
   const tests = r === 'modes' || r === 'personal' || sub;
@@ -380,8 +422,8 @@ function viewPortalPage(hs, r) {
   else side({ back: '', title: 'My account', sub: 'Profile, plan and results', items: [
     { label: 'Edit profile', icon: IC.grid, hash: '/profile', active: on('#/profile') },
     { label: 'Membership', icon: IC.mark, hash: '/membership', active: on('#/membership') },
-    { label: 'My Performance', icon: IC.list, hash: '/personal' },
-    { label: 'Help & Support', icon: IC.test, hash: '/help', active: on('#/help') }] });
+    staffish() ? { label: 'My Performance', icon: IC.list, hash: '/personal' } : null,   /* students: My Reports is their results page */
+    { label: 'Help & Support', icon: IC.test, hash: '/help', active: on('#/help') }].filter(Boolean) });
   MAIN.textContent = ''; MAIN.append(h('div', { id: 'viewPortal', class: 'pt-wrap' }));
   window.scrollTo(0, 0);
   window.AvantiPortal.route(true);
@@ -512,7 +554,9 @@ async function markingOf(x) {
   const n = v => String(Number(v)), w = +t.w ? '\u2212' + n(t.w) : '0';
   return '+' + n(t.c) + ' / ' + w + (t.p ? ' (partial marks possible)' : '');
 }
-const listEnv = () => ({ D, A, h, main, stat, IC, pct, toast, need, marking: markingOf, content: window.AvantiContent, mathReady: () => window.AvantiBoot.katex().catch(() => {}) });
+/* the questions linked as repeats in must.json, as light records (for the "Repeated in" line) */
+const linksOf = id => [...new Set(D.mustM[id] || [])].map(o => { const x = D.ix && D.ix.byId.get(o); return x && x.s === 'P' ? { id: o, source: 'PYQ', exam: x.ex, year: x.y, paper: x.p, qno: x.n } : null; }).filter(Boolean);
+const listEnv = () => ({ D, A, h, main, stat, IC, pct, toast, need, marking: markingOf, links: linksOf, content: window.AvantiContent, mathReady: () => window.AvantiBoot.katex().catch(() => {}) });
 /* a question list inside the dashboard (dash-list.js draws it) */
 function viewList(mode, slug, ch, kind, arg) {
   const c = D.chByCode[ch], e = EX[slug], rows = scope(mode, slug, ch), idSet = new Set(rows.map(r => r.id));
@@ -529,7 +573,7 @@ function viewList(mode, slug, ch, kind, arg) {
   }
   const sub = [c ? c.chapter : ch, mode === 'pyq' && e ? e.name : 'Practice questions'].join(' · ');   /* the breadcrumb stays in the page for navigation and search, but is not shown on list pages */
   window.DashList.render(listEnv(),
-    { rows: pool, title, sub, seqOrder: mode !== 'pyq', filters: mode === 'pyq' ? [] : [{ key: 'bk', label: 'Source', values: [...new Set(pool.map(r => r.bk).filter(Boolean))].sort().map(b => [b, b]), get: r => r.bk }],   /* practice questions: in the order of the book (source, exercise, question), with a Source filter */
+    { rows: pool, title, sub, seqOrder: mode !== 'pyq', ...(/^must/.test(kind) ? { tone: '#d9961a', icon: IC.star, kicker: 'Must Do · high-yield and repeated', pickOrder: true, groupBy: r => (r.y ? String(r.y) : 'Year not known') } : {}), filters: mode === 'pyq' ? [] : [{ key: 'bk', label: 'Source', values: [...new Set(pool.map(r => r.bk).filter(Boolean))].sort().map(b => [b, b]), get: r => r.bk }],   /* practice questions: in the order of the book (source, exercise, question), with a Source filter */
       head: h('div', { class: 'd-head' }, crumb(mode === 'pyq' ? 'PYQs' : 'Non-PYQs', e && e.name, c ? c.chapter : ch)), practiceLabel: 'Practice ' + what, testLabel: 'Take ' + what + ' Test', emptyText: kind === 'bookmarked' ? 'Tap the bookmark on any question to keep it here.' : 'No questions here yet.',
       startTest: list => launchTestFrom(list, c, mode, e, 20, what.toLowerCase() + ' test', kind === 'all' ? null : title) });
 }
@@ -691,7 +735,7 @@ async function route() {
   if (a === 'ch') return viewChapter(b, c === '-' ? null : c, d, e || 'overview', f);
   if (a === 'handouts') return viewHandouts();
   if (a === 'pick') return viewPick(b);
-  if (a === 'dpp') return b === 'maker' ? viewDppMaker() : b ? viewDppSrc(b, c, d) : viewDpp();
+  if (a === 'dpp') return b === 'maker' ? viewDppMaker(c) : b ? viewDppSrc(b, c, d) : viewDpp();
   if (a === 'bookmarks') return viewBookmarksPage();
   if (a === 'history') return viewHistoryPage();
   viewHome();

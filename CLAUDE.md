@@ -36,7 +36,7 @@ tests and results. It replaced an older Claude artifact.
   `index/questions.json` (ids + metadata, no text), `pyq/<chapter>.json`, `np/<chapter>.json` (Premium) and `papers/<paper>.json`.
   After ANY change to pyq.json or nonpyq.json, re-run `python3 .github/scripts/split_content.py --upload` (from a session that can
   reach the bucket with the service key) or non-admin accounts keep seeing the old questions.
-- Tests: the clock runs from the start and never pauses; 5 violations (leaving the test screen / full screen) submit automatically;
+- Tests: the clock counts only the time the test page is open (it waits while the student is offline); a test not finished within twice its time after the start is submitted automatically; 5 violations (leaving the test screen / full screen) submit automatically;
   correct answers open at start + full duration; the question bank is closed while an attempt is running.
 - `supabase/schema.sql`: the whole database; safe to run again. It also creates the private storage bucket `user-solutions` (images of own solutions, max 2 per question per student, 20 uploads a day) and its policies. `supabase/functions/`: Edge Functions.
 - `.github/scripts/guard.sh`: run it before every merge (`bash .github/scripts/guard.sh`). The deploy workflow refuses to

@@ -32,8 +32,8 @@ function h(tag, props, ...kids) {
 }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 window.AvantiUtil = Object.freeze({ h, esc });
-const BUILD = '1069';
-const RELEASED = '23 Nov 2026';   /* date of this release, shown in the footer */
+const BUILD = '1070';
+const RELEASED = '28 Nov 2026';   /* date of this release, shown in the footer */
 const SB_URL = 'https://usehxhvzhdbcmnmqaxoo.supabase.co';
 const SB_KEY = 'sb_publishable_QQ_N_B6kl416kbGMF0DQtw_9Jg58PoN';
 const QB_HTML = 'qb/qb.b525.html', QB_JS = 'qb/qb-all.b870.js?v=' + BUILD, TEACHER_JS = 'teacher.b870.js?v=' + BUILD;   /* the build number in the address, so a new release is never served from the saved copy */

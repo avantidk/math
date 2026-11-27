@@ -199,7 +199,8 @@ function renderMenu() {
   const pre = 'dashboard';   /* every account page is a dashboard page; only the Question Bank is /qbank */
   /* the Question Bank (/qbank) is for the admin only; everyone else uses the dashboard */
   if (!perm.isAdmin && /\/qbank(\.html)?\/?$/.test(location.pathname)) { location.replace('dashboard'); return; }
-  const items = [['#/profile', 'Edit profile'], ['#/personal', 'My Performance']];
+  const items = [['#/profile', 'Edit profile']];
+  if (!student || perm.isAdmin) items.push(['#/personal', 'My Performance']);   /* students use My Reports */
   if (perm.isAdmin) items.unshift(['#/qb', 'Question Bank']);
   if (perm.plan === 'premium' && !p.is_avanti) items.push(['#/membership', 'Membership']);
   if (student) {
@@ -208,7 +209,7 @@ function renderMenu() {
   }
   if (teacher || perm.staff) {
     if (perm.createTests) items.push(['#/my-tests', 'School Tests & Results']);
-    if (perm.manageStudents || teacher) items.push(['#/students', 'My Students']);   /* Free teachers: the page explains the Premium teacher plan */
+    if (perm.manageStudents || teacher) items.push(['#/students', 'Students/Teachers']);   /* Free teachers: the page explains the Premium teacher plan */
     if (perm.worksheets) items.push(['#/worksheets', 'Saved worksheets']);
   }
   if (perm.plan !== 'free' && !perm.isAdmin && p.school_approved) items.push(['#/school', 'My School']);

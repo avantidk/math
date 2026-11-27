@@ -92,9 +92,9 @@ EXAMS = [   # (key in the stats, name shown, url slug, short line, about)
   'The IISER Aptitude Test (IAT) is the entrance test for the BS-MS programmes of the Indian Institutes of Science Education and Research (IISERs). Mathematics is one of its sections.'),
 ]
 
-# CUET-UG has a guide and score tables but no questions in the bank yet, so it is kept apart from EXAMS (which need question counts).
-CUET = ('CUET', 'CUET-UG', 'cuet', 'The Common University Entrance Test for DU, BHU and other central universities.',
-  'CUET-UG, the Common University Entrance Test (UG), is conducted by the National Testing Agency (NTA) for admission to undergraduate programmes of the University of Delhi, BHU, JNU, Allahabad University and many other central, state and private universities. Mathematics is one of its domain subjects.')
+# CUET UG has a guide and score tables but no questions in the bank yet, so it is kept apart from EXAMS (which need question counts).
+CUET = ('CUET', 'CUET UG', 'cuet', 'The Common University Entrance Test for DU, BHU and other central universities.',
+  'CUET UG, the Common University Entrance Test (UG), is conducted by the National Testing Agency (NTA) for admission to undergraduate programmes of the University of Delhi, BHU, JNU, Allahabad University and many other central, state and private universities. Mathematics is one of its domain subjects.')
 ALL_EXAMS = EXAMS + [CUET]
 COMP = GUIDES.get('compendium'); IMPORTANT = GUIDES.get('important')
 COMP_SEC = {'jee-main': 0, 'jee-advanced': 1, 'kcet': 2, 'iat': 3, 'nda': 4, 'cuet': 5}   # which section of the cutoff compendium belongs to which exam
@@ -333,13 +333,13 @@ def footer(depth, up=None, share=False):
 <div><p class="sf-h">Explore</p><ul><li><a href="{up}maths/">Math chapters</a></li><li><a href="{up}syllabus-priority/">Syllabus priority</a></li><li><a href="{up}exams/">All exams</a></li><li><a href="{up}resources/questions-analysis/">Questions analysis</a></li><li><a href="{up}resources/paper-wise-analysis/">Paper wise analysis</a></li><li><a href="{up}resources/important-exams/">Important exams after Class 12</a></li><li><a href="{a("#features")}">Feature overview</a></li><li><a href="{a("#plans")}">Plans and pricing</a></li><li><a href="{a("#faq")}">Common questions</a></li></ul></div>
 <div><p class="sf-h">Company</p><ul><li><a href="{up}about/">About us</a></li><li><a href="{up}contact/">Contact us</a></li><li><a href="{up}privacy/">Privacy policy</a></li><li><a href="{up}terms/">Terms of use</a></li><li><a href="{up}refund-policy/">Refund policy</a></li></ul></div>
 </div>
-<div class="sf-base"><span>&copy; 2026 अंक-IT Mathematics Dashboard</span><span>JEE Main · JEE Advanced · KCET · NDA · IAT · CUET</span></div>
+<div class="sf-base"><span>&copy; 2026 अंक-IT Mathematics Dashboard</span><span>JEE Main · JEE Advanced · KCET · NDA · IAT · CUET UG</span></div>
 </div></footer>"""
 
 def aside(depth, current=None, up=None):
     up = '../' * depth if up is None else up
     cur = ' aria-current="page"'
-    ex = ''.join(f'<li><a href="{up}exams/{e[2]}/"{cur if e[2] == current else ""}>{exlogo(e, up, 34)}<span><b>{E(e[1])}</b><small>{STATS[e[0]]["questions"]:,} questions</small></span></a></li>' for e in EXAMS) + f'<li><a href="{up}exams/cuet/"{cur if current == "cuet" else ""}>{exlogo(CUET, up, 34)}<span><b>CUET-UG</b><small>Guide and safe scores</small></span></a></li>'
+    ex = ''.join(f'<li><a href="{up}exams/{e[2]}/"{cur if e[2] == current else ""}>{exlogo(e, up, 34)}<span><b>{E(e[1])}</b><small>{STATS[e[0]]["questions"]:,} questions</small></span></a></li>' for e in EXAMS) + f'<li><a href="{up}exams/cuet/"{cur if current == "cuet" else ""}>{exlogo(CUET, up, 34)}<span><b>CUET UG</b><small>Guide and safe scores</small></span></a></li>'
     pop = sorted(CH, key=lambda c: -c['m'])[:8]
     chs = ''.join(f'<li><a href="{up}maths/{slug(c)}/"><span>{E(short(c))}</span><small>{c["m"]} Main</small></a></li>' for c in pop)
     return (f'<aside class="pg-side" aria-label="Sidebar"><div class="side-box side-share"><p class="side-title">Share this page</p><div class="share" data-share></div></div><div class="side-cta"><p class="side-title">Practise free</p><p>Question bank, DPPs, past papers and tests, with full solutions.</p>'
@@ -513,8 +513,8 @@ NEXT_DATE = {'jee-main': ('2027-01-20', 'JEE Main 2027 · Session 1', 'Wednesday
              'jee-advanced': ('2027-05-23', 'JEE Advanced 2027', 'Sunday, 23 May 2027')}   # exam day (Indian time)
 BULLETIN = {'jee-main': ('NTA JEE Main', 'https://jeemain.nta.nic.in/'), 'jee-advanced': ('JEE Advanced', 'https://jeeadv.ac.in/'),
             'kcet': ('Karnataka Examinations Authority', 'https://cetonline.karnataka.gov.in/kea/'), 'nda': ('UPSC', 'https://upsc.gov.in/'),
-            'iat': ('IISER admissions', 'https://iiseradmission.in/'), 'cuet': ('NTA CUET-UG', 'https://cuet.nta.nic.in/')}
-OFFICIAL['cuet'] = [('NTA CUET-UG (official site)', 'https://cuet.nta.nic.in/')]
+            'iat': ('IISER admissions', 'https://iiseradmission.in/'), 'cuet': ('NTA CUET UG', 'https://cuet.nta.nic.in/')}
+OFFICIAL['cuet'] = [('NTA CUET UG (official site)', 'https://cuet.nta.nic.in/')]
 PDF_ICO = svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14h6M9 17h4"/>', 20)
 
 def countdown(e):
@@ -586,7 +586,7 @@ def safe_block(e, h2=True, hid=True, lead=True):
 
 ANA = 'resources/questions-analysis'
 
-EXAM_LINKS = [('JEE Advanced', 'jee-advanced'), ('JEE Main', 'jee-main'), ('KCET', 'kcet'), ('NDA', 'nda'), ('IAT', 'iat'), ('CUET', 'cuet')]
+EXAM_LINKS = [('JEE Advanced', 'jee-advanced'), ('JEE Main', 'jee-main'), ('KCET', 'kcet'), ('NDA', 'nda'), ('IAT', 'iat'), ('CUET UG', 'cuet')]
 def autolink(html_, up, skip=''):
     """Link the first mention of each exam name in running text to that exam's page (never inside links, headings, buttons or table headers)."""
     done = {skip}; out = []; blocked = 0
@@ -969,8 +969,8 @@ def redirect_page(to, depth, name, alt=None):
 
 def exams_hub():
     total = sum(STATS[e[0]]['questions'] for e in EXAMS)
-    title = pick_title('Exams: JEE Main, JEE Advanced, KCET, NDA, IAT, CUET', 'Exams: JEE Main, Advanced, KCET, NDA, IAT, CUET Math')
-    desc = compose('Compare JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA, IAT and CUET-UG: who conducts each exam, what it is for and the mode.',
+    title = pick_title('Exams: JEE Main, JEE Advanced, KCET, NDA, IAT, CUET UG', 'Exams: JEE Main, Advanced, KCET, NDA, IAT, CUET UG')
+    desc = compose('Compare JEE Main, JEE Advanced, IIT-JEE, AIEEE, KCET, NDA, IAT and CUET UG: who conducts each exam, what it is for and the mode.',
                    f'{total:,} past math questions.', 'Free on अंक-IT.')
     rows = ''.join(f'<tr><td class="exn">{exlogo(e, "../", 38)}<a href="{e[2]}/">{E(e[1])}</a></td><td>{E(SHORT[e[0]][0])}</td><td>{E(SHORT[e[0]][1])}</td><td>{E(SHORT[e[0]][2])}</td>'
                    f'<td class="num">{STATS[e[0]]["questions"]:,}</td><td>{STATS[e[0]]["first"]}–{STATS[e[0]]["last"]}</td></tr>' for e in EXAMS)
@@ -1282,7 +1282,7 @@ def home_block():
 <h3 class="chc-h">Class 12 <small>{sum(1 for c in CH if cls(c) == "12")} chapters</small></h3><div class="chc-grid">{c12}</div>
 <h3 class="chc-h">Out of syllabus <small>no longer in the current JEE syllabus, but still in the question bank</small></h3><div class="chc-grid">{oos}</div>
 <p class="chp-note"><a class="sb sb-line" href="maths/">See all chapters with question counts</a></p></div></section>
-<section class="sec" id="exams"><div class="swrap"><div class="sec-head"><span class="kick">Exams</span><h2>Built for the exams you are preparing for</h2><p>{sum(STATS[e[0]]["questions"] for e in EXAMS):,} previous-year math questions, paper by paper. Open an exam to see its questions by chapter and year.</p></div><div class="exc-grid">{exam_cards}</div><p class="home-more"><a href="exams/#dates">All exam dates and countdowns</a> &middot; <a href="resources/questions-analysis/">Questions analysis</a> &middot; <a href="resources/important-exams/">Important exams after Class 12</a> &middot; <a href="exams/cuet/">CUET-UG guide</a></p></div></section>
+<section class="sec" id="exams"><div class="swrap"><div class="sec-head"><span class="kick">Exams</span><h2>Built for the exams you are preparing for</h2><p>{sum(STATS[e[0]]["questions"] for e in EXAMS):,} previous-year math questions, paper by paper. Open an exam to see its questions by chapter and year.</p></div><div class="exc-grid">{exam_cards}</div><p class="home-more"><a href="exams/#dates">All exam dates and countdowns</a> &middot; <a href="resources/questions-analysis/">Questions analysis</a> &middot; <a href="resources/important-exams/">Important exams after Class 12</a> &middot; <a href="exams/cuet/">CUET UG guide</a></p></div></section>
 <section class="sec sec-alt" id="teachers"><div class="swrap split"><div><span class="kick">For teachers</span><h2>Set a test in minutes. See every result.</h2><p>Build an online test from the question bank, share one link with your class and get a ranked report the moment students finish.</p>
 <ul class="ticks">{tick(['Create tests from DPPs, PYQs or your own selection', 'One link for the whole class, with an exam window', 'Ranks, averages and question-wise analysis', 'Students register themselves and choose your school'])}</ul>
 <a class="sb sb-pri when-out" data-login href="?login=1" rel="nofollow">Login as a teacher</a><a class="sb sb-pri when-in" href="dashboard">Go to my dashboard</a></div>
@@ -1416,7 +1416,7 @@ def main():
     for e in EXAMS: write(f'resources/paper-wise-analysis/{e[2]}/index.html', paper_wise_page(e))
     write(f'{ANA}/index.html', analysis_hub())
     write('exams/important-exams/index.html', redirect_page('resources/important-exams/', 2, 'Important Exams After Class 12')); write('exams/safe-scores/index.html', redirect_page('exams/', 2, 'Exams We Cover'))   # old addresses keep working
-    write('exams/cuet/index.html', exam_page(CUET)); write('exams/cuet/about/index.html', redirect_page('exams/cuet/', 3, 'CUET-UG: Everything You Should Know'))
+    write('exams/cuet/index.html', exam_page(CUET)); write('exams/cuet/about/index.html', redirect_page('exams/cuet/', 3, 'CUET UG: Everything You Should Know'))
     for e in EXAMS:
         write(f'exams/{e[2]}/index.html', exam_page(e)); write(f'{ANA}/{e[2]}/index.html', analysis_page(e))
         if e[2] in GUIDES: write(f'exams/{e[2]}/about/index.html', redirect_page(f'exams/{e[2]}/', 3, f'{e[1]}: Everything You Should Know'))

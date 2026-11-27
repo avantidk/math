@@ -800,3 +800,5 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .pg-moved h1{font-size:clamp(26px,4vw,34px);margin:0 0 14px}
 .pg-moved p{margin:8px 0;color:#2d3a58;font-size:17px}
 .pg-moved a{font-weight:600}
+/* owner's rule: never underline clickable things (focus rings stay) */
+a,a:hover,a:focus,button,.lm-link,a.xl,.ct-mail a{text-decoration:none!important}

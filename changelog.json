@@ -1,5 +1,24 @@
 [
   {
+    "v": "1070",
+    "date": "28 Nov 2026",
+    "items": [
+      "Test reports redesigned: score gauge, answers chart, accuracy, time and rank, comparison with the average and the top score, time per question, chapter, topic and section breakdowns. The review can be filtered by status, chapter, class, section, type and difficulty, with Full explanation, Others' solutions and Comments under every question.",
+      "Students: My Performance is now part of My Reports, which also has filters (PYQ / Non-PYQ, exam, class, test type), 20 tests per page and a new \"+ Create a new test\" button.",
+      "Students/Teachers (was My Students): 50 per page, separate Class, Stream, Category and Gender columns and filters, Date of Registration, Date of Premium purchase and Date of birth.",
+      "Sign-up: any school can be typed in (\"Other — write your own school name\"); Google students can add their date of birth (optional, set once).",
+      "Tests: 5 warnings (not 3) before a test is submitted automatically. The clock waits while you are offline; a test not finished within twice its time after the start is submitted automatically.",
+      "Multiple-correct questions: tick as many options as you like. Each past paper is graded by its own year's official marking scheme; personal tests use the latest one. Wrong answers lose no marks only in CBSE.",
+      "Past papers keep their real question order and sections everywhere. Created tests shuffle only inside a section.",
+      "Choose a paper: one row per paper with Attempt Now and Share; exam chips are the same size with logos. New logos for JEE Advanced, CBSE and CUET UG (CUET is now called CUET UG everywhere).",
+      "Create Your Practice Test: Mix by default for Premium; CBSE added; JEE Advanced Paper 1 / Paper 2 and CBSE schemes fix the question count and follow the official sections. Chapter-wise tests have fixed sizes and times per exam (JEE Main 25 in 70 min, JEE Advanced 18 in 70, CBSE 20 in 40, KCET 20 in 30, NDA 30 in 40, IAT 15 in 50).",
+      "Past-paper downloads: a Solutions / explanations switch (also for teachers' School Tests).",
+      "DPPs/Exercises: new PYQ and Non-PYQ chapter-wise DPP buttons, exercises grouped by chapter. Special picks: taller cards with icons, sorted by year, month and chapter, with chapter filters on Repeated and Must Do.",
+      "Question labels like \"JEE Main 2024 (9 Apr · Shift 1).Q4\", with \"Repeated in …\" lines; questions inside a paper follow section and question number.",
+      "Options are laid out the same way on every page: 4 in a row, 2 by 2, or one per row (never 3 lines). Nothing clickable is underlined. The Back button returns to the page you were on."
+    ]
+  },
+  {
     "v": "1069",
     "date": "23 Nov 2026",
     "items": [

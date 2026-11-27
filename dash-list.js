@@ -27,8 +27,8 @@ function richBase(t, stem) {
   }
   return (out + plainTxt(s.slice(last))).replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>');   /* **bold** in the question text */
 }
-/* Layout of the four options: 1 row when all are short, 2 rows (2 columns) when they fit comfortably, otherwise 4 rows. Never 3 + 1. */
-const optCls = arr => { const heavy = /\\(frac|dfrac|int|oint|sqrt|sum|prod|lim|begin|vec|overrightarrow)\b/, w = x => String(x == null ? '' : x).replace(/\\[()]/g, '').replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}\\^_]/g, '').length, m = Math.max(0, ...(arr || []).map(w)); return (arr || []).length === 4 && !(arr || []).some(x => heavy.test(String(x == null ? '' : x))) ? (m <= 10 ? 'c4' : m <= 16 ? 'c2' : 'c1') : 'c1'; };   /* short options sit side by side; long ones, and any option with a fraction, integral, root, sum or matrix, take one row each */
+/* Layout of the options: one shared rule for every page (opts.js): 4 in a row, 2x2 or one per row, never 3 lines */
+const layoutOpts = box => { if (box && window.AvantiOpts) window.AvantiOpts.layout(box); };
 /* Match the following: List-I and List-II side by side in a table (P with 1, Q with 2, ...) */
 function rich(t, stem) {
   const m = window.AvantiMatch && window.AvantiMatch.parse(t);
@@ -44,6 +44,29 @@ const srcLine = x => {
   const name = EXAM_NAME[x.exam] || x.exam || '', p = String(x.paper || '').replace(String(x.year || ''), '').replace(/\s*\(([^)]*)\)/g, ' · $1').replace(/\s+/g, ' ').replace(/^[\s,.\-–·]+|[\s,.\-–·]+$/g, '');
   return name + (x.year ? ' ' + x.year : '') + (p ? ' (' + p + ')' : '');
 };
+/* the label of a question with its number in the paper: CBSE.12.2026.65/1/1.Q2, JEE Main 2024 (9 Apr · Shift 1).Q4 */
+const qLabel = x => { const l = srcLine(x); return x && (x.source === 'PYQ' || !x.source) && x.qno != null && String(x.qno).trim() !== '' && !/\.Q[\w-]+$/.test(l) ? l + '.Q' + String(x.qno).trim() : l; };
+/* ---------- repeated questions across papers: the same question text in PYQs of two different papers ----------
+   Worked out in the browser, once per question, from the chapter (or paper) files already loaded for the screen. Cheap: one pass per new record. */
+const REP = new Map(), REP_SEEN = new Set(), REP_REC = new Map();
+const normQ = t => String(t == null ? '' : t).replace(/\{\{(sol)?figure\}\}/g, '').replace(/\\(?:(?:left|right|displaystyle|textstyle|quad|qquad)(?![a-zA-Z])|[,;:!])/g, '').replace(/\\[dt]frac/g, '\\frac').replace(/\\[()[\]]/g, '').replace(/\*\*/g, '').replace(/[\s.,;:]+/g, '').toLowerCase();
+const paperKey = x => [x.exam || '', x.year || '', x.paper || ''].join('|');
+function noteRecords(m) {
+  if (!m || typeof m.forEach !== 'function') return;
+  m.forEach((x, id) => {
+    id = String(id); if (REP_SEEN.has(id)) return; REP_SEEN.add(id);
+    if (!x || x.source !== 'PYQ' || !x.paper) return;
+    const k = normQ(x.question); if (k.length < 40) return;   /* very short texts ("Find x.") are not compared */
+    let g = REP.get(k); if (!g) REP.set(k, g = []); g.push(id); REP_REC.set(id, x);
+  });
+}
+/* the other papers that have this question: labels like "JEE Main 2019 (9 Jan · Shift 2).Q7" */
+function repeatsOf(id, x) {
+  x = x || REP_REC.get(String(id)); if (!x) return [];
+  const g = REP.get(normQ(x.question)) || [], mine = paperKey(x), seen = new Set([mine]), out = [];
+  g.forEach(o => { if (o === String(id)) return; const y = REP_REC.get(o); if (!y) return; const pk = paperKey(y); if (seen.has(pk)) return; seen.add(pk); out.push(qLabel(y)); });
+  return out;
+}
 let FIGS = null;
 /* PYQ figures for everyone, practice figures too for Premium (boot.js merges the two files and skips one that is refused) */
 const figures = env => (FIGS || (FIGS = (env.content.figures ? env.content.figures() : env.content.get('qb/data/figures.json')).catch(() => { FIGS = null; return {}; })));
@@ -62,7 +85,7 @@ function menu(label, build) {   /* build(panel, refreshLabel) fills the panel; r
 /* ---------- the list ---------- */
 function render(env, o) {
   const { D, A, main } = env, pool = o.rows, res = () => D.sum.results;
-  const F = { hide: false, years: new Set(), status: '', lv: new Set(), types: new Set(), sort: o.seqOrder ? 'seq' : 'new', extra: {} };
+  const F = { hide: false, years: new Set(), status: '', lv: new Set(), types: new Set(), sort: o.seqOrder ? 'seq' : o.pickOrder ? 'pick' : 'new', extra: {} };
   (o.filters || []).forEach(f => { F.extra[f.key] = new Set(); });
   const TYPE_ORD = ['MCQ', 'MSQ', 'Numerical', 'Matching', 'Para', 'Subjective'];
   const typeOf = r => { const t = r.ty || 'MCQ'; return t === 'Comprehension' || r.pa ? 'Para' : t; };   /* from the index (pa: a "Para:" question) */
@@ -81,8 +104,15 @@ function render(env, o) {
     /* the order of the books: source, then the chapter of the book (BB Ex ids start BB-<chapter>-), then the exercise, then the question */
     const cn = r => { const m = /^BB-(\d+)-/.exec(String(r.id)); return m ? +m[1] : 0; }, gk = r => r.ch + '|' + r.bk + '|' + (r.src || ''), gmin = new Map();
     if (F.sort === 'seq') list.forEach(r => { const k = gk(r), v = idn(r); if (!gmin.has(k) || v < gmin.get(k)) gmin.set(k, v); });
-    list.sort((a, b) => F.sort === 'seq' ? chOrd(a.ch) - chOrd(b.ch) || String(a.bk).localeCompare(String(b.bk)) || cn(a) - cn(b) || (gmin.get(gk(a)) || 0) - (gmin.get(gk(b)) || 0) || (a.shn || 0) - (b.shn || 0) || idn(a) - idn(b) || qn(a) - qn(b) || (a.id < b.id ? -1 : 1) : F.sort === 'new' ? (b.y || 0) - (a.y || 0) || (a.id < b.id ? 1 : -1) : F.sort === 'old' ? (a.y || 0) - (b.y || 0) || (a.id < b.id ? -1 : 1) : F.sort === 'easy' ? String(a.d).localeCompare(String(b.d)) || (b.y || 0) - (a.y || 0) : String(b.d).localeCompare(String(a.d)) || (b.y || 0) - (a.y || 0));
-    page = 0; draw();
+    /* past papers: newest year, then the paper (date), then its section, then its question number */
+    const secCmp = (a, b) => String(a.sec || '').localeCompare(String(b.sec || ''), undefined, { numeric: true }), byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+    const paperOrd = (a, b, dir) => dir * ((a.dk || 0) - (b.dk || 0)) || String(a.ps || '').localeCompare(String(b.ps || '')) || secCmp(a, b) || qn(a) - qn(b) || byId(a, b);
+    const chCode = c => { const m = /^(\d+)M(\d+)/.exec(String(c || '')); return m ? +m[1] * 1000 + +m[2] : 1e6; }, month = r => Math.floor((r.dk || 0) / 100);
+    list.sort((a, b) => F.sort === 'seq' ? chOrd(a.ch) - chOrd(b.ch) || String(a.bk).localeCompare(String(b.bk)) || cn(a) - cn(b) || (a.src === b.src ? 0 : (a.so || 0) - (b.so || 0)) || (gmin.get(gk(a)) || 0) - (gmin.get(gk(b)) || 0) || (a.shn || 0) - (b.shn || 0) || idn(a) - idn(b) || qn(a) - qn(b) || (a.id < b.id ? -1 : 1)
+      : F.sort === 'pick' ? (b.y || 0) - (a.y || 0) || month(b) - month(a) || chCode(a.ch) - chCode(b.ch) || paperOrd(a, b, -1)
+      : F.sort === 'new' ? (b.y || 0) - (a.y || 0) || paperOrd(a, b, -1) : F.sort === 'old' ? (a.y || 0) - (b.y || 0) || paperOrd(a, b, 1)
+      : F.sort === 'easy' ? String(a.d).localeCompare(String(b.d)) || (b.y || 0) - (a.y || 0) || paperOrd(a, b, -1) : String(b.d).localeCompare(String(a.d)) || (b.y || 0) - (a.y || 0) || paperOrd(a, b, -1));
+    page = 0; draw(); if (chipSync) chipSync();
   };
   const pages = () => Math.max(1, Math.ceil(list.length / PAGE));
   /* only the questions of this page are drawn, so only their chapter files are fetched (a spinner meanwhile) */
@@ -90,7 +120,10 @@ function render(env, o) {
   const draw = () => {
     openId = ''; ul.textContent = '';
     const from = page * PAGE, to = Math.min(list.length, from + PAGE), vis = list.slice(from, to), tok = ++drawTok;
-    const fill = () => { ul.textContent = ''; for (let i = from; i < to; i++) ul.append(row(list[i], i)); paint(); };
+    const grouped = o.groupBy && ['pick', 'new', 'old'].includes(F.sort);   /* a heading where the year changes */
+    const fill = () => { ul.textContent = ''; let last = null;
+      for (let i = from; i < to; i++) { if (grouped) { const g = o.groupBy(list[i]); if (g !== last) { last = g; const n = list.filter(z => o.groupBy(z) === g).length; ul.append(h('li', { class: 'dl-grp', role: 'presentation' }, h('b', { text: g }), h('span', { text: n + (n === 1 ? ' question' : ' questions') }))); } } ul.append(row(list[i], i)); }
+      paint(); };
     if (vis.every(r => D.raw.has(r.id))) { fill(); return Promise.resolve(); }
     ul.append(h('li', { class: 'dl-empty dl-loading' }, h('div', { class: 'spin' }), h('span', { text: 'Loading the questions…' }))); paint();
     return env.need(vis).then(() => { if (tok === drawTok) fill(); }, () => { if (tok !== drawTok) return; ul.textContent = '';
@@ -115,6 +148,11 @@ function render(env, o) {
     pager.append(...build()); pagerTop.append(...build());
   };
 
+  /* "Repeated in <other paper>": found from the question text (repeatsOf) and from the hand-made links (env.links: must.json), both ways */
+  const repLine = (r, x) => {
+    const L = new Set(x.source === 'PYQ' ? repeatsOf(r.id, x) : []); (env.links ? env.links(r.id) : []).forEach(y => { if (y && paperKey(y) !== paperKey(x)) L.add(qLabel(y)); });
+    return L.size ? h('span', { class: 'dl-rep' }, h('b', { text: 'Repeated in ' }), [...L].join(' · ')) : null;
+  };
   /* one compact row */
   function row(r, i) {
     const x = D.raw.get(r.id) || {}, st = res()[r.id];
@@ -122,7 +160,7 @@ function render(env, o) {
     const mark = h('span', { class: 'dl-st ' + (st || ''), title: st === 'c' ? 'You got this right in a test' : st === 'w' ? 'You got this wrong in a test' : st === 's' ? 'Left unanswered in a test' : 'Not attempted', text: st === 'c' ? '✓' : st === 'w' ? '✕' : st === 's' ? '–' : '' });
     const head = h('button', { type: 'button', class: 'dl-main', 'aria-expanded': 'false', onclick: () => toggle(li, r) },
       h('span', { class: 'dl-n' }, h('b', { text: String(i + 1) }), mark),
-      h('span', { class: 'dl-qt' }, h('span', { class: 'dl-q', html: richBase(x.question) }), h('span', { class: 'dl-meta', text: srcLine(x) })));
+      h('span', { class: 'dl-qt' }, h('span', { class: 'dl-q', html: richBase(x.question) }), h('span', { class: 'dl-meta', text: qLabel(x) }), repLine(r, x)));
     li.append(head, h('span', { class: 'dl-sd' }, rowMenu(r, x, li)), h('div', { class: 'dl-detail', hidden: true }));
     return li;
   }
@@ -168,63 +206,11 @@ function render(env, o) {
     }).catch(e => env.toast(e.message || 'Could not save'));
   };
 
-  /* the opened question: full text, options, answer, solution, others' solutions, comments, report */
+  /* the opened question (buildQuestion, below): with the previous / next buttons of this list */
   function detail(r) {
-    const x = D.raw.get(r.id) || {}, box = h('div', { class: 'dl-d' }), type = x.type || 'MCQ';
-    const opts = (x.options || []).slice(0, 8), raw = String(x.answer == null ? '' : x.answer).trim(), isKey = /^[A-H](\s*,\s*[A-H])*$/i.test(raw), keys = isKey ? raw.toUpperCase().split(/[^A-H]+/).filter(Boolean) : [];
-    const fig = h('div', { class: 'dl-fig' }); figures(env).then(f => { const v = f[r.id]; if (v && v.svg) fig.innerHTML = v.svg; });
-    const multi = keys.length > 1, tried = new Set(); let wrongTapped = false;
-    let locked = false;
-    const optEls = opts.map((t, k) => {
-      const L = LETTERS[k], el = h('button', { type: 'button', class: 'dl-opt', 'aria-label': 'Option ' + L }, h('b', { text: L }), h('span', { class: 'dl-ot', html: rich(t) }), h('span', { class: 'dl-mk', 'aria-hidden': 'true' }));
-      el.addEventListener('click', () => {
-        if (!keys.length) { env.toast('The answer for this question is not available yet.'); return; }
-        if (locked || tried.has(L)) return; tried.add(L);
-        const good = keys.includes(L); if (!multi) record(r.id, good); else if (!good) { if (!wrongTapped) record(r.id, false); wrongTapped = true; } else if (!wrongTapped && [...tried].filter(z => keys.includes(z)).length === keys.length) record(r.id, true);
-        el.classList.add(good ? 'ok' : 'bad'); el.lastChild.innerHTML = good ? ICON.chk : ICON.x;
-        el.setAttribute('aria-label', 'Option ' + L + (good ? ', correct' : ', wrong'));
-        if (!multi) { locked = true; if (!good) optEls.forEach((o, j) => { if (keys.includes(LETTERS[j])) { o.classList.add('ok', 'show'); o.lastChild.innerHTML = ICON.chk; } }); }
-        else if ([...tried].filter(z => keys.includes(z)).length === keys.length) locked = true;
-      });
-      return el;
-    });
-    /* numerical: type the value and check it */
-    let numBox = null;
-    if (!opts.length) {
-      const inp = h('input', { type: 'text', inputmode: 'decimal', class: 'dl-numin', placeholder: 'Type your answer', 'aria-label': 'Your answer', autocomplete: 'off' }), res = h('div', { class: 'dl-numres', role: 'status' });
-      const check = () => {
-        const v = inp.value.trim(); if (!v) { inp.focus(); return; } if (!raw) { env.toast('The answer for this question is not available yet.'); return; }
-        /* the key is a number, a range "a to b", or several accepted numbers "a or b" */
-        const range = /^(-?\d+(?:\.\d+)?)\s*to\s*(-?\d+(?:\.\d+)?)$/i.exec(raw), n = parseFloat(v.replace(/[^0-9eE+\-.]/g, '')), alts = raw.split(/\s+or\s+/i).map(x => x.trim()); let good = false;
-        const same = k => Math.abs(n - parseFloat(k)) < 1e-6 || Math.abs(n - parseFloat(k)) <= Math.abs(parseFloat(k)) * 1e-9;
-        if (range) good = n >= Math.min(+range[1], +range[2]) - 1e-9 && n <= Math.max(+range[1], +range[2]) + 1e-9; else if (alts.every(k => /^-?\d+(\.\d+)?$/.test(k))) good = !isNaN(n) && alts.some(same); else good = v.replace(/\s/g, '').toLowerCase() === raw.replace(/\s/g, '').toLowerCase();
-        record(r.id, good); res.className = 'dl-numres ' + (good ? 'ok' : 'bad'); res.innerHTML = (good ? ICON.chk + '<b>Correct</b>' : ICON.x + '<b>Wrong</b> · correct answer: ') + (good ? '' : rich(raw));
-      };
-      inp.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
-      numBox = h('div', { class: 'dl-num' }, h('div', { class: 'dl-numrow' }, inp, h('button', { type: 'button', class: 'btn pri', text: 'Check', onclick: check })), res);
-    }
-    const rep = reportBox(env, r.id);
     const idx = list.findIndex(z => z.id === r.id);
     const nav = h('span', { class: 'dl-nav' }, h('button', { type: 'button', class: 'btn', 'aria-label': 'Previous question', html: ICON.prev, disabled: idx <= 0, onclick: () => step(idx - 1) }), h('button', { type: 'button', class: 'btn', 'aria-label': 'Next question', html: ICON.next, disabled: idx >= list.length - 1, onclick: () => step(idx + 1) }));
-    const panes = { sol: h('div', { class: 'dl-pane' }), oth: h('div', { class: 'dl-pane', hidden: true }), com: h('div', { class: 'dl-pane', hidden: true }) }, loaded = {}, tabs = h('div', { class: 'dl-tabs', role: 'tablist' });
-    const small = window.matchMedia && window.matchMedia('(max-width: 520px)').matches, TN = small ? { sol: 'Explanation', oth: 'Others’', com: 'Comments' } : { sol: 'Full explanation', oth: 'Others’ solutions', com: 'Comments' };
-    const tabBtns = {}; [['sol', TN.sol], ['oth', TN.oth], ['com', TN.com]].forEach(([k, t]) => { const b = h('button', { type: 'button', role: 'tab', class: 'dl-tab', 'aria-selected': 'false', text: t, onclick: () => show(k) }); tabBtns[k] = b; tabs.append(b); });
-    const body = h('div', { class: 'dl-tabbody', hidden: true }, panes.sol, panes.oth, panes.com);
-    const show = k => {
-      const was = !body.hidden && tabBtns[k].getAttribute('aria-selected') === 'true'; body.hidden = was;
-      Object.keys(panes).forEach(p => { panes[p].hidden = was || p !== k; tabBtns[p].setAttribute('aria-selected', String(!was && p === k)); });
-      if (was || loaded[k]) return; loaded[k] = true;
-      if (k === 'sol') solution(env, r.id, panes.sol); else if (k === 'oth') others(env, r.id, panes.oth, n => { tabBtns.oth.textContent = TN.oth + (n ? ' (' + n + ')' : ''); }); else comments(env, r.id, panes.com, n => { tabBtns.com.textContent = TN.com + (n ? ' (' + n + ')' : ''); });
-    };
-    /* {{figure}} marks where the picture belongs: the text before it, the figure, then the rest of the text */
-    const qParts = String(x.question == null ? '' : x.question).split('{{figure}}'), qHead = qParts[0], qTail = qParts.slice(1).join(' ').trim();
-    const q = h('div', { class: 'dl-fullq', html: rich(qHead, true) }), qAfter = qTail ? h('div', { class: 'dl-fullq', html: rich(qTail, true) }) : null;
-    const kids = [q, fig, qAfter,
-      optEls.length ? h('div', { class: 'dl-opts ' + optCls(opts) }, optEls) : null, numBox,
-      rep, h('div', { class: 'dl-tabrow' }, tabs, nav), body].filter(Boolean);
-    box.append(...kids);
-    env.mathReady().then(() => { q.innerHTML = rich(qHead, true); if (qAfter) qAfter.innerHTML = rich(qTail, true); optEls.forEach((li, k) => { li.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); if (window.AvantiMathFit) window.AvantiMathFit.fit(box); });
-    return box;
+    return buildQuestion(env, D.raw.get(r.id) || {}, { id: r.id, nav, onAnswer: good => record(r.id, good) });
   }
   const step = async i => { if (i < 0 || i >= list.length) return; const pg = Math.floor(i / PAGE); if (pg !== page) { page = pg; await draw(); } const li = ul.querySelector('.dl-row[data-id="' + list[i].id + '"]'); if (li) toggle(li, list[i]); };
 
@@ -232,13 +218,14 @@ function render(env, o) {
   const tog = h('label', { class: 'dl-switch' }, h('input', { type: 'checkbox', role: 'switch', onchange: e => { F.hide = e.target.checked; apply(); } }), h('span', { class: 'dl-track', 'aria-hidden': 'true' }), h('span', { text: 'Hide attempted' }));
   const multi = (label, vals, set, nice, cnt) => menu(label, (panel, api) => {
     const sync = () => api.setLabel(set.size ? label + ' (' + set.size + ')' : label, set.size);
+    api.box.__sync = () => { const ins = panel.querySelectorAll('input[type=checkbox]'); vals.forEach((v, i) => { if (ins[i]) ins[i].checked = set.has(v); }); sync(); };
     vals.forEach(v => panel.append(h('label', { class: 'dl-opt-i' }, h('input', { type: 'checkbox', onchange: e => { e.target.checked ? set.add(v) : set.delete(v); sync(); apply(); } }), h('span', { class: 'dl-ot2', text: nice ? nice(v) : String(v) }), cnt ? h('em', { class: 'dl-cn', text: String(cnt(v)) }) : null)));
     panel.append(h('button', { type: 'button', class: 'dl-clear', text: 'Clear', onclick: () => { set.clear(); panel.querySelectorAll('input').forEach(i => { i.checked = false; }); sync(); apply(); } }));
   });
   const statusMenu = menu('Attempt status', (panel, api) => {
     [['', 'All'], ['c', 'Solved correctly'], ['w', 'Got wrong'], ['s', 'Left unanswered'], ['u', 'Not attempted']].forEach(([k, t]) => { const n = k === '' ? pool.length : k === 'u' ? pool.filter(r => !res()[r.id]).length : pool.filter(r => res()[r.id] === k).length; panel.append(h('label', { class: 'dl-opt-i' }, h('input', { type: 'radio', name: 'dl-st', checked: k === '', onchange: () => { F.status = k; api.setLabel(k ? t : 'Attempt status', k); api.close(); apply(); } }), h('span', { class: 'dl-ot2', text: t }), h('em', { class: 'dl-cn', text: String(n) }))); });
   });
-  const sortSel = h('select', { class: 'dl-sort', 'aria-label': 'Order', onchange: e => { F.sort = e.target.value; apply(); } }, (o.seqOrder ? [['seq', 'Exercise order'], ['easy', 'Level (Easy to Hard)'], ['hard', 'Level (Hard to Easy)']] : [['new', 'Year-wise (New to Old)'], ['old', 'Year-wise (Old to New)'], ['easy', 'Level (Easy to Hard)'], ['hard', 'Level (Hard to Easy)']]).map(([k, t]) => h('option', { value: k, text: t })));
+  const sortSel = h('select', { class: 'dl-sort', 'aria-label': 'Order', onchange: e => { F.sort = e.target.value; apply(); } }, (o.seqOrder ? [['seq', 'Exercise order'], ['easy', 'Level (Easy to Hard)'], ['hard', 'Level (Hard to Easy)']] : (o.pickOrder ? [['pick', 'Newest first (year, month, chapter)']] : []).concat([['new', 'Year-wise (New to Old)'], ['old', 'Year-wise (Old to New)'], ['easy', 'Level (Easy to Hard)'], ['hard', 'Level (Hard to Easy)']])).map(([k, t]) => h('option', { value: k, text: t })));
   /* the export box: exactly the questions of the current list (after the filters) are exported */
   const exportPanel = () => {
     const P = window.AvantiPortal, T = () => window.AvantiTeacher, can = k => !!(A().perm && A().perm[k]), S = { key: false, exp: false };
@@ -267,6 +254,17 @@ function render(env, o) {
 
   const levelMenu = multi('Difficulty', ['L1', 'L2', 'L3'], F.lv, v => ({ L1: 'Confidence Booster · Level 1', L2: 'Balanced · Level 2', L3: 'Rank Booster · Level 3' })[v], v => pool.filter(r => r.d === v).length);
   const extraMenus = (o.filters || []).map(f => { const nice = new Map(f.values); return multi(f.label, f.values.map(v => v[0]), F.extra[f.key], v => nice.get(v), v => pool.filter(r => f.get(r) === v).length); });
+  /* chapter by chapter: one chip per chapter with its count (a tap shows only that chapter; again shows all) */
+  function chapterChips() {
+    const f = (o.filters || []).find(z => z.key === 'ch'); if (!o.chapterChips || !f || f.values.length < 2) return null;
+    const set = F.extra.ch, idx = (o.filters || []).indexOf(f), box = h('section', { class: 'dl-chips', 'aria-label': 'Chapters' }, h('div', { class: 'dl-chips-h' }, h('b', { text: 'Chapter-wise' }), h('small', { text: f.values.length + ' chapters' })));
+    const row2 = h('div', { class: 'dl-chips-r' });
+    const sync = () => { row2.querySelectorAll('.dl-chip').forEach(c => { const on = set.has(c.dataset.v); c.classList.toggle('on', on); c.setAttribute('aria-pressed', String(on)); }); const m = extraMenus[idx]; if (m && m.__sync) m.__sync(); };
+    f.values.forEach(([v, t]) => { const n = pool.filter(r => f.get(r) === v).length; if (!n) return;
+      row2.append(h('button', { type: 'button', class: 'dl-chip', 'data-v': v, 'aria-pressed': 'false', title: t, onclick: () => { const only = set.size === 1 && set.has(v); set.clear(); if (!only) set.add(v); sync(); apply(); } }, h('span', { class: 'dl-chip-c', text: v }), h('span', { class: 'dl-chip-t', text: String(t).startsWith(v) ? String(t).slice(String(v).length).trim() : String(t) }), h('em', { text: String(n) }))); });
+    box.append(row2); chipSync = sync; return box;
+  }
+  let chipSync = null;
   if (o.compact) {
     /* DPP pages: everything in one line on top, then the questions */
     const typeMenu = types.length > 0 ? multi('Type', types, F.types, null, v => pool.filter(r => typeOf(r) === v).length) : null;
@@ -276,9 +274,10 @@ function render(env, o) {
       h('div', { class: 'dl-filters dl-oneline' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, levelMenu, typeMenu, statusMenu, h('label', { class: 'dl-sortw dl-sort-r' }, h('span', { html: ICON.sort }), sortSel)),
       h('div', { class: 'dl-bar' }, count, pagerTop), ul, pager);
   } else wrap.append(
-    h('section', { class: 'lh' },
-      h('div', { class: 'lh-t' }, h('div', { class: 'lh-ttl' }, h('h2', { text: o.title }), o.sub ? h('p', { text: o.sub }) : ''), o.startTest ? h('button', { type: 'button', class: 'btn lh-go', onclick: async e => { const b = e.currentTarget; b.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (x) { env.toast(x.message || 'Could not start'); } b.disabled = false; } }, h('span', { html: env.IC.bolt }), (o.testLabel || 'Take test')) : ''),
+    h('section', { class: 'lh' + (o.tone ? ' lh-tone' : ''), style: o.tone ? '--tone:' + o.tone : null },
+      h('div', { class: 'lh-t' }, o.icon ? h('span', { class: 'lh-ic', html: o.icon }) : null, h('div', { class: 'lh-ttl' }, o.kicker ? h('span', { class: 'lh-kick', text: o.kicker }) : null, h('h2', { text: o.title }), o.sub ? h('p', { text: o.sub }) : ''), o.startTest ? h('button', { type: 'button', class: 'btn lh-go', onclick: async e => { const b = e.currentTarget; b.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (x) { env.toast(x.message || 'Could not start'); } b.disabled = false; } }, h('span', { html: env.IC.bolt }), (o.testLabel || 'Take test')) : ''),
       h('div', { class: 'lh-st' }, [[String(pool.length), 'questions'], [solved + ' / ' + pool.length, 'attempted'], [String(right), 'correct'], [solved ? env.pct(right, solved) + '%' : '—', 'accuracy']].map(([n, l]) => h('div', { class: 'lh-s', 'data-k': l }, h('b', { text: n }), h('span', { text: l }))))),
+    chapterChips() || '',
     exportPanel(),
     h('div', { class: 'dl-filters' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, statusMenu, levelMenu, types.length ? multi('Type', types, F.types, null, v => pool.filter(r => typeOf(r) === v).length) : null),
     h('div', { class: 'dl-bar' }, count, pagerTop, h('label', { class: 'dl-sortw' }, h('span', { html: ICON.sort }), sortSel)),
@@ -286,6 +285,82 @@ function render(env, o) {
   if (o.head) o.head.querySelectorAll('.d-crumb').forEach(c => c.classList.add('d-crumb-sr'));   /* kept in the page, not shown */
   main(o.head || null, wrap);
   env.mathReady().then(() => { apply(); }); apply();
+}
+
+/* ---------- one question, opened: full text, figure, options (tap to check), numerical answer box, error report and the tabs
+   Full explanation / Others' solutions / Comments. Used by the lists here and, through AvantiList.renderQuestion, by other pages.
+   x: the full record ({ id, question, options, answer, type, figure? }) or the short test form ({ i|id, q, o, a, t|type, f? }).
+   o: { id, onAnswer(good), nav (element beside the tabs), reveal (show the answer at once), chosen ('B' or 'A,C' or a number: the
+        student's answer, marked), tabs (['sol','oth','com']: which tabs), report (false: no error box), notes (lines under the question) } */
+function buildQuestion(env, x, o) {
+  o = o || {}; x = x || {};
+  if (x.question == null && x.q != null) x = { id: x.id || x.i, question: x.q, options: x.o, answer: x.a, type: x.type || x.t, figure: x.f || x.figure };
+  const id = String(o.id || x.id || ''), box = h('div', { class: 'dl-d' }), type = x.type || 'MCQ', onAnswer = typeof o.onAnswer === 'function' ? o.onAnswer : () => {};
+  const opts = (Array.isArray(x.options) ? x.options : []).slice(0, 8), raw = String(x.answer == null ? '' : x.answer).trim(), isKey = /^[A-H](\s*,\s*[A-H])*$/i.test(raw), keys = isKey ? raw.toUpperCase().split(/[^A-H]+/).filter(Boolean) : [];
+  const fig = h('div', { class: 'dl-fig' });
+  if (x.figure && x.figure.svg) fig.innerHTML = x.figure.svg; else if (env.content) figures(env).then(f => { const v = f[id]; if (v && v.svg) fig.innerHTML = v.svg; });
+  const multi = keys.length > 1, tried = new Set(); let wrongTapped = false;
+  let locked = !!o.reveal;
+  const optEls = opts.map((t, k) => {
+    const L = LETTERS[k], el = h('button', { type: 'button', class: 'dl-opt', 'aria-label': 'Option ' + L }, h('b', { text: L }), h('span', { class: 'dl-ot', html: rich(t) }), h('span', { class: 'dl-mk', 'aria-hidden': 'true' }));
+    el.addEventListener('click', () => {
+      if (!keys.length) { if (env.toast) env.toast('The answer for this question is not available yet.'); return; }
+      if (locked || tried.has(L)) return; tried.add(L);
+      const good = keys.includes(L); if (!multi) onAnswer(good); else if (!good) { if (!wrongTapped) onAnswer(false); wrongTapped = true; } else if (!wrongTapped && [...tried].filter(z => keys.includes(z)).length === keys.length) onAnswer(true);
+      el.classList.add(good ? 'ok' : 'bad'); el.lastChild.innerHTML = good ? ICON.chk : ICON.x;
+      el.setAttribute('aria-label', 'Option ' + L + (good ? ', correct' : ', wrong'));
+      if (!multi) { locked = true; if (!good) optEls.forEach((q, j) => { if (keys.includes(LETTERS[j])) { q.classList.add('ok', 'show'); q.lastChild.innerHTML = ICON.chk; } }); }
+      else if ([...tried].filter(z => keys.includes(z)).length === keys.length) locked = true;
+    });
+    return el;
+  });
+  /* a report: the student's answer and the key are marked at once */
+  const chosen = String(o.chosen == null ? '' : o.chosen).toUpperCase().split(/[^A-H]+/).filter(Boolean);
+  if (o.reveal && opts.length) optEls.forEach((el, j) => { const L = LETTERS[j], key = keys.includes(L), mine = chosen.includes(L);
+    if (key) { el.classList.add('ok', 'show'); el.lastChild.innerHTML = ICON.chk; } else if (mine) { el.classList.add('bad'); el.lastChild.innerHTML = ICON.x; }
+    if (mine) el.classList.add('mine'); el.setAttribute('aria-label', 'Option ' + L + (key ? ', correct answer' : '') + (mine ? ', your answer' : '')); });
+  /* numerical: type the value and check it */
+  let numBox = null;
+  if (!opts.length && o.reveal) {
+    numBox = h('div', { class: 'dl-num' }, h('div', { class: 'dl-numres ok', html: ICON.chk + '<b>Answer:</b> ' + (raw ? rich(raw) : '—') }),
+      o.chosen != null && String(o.chosen).trim() !== '' ? h('div', { class: 'dl-numres', html: '<b>Your answer:</b> ' + esc(String(o.chosen)) }) : null);
+  } else if (!opts.length) {
+    const inp = h('input', { type: 'text', inputmode: 'decimal', class: 'dl-numin', placeholder: 'Type your answer', 'aria-label': 'Your answer', autocomplete: 'off' }), res = h('div', { class: 'dl-numres', role: 'status' });
+    const check = () => {
+      const v = inp.value.trim(); if (!v) { inp.focus(); return; } if (!raw) { if (env.toast) env.toast('The answer for this question is not available yet.'); return; }
+      /* the key is a number, a range "a to b", or several accepted numbers "a or b" */
+      const range = /^(-?\d+(?:\.\d+)?)\s*to\s*(-?\d+(?:\.\d+)?)$/i.exec(raw), n = parseFloat(v.replace(/[^0-9eE+\-.]/g, '')), alts = raw.split(/\s+or\s+/i).map(z => z.trim()); let good = false;
+      const same = k => Math.abs(n - parseFloat(k)) < 1e-6 || Math.abs(n - parseFloat(k)) <= Math.abs(parseFloat(k)) * 1e-9;
+      if (range) good = n >= Math.min(+range[1], +range[2]) - 1e-9 && n <= Math.max(+range[1], +range[2]) + 1e-9; else if (alts.every(k => /^-?\d+(\.\d+)?$/.test(k))) good = !isNaN(n) && alts.some(same); else good = v.replace(/\s/g, '').toLowerCase() === raw.replace(/\s/g, '').toLowerCase();
+      onAnswer(good); res.className = 'dl-numres ' + (good ? 'ok' : 'bad'); res.innerHTML = (good ? ICON.chk + '<b>Correct</b>' : ICON.x + '<b>Wrong</b> · correct answer: ') + (good ? '' : rich(raw));
+    };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+    numBox = h('div', { class: 'dl-num' }, h('div', { class: 'dl-numrow' }, inp, h('button', { type: 'button', class: 'btn pri', text: 'Check', onclick: check })), res);
+  }
+  const rep = o.report === false || !env.A ? null : reportBox(env, id);
+  const want = Array.isArray(o.tabs) ? o.tabs : ['sol', 'oth', 'com'];
+  const panes = { sol: h('div', { class: 'dl-pane' }), oth: h('div', { class: 'dl-pane', hidden: true }), com: h('div', { class: 'dl-pane', hidden: true }) }, loaded = {}, tabs = h('div', { class: 'dl-tabs', role: 'tablist' });
+  const small = window.matchMedia && window.matchMedia('(max-width: 520px)').matches, TN = small ? { sol: 'Explanation', oth: 'Others’', com: 'Comments' } : { sol: 'Full explanation', oth: 'Others’ solutions', com: 'Comments' };
+  const tabBtns = {}; [['sol', TN.sol], ['oth', TN.oth], ['com', TN.com]].filter(([k]) => want.includes(k)).forEach(([k, t]) => { const b = h('button', { type: 'button', role: 'tab', class: 'dl-tab', 'aria-selected': 'false', text: t, onclick: () => show(k) }); tabBtns[k] = b; tabs.append(b); });
+  const body = h('div', { class: 'dl-tabbody', hidden: true }, panes.sol, panes.oth, panes.com);
+  const show = k => {
+    const was = !body.hidden && tabBtns[k].getAttribute('aria-selected') === 'true'; body.hidden = was;
+    Object.keys(panes).forEach(p => { panes[p].hidden = was || p !== k; if (tabBtns[p]) tabBtns[p].setAttribute('aria-selected', String(!was && p === k)); });
+    if (was || loaded[k]) return; loaded[k] = true;
+    if (k === 'sol') solution(env, id, panes.sol); else if (k === 'oth') others(env, id, panes.oth, n => { tabBtns.oth.textContent = TN.oth + (n ? ' (' + n + ')' : ''); }); else comments(env, id, panes.com, n => { tabBtns.com.textContent = TN.com + (n ? ' (' + n + ')' : ''); });
+  };
+  /* {{figure}} marks where the picture belongs: the text before it, the figure, then the rest of the text */
+  const qParts = String(x.question == null ? '' : x.question).split('{{figure}}'), qHead = qParts[0], qTail = qParts.slice(1).join(' ').trim();
+  const q = h('div', { class: 'dl-fullq', html: rich(qHead, true) }), qAfter = qTail ? h('div', { class: 'dl-fullq', html: rich(qTail, true) }) : null;
+  const notes = (o.notes || []).filter(Boolean).map(t => h('div', { class: 'dl-rep', text: t }));
+  const optBox = optEls.length ? h('div', { class: 'dl-opts' }, optEls) : null;
+  const kids = [q, fig, qAfter, optBox, numBox, ...notes,
+    rep, want.length || o.nav ? h('div', { class: 'dl-tabrow' }, tabs, o.nav || null) : null, want.length ? body : null].filter(Boolean);
+  box.append(...kids);
+  requestAnimationFrame(() => layoutOpts(optBox));
+  const mr = env.mathReady ? env.mathReady() : (window.AvantiBoot && window.AvantiBoot.katex ? window.AvantiBoot.katex().catch(() => {}) : Promise.resolve());
+  Promise.resolve(mr).then(() => { q.innerHTML = rich(qHead, true); if (qAfter) qAfter.innerHTML = rich(qTail, true); optEls.forEach((el, k) => { el.querySelector('.dl-ot').innerHTML = rich(opts[k]); }); layoutOpts(optBox); if (window.AvantiMathFit) window.AvantiMathFit.fit(box); });
+  return box;
 }
 
 /* ---------- full explanation ---------- */
@@ -371,5 +446,11 @@ function reportBox(env, id) {
   return box;
 }
 
-window.DashList = Object.freeze({ render });
+/* for other pages (portal.js test report): the same opened question, with its own small toast */
+function miniToast(m) { let t = document.getElementById('dToast'); if (!t) { t = h('div', { id: 'dToast', class: 'd-toast', role: 'status' }); document.body.append(t); } t.textContent = m; t.classList.add('on'); clearTimeout(miniToast.t); miniToast.t = setTimeout(() => t.classList.remove('on'), 2600); }
+const defEnv = () => ({ A: () => window.AvantiAuth, toast: miniToast, content: window.AvantiContent, mathReady: () => (window.AvantiBoot && window.AvantiBoot.katex ? window.AvantiBoot.katex().catch(() => {}) : Promise.resolve()) });
+function renderQuestion(q, o) { o = o || {}; return buildQuestion(Object.assign(defEnv(), o.env || {}), q, o); }
+
+window.DashList = Object.freeze({ render, noteRecords });
+window.AvantiList = Object.freeze({ renderQuestion, label: qLabel, repeatsOf, noteRecords, layoutOpts });
 })();

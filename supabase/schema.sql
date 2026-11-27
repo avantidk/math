@@ -90,6 +90,12 @@ alter table public.profiles add column if not exists school_request text;      -
 alter table public.profiles add column if not exists school_request_at timestamptz;   -- why a school was not approved (shown to the teacher)
 
 alter table public.profiles add column if not exists session text check (char_length(session) <= 20);
+-- v1100. Students/Teachers list: "Date of Premium purchase" (start of the current Premium: set by the trigger profiles_premium_since
+-- whenever an account becomes Premium, by payment (grant_premium), admin_set_plan / admin_set_account / admin_add_teacher, an invite
+-- or the Avanti list) and an optional date of birth for Google students (ID students' date of birth is on student_allowlist).
+-- "Date of Registration" is created_at (returned as registered_at).
+alter table public.profiles add column if not exists premium_since timestamptz;
+alter table public.profiles add column if not exists dob date;
 
 -- Admins approve teachers' schools. Only verified @avantifellows.org Google accounts listed here count as admins.
 create table if not exists public.app_admins (email text primary key);
@@ -110,6 +116,27 @@ language sql stable set search_path = public as $$
               when p.premium_until is not null and p.premium_until > now() then 'premium'
               else 'free' end
 $$;
+
+-- Records when an account becomes Premium (paid, given by the admin, invite or Avanti list). Avanti staff are not counted.
+-- Only the change from not-Premium to Premium sets it: an extension of a running Premium keeps the old date, and a value set
+-- directly (the back-fill below the payments table) is kept.
+create or replace function public.profiles_premium_since() returns trigger
+language plpgsql as $$
+declare v_new boolean; v_old boolean := false;
+begin
+  v_new := not coalesce(new.is_staff, false) and (coalesce(new.is_avanti, false) or (new.premium_until is not null and new.premium_until > now()));
+  if tg_op = 'UPDATE' then
+    v_old := not coalesce(old.is_staff, false) and (coalesce(old.is_avanti, false) or (old.premium_until is not null and old.premium_until > now()));
+    if new.premium_since is distinct from old.premium_since then return new; end if;
+  end if;
+  if v_new and not v_old and (tg_op = 'UPDATE' or new.premium_since is null) then
+    new.premium_since := now();
+  end if;
+  return new;
+end $$;
+drop trigger if exists profiles_premium_since on public.profiles;
+create trigger profiles_premium_since before insert or update of is_staff, is_avanti, premium_until, plan on public.profiles
+  for each row execute function public.profiles_premium_since();
 
 create or replace function public.my_plan() returns text
 language sql stable security definer set search_path = public as $$
@@ -211,22 +238,25 @@ $$;
 create or replace function public.in_test() returns boolean
 language plpgsql stable security definer set search_path = public as $$
 begin
-  -- writing a test right now: any unfinished attempt whose time (counted from its start, the clock never pauses) is not over
+  -- writing a test right now: any unfinished attempt that can still go on (the clock waits while the student is offline, up to
+  -- twice the test time after the start). Also while the test is paused, so the bank cannot be used to look up its questions.
   return exists (select 1 from public.attempts a join public.tests t on t.id = a.test_id
                   where a.user_id = auth.uid() and a.status = 'in_progress'
-                    and now() <= a.started_at + make_interval(mins => t.duration_min + t.reading_min) + interval '2 minutes');
+                    and now() <= a.started_at + make_interval(mins => 2 * (t.duration_min + t.reading_min)) + interval '2 minutes');
 end $$;
 
--- Submits tests whose time is over (the clock runs from the start and never pauses), with the answers saved so far.
+-- Submits tests whose time is over, with the answers saved so far. The clock counts only the time the test page is open (it waits
+-- while the student is offline); a test that is not finished within twice its time after the start is submitted automatically.
 -- p_user = one person (called when they open a test or their results); null = everyone (the scheduled job, every 5 minutes).
 create or replace function public.sweep_attempts(p_user uuid default null) returns integer
 language plpgsql security definer set search_path = public as $$
 declare a record; n integer := 0;
 begin
-  -- a test whose own clock (the active time) has run out, or that nobody has opened for 24 hours, is submitted with the saved answers
+  -- a test whose own clock (the active time) has run out, or that was not finished within twice its time after the start
   for a in select x.id, x.last_beat, x.elapsed_sec, t.duration_min from public.attempts x join public.tests t on t.id = x.test_id
             where x.status = 'in_progress' and (p_user is null or x.user_id = p_user)
-              and (x.elapsed_sec > (t.duration_min + t.reading_min) * 60 + 120 or coalesce(x.last_beat, x.started_at) < now() - interval '24 hours') loop
+              and (x.elapsed_sec > (t.duration_min + t.reading_min) * 60 + 120
+                   or now() > x.started_at + make_interval(mins => 2 * (t.duration_min + t.reading_min)) + interval '2 minutes') loop
     update public.attempts set submitted_at = coalesce(submitted_at, now()) where id = a.id;
     perform public.grade_attempt(a.id); n := n + 1;
   end loop;
@@ -587,6 +617,7 @@ begin
     'premium_until', p.premium_until, 'is_staff', p.is_staff, 'full_name', p.full_name, 'school', p.school,
     'class', p.class, 'stream', p.stream, 'category', p.category, 'gender', p.gender, 'batch', p.batch, 'session', p.session,
     'avanti_id', p.avanti_id, 'is_avanti', p.is_avanti, 'heard_from', p.heard_from, 'heard_other', p.heard_other,
+    'dob', p.dob, 'registered_at', p.created_at, 'premium_since', p.premium_since,
     'can_create_tests', public.admin_of(p) or ((p.is_staff or p.role = 'teacher') and public.approved_school(p) is not null),
     'can_manage_students', p.is_staff or (p.role = 'teacher' and public.plan_of(p) = 'premium'),
     'price_paise', public.price_paise(p.role),
@@ -614,12 +645,15 @@ end $$;
 
 drop function if exists public.update_my_profile(text, text, text, text);
 drop function if exists public.update_my_profile(text, text, text, text, text, text);
+drop function if exists public.update_my_profile(text, text, text, text, text, text, text, text);   -- before p_dob (v1100)
 -- Saves the signed-in user's details. Every field is required (teachers: name and school).
 -- The school is chosen once and waits for the admin's approval; after that it changes only through
 -- request_school_change (approved by the admin). Only the admin sets their own school freely.
 -- Students fill each detail once; after that only the admin can correct it (teachers can view their students).
+-- p_dob (optional, Google students only, set once): date of birth, age 8 to 80. Student-ID accounts keep theirs on the ID list.
 create or replace function public.update_my_profile(p_full_name text, p_school text, p_class text, p_stream text,
-  p_category text default null, p_gender text default null, p_heard_from text default null, p_heard_other text default null) returns json
+  p_category text default null, p_gender text default null, p_heard_from text default null, p_heard_other text default null,
+  p_dob date default null) returns json
 language plpgsql security definer set search_path = public as $$
 declare me public.profiles; v_av boolean; v_admin boolean;
 begin
@@ -628,6 +662,10 @@ begin
   if me.role is null and not me.is_staff then raise exception 'Choose Teacher or Student first'; end if;
   v_av := me.role = 'student';   -- students: a detail, once filled, stays
   v_admin := public.admin_of(me);
+  if p_dob is not null and me.role = 'student' and me.avanti_id is null and me.dob is null
+     and (p_dob > current_date - interval '8 years' or p_dob < current_date - interval '80 years') then
+    raise exception 'Please enter a correct date of birth.';
+  end if;
   update public.profiles set
     full_name = case when not v_admin and full_name is not null then full_name else left(nullif(trim(p_full_name), ''), 120) end,
     school    = case when school is not null and not v_admin then school else left(nullif(trim(p_school), ''), 160) end,
@@ -644,6 +682,7 @@ begin
                        when p_heard_from in ('Discord/Reddit', 'Friend/Teacher', 'Google/Bing', 'Other') then p_heard_from else null end,
     heard_other = case when heard_from is not null then heard_other
                        when p_heard_from = 'Other' then left(nullif(trim(p_heard_other), ''), 120) else null end,
+    dob = case when dob is not null or role is distinct from 'student' or avanti_id is not null then dob else p_dob end,
     updated_at = now()
   where id = auth.uid() returning * into me;
   if me.role = 'student' and public.is_not_working(me.school) then
@@ -686,8 +725,13 @@ create table if not exists public.payments (
   updated_at   timestamptz not null default now()
 );
 create index if not exists payments_user on public.payments (user_id, created_at desc);
+-- Date of Premium purchase for accounts that paid before premium_since existed: the earliest paid payment (others stay empty).
+update public.profiles p set premium_since = x.first_paid
+  from (select user_id, min(coalesce(paid_at, created_at)) as first_paid from public.payments where status = 'paid' group by user_id) x
+ where p.id = x.user_id and p.premium_since is null;
 
 -- Marks the order paid and gives one year of Premium (added on top of any time left). Safe to call twice.
+-- premium_since (Date of Premium purchase) becomes now unless a Premium is still running (then its start date is kept).
 create or replace function public.grant_premium(p_order_id text, p_payment_id text, p_amount_paise integer) returns boolean
 language plpgsql security definer set search_path = public as $$
 declare v_uid uuid; v_amt integer; v_status text;
@@ -700,6 +744,7 @@ begin
    where order_id = p_order_id;
   update public.profiles
      set premium_until = greatest(coalesce(premium_until, now()), now()) + interval '1 year',
+         premium_since = case when not is_staff and (is_avanti or premium_until > now()) then coalesce(premium_since, now()) else now() end,
          plan = case when is_staff then 'staff' else 'premium' end, updated_at = now()
    where id = v_uid;
   insert into public.email_queue (user_id, kind, payload)
@@ -1036,9 +1081,14 @@ declare
   v_status text; v_marks numeric; v_t integer; lo numeric; hi numeric; v numeric; m text[];
   v_c numeric; v_w numeric; v_p boolean; v_pp boolean; v_alt text; v_qid text; chosen text[]; keys text[];
   s_score numeric := 0; s_max numeric := 0; s_c integer := 0; s_w integer := 0; s_s integer := 0;
+  v_ps jsonb; v_pexam text; mm jsonb;
 begin
   select * into a from public.attempts where id = p_attempt for update;
   select * into t from public.tests where id = a.test_id;
+  -- a test made from a past paper: that paper's official marking scheme (paper_marking), when stored, decides the marks
+  if t.paper_key is not null then
+    select pm.scheme, pm.exam into v_ps, v_pexam from public.paper_marking pm where pm.paper_key = t.paper_key;
+  end if;
   delete from public.attempt_items where attempt_id = a.id;
   for q, i in select e.value, e.ordinality from jsonb_array_elements(t.questions) with ordinality e loop
     -- marks of this question: its own scheme (q.m = {c: marks for correct, w: negative marks, p: partial marking}) or the test's marks (older tests)
@@ -1046,7 +1096,6 @@ begin
     v_w := (q -> 'm' ->> 'w')::numeric;
     v_p := coalesce((q -> 'm' ->> 'p')::boolean, false);
     v_pp := coalesce((q -> 'm' ->> 'pp')::boolean, false);   -- step marking (CBSE Sections B to E): marks for each correct option, 0 if a wrong one is ticked
-    s_max := s_max + v_c;
     -- answers are saved under p1, p2, ... (the position); older attempts used the question id
     r := coalesce(a.answers -> ('p' || i) -> 'r', a.answers -> (q->>'id') -> 'r');
     v_resp := coalesce(a.answers -> ('p' || i) ->> 't', a.answers -> (q->>'id') ->> 't');
@@ -1059,6 +1108,15 @@ begin
       v_alt := case when coalesce(a.answers -> ('p' || i) ->> 'alt', a.answers -> (q->>'id') ->> 'alt') = 'B' then 'B' else 'A' end;
       if v_alt = 'B' then v_key := upper(trim(coalesce(q->'alt'->>'a', ''))); v_type := coalesce(q->'alt'->>'type', v_type); v_qid := coalesce(q->'alt'->>'rid', v_qid); end if;
     end if;
+    if v_ps is not null and not coalesce((q ->> 'nk')::boolean, false) then
+      mm := public.scheme_rule(v_ps, q, v_type);
+      if mm is not null then
+        v_c := coalesce((mm ->> 'c')::numeric, v_c); v_w := coalesce((mm ->> 'w')::numeric, 0);
+        v_p := coalesce((mm ->> 'p')::boolean, false); v_pp := coalesce((mm ->> 'pp')::boolean, false);
+      end if;
+    end if;
+    if coalesce(v_pexam, '') ilike 'CBSE%' then v_w := 0; end if;   -- CBSE: a wrong answer never loses marks
+    s_max := s_max + v_c;
     v_resp := case jsonb_typeof(r)
                 when 'array'  then (select string_agg(upper(trim(x)), ',' order by upper(trim(x))) from jsonb_array_elements_text(r) x where trim(x) <> '')
                 when 'string' then nullif(upper(trim(r #>> '{}')), '')
@@ -1643,13 +1701,14 @@ begin
     select a.avanti_id as student_id, coalesce(p.full_name, a.full_name) as full_name, a.class, a.stream, a.category, a.gender, a.session,
            a.source, p.id as user_id, a.email,
            -- an Avanti student's date of birth is their password: only the admin sees it
-           case when public.admin_of(me) or a.source = 'teacher' then a.dob end as dob,
-           case when p.id is not null then public.plan_label(p) when a.source = 'avanti' then 'avanti' when a.premium_until > now() then 'premium' else 'free' end as plan_label, coalesce(p.premium_until, a.premium_until) as premium_until
+           case when public.admin_of(me) or a.source = 'teacher' then coalesce(a.dob, p.dob) end as dob,
+           case when p.id is not null then public.plan_label(p) when a.source = 'avanti' then 'avanti' when a.premium_until > now() then 'premium' else 'free' end as plan_label, coalesce(p.premium_until, a.premium_until) as premium_until,
+           coalesce(p.created_at, a.created_at) as registered_at, p.premium_since
       from public.student_allowlist a left join public.profiles p on p.avanti_id = a.avanti_id
      where lower(a.school) = lower(v_school)
     union all
-    select null, p.full_name, p.class, p.stream, p.category, p.gender, p.session, 'google', p.id, p.email, null::date,
-           public.plan_label(p), p.premium_until
+    select null, p.full_name, p.class, p.stream, p.category, p.gender, p.session, 'google', p.id, p.email, p.dob,
+           public.plan_label(p), p.premium_until, p.created_at, p.premium_since
       from public.profiles p where p.role = 'student' and p.avanti_id is null and p.school_approved and lower(p.school) = lower(v_school)),
   perf as (
     select user_id, count(*) as tests, round(avg(100.0 * score / nullif(max_score, 0)), 1) as avg_pct,
@@ -1660,7 +1719,7 @@ begin
            'student_id', st.student_id, 'full_name', st.full_name, 'class', st.class, 'stream', st.stream, 'category', st.category,
            'gender', st.gender, 'session', st.session, 'source', st.source, 'avanti', st.source = 'avanti', 'school', v_school, 'school_status', 'approved',
            'dob', st.dob, 'user_id', st.user_id, 'email', st.email,
-           'plan_label', st.plan_label, 'premium_until', st.premium_until,
+           'plan_label', st.plan_label, 'premium_until', st.premium_until, 'registered_at', st.registered_at, 'premium_since', st.premium_since,
            'signed_in', st.user_id is not null, 'tests', coalesce(pf.tests, 0), 'avg_pct', pf.avg_pct, 'best_pct', pf.best_pct,
            'accuracy', pf.accuracy, 'last_at', pf.last_at) order by st.class, st.session, st.full_name), '[]'::json))
     into res from st left join perf pf on pf.user_id = st.user_id;
@@ -1741,6 +1800,7 @@ begin
   return (select coalesce(json_agg(json_build_object('id', p.id, 'full_name', p.full_name, 'email', p.email, 'school', p.school,
             'approved', public.admin_of(p) or p.school_approved, 'is_staff', p.is_staff, 'is_admin', public.admin_of(p), 'approved_at', p.school_approved_at, 'approved_by', p.school_approved_by, 'note', p.school_note,
             'plan', public.plan_of(p), 'plan_label', public.plan_label(p), 'premium_until', p.premium_until, 'created_at', p.created_at,
+            'registered_at', p.created_at, 'premium_since', p.premium_since,
             'heard_from', case when p.heard_from = 'Other' then 'Other: ' || coalesce(p.heard_other, '') else p.heard_from end,
             'school_known', exists (select 1 from public.student_allowlist a where lower(a.school) = lower(p.school)),
             'students', (select count(*) from public.student_allowlist a where lower(a.school) = lower(p.school)),
@@ -1928,6 +1988,7 @@ begin
   if v_school is null then raise exception 'You can see your school after the admin approves it.'; end if;
   return (select coalesce(json_agg(json_build_object('id', p.id, 'full_name', p.full_name, 'email', p.email, 'plan', public.plan_of(p), 'plan_label', public.plan_label(p),
             'approved', p.school_approved, 'is_staff', p.is_staff, 'created_at', p.created_at,
+            'registered_at', p.created_at, 'premium_since', p.premium_since,
             'tests', (select count(*) from public.tests t where t.owner_id = p.id))
           order by p.full_name nulls last), '[]'::json)
      from public.profiles p where p.role = 'teacher' and p.school_approved and lower(p.school) = lower(v_school));
@@ -1964,6 +2025,7 @@ begin
   if not public.is_admin() then raise exception 'Only Avanti admins can see this'; end if;
   return (select coalesce(json_agg(json_build_object('id', p.id, 'full_name', p.full_name, 'email', p.email, 'school', p.school,
             'class', p.class, 'stream', p.stream, 'plan_label', public.plan_label(p), 'note', p.school_note, 'created_at', p.created_at,
+            'registered_at', p.created_at, 'premium_since', p.premium_since, 'dob', p.dob,
             'school_known', exists (select 1 from public.student_allowlist a where lower(a.school) = lower(p.school)))
           order by p.created_at desc), '[]'::json)
      from public.profiles p where p.role = 'student' and not p.school_approved and p.school is not null and p.avanti_id is null);
@@ -2217,10 +2279,64 @@ language sql stable security definer set search_path = public as $$
   from public.marking_schemes m where auth.uid() is not null
 $$;
 
+-- v1100. Official marking scheme of each PAST PAPER (by the paper's own year). A test made from a paper (tests.paper_key) is graded by
+-- this scheme when the paper has a row here; otherwise by the marks stamped on its questions (the exam's latest scheme), as before.
+-- Personal tests that are not a past paper use the latest marking_schemes row of their exam.
+-- scheme has the same shape as marking_schemes.rules:
+--   { "types":    { "MCQ": {"c": 3, "w": 1}, "MSQ": {"c": 4, "w": 2, "p": true}, "Numerical": {"c": 3, "w": 0} },
+--     "sections": { "B": {"c": 2, "w": 0, "pp": true}, "4:Matching": {"c": 4, "w": 1} },   (optional: by question 'sec', or 'sec:type')
+--     "duration_min": 180, "reading_min": 0, "notes": "..." }                               (optional)
+--   c = marks for a correct answer, w = marks LOST for a wrong answer (positive number; MSQ: for a selection with any wrong option),
+--   p = JEE Advanced partial marking (MSQ, no wrong option chosen: 1 mark per correct option chosen, all of them = c),
+--   pp = CBSE step marking (an equal share of c for each correct option; any wrong option = 0).
+--   CBSE papers (exam starting 'CBSE') never lose marks: w is always 0.
+-- The owner adds or updates a paper's scheme with the paper upload, from the SQL Editor or as the admin:
+--   select public.admin_set_paper_scheme('<paper key, as in papers/<key>.json>', 'JEE Advanced', 2019,
+--     '{"types":{"MCQ":{"c":3,"w":1},"MSQ":{"c":4,"w":2,"p":true},"Numerical":{"c":3,"w":0}}}');
+-- Attempts already graded keep their marks; tests taken afterwards use the new scheme.
+create table if not exists public.paper_marking (
+  paper_key  text primary key check (char_length(paper_key) between 1 and 200),
+  exam       text not null,
+  year       integer check (year between 1950 and 2100),
+  scheme     jsonb not null check (jsonb_typeof(scheme) = 'object'),
+  updated_at timestamptz not null default now()
+);
+alter table public.paper_marking enable row level security;
+revoke all on public.paper_marking from anon, authenticated;
+
+-- The marks rule ({c, w, p, pp}) of one question under a scheme: 'sec:type', then 'sec', then the type (Matching counts as MCQ).
+create or replace function public.scheme_rule(p_rules jsonb, q jsonb, p_type text default null) returns jsonb
+language sql immutable as $$
+  select coalesce(p_rules -> 'sections' -> ((q ->> 'sec') || ':' || x.t), p_rules -> 'sections' -> (q ->> 'sec'),
+                  p_rules -> 'types' -> (case when x.t = 'Matching' then 'MCQ' else x.t end))
+    from (select coalesce(p_type, q ->> 'type', 'MCQ') as t) x
+$$;
+
+create or replace function public.admin_set_paper_scheme(p_paper_key text, p_exam text, p_year integer, p_scheme jsonb) returns json
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'Only the admin can set a paper''s marking scheme'; end if;
+  if nullif(trim(p_paper_key), '') is null or nullif(trim(p_exam), '') is null then raise exception 'Paper and exam are required'; end if;
+  if p_scheme is null or jsonb_typeof(p_scheme) <> 'object' or not (p_scheme ? 'types' or p_scheme ? 'sections') then
+    raise exception 'The scheme needs "types" (and/or "sections") with c and w for each question type';
+  end if;
+  insert into public.paper_marking (paper_key, exam, year, scheme) values (trim(p_paper_key), trim(p_exam), p_year, p_scheme)
+  on conflict (paper_key) do update set exam = excluded.exam, year = excluded.year, scheme = excluded.scheme, updated_at = now();
+  return json_build_object('ok', true, 'paper_key', trim(p_paper_key));
+end $$;
+
+-- The official scheme of one past paper (null when none is stored): for the test screen and reports.
+create or replace function public.paper_scheme(p_paper_key text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('paper_key', m.paper_key, 'exam', m.exam, 'year', m.year, 'scheme', m.scheme, 'updated_at', m.updated_at)
+    from public.paper_marking m where m.paper_key = p_paper_key and auth.uid() is not null
+$$;
+
 create or replace function public.create_personal_test(p_title text, p_duration_min integer, p_marks_correct numeric, p_marks_wrong numeric,
   p_questions jsonb, p_paper_key text, p_audience text default 'self', p_exam text default null, p_year integer default null) returns json
 language plpgsql security definer set search_path = public as $$
 declare me public.profiles; t public.tests; sc public.marking_schemes; qs jsonb := p_questions; dur integer := p_duration_min; mc numeric := p_marks_correct; mw numeric := p_marks_wrong; rd integer := 0;
+        v_rules jsonb; v_pexam text;
 begin
   select * into me from public.profiles where id = auth.uid();
   if me.id is null or me.role is null then raise exception 'Please finish your profile first'; end if;
@@ -2237,15 +2353,26 @@ begin
     raise exception 'Practice questions are part of Premium. A Free account can make tests of previous year questions.';
   end if;
   if p_questions is null or jsonb_typeof(p_questions) <> 'array' or jsonb_array_length(p_questions) not between 1 and 300 then raise exception 'A test needs 1 to 300 questions'; end if;
+  -- a past paper with its own official scheme (paper_marking) uses it; otherwise the exam's scheme (latest year unless one is named)
+  if nullif(trim(p_paper_key), '') is not null then
+    select pm.scheme, pm.exam into v_rules, v_pexam from public.paper_marking pm where pm.paper_key = trim(p_paper_key);
+  end if;
   if p_exam is not null then
-    -- the official marking scheme of the exam (latest year unless one is named) is stamped on every question, so the marks cannot be changed from the browser
     select * into sc from public.marking_schemes where exam = p_exam and (p_year is null or effective_year = p_year) order by effective_year desc limit 1;
-    if sc.exam is null then raise exception 'Unknown exam'; end if;
-    select coalesce(jsonb_agg(case when x.mm is null then x.e else x.e || jsonb_build_object('m', jsonb_build_object('c', (x.mm ->> 'c')::numeric, 'w', (x.mm ->> 'w')::numeric, 'p', coalesce((x.mm ->> 'p')::boolean, false))) end order by x.o), '[]'::jsonb)
-      into qs from (select e, o, case when e ? 'nk' and (e ->> 'nk')::boolean then '{"c": 0, "w": 0}'::jsonb else coalesce(sc.rules -> 'sections' -> ((e ->> 'sec') || ':' || (e ->> 'type')), sc.rules -> 'sections' -> (e ->> 'sec'), sc.rules -> 'types' -> (case when e ->> 'type' = 'Matching' then 'MCQ' else e ->> 'type' end)) end as mm from jsonb_array_elements(p_questions) with ordinality z(e, o)) x;
-    dur := coalesce(p_duration_min, sc.duration_min);
-    rd := coalesce((sc.rules ->> 'reading_min')::integer, 0);   -- CBSE: 5 minutes of reading time before the writing time
-    mc := coalesce((sc.rules -> 'types' -> 'MCQ' ->> 'c')::numeric, mc, 4); mw := coalesce((sc.rules -> 'types' -> 'MCQ' ->> 'w')::numeric, mw, 0);
+    if sc.exam is null and v_rules is null then raise exception 'Unknown exam'; end if;
+  end if;
+  v_rules := coalesce(v_rules, sc.rules);
+  if v_rules is not null then
+    -- the marking scheme is stamped on every question, so the marks cannot be changed from the browser
+    select coalesce(jsonb_agg(case when x.mm is null then x.e else x.e || jsonb_build_object('m', jsonb_build_object('c', (x.mm ->> 'c')::numeric,
+             'w', case when coalesce(v_pexam, p_exam, '') ilike 'CBSE%' then 0 else (x.mm ->> 'w')::numeric end,
+             'p', coalesce((x.mm ->> 'p')::boolean, false), 'pp', coalesce((x.mm ->> 'pp')::boolean, false))) end order by x.o), '[]'::jsonb)
+      into qs from (select e, o, case when e ? 'nk' and (e ->> 'nk')::boolean then '{"c": 0, "w": 0}'::jsonb else public.scheme_rule(v_rules, e) end as mm
+                      from jsonb_array_elements(p_questions) with ordinality z(e, o)) x;
+    dur := coalesce(p_duration_min, (v_rules ->> 'duration_min')::integer, sc.duration_min);
+    rd := coalesce((v_rules ->> 'reading_min')::integer, (sc.rules ->> 'reading_min')::integer, 0);   -- CBSE: 5 minutes of reading time before the writing time
+    mc := coalesce((v_rules -> 'types' -> 'MCQ' ->> 'c')::numeric, mc, 4); mw := coalesce((v_rules -> 'types' -> 'MCQ' ->> 'w')::numeric, mw, 0);
+    if coalesce(v_pexam, p_exam, '') ilike 'CBSE%' then mw := 0; end if;
   end if;
   if dur is null or dur < 1 or dur > 600 then raise exception 'Choose a time between 1 and 600 minutes'; end if;
   insert into public.tests (owner_id, title, duration_min, marks_correct, marks_wrong, questions, audience, personal, paper_key, is_active, reading_min)
@@ -2700,16 +2827,17 @@ begin
   if not public.is_admin() then raise exception 'Only the admin can see this'; end if;
   with st as (
     select a.avanti_id as student_id, coalesce(p.full_name, a.full_name) as full_name, a.class, a.stream, a.category, a.gender, a.session,
-           a.source, p.id as user_id, a.email, a.dob, a.school as school, p.heard_from as hf, p.heard_other as ho,
+           a.source, p.id as user_id, a.email, coalesce(a.dob, p.dob) as dob, a.school as school, p.heard_from as hf, p.heard_other as ho,
            case when nullif(trim(coalesce(a.school, '')), '') is null then 'unassigned' else 'approved' end as school_status,
            case when p.id is not null then public.plan_label(p) when a.source = 'avanti' then 'avanti' when a.premium_until > now() then 'premium' else 'free' end as plan_label,
-           coalesce(p.premium_until, a.premium_until) as premium_until, a.created_at, true as complete
+           coalesce(p.premium_until, a.premium_until) as premium_until, a.created_at, true as complete,
+           coalesce(p.created_at, a.created_at) as registered_at, p.premium_since
       from public.student_allowlist a left join public.profiles p on p.avanti_id = a.avanti_id
     union all
-    select null, p.full_name, p.class, p.stream, p.category, p.gender, p.session, 'google', p.id, p.email, null::date, p.school, p.heard_from, p.heard_other,
+    select null, p.full_name, p.class, p.stream, p.category, p.gender, p.session, 'google', p.id, p.email, p.dob, p.school, p.heard_from, p.heard_other,
            case when nullif(trim(coalesce(p.school, '')), '') is null or lower(trim(p.school)) in ('not in school', 'not working') then 'unassigned'
                 when p.school_approved then 'approved' else 'pending' end,
-           public.plan_label(p), p.premium_until, p.created_at, p.role is not null
+           public.plan_label(p), p.premium_until, p.created_at, p.role is not null, p.created_at, p.premium_since
       from public.profiles p where (p.role = 'student' or p.role is null) and p.avanti_id is null and not coalesce(p.is_staff, false)),
   perf as (
     select user_id, count(*) as tests, round(avg(100.0 * score / nullif(max_score, 0)), 1) as avg_pct, max(submitted_at) as last_at
@@ -2719,6 +2847,7 @@ begin
            'gender', st.gender, 'session', st.session, 'source', st.source, 'avanti', st.source = 'avanti', 'dob', st.dob, 'user_id', st.user_id, 'email', st.email,
            'school', st.school, 'school_status', st.school_status, 'complete', st.complete,
            'plan_label', st.plan_label, 'premium_until', st.premium_until, 'signed_in', st.user_id is not null, 'created_at', st.created_at,
+           'registered_at', st.registered_at, 'premium_since', st.premium_since,
            'heard_from', case when st.hf = 'Other' then 'Other: ' || coalesce(st.ho, '') else st.hf end,
            'tests', coalesce(pf.tests, 0), 'avg_pct', pf.avg_pct, 'last_at', pf.last_at) order by st.created_at desc), '[]'::json)
     into res from st left join perf pf on pf.user_id = st.user_id;
@@ -2830,10 +2959,10 @@ revoke execute on all functions in schema public from public, anon, authenticate
 grant execute on function public.ping(), public.support_contact() to anon, authenticated;
 grant execute on function public.plan_of(public.profiles), public.my_plan(), public.is_staff(), public.can_create_tests(),
   public.norm_class(text), public.norm_stream(text), public.norm_category(text), public.norm_gender(text), public.session_for(text, timestamptz),
-  public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text, text, text),
+  public.my_profile(), public.set_my_role(text), public.update_my_profile(text, text, text, text, text, text, text, text, date),
   public.list_available_tests(), public.test_info(text), public.start_attempt(text),
   public.save_attempt(uuid, jsonb, integer), public.submit_attempt(uuid, jsonb, integer), public.skip_reading(uuid),
-  public.create_personal_test(text, integer, numeric, numeric, jsonb, text, text, text, integer), public.marking_schemes(), public.personal_overview(), public.my_rank(uuid), public.link_ranking(uuid),
+  public.create_personal_test(text, integer, numeric, numeric, jsonb, text, text, text, integer), public.marking_schemes(), public.paper_scheme(text), public.admin_set_paper_scheme(text, text, integer, jsonb), public.personal_overview(), public.my_rank(uuid), public.link_ranking(uuid),
   public.school_people(), public.request_role_change(text), public.my_role_request(), public.admin_role_requests(), public.admin_role_request(uuid, text),
   public.toggle_bookmark(text), public.dash_summary(), public.dash_tests(), public.my_bookmarks(),
   public.qb_comments_for(text), public.add_qb_comment(text, text), public.delete_qb_comment(uuid),

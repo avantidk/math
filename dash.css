@@ -614,10 +614,6 @@ body.dpop-on { overflow: hidden; }
 .d-tn i { display: block; height: 6px; border-radius: 99px; background: linear-gradient(90deg, var(--accent), #5b8cff); }
 .d-tc { font: 600 12.5px var(--font-body); color: var(--mute, #56637f); white-space: nowrap; }
 
-.dl-opts.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.dl-opts.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.dl-opts.c1 { grid-template-columns: minmax(0, 1fr); }
-@media (max-width: 760px) { .dl-opts.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dl-opts.c2 { grid-template-columns: minmax(0, 1fr); } }
 /* v1027: the row menu (three lines) stays at the top right of its question, also when the question is open */
 .dl-sd, .dl-row.open .dl-sd { align-items: flex-start; padding-top: 14px; }
 /* v1027: filter pop-ups keep their natural width (labels like "Confidence Booster · Level 1" stay on one line) */
@@ -653,3 +649,61 @@ html body .katex .katex-html > .base { white-space: nowrap; }
 
 /* formulas a little larger so that fractions, powers and indices are easy to read on a phone */
 .dl-fullq .katex, .dl-ot .katex, .dl-sol .katex { font-size: 1.3em; }
+
+/* ---- Option layout (opts.js sets the class from the rendered widths): 4 in a row, 2x2 or one per row, never 3 lines ---- */
+.opts-auto { display: grid !important; gap: 8px; }
+.opts-auto.opts-1row { grid-template-columns: repeat(var(--opts-n, 4), minmax(0, 1fr)) !important; }
+.opts-auto.opts-2x2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.opts-auto.opts-4row { grid-template-columns: minmax(0, 1fr) !important; }
+button.dl-opt.mine { box-shadow: inset 0 0 0 2px currentColor; }
+
+/* ---- Never underline clickable things (owner's rule); keyboard users keep a clear focus ring ---- */
+#app a, #app a:hover, #app a:focus, #app a:active, #app a:visited, #app button, #app button:hover, #app [role="button"], #app [role="tab"], #app [role="tab"]:hover,
+.dpop a, .dpop button, #dToast a { text-decoration: none !important; }
+#app a:focus-visible, #app button:focus-visible, #app [role="tab"]:focus-visible, #app select:focus-visible, #app summary:focus-visible { outline: 2px solid var(--accent, #2450c8); outline-offset: 2px; }
+
+/* ---- Paper label and "Repeated in" under a question ---- */
+.dl-rep { display: block; margin-top: 0; font-size: 12.5px; line-height: 1.4; color: #b4233a; overflow-wrap: anywhere; }
+.dl-rep b { font-weight: 700; }
+.dl-d > .dl-rep { margin: 2px 0 0; padding: 6px 10px; border-radius: 9px; background: color-mix(in srgb, #e11d48 8%, transparent); }
+/* a heading where the year changes in a list */
+.dl-grp { display: flex; align-items: baseline; gap: 10px; padding: 14px 6px 6px; list-style: none; border-bottom: 2px solid var(--rule); }
+.dl-grp b { font: 700 17px var(--font-head, inherit); color: var(--ink); }
+.dl-grp span { font-size: 12.5px; color: var(--muted); }
+
+/* ---- Special picks and Must Do: coloured banner with an icon, chapter chips with counts ---- */
+.lh.lh-tone { background: radial-gradient(110% 160% at 100% 0%, color-mix(in srgb, var(--tone) 55%, transparent) 0%, transparent 58%), linear-gradient(135deg, #0c1a3d, #14307f); border-top: 4px solid var(--tone); }
+.lh-ic { flex: none; width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; background: color-mix(in srgb, var(--tone, #f5b82e) 26%, rgba(255,255,255,.08)); color: #fff; border: 1px solid rgba(255,255,255,.18); }
+.lh-ic svg { width: 28px; height: 28px; }
+.lh-kick { display: block; margin-bottom: 4px; font: 700 11.5px var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: color-mix(in srgb, var(--tone, #f5b82e) 45%, #fff); }
+.dl-chips { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 16px; background: var(--panel); border: 1px solid var(--rule); box-shadow: var(--shadow-sm); }
+.dl-chips-h { display: flex; align-items: baseline; justify-content: flex-start; text-align: left; gap: 10px; align-self: stretch; width: 100%; margin: 0; } .dl-chips-h b { font: 700 15px var(--font-body); color: var(--ink); } .dl-chips-h small { color: var(--muted); font-size: 12.5px; }
+.dl-chips-r { display: flex; flex-wrap: wrap; gap: 8px; }
+.dl-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 6px 8px 6px 6px; border-radius: 99px; border: 1px solid var(--rule); background: var(--bg, #f3f6fc); color: var(--ink); font: 600 13px var(--font-body); cursor: pointer; transition: border-color .15s, background .15s; }
+.dl-chip:hover { border-color: var(--accent); }
+.dl-chip.on { border-color: var(--accent); background: var(--accent-soft); }
+.dl-chip-c { flex: none; padding: 2px 8px; border-radius: 99px; background: var(--accent); color: #fff; font: 700 11.5px var(--font-body); }
+.dl-chip-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl-chip em { flex: none; font-style: normal; font: 700 12px var(--font-body); color: var(--muted); }
+/* the cards on the home page: taller, with an icon */
+.dh-pk { min-height: 168px; justify-content: flex-start; padding: 18px 20px; }
+.dh-pk-ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; margin-bottom: 6px; background: color-mix(in srgb, var(--tone) 16%, var(--panel)); color: var(--tone); }
+.dh-pk-ic svg { width: 26px; height: 26px; }
+.dh-pn { margin-top: auto; padding-top: 8px; }
+
+/* ---- DPPs/Exercises: two small blocks above the maker; exercises grouped by the chapter of the book ---- */
+.dpp-qs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dpp-q { --tone: #2450c8; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--rule); border-left: 4px solid var(--tone); color: var(--ink); box-shadow: var(--shadow-sm); transition: transform .15s, border-color .15s; }
+.dpp-q:hover { transform: translateY(-2px); border-color: var(--tone); }
+.dpp-q-ic { flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: color-mix(in srgb, var(--tone) 14%, var(--panel)); color: var(--tone); }
+.dpp-q-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; } .dpp-q-t b { font: 700 14.5px/1.3 var(--font-body); } .dpp-q-t small { color: var(--muted); font-size: 12.5px; }
+.dpp-q-go { flex: none; color: var(--muted); display: grid; }
+.dpp-q .dpp-lock { flex: none; display: inline-flex; align-items: center; gap: 4px; font: 700 12px var(--font-body); color: #8a5a00; background: #fff1cf; border-radius: 99px; padding: 4px 10px; }
+.dpp-q.is-off { opacity: .9; }
+@media (max-width: 620px) { .dpp-qs { grid-template-columns: minmax(0, 1fr); } }
+.dpp-exg { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.dpp-exg-h { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 0; font: 700 16px var(--font-body); color: var(--ink); padding-bottom: 6px; border-bottom: 1px solid var(--rule); }
+.dpp-exg-h small { font: 500 12.5px var(--font-body); color: var(--muted); }
+/* short options fit 4 in a row on phones too: no empty space for the tick until an option is checked */
+.dl-opt .dl-mk:empty { display: none; }
+@media (max-width: 520px) { .dl-opt { padding: 9px 10px; gap: 8px; } }
