@@ -1425,7 +1425,7 @@ def main():
             write(f'exams/{e[2]}/{ANY_SLUG[code]}/index.html', redirect_page(f'{ANA}/{e[2]}/{ANY_SLUG[code]}/', 3, f'{e[1]} {CH_NAME[code]} PYQ Analysis', f'{e[1]} {CH_SHORT.get(code, CH_NAME[code])}'))
     for slug_, fn in (('about', about_page), ('contact', contact_page), ('privacy', privacy_page), ('terms', terms_page), ('refund-policy', refund_page)): write(f'{slug_}/index.html', fn())
     write('sitemap.xml', sitemap())
-    write('robots.txt', f'User-agent: *\nAllow: /\nDisallow: /qb/\nDisallow: /qbank\n\nSitemap: {SITE}/sitemap.xml\n')
+    write('robots.txt', f'User-agent: *\nAllow: /\nDisallow: /qb/\nDisallow: /qbank\n\nSitemap: {SITE}/sitemap.xml\nSitemap: {SITE}/sitemap-q.xml\n')
     write('index.html', page('Math Question Bank, PYQs, DPPs | अंक-IT', 'Free math practice for Class 11 and 12: question bank with solutions, PYQs, DPPs, handouts and online tests for JEE, KCET, NDA and IAT.', SITE + '/', home_block(), 0,
         jsonld=[{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/", "name": "अंक-IT Mathematics Dashboard", "inLanguage": LANG},
         {"@type": "FAQPage", "@id": SITE + "/#faq", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": ans}} for q, ans in FAQ]},

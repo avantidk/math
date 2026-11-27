@@ -1,5 +1,13 @@
 [
   {
+    "v": "1071",
+    "date": "28 Nov 2026",
+    "items": [
+      "Every question now has its own public page that Google can index (/q/...). It shows that one question with its answer and solution, a sidebar and a button 'Open this exact question in your dashboard'. It never links to any other question. First pages: 4 sample questions (PYQ and practice, with and without figures).",
+      "The dashboard can open one exact question (#d/q/<id>) with its solution, others' solutions and comments. Practice questions still need Premium inside the dashboard."
+    ]
+  },
+  {
     "v": "1070",
     "date": "28 Nov 2026",
     "items": [

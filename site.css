@@ -802,3 +802,21 @@ html{scroll-behavior:smooth}section[id]{scroll-margin-top:76px}
 .pg-moved a{font-weight:600}
 /* owner's rule: never underline clickable things (focus rings stay) */
 a,a:hover,a:focus,button,.lm-link,a.xl,.ct-mail a{text-decoration:none!important}
+
+/* Single-question pages (/q/<id>/) */
+.qp-wrap{padding:22px 0 40px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:22px;align-items:start}.qp-main{min-width:0;display:grid;gap:18px}
+.qp-side{position:sticky;top:84px}.qp-dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0 0 16px;font-size:.95rem}.qp-dl dt{color:#5b6785}.qp-dl dd{margin:0;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.qp-sidecard .sb{display:flex;width:100%;text-align:center;justify-content:center;white-space:normal}.qp-note{margin-top:12px;font-size:.88rem;color:#5b6785}
+.qp-fig{display:block;max-width:100%;height:auto;margin:14px auto}
+@media(max-width:900px){.qp-wrap{grid-template-columns:minmax(0,1fr)}.qp-side{position:static}}
+.qp-meta{margin-top:8px;color:#d6def5;font-size:.95rem}
+.qp-card{background:#fff;border:1px solid #dfe5f2;border-radius:14px;padding:20px 22px;box-shadow:0 1px 3px rgba(12,26,61,.06)}
+.qp-h{font-size:1.05rem;margin-bottom:12px}.qp-q,.qp-s{font-size:1.06rem;line-height:1.75;overflow-wrap:anywhere}
+.qp-opts{display:grid;gap:8px;margin-top:16px}.qp-opts.opts-1row{grid-template-columns:repeat(var(--opts-n,4),minmax(0,1fr))}
+.qp-opts.opts-2x2{grid-template-columns:repeat(2,minmax(0,1fr))}.qp-opts.opts-4row{grid-template-columns:minmax(0,1fr)}
+.qp-opt{display:flex;gap:10px;align-items:center;border:1px solid #dfe5f2;border-radius:10px;padding:10px 12px;min-width:0}
+.qp-opt b{flex:none;width:26px;height:26px;border-radius:50%;background:#eef2fb;display:grid;place-items:center;font-size:.85rem}
+.qp-ans{margin-bottom:10px;font-size:1.05rem}.qp-ans b{color:#0a7a4b}
+.qp-cta{background:#0c1a3d;color:#fff;border-radius:14px;padding:22px}.qp-cta h2{color:#fff}.qp-cta p{margin-top:8px;color:#d6def5}
+.qp-cta p:last-child{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.qp-cta .qp-alt{background:transparent;border:2px solid #fff;color:#fff}

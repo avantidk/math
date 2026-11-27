@@ -43,6 +43,13 @@ for s in 'function public.content_allowed' 'function public.approved_school' "v_
   grep -q -F "$s" supabase/schema.sql || bad "supabase/schema.sql lost a security rule ($s)."
 done
 
+# Single-question pages (/q/<slug>/): one question only. They must never link to another question or list questions.
+for f in q/*/index.html; do
+  [ -f "$f" ] || continue
+  grep -E -o 'href="(\.\./[a-z0-9][^"]*|[^"#]*q/[^"#]*)"' "$f" | grep -v -F "/q/$(basename "$(dirname "$f")")/" | grep -q . && bad "$f links to another question page. A /q/ page must show one question only."
+  [ "$(grep -c 'class="qp-card"' "$f")" -le 3 ] || bad "$f shows more than one question card."
+done
+
 if [ "$fail" = 1 ]; then
   echo "Guard FAILED: this version is not published. See SETUP.md, section 'Protecting the live site'."
   exit 1

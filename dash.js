@@ -711,6 +711,18 @@ function viewHistory(head, rows) {
 }
 function viewHistoryPage() { side({ back: '', title: 'Test History', sub: 'All your submitted tests', items: homeItems('history') }); viewHistory(h('div', { class: 'd-head' }, h('h2', { text: 'Test history' }), h('p', { text: 'Every test you have submitted, newest first.' })), null); }
 
+/* ---------- one exact question (the link from a public /q/<id>/ page): #d/q/<id> ---------- */
+async function viewQuestion(id) {
+  const r = D.byId.get(id), pyq = r && r.P;
+  side({ back: '', title: 'Question', sub: r ? (pyq ? 'Previous year question' : 'Practice question') : '', items: homeItems('') });
+  if (!r) { main(h('section', { class: 'd-lockcard' }, h('h2', { text: 'Question not found' }), h('p', { text: 'This question is not in the dashboard (any more).' }), h('a', { class: 'btn pri', href: '#d/', text: 'Go to dashboard' }))); return; }
+  if (!pyq && locked()) { main(h('section', { class: 'd-lockcard' }, h('span', { html: IC.lock }), h('h2', { text: 'Practice questions are part of Premium' }), h('p', { text: 'Premium gives you every practice question with solutions, other students’ solutions and comments.' }), h('a', { class: 'btn pri', href: '#/membership', text: 'See Premium' }))); return; }
+  try { await need([r]); } catch (e) { main(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'Could not load the question' }), h('p', { text: e.message || 'Check your connection and try again.' }))); return; }
+  const x = D.raw.get(id); if (!x) { main(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'Could not load the question' }))); return; }
+  const c = D.chByCode[r.ch], card = window.AvantiList.renderQuestion(x, { id, env: listEnv() });
+  main(h('div', { class: 'd-head d-head-sr' }, crumb(pyq ? 'PYQs' : 'Non-PYQs', c && c.chapter, 'Question')), h('section', { class: 'd-qone' }, card));
+}
+
 /* ---------- router ---------- */
 let NAV = 0;
 async function route() {
@@ -734,6 +746,7 @@ async function route() {
   if (a === 'np') return viewChapters('np', null);
   if (a === 'ch') return viewChapter(b, c === '-' ? null : c, d, e || 'overview', f);
   if (a === 'handouts') return viewHandouts();
+  if (a === 'q') return viewQuestion(b);
   if (a === 'pick') return viewPick(b);
   if (a === 'dpp') return b === 'maker' ? viewDppMaker(c) : b ? viewDppSrc(b, c, d) : viewDpp();
   if (a === 'bookmarks') return viewBookmarksPage();

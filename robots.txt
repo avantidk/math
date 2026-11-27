@@ -4,3 +4,4 @@ Disallow: /qb/
 Disallow: /qbank
 
 Sitemap: https://unkganit.com/sitemap.xml
+Sitemap: https://unkganit.com/sitemap-q.xml
