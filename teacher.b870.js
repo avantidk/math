@@ -241,7 +241,7 @@ function skeleton(p, keyMode) {
     h('span', { text: 'Name: ______________________' }), h('span', { text: 'Avanti ID: __________' }),
     h('span', { text: (p.total || p.qs.length) + ' questions' }),
     test ? h('span', { text: 'Time: ' + p.mins + ' min' }) : h('span', { text: 'Date: ______________' }),
-    test ? h('span', { text: 'Max marks: ' + (p.total || p.qs.length) * p.pos + '  (+' + p.pos + ' / \u2212' + p.neg + ')' }) : h('span', { text: 'Marks: ____ / ' + p.qs.length }));
+    test ? h('span', { text: 'Max marks: ' + (p.maxMarks != null ? p.maxMarks : (p.total || p.qs.length) * p.pos) + '  (+' + p.pos + ' / \u2212' + p.neg + ')' }) : h('span', { text: 'Marks: ____ / ' + p.qs.length }));
   const dt = p.date ? new Date(p.date + 'T00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   /* header: logo left, exam name (18 bold) with date below (14), Mathematics top right; footer: Exam - Date left, page number right */
   const examName = p.pyq ? String(p.sub || '').replace(/\s*\u00b7\s*all topics$/, '') : p.title, dateLine = p.pyq ? p.title : sub;
@@ -544,13 +544,16 @@ function paginate(qs, base) {
   const meas = h('div', { class: 'measure' }); meas.style.width = colWidth(base.cols) + 'px'; meas.style.setProperty('--fs', AUTO_MIN + 'px'); document.body.append(meas);
   const hs = qs.map((q, i) => { const nd = buildQ(q, i + 1, base); nd.style.flex = 'none'; meas.append(nd); fitMath(nd); return nd.offsetHeight; });
   meas.remove(); host.remove();
-  const ok = (a, b) => pickSplit(hs.slice(a, b), gap, avail - 8, base.cols);
+  /* units: a PARA question and the questions that follow it (_pcont) always stay on one page */
+  const U = []; qs.forEach((q, i) => { if (i && q._pcont) U[U.length - 1].e = i + 1; else U.push({ s: i, e: i + 1 }); });
+  const uh = U.map(u => sum(hs.slice(u.s, u.e)) + gap * (u.e - u.s - 1));
+  const ok = (a, b) => pickSplit(uh.slice(a, b), gap, avail - 8, base.cols);
   const greedy = []; let st = 0;
-  while (st < qs.length) { let en = st + 1; while (en < qs.length && ok(st, en + 1)) en++; greedy.push([st, en]); st = en; }
+  while (st < U.length) { let en = st + 1; while (en < U.length && ok(st, en + 1)) en++; greedy.push([st, en]); st = en; }
   const k = greedy.length, even = []; let i = 0;
-  for (let pg = 0; pg < k; pg++) { const sz = Math.ceil((qs.length - i) / (k - pg)); even.push([i, i + sz]); i += sz; }
+  for (let pg = 0; pg < k; pg++) { const sz = Math.ceil((U.length - i) / (k - pg)); even.push([i, i + sz]); i += sz; }
   const use = even.every(r => ok(r[0], r[1])) ? even : greedy;
-  return use.map(r => qs.slice(r[0], r[1]));
+  return use.map(r => qs.slice(U[r[0]].s, U[r[1] - 1].e));
 }
 /* ---------- exported papers (tests, past papers): the same rules in the PDF, Word and PowerPoint ----------
    - "Assertion (A):" and "Reason (R):" labels in bold (the ** marks are what every export draws in bold)
@@ -561,7 +564,7 @@ function paginate(qs, base) {
 const arBold = s => String(s == null ? '' : s).replace(/(^|[^*])\b((?:Assertion|Reason)\s*\((?:A|R)\)\s*:)/g, '$1**$2**');
 const secLabel = sc => /^[A-Z]$/.test(String(sc).trim()) ? 'Section ' + String(sc).trim() : String(sc).trim();
 const recOf = id => (window.AvantiContent && window.AvantiContent.record ? window.AvantiContent.record(id) : null) || null;
-function paperQs(list) {
+function paperQs(list, noPara) {
   const qs = list.filter(Boolean), paperSec = qs.some(q => q.s === 'P' && q.sec);
   const ps = new Set(qs.map(q => q.ps || '')), nos = qs.map(q => { const r = recOf(q.i); const v = r && r.qno != null ? String(r.qno).trim() : ''; return /^\d{1,3}$/.test(v) ? +v : NaN; });
   const own = qs.length > 1 && ps.size === 1 && !ps.has('') && nos.every((v, k) => v > 0 && (!k || v >= nos[k - 1]));
@@ -572,7 +575,20 @@ function paperQs(list) {
     if (q.e === 'CBSE' && /^[B-E]$/.test(String(q.sec || '').trim())) { c.o = []; c.a = ''; }   /* their "answers" are letters of those steps */
     if (own) { c._no = nos[k]; if (k && nos[k] === nos[k - 1]) c._or = 1; }
     return c;
-  });
+  }).map(noPara ? (c => c) : paraOnce);   /* PowerPoint shows one question per slide, so each slide keeps its own para */
+}
+/* PARA questions in an exported paper (owner's rule): the website repeats the para above every one of its questions, but a question paper shows it ONCE, as
+   "PARA" followed by all its questions together, exactly as the paper was uploaded. The first question of a group carries "PARA" + the para; the next ones of the
+   same para (the same text before the last line, next to each other) carry only their own line and are marked _pcont so the pages never split the group. */
+const PARA_HEAD = /^\s*Para(?:graph)?\s*:\s*/i;
+let PARA_PREV = null;
+function paraOnce(c, k) {
+  if (k === 0) PARA_PREV = null;
+  const t = String(c.q == null ? '' : c.q), cut = t.lastIndexOf('\n');
+  if (!PARA_HEAD.test(t) || cut < 0) { PARA_PREV = null; return c; }
+  const para = t.slice(0, cut).replace(PARA_HEAD, '').trim(), tail = t.slice(cut + 1).trim();
+  if (PARA_PREV === para) { c.q = tail; c._pcont = 1; return c; }
+  PARA_PREV = para; c.q = '**PARA**\n' + para + '\n' + tail; return c;
 }
 /* the exam's logo for the paper header, when every question is from one exam (img/exams/<exam>.webp) */
 function examLogoOf(qs) {
@@ -581,14 +597,23 @@ function examLogoOf(qs) {
 }
 const imgData = async src => { const rs = await fetch(src); if (!rs.ok) throw new Error(src); const bl = await rs.blob(), bm = await createImageBitmap(bl), c = document.createElement('canvas'); c.width = bm.width; c.height = bm.height; c.getContext('2d').drawImage(bm, 0, 0);
   const dataUrl = c.toDataURL('image/png'), data = await new Promise(r => c.toBlob(b => b.arrayBuffer().then(x => r(new Uint8Array(x))), 'image/png')); return { data, dataUrl, w: bm.width, h: bm.height }; };   /* PNG: Word and PowerPoint cannot hold webp */
-function idPages(ids, title, label, info, subLine) {
+function idPages(ids, title, label, info, subLine, kind) {
   label = label || 'Worksheet';
-  const qs = paperQs(ids.map(i => BYID.get(i))), examLogo = examLogoOf(qs);
+  const qs = paperQs(ids.map(i => BYID.get(i)), kind === 'pptx'), examLogo = examLogoOf(qs);
   return qs.length ? packPages(qs, (g, i, n) => ({ title, sub: label, tag: label === 'Worksheet' /* a test paper shows no question codes or exam names after the questions */, infoLine: info || '', subLine: subLine || '', badge: n > 1 ? 'Page ' + (i + 1) + ' of ' + n : label, examLogo })) : [];
 }
+/* EXPORT COLUMNS PER EXAM (owner's rule): AIEEE, KCET, NDA and IAT = 2 columns; IIT-JEE, JEE Advanced, JEE Main and CBSE = NO columns (one column, their questions are long).
+   Every other exam: ASK THE OWNER which layout to use before adding it here. Until then a paper of an unlisted exam keeps the old default (2 columns). A page that mixes exams uses one column
+   if any of its questions comes from a one-column exam. Practice / DPP worksheets (no past-paper questions) keep 2 columns. */
+const EXPORT_COLS = { 'KCET': 2, 'NDA': 2, 'AIEEE': 2, 'IAT': 2, 'IIT': 1, 'JEE Advanced': 1, 'JEE Main': 1, 'CBSE': 1 };
+const examKey = q => q.e === 'CBSE' ? 'CBSE' : exOf(q);
+function colsOf(qs) {
+  const ks = [...new Set((qs || []).filter(q => q && q.e).map(examKey))]; if (!ks.length) return 2;
+  return ks.some(k => EXPORT_COLS[k] === 1) ? 1 : 2;
+}
 function packPages(qs, mk) {
-  const pg = paginate(qs, BASE), out = []; let start = 0;
-  pg.forEach((g, i) => { out.push(Object.assign({}, BASE, mk(g, i, pg.length), { qs: g, start, cols: 2 })); start += g.length; });
+  const cols = colsOf(qs), pg = paginate(qs, Object.assign({}, BASE, { cols })), out = []; let start = 0;
+  pg.forEach((g, i) => { out.push(Object.assign({}, BASE, mk(g, i, pg.length), { qs: g, start, cols })); start += g.length; });
   return out;
 }
 function bookletPages(cc, part) {
@@ -1077,7 +1102,7 @@ window.__qbCwPptx = async function (ids, explain, opt) {
   /* KCET questions are kept out of the main bank (a separate exam), so look any id that is not there up in the raw PYQ file */
   let xtra = null; if (ids.some(i => !BYID.has(i))) { xtra = new Map(); (await qbJson('pyq')).forEach(r => { if (r.exam === 'KCET' || r.exam === 'IAT' || r.exam === 'NDA') { const q = qbCompact(r, true); if (q) xtra.set(q.i, q); } }); }
   /* the same paper rules as the PDF and Word (section headings, CBSE written-answer sections without options, bold Assertion / Reason, the paper's numbers) */
-  const qs = paperQs(ids.map(i => BYID.get(i) || (xtra && xtra.get(String(i))))); if (!qs.length) throw new Error('no questions found');
+  const qs = paperQs(ids.map(i => BYID.get(i) || (xtra && xtra.get(String(i)))), true); if (!qs.length) throw new Error('no questions found');
   const ccs = [...new Set(qs.map(q => q.cc))].sort((a, b) => chOrder(a) - chOrder(b)), one = ccs.length === 1, c0 = CHMAP.get(ccs[0]);
   const cls = [...new Set(ccs.map(cc => CHMAP.get(cc).cl))].sort();
   const synIdx = (cc, tp) => { const s = (BANK.syl || {})[cc] || []; const k = s.findIndex(t => norm(t[1]) === norm(tp)); return k < 0 ? 999 : k; };
@@ -2053,8 +2078,8 @@ window.AvantiTeacher = {
   /* saved worksheets: the same PDF / Word / PowerPoint export and share menu as DPPs (plan checks inside) */
   fill: (qs, o) => fillT(qs, o),   /* the text of these questions (dashboard: fetched by chapter or paper; /qbank: already there) */
   /* opts: { key, exp } or { explain }: explain (solutions / explanations) adds the answer key and then the explanations after it */
-  exportIds: async (ids, title, kind, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); await figDims(ids.map(i => BYID.get(i))); let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } if (opts) pages = pages.map(p => Object.assign({}, p, keyExp(opts))); doExport(kind, { pages, file: title, title }); },
-  pdfIds: async (ids, title, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); await figDims(ids.map(i => BYID.get(i))); let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } if (opts) pages = pages.map(p => Object.assign({}, p, keyExp(opts))); return pdfBlobOf({ pages, file: title }); },
+  exportIds: async (ids, title, kind, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); await figDims(ids.map(i => BYID.get(i))); let pages = idPages(ids, title, label, info, subLine, kind); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } if (opts) pages = pages.map(p => Object.assign({}, p, keyExp(opts))); doExport(kind, { pages, file: (opts && opts.file) || title, title }); },
+  pdfIds: async (ids, title, label, info, subLine, opts) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); await figDims(ids.map(i => BYID.get(i))); let pages = idPages(ids, title, label, info, subLine); if (!pages.length) { toast('None of these questions is in the question bank now'); return null; } if (opts) pages = pages.map(p => Object.assign({}, p, keyExp(opts))); return pdfBlobOf({ pages, file: (opts && opts.file) || title }); },
   shareIds: async (btn, ids, title) => { await ensureDpp(); await KATEX_P; await fillT(ids.map(i => BYID.get(i))); await figDims(ids.map(i => BYID.get(i))); const pages = idPages(ids, title); if (!pages.length) { toast('None of these questions is in the question bank now'); return; } shareFrom(btn, title, () => pdfBlobOf({ pages, file: title })); },
   math: node => math(node),
   viewHandout: (x, url) => viewHandout(x, url),

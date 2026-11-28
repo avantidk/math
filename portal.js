@@ -579,7 +579,7 @@ async function myWorksheets() {
 function dropMenu(btn, items) {
   const old = document.querySelector('.pt-dmenu'); if (old) { const same = old.owner === btn; old.remove(); if (same) return; }
   const m = h('div', { class: 'pt-dmenu', role: 'menu' }, items.filter(Boolean).map(it => it === '-' ? h('div', { class: 'pt-dsep', role: 'separator' })
-    : h('button', { type: 'button', role: it.keep ? 'menuitemcheckbox' : 'menuitem', 'aria-checked': it.keep ? String(!!(it.check && it.check())) : null, class: 'pt-ditem' + (it.keep ? ' pt-dtog' : '') + (it.bad ? ' bad' : '') + (it.good ? ' good' : '') + (it.red ? ' red' : ''), onclick: e => { if (it.keep) { it.onclick(e.currentTarget); return; } close(); it.onclick(); } }, it.icon ? h('span', { class: 'pt-dic', html: it.icon }) : null, h('span', { class: 'pt-dtx' }, h('b', { text: it.text }), it.sub ? h('small', { text: it.sub }) : null))));
+    : h('button', { type: 'button', role: it.keep ? 'menuitemcheckbox' : 'menuitem', 'aria-checked': it.keep ? String(!!(it.check && it.check())) : null, 'data-pp': it.pp || null, class: 'pt-ditem' + (it.keep ? ' pt-dtog' : '') + (it.bad ? ' bad' : '') + (it.good ? ' good' : '') + (it.red ? ' red' : ''), onclick: e => { if (it.keep) { it.onclick(e.currentTarget); return; } close(); it.onclick(); } }, it.icon ? h('span', { class: 'pt-dic', html: it.icon }) : null, h('span', { class: 'pt-dtx' }, h('b', { text: it.text }), it.sub ? h('small', { text: it.sub }) : null))));
   m.owner = btn; document.body.append(m);
   const r = btn.getBoundingClientRect(), w = m.offsetWidth;
   m.style.top = Math.min(window.innerHeight - m.offsetHeight - 8, r.bottom + 6) + 'px';
@@ -591,6 +591,7 @@ function dropMenu(btn, items) {
   const first = m.querySelector('button'); if (first) first.focus();
 }
 const IC = {
+  key: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>',
   pdf: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>', docx: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>', pptx: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8M8 9h5M8 12h8"/></svg>', print: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3h10v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>', link: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></svg>',
   share: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>',
   edit: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
@@ -774,13 +775,21 @@ function paperInfo(x) {
   const t = m && MON[m[2].toLowerCase()] != null ? Date.UTC(+m[3], MON[m[2].toLowerCase()], +m[1]) : y ? Date.UTC(+y, 4, 15) : 0;
   const sh = +((/shift\s*(\d)/i.exec(p) || /paper\s*(\d)/i.exec(p) || [])[1] || 0);
   const label = (/\b(19|20)\d{2}\b/.test(p) ? p : (EXN[x.e] || x.e) + ' ' + (x.y || '') + ' · ' + p).trim();
-  return { key: paperKey(x), e: x.e, label, t, sh };
+  /* the heading of an export: the NAME of the paper (exam + year, e.g. "JEE Main 2024") and below it the date line (e.g. "9 Apr 2024 · Shift 2"); never the words "Question paper" */
+  const ex = examOfQ(x), exName = ex === 'CBSE 12' ? 'CBSE Class 12' : (ex || EXN[x.e] || x.e), yr = y || '';
+  const dateTxt = m ? (+m[1] + ' ' + m[2].charAt(0).toUpperCase() + m[2].slice(1, 3).toLowerCase() + ' ' + m[3]) : '';
+  const title = (exName + (yr ? ' ' + yr : '')).trim();
+  /* what is left of the paper's name after the exam, the year and the date: "Shift 2", "Paper 1", "Offline", "Screening", "NDA I", "65/1/1" */
+  const rest = (m ? p.replace(m[0], ' ') : p).trim().replace(/^CBSE\.12\.\d{4}\./, '').replace(/^(JEE Main|JEE Advanced|IIT-JEE|IIT|AIEEE|KCET|IAT)\b/i, ' ').replace(/\b(19|20)\d{2}\b/g, ' ').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+  const dateLine = [dateTxt, rest].filter(Boolean).join(' \u00b7 ') || 'Previous year paper';
+  return { key: paperKey(x), e: x.e, label, title, dateLine, t, sh };
 }
 /* a question a test can mark: Numerical with a number, a range "a to b" or several accepted numbers "a or b" (the server grades them);
    options with letters A to D, or A to E when the question has 5 options (MSQ can have up to 5 correct) */
 const NUM_ANS = /^(-?\d+(?:\.\d+)?(\s+or\s+-?\d+(?:\.\d+)?)*|-?\d+(?:\.\d+)?\s*to\s*-?\d+(?:\.\d+)?)$/i;
 const GRADE_T = ['MCQ', 'MSQ', 'Matching', 'Comprehension', 'Subjective'];
-const gradable = q => { if (q && q.g != null) return !!q.g && (q.t === 'Numerical' || GRADE_T.includes(q.t));   /* from the index: g = the answer key can be marked (same rule) */
+const subjNoQuiz = q => !!q && q.t === 'Subjective' && !/^CBSE/i.test(String(q.ex || q.exam || q.e || ''));   /* owner's rule: only CBSE gets made-up options, so only CBSE subjective questions can be marked */
+const gradable = q => { if (subjNoQuiz(q)) return false; if (q && q.g != null) return !!q.g && (q.t === 'Numerical' || GRADE_T.includes(q.t));   /* from the index: g = the answer key can be marked (same rule) */
   if (!q || !q.a) return false; const a = String(q.a).trim(), n = (q.o || []).length; if (q.t === 'Numerical') return NUM_ANS.test(a);
   return (q.t === 'MCQ' || q.t === 'MSQ' || q.t === 'Matching' || q.t === 'Comprehension' || q.t === 'Subjective') && n > 0 && (n >= 5 ? /^[A-E](,[A-E])*$/ : /^[A-D](,[A-D])*$/).test(a.replace(/\s+/g, '')); };
 let CHN = new Map();
@@ -1034,17 +1043,16 @@ async function pageMyTests() {
   const preview = async t => { const { data, error } = await sb().from('tests').select('title,questions').eq('id', t.id).single(); if (error) { toast(error.message); return; } previewQs(data.title, data.questions, true); };
   const rename = async t => { const nt = await promptBox('Rename test', 'Title', t.title); if (!nt || nt === t.title) return; const { error } = await sb().from('tests').update({ title: nt }).eq('id', t.id); if (error) toast('Could not rename: ' + error.message); else { toast('Test renamed'); pageMyTests(); } };
   /* the question IDs of a test: the same export / share menu as Saved worksheets */
-  const idsOf = async t => { const { data, error } = await sb().from('tests').select('questions').eq('id', t.id).single(); if (error) { toast(error.message); return null; } return (data.questions || []).map(q => q.id).filter(Boolean); };
+  const idsOf = async t => { const { data, error } = await sb().from('tests').select('questions').eq('id', t.id).single(); if (error) { toast(error.message); return null; } const qs = data.questions || [], pos = +t.marks_correct || 0; t._max = qs.reduce((a, q) => a + (q.mc != null && q.mc !== '' ? +q.mc : pos), 0); /* the real maximum: every question's own marks */ return qs.map(q => q.id).filter(Boolean); };
   /* the line under the title of an exported test: questions, time, marks, +/- marking and the date it was created */
-  const infoOf = t => { const n = +t.n_questions || 0, pos = +t.marks_correct || 0, neg = +t.marks_wrong || 0; return ['Questions: ' + n, 'Time: ' + t.duration_min + ' min', 'Maximum marks: ' + num(n * pos, 2), 'Marking: +' + num(pos, 2) + ' / \u2212' + num(neg, 2), 'Date: ' + day(t.created_at)]; };
+  const infoOf = t => { const n = +t.n_questions || 0, pos = +t.marks_correct || 0, neg = +t.marks_wrong || 0, mx = t._max != null ? t._max : n * pos; /* the test's own maximum (every question's own marks, set by idsOf), not questions x the default marks */ return ['Questions: ' + n, 'Time: ' + t.duration_min + ' min', 'Maximum marks: ' + num(mx, 2), 'Marking: +' + num(pos, 2) + ' / \u2212' + num(neg, 2), 'Date: ' + day(t.created_at)]; };
   /* under the title: class, batch and school, e.g. "11 · JEE · All schools" */
   const subOf = t => [(t.target_classes || []).join(', '), (t.target_streams || []).join(', '), [t.school].concat(t.schools || []).filter(Boolean).join(', ') || 'All schools'].filter(Boolean).join(' \u00b7 ');
   /* "Solutions / explanations" (the same switch as the past-paper menu): adds the answer key and the full solutions to the export */
-  const xo = () => (PP_EXPLAIN ? { key: true, exp: true, explain: true } : undefined), xl = () => PP_EXPLAIN ? 'Test paper with solutions' : 'Test paper';
-  const xsub = () => PP_EXPLAIN ? 'On: answer key and full solutions are added' : 'Off: only the questions';
+  const xo = () => ppOpts(), xl = () => ppLabel('Test paper');
   const exp = (t, kind) => async () => { const ids = await idsOf(t); if (ids) TE().exportIds(ids, t.title, kind, xl(), infoOf(t), subOf(t), xo()); };
   const exportBtn = t => can('pdf') ? h('button', { type: 'button', class: 'btn pt-split', 'aria-haspopup': 'menu', 'aria-expanded': 'false', onclick: e => dropMenu(e.currentTarget, [
-      { keep: true, check: () => PP_EXPLAIN, icon: IC.eye, text: 'Solutions / explanations', sub: xsub(), onclick: el => { PP_EXPLAIN = !PP_EXPLAIN; el.setAttribute('aria-checked', String(PP_EXPLAIN)); el.querySelector('small').textContent = xsub(); } },
+      ...ppToggles(),
       '-',
       { icon: IC.pdf, text: 'Download PDF', sub: 'Print-ready', onclick: exp(t, 'pdf') },
       can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable document', onclick: exp(t, 'docx') } : null,
@@ -1151,7 +1159,19 @@ async function showLinkRanking(testId, title) {
       [{ text: 'Close', pri: true, onclick: () => {} }]);
   } catch (e) { toast(e.message); }
 }
-let PP_EXPLAIN = false;   /* the "Solutions / explanations" switch of the past-paper download menu */
+let PP_EXPLAIN = false;   /* the "Explanation" switch of every download menu (full solutions; they carry the answer key too) */
+let PP_KEY = false;       /* the "Answer key" switch of every download menu */
+/* the two switches of a download menu: Answer key and Explanation. Explanation always includes the answer key, so switching it on also switches the key on, and switching the key off switches the explanation off. */
+const ppSub = k => k === 'key' ? (PP_KEY || PP_EXPLAIN ? 'On: the answer key is added' : 'Off: no answers') : (PP_EXPLAIN ? 'On: full solutions are added' : 'Off: no solutions');
+const ppOn = k => k === 'key' ? (PP_KEY || PP_EXPLAIN) : PP_EXPLAIN;
+const ppOpts = () => (PP_KEY || PP_EXPLAIN ? { key: true, exp: PP_EXPLAIN, explain: PP_EXPLAIN } : undefined);
+const ppLabel = what => what + (PP_EXPLAIN ? ' with solutions' : PP_KEY ? ' with answer key' : '');
+function ppToggles() {
+  const paint = el => { const m = el.closest('.pt-dmenu'); if (m) m.querySelectorAll('[data-pp]').forEach(b => { b.setAttribute('aria-checked', String(ppOn(b.dataset.pp))); const sm = b.querySelector('small'); if (sm) sm.textContent = ppSub(b.dataset.pp); }); };
+  return [
+    { keep: true, pp: 'key', check: () => ppOn('key'), icon: IC.key, text: 'Answer key', sub: ppSub('key'), onclick: el => { if (ppOn('key')) { PP_KEY = false; PP_EXPLAIN = false; } else PP_KEY = true; paint(el); } },
+    { keep: true, pp: 'exp', check: () => ppOn('exp'), icon: IC.eye, text: 'Explanation', sub: ppSub('exp'), onclick: el => { PP_EXPLAIN = !PP_EXPLAIN; if (PP_EXPLAIN) PP_KEY = true; paint(el); } }];
+}
 async function pagePersonal(arg) {
   const onlyPicker = arg === 'pyq';   /* #/modes/pyq: the paper picker alone (Previous Year Papers) */
   if (!onlyPicker && P().role === 'student') { location.replace('#/reports'); return; }   /* students have one results page: My Reports */
@@ -1175,16 +1195,15 @@ async function pagePersonal(arg) {
   /* Download / share of a past paper, always in the paper's own order; "Solutions / explanations" adds the answer key and the full solutions */
   const paperMenu = (btn, pp) => {
     const ids = () => paperOrder(pp.qs).map(q => q.i), load = () => fillQs(pp.qs, { paper: (pp.qs.find(q => q.ps) || {}).ps });
-    const opts = () => ({ key: PP_EXPLAIN, exp: PP_EXPLAIN, explain: PP_EXPLAIN }), lbl = () => PP_EXPLAIN ? 'Question paper with solutions' : 'Question paper';
+    const opts = () => Object.assign({ file: pp.label }, ppOpts() || {}), lbl = () => pp.dateLine;
     const fail = what => x => toast('Could not make the ' + what + ': ' + ((x && x.message) || 'try again'));
-    const sub = () => PP_EXPLAIN ? 'On: answer key and full solutions are added' : 'Off: only the questions';
     dropMenu(btn, [
-      { keep: true, check: () => PP_EXPLAIN, icon: IC.eye, text: 'Solutions / explanations', sub: sub(), onclick: el => { PP_EXPLAIN = !PP_EXPLAIN; el.setAttribute('aria-checked', String(PP_EXPLAIN)); el.querySelector('small').textContent = sub(); } },
+      ...ppToggles(),
       '-',
-      { icon: IC.pdf, text: 'Download PDF', sub: 'The paper in its real order', onclick: () => load().then(() => TE().exportIds(ids(), pp.label, 'pdf', lbl(), '', '', opts())).catch(fail('PDF')) },
-      can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable question paper', onclick: () => load().then(() => TE().exportIds(ids(), pp.label, 'docx', lbl(), '', '', opts())).catch(fail('Word file')) } : null,
-      can('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: () => load().then(() => TE().exportIds(ids(), pp.label, 'pptx', lbl(), '', '', opts())).catch(fail('PowerPoint')) } : null,
-      can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { toast('Preparing the PDF…'); try { await load(); const r = await TE().pdfIds(ids(), pp.label, lbl(), '', '', opts()); if (r) shareReady(r.blob, r.file, pp.label); } catch (x) { fail('PDF')(x); } } } : null,
+      { icon: IC.pdf, text: 'Download PDF', sub: 'The paper in its real order', onclick: () => load().then(() => TE().exportIds(ids(), pp.title, 'pdf', lbl(), '', '', opts())).catch(fail('PDF')) },
+      can('docx') ? { icon: IC.docx, text: 'Download Word', sub: 'Editable question paper', onclick: () => load().then(() => TE().exportIds(ids(), pp.title, 'docx', lbl(), '', '', opts())).catch(fail('Word file')) } : null,
+      can('pptx') ? { icon: IC.pptx, text: 'Download PowerPoint', sub: 'One question per slide', onclick: () => load().then(() => TE().exportIds(ids(), pp.title, 'pptx', lbl(), '', '', opts())).catch(fail('PowerPoint')) } : null,
+      can('share') ? { icon: IC.share, text: 'Share PDF…', sub: 'WhatsApp, email or your phone’s apps', onclick: async () => { toast('Preparing the PDF…'); try { await load(); const r = await TE().pdfIds(ids(), pp.title, lbl(), '', '', opts()); if (r) shareReady(r.blob, r.file, pp.label); } catch (x) { fail('PDF')(x); } } } : null,
       { icon: IC.link, text: 'Copy link to this page', sub: 'The page link, not the PDF', onclick: () => copy(location.origin + '/dashboard#/modes/pyq', 'Page link copied') }]);
   };
   const exLogo = e => { const ini = h('span', { class: 'pp-exini', text: (PAPER_LABEL[e] || e).replace(/\(.*\)/, '').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 4).toUpperCase(), hidden: true });
@@ -1198,13 +1217,13 @@ async function pagePersonal(arg) {
         exLogo(e), h('span', { class: 'pp-exn', text: PAPER_LABEL[e] || e }), h('span', { class: 'pp-exc', text: n ? n + (n === 1 ? ' paper' : ' papers') : 'Coming soon' }))); });
     paperBox.textContent = '';
     const sc = SC[schemeExam(exam)] || SC['JEE Main'];
-    papersOf(B, exam).forEach(pp => { const nm = pp.qs.filter(q => !gradable(q)).length;
+    papersOf(B, exam).forEach(pp => { const nm = pp.qs.filter(q => !gradable(q)).length, sj = exam !== 'CBSE 12' && pp.qs.some(q => q.t === 'Subjective');   /* a paper with subjective questions (not CBSE) cannot be a quiz: download only */
       paperBox.append(h('div', { class: 'pp-row' },
         h('div', { class: 'pp-rinfo' }, h('b', { text: pp.label }),
-          h('small', { text: orUnits(pp.qs).length + ' questions · ' + sc.duration_min + ' min' + (sc.rules && +sc.rules.reading_min ? ' + ' + sc.rules.reading_min + ' min reading' : '') + ' · ' + markText(sc) }), nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null),
+          h('small', { text: orUnits(pp.qs).length + ' questions · ' + sc.duration_min + ' min' + (sc.rules && +sc.rules.reading_min ? ' + ' + sc.rules.reading_min + ' min reading' : '') + ' · ' + markText(sc) }), sj ? h('small', { class: 'pp-note', text: 'This paper contains subjective questions and can\u2019t be used as a quiz test. Download this paper.' }) : nm ? h('small', { class: 'pp-note', text: nm + ' not auto-marked (no answer key to mark)' }) : null),
         h('div', { class: 'pp-ract' },
           h('button', { type: 'button', class: 'pp-pdf', title: 'Download or share this paper', 'aria-label': 'Download or share ' + pp.label, 'aria-haspopup': 'menu', html: IC.share, onclick: e => paperMenu(e.currentTarget, pp) }),
-          h('button', { type: 'button', class: 'btn pri pp-att', title: 'Opens the instructions first; the timer starts when you press Start', onclick: e => startPaper(pp, e.currentTarget) }, 'Attempt Now')))); });
+          sj ? null : h('button', { type: 'button', class: 'btn pri pp-att', title: 'Opens the instructions first; the timer starts when you press Start', onclick: e => startPaper(pp, e.currentTarget) }, 'Attempt Now')))); });
   };
   const status = x => !x.attempt_id ? badge('Not started', 'mute') : x.attempt_status === 'submitted' ? badge('Submitted', 'ok') : badge('In progress', 'mid');
   ov.mine = ov.mine.filter(x => x.audience !== 'self' || x.attempt_id);   /* a test you never started is not a test: only started or submitted ones are listed */

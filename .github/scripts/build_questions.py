@@ -44,13 +44,16 @@ def words_of(text):
 
 
 def make_slug(qid, r):
+    """first ~9 and last ~5 prose words of the question (maths left out) + 6 letters of the id's hash; at most ~90 characters."""
     w = words_of(r['question'])
-    if len(w) < 4: w = words_of(r.get('topic') or '') + w
-    head, tail = (w[:6], w[-3:]) if len(w) > 9 else (w, [])
-    parts = head + tail
-    slug = '-'.join(parts)
-    while len(slug) > 64 and len(parts) > 3: parts.pop(len(head) - 1 if len(parts) > len(tail) + 3 else -1); slug = '-'.join(parts)
-    return (slug + '-' if slug else '') + hashlib.sha1(qid.encode()).hexdigest()[:6]
+    if len(w) < 6: w = words_of(r.get('topic') or '') + w
+    head, tail = (w[:9], w[-5:]) if len(w) > 14 else (w, [])
+    while len('-'.join(head + tail)) > 82 and len(head) + len(tail) > 4:
+        if len(head) > len(tail) + 3: head = head[:-1]
+        elif tail: tail = tail[1:]
+        else: head = head[:-1]
+    s = '-'.join(head + tail)
+    return (s + '-' if s else '') + hashlib.sha1(qid.encode()).hexdigest()[:6]
 
 
 def figure_of(work, key):
@@ -146,7 +149,7 @@ def build(work, qid):
               [('Home', B.SITE + '/'), ('Maths', B.SITE + '/maths/'), (c['name'], B.url(c)), (f'{exam_h} Q{r["qno"]}', cu)])]}]
     out = B.page(title, desc, cu, body, 2, ld, noindex=not INDEX)
     out = out.replace("style-src 'self';", "style-src 'self' 'unsafe-inline';").replace("font-src 'self';", "font-src 'self' data:;")   # KaTeX draws with inline styles
-    out = out.replace('<link rel="stylesheet" href="../../site.css', '<link rel="stylesheet" href="../../katex.css?v=' + B.VER + '">\n<link rel="stylesheet" href="../../site.css', 1)
+    out = out.replace('<link rel="stylesheet" href="../../site.css', '<link rel="stylesheet" href="../../katex-q.css?v=' + B.VER + '">\n<link rel="stylesheet" href="../../site.css', 1)
     B.write(f'q/{slug}/index.html', out)
     print('wrote', f'q/{slug}/index.html', '|', title, '|', len(desc), 'char description', '| figures:', ', '.join(figs) or 'none')
     return slug

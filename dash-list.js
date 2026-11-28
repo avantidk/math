@@ -85,7 +85,7 @@ function menu(label, build) {   /* build(panel, refreshLabel) fills the panel; r
 /* ---------- the list ---------- */
 function render(env, o) {
   const { D, A, main } = env, pool = o.rows, res = () => D.sum.results;
-  const F = { hide: false, years: new Set(), status: '', lv: new Set(), types: new Set(), sort: o.seqOrder ? 'seq' : o.pickOrder ? 'pick' : 'new', extra: {} };
+  const F = { hide: false, rep: false, years: new Set(), status: '', lv: new Set(), types: new Set(), sort: o.seqOrder ? 'seq' : o.pickOrder ? 'pick' : 'new', extra: {} };
   (o.filters || []).forEach(f => { F.extra[f.key] = new Set(); });
   const TYPE_ORD = ['MCQ', 'MSQ', 'Numerical', 'Matching', 'Para', 'Subjective'];
   const typeOf = r => { const t = r.ty || 'MCQ'; return t === 'Comprehension' || r.pa ? 'Para' : t; };   /* from the index (pa: a "Para:" question) */
@@ -95,9 +95,11 @@ function render(env, o) {
   let expCount = null;
   const att = st => st === 'c' || st === 'w', solved = pool.filter(r => att(res()[r.id])).length, right = pool.filter(r => res()[r.id] === 'c').length;
 
+  /* "Show repeated questions": only the questions asked again in another paper (hand-made links of must.json, and the same text found in the papers loaded so far) */
+  const isRep = r => (env.links ? env.links(r.id).length > 0 : false) || repeatsOf(r.id).length > 0;
   /* what is shown: filters, then the order */
   const apply = () => {
-    list = pool.filter(r => (!F.hide || !att(res()[r.id])) && (!F.years.size || F.years.has(r.y)) && (!F.lv.size || F.lv.has(r.d)) && (!F.types.size || F.types.has(typeOf(r)))
+    list = pool.filter(r => (!F.hide || !att(res()[r.id])) && (!F.rep || isRep(r)) && (!F.years.size || F.years.has(r.y)) && (!F.lv.size || F.lv.has(r.d)) && (!F.types.size || F.types.has(typeOf(r)))
       && (!F.status || (F.status === 'u' ? !res()[r.id] : res()[r.id] === F.status)) && (o.filters || []).every(f => !F.extra[f.key].size || F.extra[f.key].has(f.get(r))));
     const key = r => (r.y || 0) * 1e3;
     const chOrd = c => ((env.D.chByCode[c] || {}).order || 999), qn = r => r.qn || 0, idn = r => { const m = /(\d+)$/.exec(String(r.id)); return m ? +m[1] : 0; };   /* the number at the end of the id follows the book's order, also where two chapters of the book share one list (their question numbers start again at 1) */
@@ -130,7 +132,7 @@ function render(env, o) {
       ul.append(h('li', { class: 'dl-empty' }, h('b', { text: 'Could not load the questions' }), h('button', { type: 'button', class: 'btn', text: 'Try again', onclick: () => draw() }))); });
   };
   const goPage = (n, scroll) => { page = Math.max(0, Math.min(pages() - 1, n)); draw(); if (scroll !== false) { const t = wrap.querySelector('.dl-bar') || wrap; t.scrollIntoView({ block: 'start', behavior: 'smooth' }); } };
-  const filtered = () => F.hide || F.years.size || F.lv.size || F.types.size || F.status || (o.filters || []).some(f => F.extra[f.key].size);
+  const filtered = () => F.hide || F.rep || F.years.size || F.lv.size || F.types.size || F.status || (o.filters || []).some(f => F.extra[f.key].size);
   const paint = () => {
     const from = page * PAGE, to = Math.min(list.length, from + PAGE);
     count.textContent = list.length ? 'Showing ' + (from + 1) + '–' + to + ' of ' + list.length + (filtered() ? ' (filtered from ' + pool.length + ')' : '') : 'No questions';
@@ -216,6 +218,7 @@ function render(env, o) {
 
   /* controls */
   const tog = h('label', { class: 'dl-switch' }, h('input', { type: 'checkbox', role: 'switch', onchange: e => { F.hide = e.target.checked; apply(); } }), h('span', { class: 'dl-track', 'aria-hidden': 'true' }), h('span', { text: 'Hide attempted' }));
+  const togRep = h('label', { class: 'dl-switch' }, h('input', { type: 'checkbox', role: 'switch', onchange: e => { F.rep = e.target.checked; apply(); } }), h('span', { class: 'dl-track', 'aria-hidden': 'true' }), h('span', { text: 'Show repeated questions' }));
   const multi = (label, vals, set, nice, cnt) => menu(label, (panel, api) => {
     const sync = () => api.setLabel(set.size ? label + ' (' + set.size + ')' : label, set.size);
     api.box.__sync = () => { const ins = panel.querySelectorAll('input[type=checkbox]'); vals.forEach((v, i) => { if (ins[i]) ins[i].checked = set.has(v); }); sync(); };
@@ -271,7 +274,7 @@ function render(env, o) {
     const smallTest = h('button', { type: 'button', class: 'btn pri dl-small', text: (o.testLabel || 'Take test') + ' →', onclick: async e => { const btn = e.currentTarget; btn.disabled = true; try { await o.startTest(list.length ? list : pool); } catch (x) { env.toast(x.message || 'Could not start'); } btn.disabled = false; } });
     wrap.append(h('div', { class: 'dl-top' }, h('div', { class: 'dl-ttl' }, h('h2', { text: o.title }), o.sub ? h('small', { text: o.sub }) : ''), h('div', { class: 'dl-top-r' }, o.startTest ? smallTest : null)),
       exportPanel(),
-      h('div', { class: 'dl-filters dl-oneline' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, levelMenu, typeMenu, statusMenu, h('label', { class: 'dl-sortw dl-sort-r' }, h('span', { html: ICON.sort }), sortSel)),
+      h('div', { class: 'dl-filters dl-oneline' }, tog, togRep, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, levelMenu, typeMenu, statusMenu, h('label', { class: 'dl-sortw dl-sort-r' }, h('span', { html: ICON.sort }), sortSel)),
       h('div', { class: 'dl-bar' }, count, pagerTop), ul, pager);
   } else wrap.append(
     h('section', { class: 'lh' + (o.tone ? ' lh-tone' : ''), style: o.tone ? '--tone:' + o.tone : null },
@@ -279,7 +282,7 @@ function render(env, o) {
       h('div', { class: 'lh-st' }, [[String(pool.length), 'questions'], [solved + ' / ' + pool.length, 'attempted'], [String(right), 'correct'], [solved ? env.pct(right, solved) + '%' : '—', 'accuracy']].map(([n, l]) => h('div', { class: 'lh-s', 'data-k': l }, h('b', { text: n }), h('span', { text: l }))))),
     chapterChips() || '',
     exportPanel(),
-    h('div', { class: 'dl-filters' }, tog, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, statusMenu, levelMenu, types.length ? multi('Type', types, F.types, null, v => pool.filter(r => typeOf(r) === v).length) : null),
+    h('div', { class: 'dl-filters' }, tog, togRep, extraMenus, years.length ? multi('Years', years, F.years, null, v => pool.filter(r => r.y === v).length) : null, statusMenu, levelMenu, types.length ? multi('Type', types, F.types, null, v => pool.filter(r => typeOf(r) === v).length) : null),
     h('div', { class: 'dl-bar' }, count, pagerTop, h('label', { class: 'dl-sortw' }, h('span', { html: ICON.sort }), sortSel)),
     ul, pager);
   if (o.head) o.head.querySelectorAll('.d-crumb').forEach(c => c.classList.add('d-crumb-sr'));   /* kept in the page, not shown */

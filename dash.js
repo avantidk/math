@@ -70,7 +70,7 @@ function dateKey(x) {
 /* The dashboard starts from the small index (every question without its text: index/questions.json, boot.js) and fetches the
    full records (text, options, answer) only for what is on the screen: the chapter of a list page, a past paper, the questions
    picked for a test. The admin's account reads the two whole files instead (boot.js decides). */
-const TESTABLE = { MCQ: 1, MSQ: 1, Numerical: 1, Matching: 1, Comprehension: 1, Subjective: 1 };   /* the types a test made here can mark (with an answer key: g) */
+const TESTABLE = { MCQ: 1, MSQ: 1, Numerical: 1, Matching: 1, Comprehension: 1, Subjective: 1 };   /* Subjective only counts for CBSE: boot.js clears g (answer key) for every other subjective question, so they never enter a test */   /* the types a test made here can mark (with an answer key: g) */
 function load() {
   if (D.ready) return D.ready;
   const C = window.AvantiContent;
@@ -714,9 +714,12 @@ function viewHistoryPage() { side({ back: '', title: 'Test History', sub: 'All y
 /* ---------- one exact question (the link from a public /q/<id>/ page): #d/q/<id> ---------- */
 async function viewQuestion(id) {
   const r = D.byId.get(id), pyq = r && r.P;
+  /* free accounts do not get the practice rows in their index: an id that is missing for them is a practice question behind Premium, not a missing question */
+  const premiumCard = () => main(h('section', { class: 'd-lockcard' }, h('span', { html: IC.lock }), h('h2', { text: 'Practice questions are part of Premium' }), h('p', { text: 'Premium gives you every practice question with solutions, other students’ solutions and comments.' }), h('a', { class: 'btn pri', href: '#/membership', text: 'Purchase Premium' })));
   side({ back: '', title: 'Question', sub: r ? (pyq ? 'Previous year question' : 'Practice question') : '', items: homeItems('') });
+  if (!r && locked() && !/^(JM|JA|IIT|AIEEE|KCET|NDA|IAT|CBSE|JEE)/i.test(id)) { premiumCard(); return; }
   if (!r) { main(h('section', { class: 'd-lockcard' }, h('h2', { text: 'Question not found' }), h('p', { text: 'This question is not in the dashboard (any more).' }), h('a', { class: 'btn pri', href: '#d/', text: 'Go to dashboard' }))); return; }
-  if (!pyq && locked()) { main(h('section', { class: 'd-lockcard' }, h('span', { html: IC.lock }), h('h2', { text: 'Practice questions are part of Premium' }), h('p', { text: 'Premium gives you every practice question with solutions, other students’ solutions and comments.' }), h('a', { class: 'btn pri', href: '#/membership', text: 'See Premium' }))); return; }
+  if (!pyq && locked()) { premiumCard(); return; }
   try { await need([r]); } catch (e) { main(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'Could not load the question' }), h('p', { text: e.message || 'Check your connection and try again.' }))); return; }
   const x = D.raw.get(id); if (!x) { main(h('div', { class: 'pt-state' }, h('p', { class: 'pt-st-t', text: 'Could not load the question' }))); return; }
   const c = D.chByCode[r.ch], card = window.AvantiList.renderQuestion(x, { id, env: listEnv() });

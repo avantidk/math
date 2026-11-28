@@ -32,7 +32,7 @@ function h(tag, props, ...kids) {
 }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 window.AvantiUtil = Object.freeze({ h, esc });
-const BUILD = '1071';
+const BUILD = '1072';
 const RELEASED = '28 Nov 2026';   /* date of this release, shown in the footer */
 const SB_URL = 'https://usehxhvzhdbcmnmqaxoo.supabase.co';
 const SB_KEY = 'sb_publishable_QQ_N_B6kl416kbGMF0DQtw_9Jg58PoN';
@@ -174,6 +174,8 @@ function keyOk(r) {
   if (r.type === 'Numerical') return NUMA.test(a);
   const n = optsOf(r).length; return n > 0 && (n >= 5 ? /^[A-E](,[A-E])*$/ : /^[A-D](,[A-D])*$/).test(a.replace(/\s+/g, ''));
 }
+/* owner's rule: only CBSE gets made-up options. Every other subjective question is shown exactly as it is (no options, no letter answer) and is never part of a test. */
+const asIs = r => { if (r && r.type === 'Subjective' && !/^CBSE/i.test(String(r.exam || ''))) { r.options = []; r.answer = ''; } return r; };
 const isParaRec = r => r.type === 'Comprehension' || (r.type === 'Numerical' && /^\s*Para:/i.test(r.question || ''));
 const paraKey = r => { const t = String(r.question == null ? '' : r.question); return t.slice(0, Math.max(0, t.lastIndexOf('\n'))) || t; };
 /* "mix-breed" PYQs: concepts of 3 or more of these families in the question and its options */
@@ -184,7 +186,7 @@ const isMix = r => { const t = ((r.question || '') + ' ' + optsOf(r).join(' ')).
 function light(r, P) {
   const para = isParaRec(r), y = r.year != null && r.year !== '' ? Number(r.year) : null;
   return { i: String(r.id), s: P ? 'P' : 'N', cc: r.chapter_code || '', tc: String(r.topic_code || ''), tp: r.topic || '', ex: r.exam || '', y: P && y ? y : null, p: r.paper || '', ps: '', n: r.qno == null ? '' : String(r.qno),
-    t: r.type || '', d: r.difficulty || '', g: keyOk(r), oo: !!r.oos, pa: para, mx: P && isMix(r), bk: P ? '' : (r.publisher || r.book || ''), sec: r.section || '', pg: para ? paraKey(r) : '', pq: !P && r.pyq ? (r.pyq_ref || '') : '' };
+    t: r.type || '', d: r.difficulty || '', g: keyOk(r) && !(r.type === 'Subjective' && !/^CBSE/i.test(String(r.exam || ''))), oo: !!r.oos, pa: para, mx: P && isMix(r), bk: P ? '' : (r.publisher || r.book || ''), sec: r.section || '', pg: para ? paraKey(r) : '', pq: !P && r.pyq ? (r.pyq_ref || '') : '' };
 }
 /* index/questions.json: columns + rows, text values as numbers into "dict" (see split_content.py) */
 function expand(j) {
@@ -192,13 +194,13 @@ function expand(j) {
   return (j.rows || []).map(a => {
     const v = k => (ix[k] == null ? undefined : a[ix[k]]), f = v('f') || 0, P = !(f & 1), tt = (D.tt || [])[v('tt') || 0] || ['', ''], pp = (D.pp || [])[v('k') || 0] || ['', 0, '', ''], code = String(tt[0] || '');
     return { i: String(a[0]), s: P ? 'P' : 'N', cc: (D.c || [])[v('c') || 0] || '', tc: code[0] === '=' ? code.slice(1) : 'JM-' + code, tp: tt[1] || '', ex: pp[0] || '', y: P && pp[1] ? Number(pp[1]) : null, p: pp[2] || '', ps: pp[3] || '', n: v('n') == null ? '' : String(v('n')),
-      t: (D.t || [])[v('t') || 0] || '', d: (D.d || [])[v('d') || 0] || '', g: !!(f & 2), oo: !!(f & 4), pa: !!(f & 8), mx: !!(f & 16), bk: P ? '' : (D.b || [])[v('b') || 0] || '', sec: (D.sec || [])[v('sec') || 0] || '', pg: v('pg') || '', pq: v('pq') || '' };
+      t: (D.t || [])[v('t') || 0] || '', d: (D.d || [])[v('d') || 0] || '', g: !!(f & 2) && !(((D.t || [])[v('t') || 0] || '') === 'Subjective' && !/^CBSE/i.test(pp[0] || '')), oo: !!(f & 4), pa: !!(f & 8), mx: !!(f & 16), bk: P ? '' : (D.b || [])[v('b') || 0] || '', sec: (D.sec || [])[v('sec') || 0] || '', pg: v('pg') || '', pq: v('pq') || '' };
   });
 }
 function fullFiles() {
   if (!fullP) {
     const np = isPaid() ? (data.nonpyq || getJson('qb/data/nonpyq.json')).catch(e => { if (REFUSED(e)) return []; throw e; }) : Promise.resolve([]);   /* Free accounts never ask for practice files */
-    fullP = Promise.all([data.pyq || getJson('qb/data/pyq.json'), np]).then(([a, b]) => { a = a || []; b = b || []; a.concat(b).forEach(r => { if (r && r.id != null) recs.set(String(r.id), r); }); return [a, b]; })
+    fullP = Promise.all([data.pyq || getJson('qb/data/pyq.json'), np]).then(([a, b]) => { a = a || []; b = b || []; a.concat(b).forEach(r => { if (r && r.id != null) recs.set(String(r.id), asIs(r)); }); return [a, b]; })
       .catch(e => { fullP = null; throw e; });
   }
   return fullP;
@@ -214,7 +216,7 @@ function index() {
   return idxP;
 }
 function loadFile(f) {
-  if (!fileP[f]) fileP[f] = getJson(f).then(list => { (list || []).forEach(r => { if (r && r.id != null) recs.set(String(r.id), r); }); })
+  if (!fileP[f]) fileP[f] = getJson(f).then(list => { (list || []).forEach(r => { if (r && r.id != null) recs.set(String(r.id), asIs(r)); }); })
     .catch(e => { delete fileP[f]; if (/^np\//.test(f) && REFUSED(e)) return; throw e; });   /* practice files: refused simply gives nothing */
   return fileP[f];
 }

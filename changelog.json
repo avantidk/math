@@ -1,5 +1,19 @@
 [
   {
+    "v": "1072",
+    "date": "28 Nov 2026",
+    "items": [
+      "Downloads: two switches, Answer key and Explanation (the explanation always carries the answer key). The heading of a downloaded paper is now its name (for example JEE Main 2024) with the date below it, without the words 'Question paper'.",
+      "Downloaded tests show the real maximum marks (each question's own marks) instead of questions x the default marks.",
+      "PDF and Word: a Para is printed once as PARA followed by all its questions, and a Para group never splits across pages (PowerPoint keeps one question per slide, each with its para).",
+      "Columns of a downloaded paper: 2 columns for KCET, NDA, AIEEE and IAT; one column for IIT-JEE, JEE Advanced, JEE Main and CBSE.",
+      "Only CBSE gets made-up options. Every other subjective question is shown as it is (no options) and cannot be used in a test. A paper (not CBSE) with subjective questions shows 'This paper contains subjective questions and can't be used as a quiz test. Download this paper.' and can only be downloaded.",
+      "Question lists have a 'Show repeated questions' switch.",
+      "The dashboard question list and the opened question have a new look (navy and gold, clearer cards, option badges, real tabs, dark mode).",
+      "Public question pages: longer addresses (first and last words of the question), a much smaller style file, and a free account that opens a practice question from a link is asked to purchase Premium. Admin Question Bank: new icon with the public link of a question."
+    ]
+  },
+  {
     "v": "1071",
     "date": "28 Nov 2026",
     "items": [

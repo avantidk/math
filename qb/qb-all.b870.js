@@ -1456,6 +1456,18 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     });
     /* the caution icon sits right after the Solution icon: any signed-in person can report an error; only the admin sees the reports */
     var bWarn = icoBtn('warn', 'Report an error in this question'); bWarn.classList.add('qb-warn');
+    /* admin only: opens the public page of this question in a new tab and copies its address (the page exists once build_questions.py has made it) */
+    var bPub = null;
+    if (QBP('isAdmin')) {
+      bPub = icoBtn('link', 'Open this question\u2019s public page');
+      bPub.addEventListener('click', function () {
+        publicSlug(q).then(function (sl) {
+          var url = location.origin + '/q/' + sl + '/';
+          try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url); } catch (e) { }
+          window.open(url, '_blank', 'noopener'); flash(bPub, 'Public link copied');
+        });
+      });
+    }
     /* no footer link: the footer only holds the revealed answer */
     var bFlag = icoBtn('flag', 'Flag'); bFlag.title = 'Write what to correct in this question';
     var bMenu = icoBtn('menu', 'More'); bMenu.setAttribute('aria-haspopup', 'true'); bMenu.setAttribute('aria-expanded', 'false');
@@ -1472,7 +1484,7 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     function onDoc(e) { if (!pop.contains(e.target) && e.target !== bMenu && !bMenu.contains(e.target)) popClose(); }
     bMenu.addEventListener('click', function () { if (pop.hidden) { pop.hidden = false; var pc = popCard(); if (pc) pc.classList.add('pop-open'); bMenu.setAttribute('aria-expanded', 'true'); bMenu.classList.add('on'); document.addEventListener('click', onDoc, true); } else popClose(); });
     bFlag.addEventListener('click', popClose);
-    var acts = el('span', 'qb-acts'); acts.appendChild(bAns); acts.appendChild(bBm); acts.appendChild(bCom); acts.appendChild(bOwn); acts.appendChild(bSol); acts.appendChild(bWarn);
+    var acts = el('span', 'qb-acts'); acts.appendChild(bAns); acts.appendChild(bBm); acts.appendChild(bCom); acts.appendChild(bOwn); acts.appendChild(bSol); acts.appendChild(bWarn); if (bPub) acts.appendChild(bPub);
     var mwrap = el('span', 'qb-menu'); mwrap.appendChild(bMenu); mwrap.appendChild(pop); acts.appendChild(mwrap);
     var rgt = el('span', 'qb-right'); var dTag = meta.querySelector('.qb-tag.diff'); rgt.appendChild(acts); meta.appendChild(rgt);
     main.appendChild(foot);
@@ -1528,8 +1540,21 @@ window.__mh=function(tex,display){tex=window.QBX&&window.QBX.spaceCases?window.Q
     bm: '<path d="M6 3.5h12v17l-6-4.2-6 4.2z"/>',
     chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
     addsol: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/><path d="M14 20h6"/>',
+    link: '<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>',
     warn: '<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5"/><path d="M12 17.3h.01"/>'
   };
+  /* The public page of a question: /q/<first words>-<last words>-<hash>/ . Mirrors make_slug() in .github/scripts/build_questions.py: change both together. */
+  function qWords(t) { return (String(t || '').replace(/\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]|\{\{[\s\S]*?\}\}/g, ' ').toLowerCase().match(/[a-z]{2,}/g)) || []; }
+  function publicSlug(q) {
+    var w = qWords(q.question); if (w.length < 6) w = qWords(q.topic).concat(w);
+    var head = w.length > 14 ? w.slice(0, 9) : w, tail = w.length > 14 ? w.slice(-5) : [];
+    while (head.concat(tail).join('-').length > 82 && head.length + tail.length > 4) { if (head.length > tail.length + 3) head = head.slice(0, -1); else if (tail.length) tail = tail.slice(1); else head = head.slice(0, -1); }
+    var enc = new TextEncoder().encode(String(q.id));
+    return crypto.subtle.digest('SHA-1', enc).then(function (h) {
+      var hex = Array.prototype.map.call(new Uint8Array(h), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('').slice(0, 6), s = head.concat(tail).join('-');
+      return (s ? s + '-' : '') + hex;
+    });
+  }
   function setIco(btn, name, label) { btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + QICO[name] + '</svg>'; if (btn.classList.contains('row')) { var sp = document.createElement('span'); sp.textContent = label; btn.appendChild(sp); } btn.title = label; btn.setAttribute('aria-label', label); }
   function icoBtn(name, label, row) { var b = el('button', row ? 'qb-ico row' : 'qb-ico'); b.type = 'button'; setIco(b, name, label); return b; }
   function flash(btn, text) {
